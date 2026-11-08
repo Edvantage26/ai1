@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index at session start, upkeep
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T22:15:28Z'
+  at: '2026-11-08T22:32:23Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -52,7 +52,7 @@ sources:
   Field data (2026-11-01): a long investigation session ran 831 steps and 41 production queries
   without writing to the bundle.
 - **Validation gate (Stop, same module):** when the bundle was changed in the session, the hook
-  runs the bundled validator itself (`python3 packs/okf/.../okf_validate.py --json`, ~0.2 s on a
+  runs the bundled validator itself (`python3 skills/okf-validate-bundle/scripts/okf_validate.py --json`, ~0.2 s on a
   45-concept bundle) and blocks only on ERRORS, listing them; warnings (e.g. v0.1 legacy) never
   block. It also runs when `stop_hook_active` is set (the agent was just asked to update the
   bundle), which is exactly when it matters; the upkeep reminder itself is not repeated then.
@@ -70,7 +70,7 @@ sources:
 
 # Skills and agents
 
-From the [OKF pack](/packs/okf-pack.md): `/ai1:okf-maintain-knowledge`, `/ai1:okf-validate-bundle`, `/ai1:okf-visualize-bundle`,
+From the [OKF toolkit](../packs/okf-pack.md): `/ai1:okf-maintain-knowledge`, `/ai1:okf-validate-bundle`, `/ai1:okf-visualize-bundle`,
 `/ai1:okf-backfill-from-history`, and the agents `bundle-weaver` and `event-analyzer`.
 
 # Coexistence with a standalone OKF setup

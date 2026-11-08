@@ -456,7 +456,7 @@ test('shellCommandWritesBundle: shell writes to the bundle count, reads do not',
   ];
   for (const commandLine of bundleWrites) assert.equal(shellCommandWritesBundle(commandLine, '.ai1/okf'), true, commandLine);
   const bundleReads = [
-    'python3 packs/okf/skills/validate/scripts/okf_validate.py .ai1/okf --strict',
+    'python3 skills/okf-validate-bundle/scripts/okf_validate.py .ai1/okf --strict',
     'cat .ai1/okf/index.md',
     'grep -rn verify .ai1/okf/',
     'git diff --stat .ai1/okf',

@@ -5,7 +5,7 @@ description: What ai1 is, the four pieces of a harness, and what exists today.
 tags: [overview, harness]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T22:15:28Z'
+  at: '2026-11-08T22:32:23Z'
 ---
 
 # What it is
@@ -32,7 +32,7 @@ The frame is generic; each repo describes itself in `.ai1/config.json`
 
 v0.2.0 (2026-10-31): per-repo [features](architecture/features.md) chosen with
 [/ai1:core-setup-repo](features/init.md); the [okf feature](features/okf.md) (index, upkeep, OKF toolkit from
-the [OKF pack](packs/okf-pack.md)) and the [danger guard](guards/danger.md), both on by default.
+the [OKF toolkit](packs/okf-pack.md)) and the [danger guard](guards/danger.md), both on by default.
 Verified in real Claude Code sessions. Next steps in the [roadmap](roadmap.md).
 
 # Code map
@@ -40,7 +40,7 @@ Verified in real Claude Code sessions. Next steps in the [roadmap](roadmap.md).
 - `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`: see [plugin layout](architecture/plugin-layout.md).
 - `bin/ai1-hook.mjs`, `src/`: hook runtime and modules; `src/okf/`: okf feature.
 - `bin/ai1`, `src/cli/`, `skills/core-setup-repo/`: setup CLI and `/ai1:core-setup-repo`.
-- `packs/okf/`: vendored OKF toolkit (git subtree).
+- `skills/okf-*/`, `agents/`, `vendor/`: OKF toolkit, owned by ai1 (see [OKF toolkit](packs/okf-pack.md)).
 - `schema/ai1.schema.json`, `templates/config.json`: the per-repo contract.
 - `test/`: `npm test` (node:test, no dependencies).
 - [PROJECT.md](https://github.com/Edvantage26/ai1/blob/main/PROJECT.md): full spec.

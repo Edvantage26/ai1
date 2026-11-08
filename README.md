@@ -19,7 +19,7 @@ Skills are named `/ai1:<module>-<what it does>`, e.g. `/ai1:okf-validate-bundle`
 A repo set up with the old name (`jig`: `.claude/jig.json`, `.okf/`, `docs/rfc/`, `.jig/work/`) is
 moved to `.ai1/` by `/ai1:core-setup-repo`, with `git mv` so history follows.
 
-> **Status: early (v0.12.0).** Per-repo features, the `okf` feature (project knowledge) and the
+> **Status: early (v0.13.0).** Per-repo features, the `okf` feature (project knowledge) and the
 > `danger` guard work, are tested and verified in real sessions. The `lanes`, `design`, `verify`,
 > `rfc` and `worktrees` features are new and tested, not yet tried in live sessions. Everything marked *planned* does not exist yet.
 
@@ -139,7 +139,7 @@ once whether to stop for a plan (`modules.lanes-escalate.max_files` / `max_lines
 | `/ai1:worktrees-plan-recipe` + `ai1 worktree` (`create`, `list`, `run`, `finish`, `drop`) | worktrees | — | works |
 | Shared read-only caches per dependency version, `writable`, build slots, `WorktreeCreate` hook for heavy repos | worktrees | — | planned |
 | `/ai1:core-setup-repo` + `ai1` CLI (`ai1 status`, `ai1 init`, `ai1 verify`, `ai1 step-done`, `ai1 rfc`, `ai1 worktree`) | — | — | works |
-| OKF toolkit skills and agents (from `packs/okf`) | okf | — | works |
+| OKF toolkit skills and agents (`skills/okf-*`, `agents/`) | okf | — | works |
 | `prod`: blocks writes to production resources declared in `.ai1/config.json` | prod | PreToolUse | planned |
 | `secrets`: refuses committing secrets | secrets | PreToolUse | planned |
 | `verify-gate`: no "done" while code is newer than the last passing run of `verify` | verify | Stop | works |
@@ -154,7 +154,7 @@ wiring. Internal errors never block the agent; a matched rule does.
 
 Requirements: **Node 18+** (hooks and the `ai1` CLI) and **Python 3.9+** (the OKF toolkit scripts),
 nothing else: no `uv`, no `pip install`, no network. PyYAML ships inside the plugin
-(`packs/okf/vendor/`). Python 3.9+ comes with most Linux distributions and with the macOS
+(`vendor/`). Python 3.9+ comes with most Linux distributions and with the macOS
 command line tools (the ones that provide `git`).
 
 ## Development
@@ -207,11 +207,10 @@ The `design` feature takes its rule ids and the idea of a deterministic design d
 hook from [Impeccable](https://github.com/pbakaus/impeccable) by Paul Bakaus (Apache 2.0). The
 checks are written from scratch for source text; no code from it is included.
 
-The OKF toolkit in `packs/okf/` is a git subtree of
-[Edvantage26/okf-skills](https://github.com/Edvantage26/okf-skills), a fork of
-[scaccogatto/okf-skills](https://github.com/scaccogatto/okf-skills) by Marco Boffo (MIT). Its
-`LICENSE`, `NOTICE` and `FORK.md` are kept in that folder; the OKF specification it vendors is
-(c) Google LLC under Apache 2.0.
+The OKF toolkit (`skills/okf-*`, `agents/`) comes from
+[scaccogatto/okf-skills](https://github.com/scaccogatto/okf-skills) by Marco Boffo (MIT) and is
+maintained in this repo; the OKF specification it includes is (c) Google LLC under Apache 2.0.
+Licenses and notices: [THIRD-PARTY.md](THIRD-PARTY.md).
 
 ## License
 

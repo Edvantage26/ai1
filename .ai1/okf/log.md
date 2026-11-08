@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-11-08
+* **Supersession**: the OKF pack (git subtree of the `Edvantage26/okf-skills` fork in `packs/okf/`) is replaced by the [OKF toolkit](packs/okf-pack.md) owned by ai1 (`skills/okf-*`, `agents/`, `vendor/`); the fork is retired.
 * **Supersession**: the plugin `jig` is now `ai1` (all in one): skills `/ai1:<module>-<action>`, CLI `ai1`, and everything it writes in a repo under `.ai1/` (`.claude/jig.json` -> `.ai1/config.json`, `.okf/` -> `.ai1/okf/`, `docs/rfc/` -> `.ai1/rfc/`, `.jig/work/` -> `.ai1/work/`), migrated by `ai1 init`; see [plugin layout](architecture/plugin-layout.md). This bundle moved to `.ai1/okf/`; older entries keep the names of their time.
 * **Creation**: [worktrees feature](features/worktrees.md) — per-project worktree recipe planned with `/jig:worktree` and saved as the project skill, `jig worktree` engine (modes full/light/auto by disk), session brief and reminder; hooks resolve a tree root and a shared root ([hook runtime](architecture/hook-runtime.md)).
 * **Creation**: [rfc feature](features/rfc.md) — proposals and future features in `.ai1/rfc/`, `/jig:rfc`, `jig rfc`, rfc-brief/recall/upkeep; roadmap phases 3, 5 and 6 recorded as RFCs 0001-0003.

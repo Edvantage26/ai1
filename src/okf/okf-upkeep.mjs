@@ -26,7 +26,7 @@ import { RFC_DIRECTORY } from '../rfc/rfc-documents.mjs';
 import { DEFAULT_KNOWLEDGE_PATH } from '../core/config.mjs';
 
 const MODULE_ID = 'okf-upkeep';
-const BUNDLED_VALIDATOR_SCRIPT = fileURLToPath(new URL('../../packs/okf/skills/validate/scripts/okf_validate.py', import.meta.url));
+const BUNDLED_VALIDATOR_SCRIPT = fileURLToPath(new URL('../../skills/okf-validate-bundle/scripts/okf_validate.py', import.meta.url));
 const VALIDATOR_TIMEOUT_MILLISECONDS = 10000;
 const MAX_VALIDATION_BLOCKS_PER_SESSION = 3;
 const MAX_LISTED_ERRORS = 15;

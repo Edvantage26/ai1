@@ -1,3 +1,3 @@
 # Packs
 
-* [OKF pack](okf-pack.md) - vendored OKF toolkit (git subtree) and how to update it.
+* [OKF toolkit](okf-pack.md) - OKF skills, agents and scripts imported from okf-skills and maintained in ai1.

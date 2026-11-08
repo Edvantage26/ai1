@@ -5,19 +5,20 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T22:15:28Z'
+  at: '2026-11-08T22:32:23Z'
 ---
 
 # Layout
 
 ```
-.claude-plugin/plugin.json        manifest (name, version, skills and agents of packs/okf)
+.claude-plugin/plugin.json        manifest (name, version; skills/ and agents/ found by default)
 .claude-plugin/marketplace.json   marketplace "ai1" with one plugin, source "./"
 hooks/hooks.json                  every event -> node bin/ai1-hook.mjs <Event>
 bin/ai1-hook.mjs  bin/ai1         hook entry point and the CLI (on the Bash PATH)
 src/                              core runtime and one folder per feature
-skills/<module>-<action>/         the plugin's own skills
-packs/okf/                        OKF toolkit, git subtree of the okf-skills fork
+skills/<module>-<action>/         every skill, OKF ones included
+agents/                           bundle-weaver, event-analyzer (OKF backfill)
+vendor/yaml/                      PyYAML for the OKF scripts
 schema/  templates/config.json    the per-repo contract
 ```
 
@@ -26,8 +27,9 @@ schema/  templates/config.json    the per-repo contract
 Every skill is `/ai1:<module>-<what it does>` so its owner and purpose read from the name:
 `core-setup-repo`, `lanes-design-before-code`, `rfc-write-proposal`, `worktrees-plan-recipe`, and
 from the OKF pack `okf-maintain-knowledge`, `okf-validate-bundle`, `okf-visualize-bundle`,
-`okf-backfill-from-history` (renamed in the fork, see [OKF pack](../packs/okf-pack.md)). Claude Code
-has no nested skill names, so the module is a prefix. Each description starts with its module.
+`okf-backfill-from-history` (see [OKF toolkit](../packs/okf-pack.md)). Claude Code
+has no nested skill names, so the module is a prefix; it names a plugin skill by its folder, so
+the folder carries the full name. Each description starts with its module.
 
 # What ai1 writes in a repo
 

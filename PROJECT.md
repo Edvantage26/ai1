@@ -39,10 +39,10 @@ ai1/
 ├── src/design/                       design feature: design-brief (SessionStart), design-detect (PostToolUse)
 ├── src/guards/                       PreToolUse modules (danger; planned: prod, secrets)
 ├── src/cli/ + bin/ai1                setup CLI (ai1 status / ai1 init)
-├── skills/core-setup-repo/                      /ai1:core-setup-repo
-├── packs/okf/                        OKF toolkit, git subtree of Edvantage26/okf-skills
-├── schema/ai1.schema.json        contract for editors
-├── templates/config.json            contract example
+├── skills/<module>-<action>/         every skill, e.g. /ai1:core-setup-repo
+├── skills/okf-*/  agents/  vendor/   OKF toolkit (from okf-skills, maintained here)
+├── schema/ai1.schema.json            contract for editors
+├── templates/config.json             contract example
 └── test/                             node:test suite, run in CI on Node 18/20/22
 ```
 
@@ -76,7 +76,7 @@ Decisions: `allow`, `ask`, `deny`, `block` (Stop), `context` (SessionStart). Det
 1. **Core + first guard** (done 2026-10-30): dispatcher, config, schema, `brief`, `danger`, tests, CI,
    verified in real Claude Code sessions.
 2. **Features, okf feature and `/ai1:core-setup-repo`** (done 2026-10-31): per-repo features replace profiles;
-   OKF toolkit vendored as `packs/okf`; okf-index/okf-upkeep; `ai1` CLI. Verified in real sessions.
+   OKF toolkit vendored (now owned: `skills/okf-*`); okf-index/okf-upkeep; `ai1` CLI. Verified in real sessions.
 3. **`prod` and `secrets` guards** (proposal: [RFC 0001](.ai1/rfc/0001-prod-and-secrets-guards.md)).
 4. **`verify` Stop gate** (done 2026-11-08).
 5. **`ai1 doctor`** (proposal: [RFC 0002](.ai1/rfc/0002-ai1-doctor.md)).
