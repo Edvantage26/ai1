@@ -11,8 +11,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { allowDecision, contextDecision } from '../core/hook-io.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
-import { resolveBundleDirectory, readBundleIndex } from '../okf/okf-bundle.mjs';
-import { buildConceptCatalog } from '../okf/okf-recall.mjs';
+import { resolveBundleDirectory, readBundleIndex, listBundleConcepts } from '../okf/okf-bundle.mjs';
 
 const MODULE_ID = 'design-brief';
 const DESIGN_CONCEPT_TYPES = new Set(['product', 'designsystem']);
@@ -25,7 +24,7 @@ export function listDesignContextFiles(projectRoot, config) {
     const bundleDirectory = resolveBundleDirectory(projectRoot, config);
     if (readBundleIndex(bundleDirectory) !== null) {
       const bundleRelativePath = config.knowledge.replace(/^\.\//, '').replace(/\/+$/, '');
-      contextFiles.push(...buildConceptCatalog(bundleDirectory)
+      contextFiles.push(...listBundleConcepts(bundleDirectory)
         .filter((bundleConcept) => DESIGN_CONCEPT_TYPES.has(bundleConcept.type.replace(/[\s_-]/g, '').toLowerCase()))
         .map((bundleConcept) => `${bundleRelativePath}/${bundleConcept.relativePath}`)
         .sort());

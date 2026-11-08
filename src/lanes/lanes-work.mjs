@@ -5,7 +5,7 @@
 // directory, outside the repo; the `status` written in the plan is informative.
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
-import { isAbsolute, join, relative, resolve } from 'node:path';
+import { join, relative } from 'node:path';
 import { resolveStateDirectory, shortHash, readStateText, writeStateText } from '../core/session-state.mjs';
 
 export const JIG_DIRECTORY = '.jig';
@@ -99,13 +99,4 @@ export function ensureJigDirectoryIgnored(projectRoot) {
   mkdirSync(jigDirectory, { recursive: true });
   writeFileSync(ignorePath, '*\n');
   return true;
-}
-
-// Path relative to the project root, or null when it falls outside the project.
-export function projectRelativePath(projectRoot, targetPath, workingDirectory = projectRoot) {
-  if (typeof targetPath !== 'string' || !targetPath) return null;
-  const absolutePath = isAbsolute(targetPath) ? targetPath : resolve(workingDirectory, targetPath);
-  const relativePath = relative(projectRoot, absolutePath);
-  if (!relativePath || relativePath.startsWith('..') || isAbsolute(relativePath)) return null;
-  return relativePath;
 }

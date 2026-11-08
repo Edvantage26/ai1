@@ -4,10 +4,8 @@
 // title and tags weigh most, then description and path, then the body (where the domain words the
 // person actually uses tend to live). Words that appear in most concepts are ignored in the body.
 
-import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
 import { allowDecision, contextDecision } from '../core/hook-io.mjs';
-import { resolveBundleDirectory, readBundleIndex } from './okf-bundle.mjs';
+import { resolveBundleDirectory, readBundleIndex, listBundleConcepts } from './okf-bundle.mjs';
 
 const MODULE_ID = 'okf-recall';
 const MAX_SUGGESTED_CONCEPTS = 5;
@@ -39,55 +37,19 @@ export function normalizeKeywords(text) {
     .map((word) => word.slice(0, TOKEN_PREFIX_LENGTH)))];
 }
 
-function readFrontmatterField(frontmatterText, fieldName) {
-  const fieldMatch = new RegExp(`^${fieldName}:\\s*(.*)$`, 'm').exec(frontmatterText);
-  if (!fieldMatch) return '';
-  const inlineValue = fieldMatch[1].trim();
-  if (inlineValue) return inlineValue.replace(/^\[|\]$/g, '').replace(/^['"]|['"]$/g, '');
-  // Block list: "tags:\n  - a\n  - b"
-  const blockStart = fieldMatch.index + fieldMatch[0].length;
-  const blockItems = [];
-  for (const blockLine of frontmatterText.slice(blockStart).split('\n').slice(1)) {
-    const itemMatch = /^\s*-\s*(.+)$/.exec(blockLine);
-    if (!itemMatch) break;
-    blockItems.push(itemMatch[1]);
-  }
-  return blockItems.join(' ');
-}
-
-function listConceptFiles(directoryPath) {
-  const conceptFiles = [];
-  for (const entryName of readdirSync(directoryPath)) {
-    const entryPath = join(directoryPath, entryName);
-    if (statSync(entryPath).isDirectory()) conceptFiles.push(...listConceptFiles(entryPath));
-    else if (entryName.endsWith('.md') && entryName !== 'index.md' && entryName !== 'log.md') conceptFiles.push(entryPath);
-  }
-  return conceptFiles;
-}
-
 export function buildConceptCatalog(bundleDirectory) {
-  return listConceptFiles(bundleDirectory).map((conceptPath) => {
-    const conceptText = readFileSync(conceptPath, 'utf8');
-    const frontmatterMatch = /^---\n([\s\S]*?)\n---\n?([\s\S]*)$/.exec(conceptText);
-    const frontmatterText = frontmatterMatch ? frontmatterMatch[1] : '';
-    const bodyText = frontmatterMatch ? frontmatterMatch[2] : conceptText;
-    const relativePath = relative(bundleDirectory, conceptPath);
-    const title = readFrontmatterField(frontmatterText, 'title');
-    const description = readFrontmatterField(frontmatterText, 'description');
-    return {
-      relativePath,
-      type: readFrontmatterField(frontmatterText, 'type'),
-      title,
-      description,
-      keywordsByField: {
-        title: new Set(normalizeKeywords(title)),
-        tags: new Set(normalizeKeywords(readFrontmatterField(frontmatterText, 'tags'))),
-        description: new Set(normalizeKeywords(description)),
-        path: new Set(normalizeKeywords(relativePath.replace(/\.md$/, ''))),
-        body: new Set(normalizeKeywords(bodyText)),
-      },
-    };
-  });
+  return listBundleConcepts(bundleDirectory).map((bundleConcept) => ({
+    relativePath: bundleConcept.relativePath,
+    title: bundleConcept.title,
+    description: bundleConcept.description,
+    keywordsByField: {
+      title: new Set(normalizeKeywords(bundleConcept.title)),
+      tags: new Set(normalizeKeywords(bundleConcept.tags)),
+      description: new Set(normalizeKeywords(bundleConcept.description)),
+      path: new Set(normalizeKeywords(bundleConcept.relativePath.replace(/\.md$/, ''))),
+      body: new Set(normalizeKeywords(bundleConcept.bodyText)),
+    },
+  }));
 }
 
 export function rankConceptsForPrompt(promptText, conceptCatalog) {

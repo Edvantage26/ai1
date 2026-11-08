@@ -3,7 +3,7 @@
 // modules say the same thing.
 
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 
 export function resolveBundleDirectory(projectRoot, config) {
   return join(projectRoot, config.knowledge || '.okf');
@@ -30,6 +30,49 @@ export function newestModificationMilliseconds(directoryPath) {
     newestMilliseconds = Math.max(newestMilliseconds, entryMilliseconds);
   }
   return newestMilliseconds;
+}
+
+function readFrontmatterField(frontmatterText, fieldName) {
+  const fieldMatch = new RegExp(`^${fieldName}:\\s*(.*)$`, 'm').exec(frontmatterText);
+  if (!fieldMatch) return '';
+  const inlineValue = fieldMatch[1].trim();
+  if (inlineValue) return inlineValue.replace(/^\[|\]$/g, '').replace(/^['"]|['"]$/g, '');
+  // Block list: "tags:\n  - a\n  - b"
+  const blockStart = fieldMatch.index + fieldMatch[0].length;
+  const blockItems = [];
+  for (const blockLine of frontmatterText.slice(blockStart).split('\n').slice(1)) {
+    const itemMatch = /^\s*-\s*(.+)$/.exec(blockLine);
+    if (!itemMatch) break;
+    blockItems.push(itemMatch[1]);
+  }
+  return blockItems.join(' ');
+}
+
+function listConceptFiles(directoryPath) {
+  const conceptFiles = [];
+  for (const entryName of readdirSync(directoryPath)) {
+    const entryPath = join(directoryPath, entryName);
+    if (statSync(entryPath).isDirectory()) conceptFiles.push(...listConceptFiles(entryPath));
+    else if (entryName.endsWith('.md') && entryName !== 'index.md' && entryName !== 'log.md') conceptFiles.push(entryPath);
+  }
+  return conceptFiles;
+}
+
+// Every concept of the bundle with its main frontmatter fields and its body.
+export function listBundleConcepts(bundleDirectory) {
+  return listConceptFiles(bundleDirectory).map((conceptPath) => {
+    const conceptText = readFileSync(conceptPath, 'utf8');
+    const frontmatterMatch = /^---\n([\s\S]*?)\n---\n?([\s\S]*)$/.exec(conceptText);
+    const frontmatterText = frontmatterMatch ? frontmatterMatch[1] : '';
+    return {
+      relativePath: relative(bundleDirectory, conceptPath),
+      type: readFrontmatterField(frontmatterText, 'type'),
+      title: readFrontmatterField(frontmatterText, 'title'),
+      description: readFrontmatterField(frontmatterText, 'description'),
+      tags: readFrontmatterField(frontmatterText, 'tags'),
+      bodyText: frontmatterMatch ? frontmatterMatch[2] : conceptText,
+    };
+  });
 }
 
 export function buildMaintenanceRules(bundleRelativePath, specVersion) {

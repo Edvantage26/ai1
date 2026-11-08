@@ -187,6 +187,11 @@ test('design-detect: off by default, silent on non-UI files, honours ignore_rule
   writeFileSync(join(designProject, 'styles.css'), '.title { font-size: 9px; }\n');
   assert.equal(runHookEvent('PostToolUse', editPayload(designProject, 'notes.md', 'font-size: 9px'), hookOptions()), null);
   assert.equal(runHookEvent('PostToolUse', editPayload(designProject, 'styles.css', '.title { font-size: 9px; }'), hookOptions()), null);
+
+  const outsideDirectory = mkdtempSync(join(tmpdir(), 'jig-outside-'));
+  writeFileSync(join(outsideDirectory, 'styles.css'), '.title { font-size: 9px; }\n');
+  const outsidePayload = { ...editPayload(designProject, 'x', '.title { font-size: 9px; }'), tool_input: { file_path: join(outsideDirectory, 'styles.css'), new_string: '.title { font-size: 9px; }' } };
+  assert.equal(runHookEvent('PostToolUse', outsidePayload, hookOptions()), null, 'files outside the project are not checked');
 });
 
 function startSessionContext(projectRoot, options = hookOptions(), source = 'startup') {

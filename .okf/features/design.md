@@ -5,7 +5,7 @@ description: UI rules at session start and deterministic design checks on every 
 tags: [design, frontend, ui, hooks, context, impeccable]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T17:55:50Z'
+  at: '2026-11-08T18:24:00Z'
 sources:
   - id: design-rules
     resource: src/design/design-rules.mjs
@@ -35,7 +35,7 @@ Off by default: only repos with a frontend want it.
 | `design-brief` | SessionStart | Context first (lists the design context files), avoid the generic AI look, quality floor, expect design-detect. Mentions `/impeccable critique`, `audit`, `polish` only when Impeccable is installed. Skipped on `resume`. |
 | `design-detect` | PostToolUse (Edit, Write, MultiEdit) | Scans the edited UI file, keeps the findings on lines this edit wrote (Write = whole file; Edit/MultiEdit = where `new_string` landed), reports each once per session (keyed by rule + line text), as `additionalContext`. Never blocks. |
 
-UI files: `.css .scss .sass .less .pcss` (style) and `.html .htm .jsx .tsx .vue .svelte .astro`
+Only files inside the project. UI files: `.css .scss .sass .less .pcss` (style) and `.html .htm .jsx .tsx .vue .svelte .astro`
 (markup); `*.min.*` is skipped. Option `modules.design-detect.ignore_rules` switches rules off.
 
 # Design context

@@ -5,7 +5,7 @@ description: One entry point per hook event that loads jig.json and runs the ena
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T17:55:50Z'
+  at: '2026-11-08T18:24:00Z'
 ---
 
 # Flow
@@ -57,7 +57,9 @@ decide. Garbage input makes the entry point exit 0 with no output.
 
 Shared helpers in `src/core/`: `shell-parse.mjs` (split commands), `shell-writes.mjs` (files a shell
 command writes; used by okf-upkeep and lanes-gate), `session-base.mjs` (HEAD at session start; used
-by okf and lanes), `session-state.mjs` (per-session state files).
+by okf and lanes), `session-state.mjs` (per-session state files), `project-paths.mjs` (tool paths
+relative to the project root; used by lanes and design). The bundle reader `listBundleConcepts`
+(`src/okf/okf-bundle.mjs`) is shared by okf-recall and design-brief.
 
 See [features](features.md), [okf feature](/features/okf.md), [lanes feature](/features/lanes.md), [craft feature](/features/craft.md), [design feature](/features/design.md), [danger guard](/guards/danger.md).
 

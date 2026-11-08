@@ -7,8 +7,9 @@ import { allowDecision, denyDecision } from '../core/hook-io.mjs';
 import { readSessionBase } from '../core/session-base.mjs';
 import { listShellWriteTargets } from '../core/shell-writes.mjs';
 import {
-  listActivePlans, readApprovals, isPlanApproved, projectRelativePath, UNAPPROVED_STATUSES, JIG_DIRECTORY,
+  listActivePlans, readApprovals, isPlanApproved, UNAPPROVED_STATUSES, JIG_DIRECTORY,
 } from './lanes-work.mjs';
+import { projectRelativePath } from '../core/project-paths.mjs';
 
 const MODULE_ID = 'lanes-gate';
 export const FILE_EDITING_TOOLS = ['Edit', 'Write', 'MultiEdit', 'NotebookEdit'];

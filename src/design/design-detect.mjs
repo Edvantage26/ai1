@@ -6,8 +6,9 @@
 // Options (modules.design-detect): ignore_rules: rule ids to switch off in this repo.
 
 import { existsSync, readFileSync, statSync } from 'node:fs';
-import { relative, resolve } from 'node:path';
+import { join } from 'node:path';
 import { allowDecision, contextDecision } from '../core/hook-io.mjs';
+import { projectRelativePath } from '../core/project-paths.mjs';
 import { resolveStateDirectory, sessionStatePath, readStateText, writeStateText, shortHash } from '../core/session-state.mjs';
 import { DESIGN_RULES, classifyUiFile, scanUiFile } from './design-rules.mjs';
 
@@ -65,9 +66,9 @@ export default {
   feature: 'design',
   description: 'Checks every UI file the agent edits against deterministic design rules (generic AI look, contrast, headings, tiny text...) and reports what the edit introduced.',
   run({ hookInput, projectRoot, environment, moduleOptions }) {
-    const editedPath = hookInput.tool_input?.file_path;
-    if (typeof editedPath !== 'string' || !classifyUiFile(editedPath)) return allowDecision();
-    const absolutePath = resolve(hookInput.cwd || projectRoot, editedPath);
+    const relativePath = projectRelativePath(projectRoot, hookInput.tool_input?.file_path, hookInput.cwd || projectRoot);
+    if (!relativePath || !classifyUiFile(relativePath)) return allowDecision();
+    const absolutePath = join(projectRoot, relativePath);
     if (!existsSync(absolutePath) || statSync(absolutePath).size > MAX_SCANNED_FILE_BYTES) return allowDecision();
 
     const fileText = readFileSync(absolutePath, 'utf8');
@@ -78,7 +79,6 @@ export default {
     if (!editFindings.length) return allowDecision();
 
     // Keyed by the line's text, not its number, so a finding that only moved is not reported again.
-    const relativePath = relative(projectRoot, absolutePath) || absolutePath;
     const reportedPath = sessionStatePath(resolveStateDirectory(environment), hookInput.session_id, projectRoot, 'design-reported');
     const reportedKeys = new Set((readStateText(reportedPath) || '').split('\n').filter(Boolean));
     const findingKey = (designFinding) => shortHash(`${relativePath}:${designFinding.ruleId}:${fileLines[designFinding.line - 1].trim()}`);
