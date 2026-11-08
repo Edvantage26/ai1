@@ -288,6 +288,19 @@ test('finish asks for the knowledge bundle when the branch changes code without 
   assert.match(finishResult.notes.join('\n'), /internal helper[\s\S]*validator not run/);
 });
 
+test('the jig worktree CLI creates, lists and drops, in text and JSON', () => {
+  const mainRoot = createRecipeRepo();
+  const jigCli = (cliArguments) => execFileSync(process.execPath, [new URL('../bin/jig', import.meta.url).pathname, ...cliArguments], { cwd: mainRoot, encoding: 'utf8' });
+  const createdText = jigCli(['worktree', 'create', 'cli-made', '--mode', 'light']);
+  assert.match(createdText, /worktree cli-made ready at .*cli-made\nbranch wt\/cli-made from main \| mode light/);
+  assert.match(createdText, /next: jig worktree run cli-made setup/);
+  assert.match(createdText, /EnterWorktree with path/);
+  assert.equal(JSON.parse(jigCli(['worktree', 'list', '--json']))[0].name, 'cli-made');
+  assert.match(jigCli(['worktree', 'list']), /cli-made {2}wt\/cli-made <- main \| ahead 0 behind 0 \| clean \| mode light \| port \d+/);
+  assert.match(jigCli(['worktree', 'drop', 'cli-made', '--confirm']), /worktree cli-made dropped/);
+  assert.throws(() => jigCli(['worktree', 'drop', 'cli-made', '--confirm']), /no worktree "cli-made"/);
+});
+
 test('ports are stable per name and skip taken ones; env files keep other lines', () => {
   assert.equal(pickWorktreePort('feature-a', [12000, 12999]), pickWorktreePort('feature-a', [12000, 12999]));
   const firstPort = pickWorktreePort('feature-a', [12000, 12999]);

@@ -4,10 +4,12 @@
 //   jig init --features okf,danger [--verify "npm test" ...] [--knowledge .okf] [--json]
 //   jig verify                                  run the repo's verify commands, stop at the first failure
 //   jig step-done <slug> "<step>"               jig verify, then log the step in .jig/work/<slug>/progress.md
+//   jig worktree <create|list|run|finish|drop>  worktrees from the project recipe (see src/cli/worktree-cli.mjs)
 // Run from anywhere inside the repo; files are written at the repo root.
 
 import { findRepoRoot, describeRepo, setupRepo } from '../src/cli/setup-repo.mjs';
 import { findMainCheckout } from '../src/core/project-roots.mjs';
+import { runWorktreeCli, WORKTREE_USAGE } from '../src/cli/worktree-cli.mjs';
 import { readVerifyCommands, runVerifyCommands, recordStepDone } from '../src/cli/verify-run.mjs';
 
 const [commandName, ...commandArguments] = process.argv.slice(2);
@@ -29,7 +31,11 @@ const wantsJson = commandArguments.includes('--json');
 const repoRoot = findRepoRoot(process.cwd());
 
 try {
-  if (commandName === 'status') {
+  if (commandName === 'worktree') {
+    const cliResult = runWorktreeCli(process.cwd(), commandArguments);
+    console.log(cliResult.output);
+    process.exitCode = cliResult.exitCode;
+  } else if (commandName === 'status') {
     const repoDescription = describeRepo(repoRoot);
     if (wantsJson) console.log(JSON.stringify(repoDescription, null, 2));
     else {
@@ -73,6 +79,7 @@ try {
     }
   } else {
     console.log('usage: jig status [--json] | jig init --features okf,danger [--verify "<command>" ...] [--knowledge <path>] [--json] | jig verify | jig step-done <slug> "<step>"');
+    console.log(WORKTREE_USAGE);
     process.exitCode = commandName ? 1 : 0;
   }
 } catch (commandError) {
