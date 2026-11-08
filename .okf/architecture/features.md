@@ -5,7 +5,7 @@ description: What a repo chooses in jig.json; each hook module belongs to one fe
 tags: [features, config]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-10-31T12:00:00Z'
+  at: '2026-11-08T16:47:44Z'
 sources:
   - id: features-source
     resource: src/core/features.mjs
@@ -19,8 +19,9 @@ repo switches the single module off with `modules.<id>: false`.
 
 | Feature | Default | Modules | Ships |
 |---|---|---|---|
-| `okf` | on | `okf-index` (SessionStart), `okf-upkeep` (Stop) | OKF pack skills and agents, see [okf feature](/features/okf.md) |
+| `okf` | on | `okf-index` (SessionStart), `okf-recall` (UserPromptSubmit), `okf-upkeep` (Stop) | OKF pack skills and agents, see [okf feature](/features/okf.md) |
 | `danger` | on | `danger` (PreToolUse Bash) | see [danger guard](/guards/danger.md) |
+| `lanes` | off | `lanes-brief` (SessionStart), `lanes-approval` (UserPromptSubmit), `lanes-gate` and `lanes-escalate` (PreToolUse Edit/Write/Bash) | `/jig:deep`, see [lanes feature](/features/lanes.md) |
 | `core` | always on | `brief` (SessionStart) | — |
 
 Feature choice is per repo because plugin options (`userConfig`) are stored per user only in

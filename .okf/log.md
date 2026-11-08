@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-11-08
+* **Creation**: [lanes feature](features/lanes.md) — work lanes by task size, approval gate for deep designs, `/jig:deep` skill.
 * **Verification**: [prior art](decisions/prior-art.md) — Superpowers re-reviewed in depth (v7.0.2) and community view on SDD recorded.
 
 ## 2026-10-31

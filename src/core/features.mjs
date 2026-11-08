@@ -16,6 +16,12 @@ export const FEATURES = [
     enabledByDefault: true,
   },
   {
+    id: 'lanes',
+    title: 'Work lanes by task size',
+    description: 'The agent sizes each task: quick ones are done directly, medium ones get a short plan, complex or risky ones a design with questions that the person approves before any code is edited (skill /jig:deep). Restores progress after compaction.',
+    enabledByDefault: false,
+  },
+  {
     id: 'core',
     title: 'Harness brief',
     description: 'Tells the agent at session start which harness runs in the repo. Always on.',

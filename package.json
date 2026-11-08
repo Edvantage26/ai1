@@ -1,6 +1,6 @@
 {
   "name": "@edvantage/jig",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "The jig for your coding agent: guardrails, verification and project memory, configured per repo.",
   "type": "module",
   "private": true,

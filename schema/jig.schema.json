@@ -15,7 +15,7 @@
     },
     "features": {
       "type": "object",
-      "description": "Features enabled in this repo. Omitted features use their default (okf and danger: on).",
+      "description": "Features enabled in this repo. Omitted features use their default (okf and danger: on, lanes: off).",
       "additionalProperties": false,
       "properties": {
         "okf": {
@@ -27,6 +27,11 @@
           "type": "boolean",
           "default": true,
           "description": "Confirm or refuse destructive shell commands."
+        },
+        "lanes": {
+          "type": "boolean",
+          "default": false,
+          "description": "Work lanes: quick, plan or deep by task size; deep designs need the person's approval before code edits (/jig:deep)."
         }
       }
     },
@@ -165,6 +170,82 @@
                 }
               },
               "additionalProperties": false
+            }
+          ]
+        },
+        "lanes-brief": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "lanes-approval": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "lanes-gate": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "lanes-escalate": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "max_files": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "default": 6,
+                  "description": "Files changed in the session, without a plan, before asking."
+                },
+                "max_lines": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "default": 300,
+                  "description": "Lines changed (added + removed) in the session, without a plan, before asking."
+                }
+              }
             }
           ]
         }

@@ -7,9 +7,9 @@ the same no matter who makes it. `jig` does that for coding agents (Claude Code 
 repo in place with guardrails, makes the agent prove its work before calling it done, and keeps what
 it learns in the repo instead of in a chat that disappears.
 
-> **Status: early (v0.2.0).** Per-repo features, the `okf` feature (project knowledge) and the
-> `danger` guard work, are tested and verified in real sessions. Everything marked *planned* does not
-> exist yet.
+> **Status: early (v0.6.0).** Per-repo features, the `okf` feature (project knowledge) and the
+> `danger` guard work, are tested and verified in real sessions. The `lanes` feature is new and
+> tested, not yet tried in live sessions. Everything marked *planned* does not exist yet.
 
 ## Why
 
@@ -76,6 +76,12 @@ runs the `jig` CLI, so the result is merged and validated, not improvised).
 |---|---|---|
 | `okf` | on | Project knowledge in an [OKF](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf) bundle: loads its index at session start, asks to update it when the session changed files or saved memories after its last update, and ships the OKF toolkit (`/jig:okf`, `/jig:validate`, `/jig:visualize`, `/jig:backfill`) |
 | `danger` | on | Confirms or refuses commands that destroy work or data |
+| `lanes` | off | Sizes each task: quick ones are done directly, medium ones get a short plan, complex or risky ones get questions and a design (`/jig:deep`) that you approve before any code is edited. Restores progress after a compaction |
+
+With `lanes` on, a deep task goes: questions → design in `.jig/work/<slug>/plan.md` (git-ignored) →
+you approve it with a plain "ok"/"aprobado" → step-by-step build with a progress log. Until you
+approve, a hook refuses code edits; if a "quick" task grows past 6 files or 300 lines, it asks you
+once whether to stop for a plan (`modules.lanes-escalate.max_files` / `max_lines`).
 
 ## Components
 
@@ -86,6 +92,11 @@ runs the `jig` CLI, so the result is merged and validated, not improvised).
 | `okf-recall`: on every message, points the agent to the OKF concepts related to it | okf | UserPromptSubmit | works |
 | `okf-upkeep`: asks to update the bundle after changes, new memories or a long run of investigation (findings, ways to validate, ways of working), and runs the OKF validator itself when the bundle changed, blocking only on errors | okf | Stop | works |
 | `danger`: confirms or refuses `git reset --hard`, force push, `rm -rf`, `--no-verify`, `DROP TABLE`... | danger | PreToolUse | works |
+| `lanes-brief`: the lane recipe at session start; restores deep-lane progress after compaction | lanes | SessionStart | works |
+| `lanes-approval`: records your approval of a deep-lane design marked ready | lanes | UserPromptSubmit | works |
+| `lanes-gate`: refuses code edits (tools and shell writes) while a deep design waits for approval | lanes | PreToolUse | works |
+| `lanes-escalate`: asks once when a task without a plan outgrows a quick change | lanes | PreToolUse | works |
+| `/jig:deep`: questions, design, builder check, approval, step-by-step build | lanes | — | works |
 | `/jig:init` + `jig` CLI (`jig status`, `jig init`) | — | — | works |
 | OKF toolkit skills and agents (from `packs/okf`) | okf | — | works |
 | `prod`: blocks writes to production resources declared in `jig.json` | prod | PreToolUse | planned |

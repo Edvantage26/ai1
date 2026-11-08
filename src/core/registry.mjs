@@ -9,8 +9,15 @@ import dangerGuard from '../guards/danger.mjs';
 import okfIndexContext from '../okf/okf-index.mjs';
 import okfUpkeepGate from '../okf/okf-upkeep.mjs';
 import okfRecallContext from '../okf/okf-recall.mjs';
+import lanesBriefContext from '../lanes/lanes-brief.mjs';
+import lanesApprovalContext from '../lanes/lanes-approval.mjs';
+import lanesGate from '../lanes/lanes-gate.mjs';
+import lanesEscalateGuard from '../lanes/lanes-escalate.mjs';
 
-export const ALL_MODULES = [briefContext, okfIndexContext, okfRecallContext, dangerGuard, okfUpkeepGate];
+export const ALL_MODULES = [
+  briefContext, okfIndexContext, okfRecallContext, dangerGuard, okfUpkeepGate,
+  lanesBriefContext, lanesApprovalContext, lanesGate, lanesEscalateGuard,
+];
 
 export const KNOWN_MODULE_IDS = ALL_MODULES.map((moduleDefinition) => moduleDefinition.id);
 

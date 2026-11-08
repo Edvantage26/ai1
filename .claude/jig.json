@@ -3,7 +3,8 @@
   "version": 1,
   "features": {
     "okf": true,
-    "danger": true
+    "danger": true,
+    "lanes": true
   },
   "trunk": "main",
   "verify": [
