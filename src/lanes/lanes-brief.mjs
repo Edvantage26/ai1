@@ -8,6 +8,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { allowDecision, contextDecision } from '../core/hook-io.mjs';
 import { recordSessionBaseHead, readSessionBase } from '../core/session-base.mjs';
+import { isFeatureEnabled } from '../core/features.mjs';
 import {
   listWorkPlans, isPlanFinished, readApprovals, isPlanApproved, ensureJigDirectoryIgnored, WORK_DIRECTORY,
 } from './lanes-work.mjs';
@@ -15,13 +16,14 @@ import {
 const MODULE_ID = 'lanes-brief';
 const PROGRESS_TAIL_LINES = 15;
 
-export function buildLanesRecipe(verifyCommands) {
+export function buildLanesRecipe(verifyCommands, usesWorktrees = false) {
   const verifyText = verifyCommands.length ? verifyCommands.map((verifyCommand) => `\`${verifyCommand}\``).join(', ') : 'the project checks';
   return [
     'Lanes: size every new task before acting and say the lane in one line ("Lane: quick, because ...").',
     `- quick: a clear, contained change (a bug, a wording, a small tweak). Do it, run ${verifyText}, report.`,
     '- plan: several pieces but a clear goal. Read the relevant code, present a short plan (files, steps, how you will verify), and start after the person says yes.',
     '- deep: unclear goal, design choices, a risky area (auth, data, money, migrations, public API) or hours of work. Load the /jig:deep skill and follow it: questions, a design in `' + WORK_DIRECTORY + '/<slug>/plan.md`, approval by the person, then step by step.',
+    ...(usesWorktrees ? ['- plan and deep tasks are built in their own worktree (see Worktrees); name it in the plan so it survives compaction.'] : []),
     'Pick the lightest lane that fits. "rápido"/"quick" or "piénsalo bien"/"think it through" from the person sets the lane. When a quick task grows, stop and move to plan.',
   ].join('\n');
 }
@@ -64,7 +66,7 @@ export default {
     const plansToRestore = isAfterCompaction && sessionBase
       ? unfinishedPlans.filter((workPlan) => workPlan.modifiedMilliseconds >= sessionBase.sessionStartMilliseconds)
       : [];
-    const contextParts = [buildLanesRecipe(config.verify)];
+    const contextParts = [buildLanesRecipe(config.verify, isFeatureEnabled('worktrees', config))];
     const approvals = readApprovals(sharedRoot, environment);
     const planDescription = plansToRestore.length
       ? describeUnfinishedPlans(plansToRestore, approvals, { withProgress: true })

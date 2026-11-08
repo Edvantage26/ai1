@@ -28,6 +28,12 @@ export const FEATURES = [
     enabledByDefault: false,
   },
   {
+    id: 'worktrees',
+    title: 'A worktree per significant change',
+    description: 'Each significant change is done in its own worktree, made the way this project needs (modes full/light/auto by disk, copied env, shared or regenerated heavy folders, a port per worktree, named commands, checked integration). The recipe is planned once with the person (/jig:worktree) and saved as the project skill .claude/skills/worktree/. The agent keeps saying which worktree it works in. Adds `jig worktree`.',
+    enabledByDefault: false,
+  },
+  {
     id: 'design',
     title: 'UI design rules and checks',
     description: 'For repos with a frontend. Gives the agent the UI rules at session start (read the product and design-system context, avoid the generic AI look, keep a quality floor) and checks every UI file it edits with deterministic rules (overused fonts, purple gradients, low contrast, skipped headings, tiny text...), reporting what the edit introduced. Points to the impeccable skill when it is installed.',

@@ -8,7 +8,9 @@ import { ALL_MODULES, KNOWN_MODULE_IDS, modulesForEvent } from './registry.mjs';
 
 export function runHookEvent(eventName, hookInput, { environment = process.env, homeDirectory, availableModules = ALL_MODULES, reportInternalError = defaultErrorReporter } = {}) {
   const { projectRoot, sharedRoot } = resolveProjectRoots(hookInput, environment);
-  const loadedConfig = loadHarnessConfig(projectRoot, KNOWN_MODULE_IDS);
+  // A worktree reads the jig.json of its own branch; one without it (e.g. never committed) uses the main checkout's.
+  let loadedConfig = loadHarnessConfig(projectRoot, KNOWN_MODULE_IDS);
+  if (loadedConfig.status === 'missing' && sharedRoot !== projectRoot) loadedConfig = loadHarnessConfig(sharedRoot, KNOWN_MODULE_IDS);
 
   if (loadedConfig.status === 'missing') {
     // Inactive without a contract: one line at session start so the agent can mention it, nothing else.

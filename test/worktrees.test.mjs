@@ -9,6 +9,7 @@ import { createWorktree, decideMode } from '../src/worktrees/worktree-create.mjs
 import { readWorktreeState } from '../src/worktrees/worktree-state.mjs';
 import { listWorktrees, runWorktreeCommand, dropWorktree } from '../src/worktrees/worktree-ops.mjs';
 import { finishWorktree } from '../src/worktrees/worktree-finish.mjs';
+import { runHookEvent } from '../src/core/dispatcher.mjs';
 import { pickWorktreePort, writeEnvVariables, listListeningPorts } from '../src/worktrees/worktree-ports.mjs';
 import { createTemporaryProject } from './helpers.mjs';
 
@@ -299,6 +300,51 @@ test('the jig worktree CLI creates, lists and drops, in text and JSON', () => {
   assert.match(jigCli(['worktree', 'list']), /cli-made {2}wt\/cli-made <- main \| ahead 0 behind 0 \| clean \| mode light \| port \d+/);
   assert.match(jigCli(['worktree', 'drop', 'cli-made', '--confirm']), /worktree cli-made dropped/);
   assert.throws(() => jigCli(['worktree', 'drop', 'cli-made', '--confirm']), /no worktree "cli-made"/);
+});
+
+function hookOptions(mainRoot) {
+  return {
+    environment: { CLAUDE_PROJECT_DIR: mainRoot, CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'jig-data-')) },
+    homeDirectory: mkdtempSync(join(tmpdir(), 'jig-home-')),
+    reportInternalError: (errorMessage) => { throw new Error(errorMessage); },
+  };
+}
+
+const contextOf = (hookOutput) => hookOutput?.hookSpecificOutput?.additionalContext ?? '';
+
+test('worktree-brief: points to /jig:worktree without a recipe, gives the rules with one, names the session worktree', () => {
+  const bareRoot = createTemporaryProject({ features: { okf: false, worktrees: true } });
+  runGit(bareRoot, ['init', '-q']);
+  assert.match(contextOf(runHookEvent('SessionStart', { session_id: 's', cwd: bareRoot, source: 'startup' }, hookOptions(bareRoot))), /no worktree recipe[\s\S]*\/jig:worktree/);
+  const mainRoot = createRecipeRepo();
+  writeFileSync(join(mainRoot, '.claude', 'jig.json'), JSON.stringify({ features: { okf: false, worktrees: true, lanes: true } }));
+  const options = hookOptions(mainRoot);
+  const mainContext = contextOf(runHookEvent('SessionStart', { session_id: 's', cwd: mainRoot, source: 'startup' }, options));
+  assert.match(mainContext, /Worktrees: do each significant change[\s\S]*jig worktree create <name>/);
+  assert.match(mainContext, /plan and deep tasks are built in their own worktree/);
+  assert.doesNotMatch(mainContext, /This session works in/);
+  assert.equal(mainContext, contextOf(runHookEvent('SessionStart', { session_id: 's', cwd: mainRoot, source: 'startup' }, options)), 'byte-stable');
+  const created = createWorktree(mainRoot, 'brief', { mode: 'light' });
+  const worktreeContext = contextOf(runHookEvent('SessionStart', { session_id: 's2', cwd: created.path, source: 'startup' }, options));
+  assert.match(worktreeContext, new RegExp(`This session works in worktree \`brief\` \\(${created.path}; branch \`wt/brief\`, mode light, port ${created.port}\\)`));
+});
+
+test('worktree-reminder: on change and every N prompts, marking this session, then once when none are left', () => {
+  const mainRoot = createRecipeRepo({ ...TEST_RECIPE, reminder_every: 4 });
+  writeFileSync(join(mainRoot, '.claude', 'jig.json'), JSON.stringify({ features: { okf: false, worktrees: true } }));
+  const options = hookOptions(mainRoot);
+  const sendPrompt = (workingDirectory) => contextOf(runHookEvent('UserPromptSubmit', { session_id: 's', cwd: workingDirectory, prompt: 'go' }, options));
+  assert.equal(sendPrompt(mainRoot), '', 'no worktrees, nothing to say');
+  const created = createWorktree(mainRoot, 'remind', { mode: 'light' });
+  assert.match(sendPrompt(created.path), /\[jig worktrees\] Active: remind \(wt\/remind, light, port \d+\) <- this session\. Start your reply/);
+  assert.equal(sendPrompt(created.path), '', 'unchanged, not yet periodic');
+  assert.match(sendPrompt(created.path), /Active: remind/, 'fourth prompt is periodic');
+  createWorktree(mainRoot, 'other', { mode: 'light' });
+  assert.match(sendPrompt(created.path), /other \(wt\/other[^;]*\); remind .*<- this session/);
+  dropWorktree(mainRoot, 'remind', { confirm: true });
+  dropWorktree(mainRoot, 'other', { confirm: true });
+  assert.equal(sendPrompt(mainRoot), '[jig worktrees] No active worktrees now.');
+  assert.equal(sendPrompt(mainRoot), '');
 });
 
 test('ports are stable per name and skip taken ones; env files keep other lines', () => {
