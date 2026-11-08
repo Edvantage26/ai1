@@ -1,8 +1,10 @@
 // brief: tells the agent, once per session, which harness this repo runs, so it knows the rules
-// before it acts instead of discovering them when a guard stops it.
+// before it acts instead of discovering them when a guard stops it. Also records the session's
+// base HEAD, shared by okf, lanes and verify.
 
 import { contextDecision } from '../core/hook-io.mjs';
 import { FEATURES, isFeatureEnabled } from '../core/features.mjs';
+import { recordSessionBaseHead } from '../core/session-base.mjs';
 
 const MODULE_ID = 'brief';
 
@@ -18,7 +20,10 @@ export function buildHarnessBrief(config, enabledModules) {
   const hookModules = enabledModules.filter((moduleDefinition) => moduleDefinition.id !== MODULE_ID);
   if (hookModules.length) briefLines.push(`Hooks enforcing them: ${hookModules.map((moduleDefinition) => moduleDefinition.id).join(', ')}.`);
   if (config.verify.length) {
-    briefLines.push(`Before saying a change is done, run: ${config.verify.map((verifyCommand) => `\`${verifyCommand}\``).join(', ')}.`);
+    const verifyList = config.verify.map((verifyCommand) => `\`${verifyCommand}\``).join(', ');
+    briefLines.push(isFeatureEnabled('verify', config)
+      ? `Before saying a change is done, run: ${verifyList}, in full (no filters); the verify gate checks it when you stop.`
+      : `Before saying a change is done, run: ${verifyList}.`);
   }
   briefLines.push('When a jig hook asks or refuses, follow its reason; do not work around it.');
   return briefLines.join('\n');
@@ -29,7 +34,9 @@ export default {
   event: 'SessionStart',
   feature: 'core',
   description: 'Summarizes the active harness for the agent at session start.',
-  run({ config, enabledModules }) {
+  run({ hookInput, config, projectRoot, environment, enabledModules }) {
+    // Every feature that judges "what this session changed" needs the HEAD at session start.
+    recordSessionBaseHead(hookInput, projectRoot, environment);
     return contextDecision(MODULE_ID, buildHarnessBrief(config, enabledModules));
   },
 };

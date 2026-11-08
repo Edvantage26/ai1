@@ -22,6 +22,7 @@ repo switches the single module off with `modules.<id>: false`.
 | `okf` | on | `okf-index` (SessionStart), `okf-recall` (UserPromptSubmit), `okf-upkeep` (Stop) | OKF pack skills and agents, see [okf feature](/features/okf.md) |
 | `danger` | on | `danger` (PreToolUse Bash) | see [danger guard](/guards/danger.md) |
 | `craft` | on | `craft-brief` (SessionStart) | see [craft feature](/features/craft.md) |
+| `verify` | on | `verify-gate` (Stop) | `jig verify`, `jig step-done`, see [verify feature](/features/verify.md) |
 | `lanes` | off | `lanes-brief` (SessionStart), `lanes-approval` (UserPromptSubmit), `lanes-gate` and `lanes-escalate` (PreToolUse Edit/Write/Bash) | `/jig:deep`, see [lanes feature](/features/lanes.md) |
 | `design` | off | `design-brief` (SessionStart), `design-detect` (PostToolUse Edit/Write/MultiEdit) | see [design feature](/features/design.md) |
 | `core` | always on | `brief` (SessionStart) | — |

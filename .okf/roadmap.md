@@ -20,7 +20,7 @@ Order changed on 2026-10-30: build the generic structure in jig first, then prov
    edited UI files, ideas from Impeccable. See [design feature](features/design.md).
 3. **`prod` and `secrets` guards**, driven by jig.json (MCP tools writing to production, shell
    patterns, secrets in staged files).
-4. **`verify` Stop gate** (code changed and not verified).
+4. **`verify` Stop gate** (done 2026-11-08): see [verify feature](features/verify.md).
 5. **`jig doctor`**: audit a repo against its features.
 6. **Method skills and reviewers**: `ftd`, `verify`, `review`, finding verifier.
 

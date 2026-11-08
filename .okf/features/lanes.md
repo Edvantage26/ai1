@@ -5,7 +5,7 @@ description: Work lanes by task size - quick, plan or deep - with a hook-enforce
 tags: [lanes, workflow, hooks, skills, approval]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T16:47:44Z'
+  at: '2026-11-08T17:37:09Z'
 sources:
   - id: lanes-work
     resource: src/lanes/lanes-work.mjs
@@ -45,7 +45,8 @@ gate is a hook block; plans live in a local ignored folder.
 - **plan**: read the code, present a short plan, start after a yes (conversation only).
 - **deep**: `/jig:deep` skill - look before asking, one question at a time, design in
   `.jig/work/<slug>/plan.md` (goal, constraints, approaches with the choice, steps with checks,
-  risks, rulings), one builder-check subagent, approval, then step by step with `progress.md`.
+  risks, rulings), one builder-check subagent, approval, then step by step; each step closed with `jig step-done`, which logs it in `progress.md` only when
+  the [verify](verify.md) commands pass.
 
 # Modules (feature `lanes`)
 

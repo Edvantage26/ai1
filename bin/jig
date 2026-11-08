@@ -2,9 +2,12 @@
 // jig CLI. On the Bash PATH while the plugin is enabled.
 //   jig status [--json]                         what this repo runs, and the available features
 //   jig init --features okf,danger [--verify "npm test" ...] [--knowledge .okf] [--json]
+//   jig verify                                  run the repo's verify commands, stop at the first failure
+//   jig step-done <slug> "<step>"               jig verify, then log the step in .jig/work/<slug>/progress.md
 // Run from anywhere inside the repo; files are written at the repo root.
 
 import { findRepoRoot, describeRepo, setupRepo } from '../src/cli/setup-repo.mjs';
+import { readVerifyCommands, runVerifyCommands, recordStepDone } from '../src/cli/verify-run.mjs';
 
 const [commandName, ...commandArguments] = process.argv.slice(2);
 
@@ -54,8 +57,21 @@ try {
       if (setupResult.features.okf && !setupResult.hasKnowledgeBundle) console.log(`no OKF bundle at ${setupResult.knowledge}/ yet: create it with /jig:okf (produce mode)`);
       console.log('Commit .claude/jig.json and .claude/settings.json, then restart the Claude Code session.');
     }
+  } else if (commandName === 'verify' || commandName === 'step-done') {
+    const [planSlug, stepText] = commandArguments;
+    if (commandName === 'step-done' && (!planSlug || !stepText)) throw new Error('usage: jig step-done <slug> "<step>"');
+    const verifyCommands = readVerifyCommands(repoRoot);
+    const verifyResult = runVerifyCommands(repoRoot, verifyCommands);
+    if (!verifyResult.passed) {
+      console.error(`jig: \`${verifyResult.failedCommand}\` failed (exit ${verifyResult.exitCode})${commandName === 'step-done' ? '; step not recorded' : ''}`);
+      process.exitCode = verifyResult.exitCode || 1;
+    } else if (commandName === 'step-done') {
+      console.log(`jig: verify green; step recorded in ${recordStepDone(repoRoot, planSlug, stepText, verifyCommands)}`);
+    } else {
+      console.log(`jig: verify green (${verifyCommands.join(', ')})`);
+    }
   } else {
-    console.log('usage: jig status [--json] | jig init --features okf,danger [--verify "<command>" ...] [--knowledge <path>] [--json]');
+    console.log('usage: jig status [--json] | jig init --features okf,danger [--verify "<command>" ...] [--knowledge <path>] [--json] | jig verify | jig step-done <slug> "<step>"');
     process.exitCode = commandName ? 1 : 0;
   }
 } catch (commandError) {

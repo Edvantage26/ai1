@@ -71,9 +71,9 @@ edits. If they ask for changes, update the plan, keep `status: ready` and ask ag
 
 ## 7. Build step by step
 
-- One step at a time, in plan order. After each step run the repo's verify commands and append a
-  line to `.jig/work/<slug>/progress.md`: `<step> - <result> - <files or commit>`; tick the step
-  in the plan.
+- One step at a time, in plan order. Close each step with `jig step-done <slug> "<step>: <files or
+  commit>"`: it runs the repo's verify commands and logs the step in `progress.md` only if they
+  pass. Tick the step in the plan. If it fails, fix it before the next step.
 - When reality contradicts the design, stop: update the plan, set `status: ready`, ask again.
 - After a compaction, the plan and progress are put back in context: trust them and `git log`
   over memory.

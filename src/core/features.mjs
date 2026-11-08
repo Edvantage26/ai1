@@ -34,6 +34,12 @@ export const FEATURES = [
     enabledByDefault: false,
   },
   {
+    id: 'verify',
+    title: 'Verification gate',
+    description: 'The agent cannot finish while code it changed is newer than the last passing run of the verify commands in jig.json (run in full, no filters). Adds `jig verify` and `jig step-done`.',
+    enabledByDefault: true,
+  },
+  {
     id: 'core',
     title: 'Harness brief',
     description: 'Tells the agent at session start which harness runs in the repo. Always on.',
