@@ -77,8 +77,11 @@ Code session id, on the web, or when the Paseo agent is not a Claude one (use `b
 3. Show the person the path and a two-line summary; launch after their yes:
 
    ```bash
-   ai1 fork brief --file <path> [--title "<title>"]
+   ai1 fork brief --file <path> [--title "<title>"] [--cwd <dir>]
    ```
+
+   `--cwd` starts it in another directory (default: the repo root), e.g. when the task moves or
+   removes this repo's folder.
 
 ## 3. Report
 

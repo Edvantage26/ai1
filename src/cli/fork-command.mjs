@@ -1,6 +1,6 @@
 // `ai1 fork`: a new conversation from this one (see src/session/fork-session.mjs).
 //   full  [--title "<t>"] [--task "<first instruction>"]   copy of the whole conversation
-//   brief --file <brief.md> [--title "<t>"]                  clean conversation from a handoff
+//   brief --file <brief.md> [--title "<t>"] [--cwd <dir>]    clean conversation from a handoff, started in <dir> (default: repo root)
 //   brief-path <slug>                                         where to write the handoff
 //   host                                                      what host was detected and why
 // Every command takes --json.
@@ -8,7 +8,7 @@
 import { detectForkHost } from '../session/fork-host.mjs';
 import { forkFullConversation, startBriefConversation, resolveHandoffPath, runExternalCommand } from '../session/fork-session.mjs';
 
-export const FORK_USAGE = 'usage: ai1 fork full [--title "<t>"] [--task "<first instruction>"] | brief --file <brief.md> [--title "<t>"] | brief-path <slug> | host  (all take --json)';
+export const FORK_USAGE = 'usage: ai1 fork full [--title "<t>"] [--task "<first instruction>"] | brief --file <brief.md> [--title "<t>"] [--cwd <dir>] | brief-path <slug> | host  (all take --json)';
 
 function describeForkResult(forkResult) {
   return [
@@ -44,7 +44,7 @@ export function runForkCommand(repoRoot, commandArguments, { readOption, environ
     return 0;
   }
   if (subcommandName === 'brief') {
-    const forkResult = startBriefConversation({ environment, cwd: repoRoot, host, title: readOption('--title'), briefPath: readOption('--file'), runCommand });
+    const forkResult = startBriefConversation({ environment, cwd: readOption('--cwd') || repoRoot, host, title: readOption('--title'), briefPath: readOption('--file'), runCommand });
     printResult(forkResult, describeForkResult(forkResult));
     return 0;
   }

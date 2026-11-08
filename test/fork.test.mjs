@@ -155,6 +155,12 @@ test('ai1 fork CLI: host, brief-path and full with --json; unknown subcommand pr
   const forkJson = JSON.parse(outputLines[0]);
   assert.equal(forkJson.title, 'Other way');
   assert.equal(forkJson.host.id, 'terminal');
+  const briefArguments = ['brief', '--file', writeBrief(), '--cwd', '/elsewhere', '--json'];
+  const readBriefOption = (optionName) => { const optionIndex = briefArguments.indexOf(optionName); return optionIndex >= 0 ? briefArguments[optionIndex + 1] : undefined; };
+  const briefRunner = createFakeRunner();
+  runForkCommand('/repo', briefArguments, { readOption: readBriefOption, environment: { PASEO_AGENT_ID: PASEO_AGENT }, runCommand: briefRunner.runCommand, platformName: 'linux', writeOutput: () => {} });
+  const runArguments = briefRunner.callsOf('paseo', 'run')[0].programArguments;
+  assert.equal(runArguments[runArguments.indexOf('--cwd') + 1], '/elsewhere', 'brief --cwd starts the conversation elsewhere');
   const usageLines = [];
   assert.equal(runForkCommand('/repo', ['nope'], { readOption: () => undefined, environment: {}, writeOutput: (outputText) => usageLines.push(outputText) }), 1);
   assert.match(usageLines[0], /usage: ai1 fork full/);
