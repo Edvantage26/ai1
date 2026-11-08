@@ -15,8 +15,8 @@ test('every hook command points to the single entrypoint with a known event', ()
   const hooksConfig = readJson('hooks/hooks.json').hooks;
   for (const [eventName, matcherGroups] of Object.entries(hooksConfig)) {
     for (const hookCommand of matcherGroups.flatMap((matcherGroup) => matcherGroup.hooks)) {
-      assert.equal(hookCommand.command, `node "\${CLAUDE_PLUGIN_ROOT}/bin/jig-hook.mjs" ${eventName}`);
+      assert.equal(hookCommand.command, `node "\${CLAUDE_PLUGIN_ROOT}/bin/ai1-hook.mjs" ${eventName}`);
     }
   }
-  assert.ok(existsSync(fileURLToPath(new URL('../bin/jig-hook.mjs', import.meta.url))));
+  assert.ok(existsSync(fileURLToPath(new URL('../bin/ai1-hook.mjs', import.meta.url))));
 });

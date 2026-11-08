@@ -52,7 +52,7 @@ export function buildDesignRecipe({ contextFiles, canRecordInBundle, hasImpeccab
     contextRule = `- Context first: before building or changing UI, read the product and design-system context (${contextFiles.map((contextFile) => `\`${contextFile}\``).join(', ')}): who the product is for, its tone, palette, type scale, spacing and radii. Use its tokens; a new colour, font or size is a deliberate addition to that context, not a one-off.`;
   } else {
     const recordWhere = canRecordInBundle
-      ? 'record the answers as knowledge concepts of type `Product` and `DesignSystem` (with /jig:okf)'
+      ? 'record the answers as knowledge concepts of type `Product` and `DesignSystem` (with /ai1:okf-maintain-knowledge)'
       : 'write them down in the repo';
     contextRule = `- Context first: there is no product or design-system context yet. Before a sizeable UI task, ask the person who the product is for, its tone and its brand (colours, typefaces), then ${recordWhere} and follow them.`;
   }

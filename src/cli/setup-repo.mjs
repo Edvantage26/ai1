@@ -1,5 +1,5 @@
-// Writes the per-repo harness: .claude/jig.json (features and contract) and
-// .claude/settings.json (enables jig for whoever opens the repo). Both files are merged with what
+// Writes the per-repo harness: .ai1/config.json (features and contract) and
+// .claude/settings.json (enables ai1 for whoever opens the repo). Both files are merged with what
 // already exists, so running it again only changes what the person chose.
 // Overrides that only make sense on this machine (switching off the person's own standalone OKF
 // plugin) go to .claude/settings.local.json, which is personal and kept out of git.
@@ -9,14 +9,13 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } fr
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { FEATURES, KNOWN_FEATURE_IDS, isFeatureEnabled } from '../core/features.mjs';
-import { validateHarnessConfig, listUnknownConfigEntries, SUPPORTED_CONFIG_VERSION } from '../core/config.mjs';
+import { validateHarnessConfig, listUnknownConfigEntries, SUPPORTED_CONFIG_VERSION, SCHEMA_URL, AI1_DIRECTORY, AI1_PLUGIN_ID, CONFIG_RELATIVE_PATH, DEFAULT_KNOWLEDGE_PATH } from '../core/config.mjs';
 import { KNOWN_MODULE_IDS } from '../core/registry.mjs';
 import { findMainCheckout } from '../core/project-roots.mjs';
 import { loadRecipe } from '../worktrees/worktree-recipe.mjs';
+import { planLegacyMigration, migrateLegacyLayout, readLegacyConfig } from './legacy-migration.mjs';
 
-export const SCHEMA_URL = 'https://raw.githubusercontent.com/Edvantage26/jig/main/schema/jig.schema.json';
-export const JIG_PLUGIN_ID = 'jig@jig';
-export const JIG_MARKETPLACE = { source: { source: 'github', repo: 'Edvantage26/jig' } };
+export const AI1_MARKETPLACE = { source: { source: 'github', repo: 'Edvantage26/ai1' } };
 
 function readJsonFile(filePath) {
   return existsSync(filePath) ? JSON.parse(readFileSync(filePath, 'utf8')) : null;
@@ -49,14 +48,14 @@ export function detectTrunkBranch(repoRoot) {
 }
 
 // Another enabled plugin that also ships OKF skills (e.g. a standalone `okf@...`) would duplicate
-// /okf:* and /jig:* in this repo, so jig switches it off here when the okf feature is on.
+// /okf:* and /ai1:* in this repo, so ai1 switches it off here when the okf feature is on.
 export function findOtherOkfPlugins(userSettings) {
   return Object.entries(userSettings?.enabledPlugins || {})
     .filter(([pluginId, isEnabled]) => isEnabled && /^okf@/.test(pluginId))
     .map(([pluginId]) => pluginId);
 }
 
-// Makes sure the repo itself ignores .claude/settings.local.json before jig writes into it.
+// Makes sure the repo itself ignores .claude/settings.local.json before ai1 writes into it.
 // A rule from the person's global git excludes does not count: a teammate's clone would not have it.
 export function ensureLocalSettingsIgnored(repoRoot) {
   const ignoreMatch = runGit(repoRoot, ['check-ignore', '-v', '.claude/settings.local.json']);
@@ -77,21 +76,24 @@ function describeWorktreeRecipe(repoRoot) {
 }
 
 export function describeRepo(repoRoot) {
-  const jigConfig = readJsonFile(join(repoRoot, '.claude', 'jig.json'));
-  const knowledgePath = jigConfig?.knowledge || '.okf';
+  const ai1Config = readJsonFile(join(repoRoot, CONFIG_RELATIVE_PATH));
+  // Before a migration, the features and trunk the repo had under the old name.
+  const featureSourceConfig = ai1Config ?? readLegacyConfig(repoRoot);
+  const knowledgePath = ai1Config?.knowledge || DEFAULT_KNOWLEDGE_PATH;
   return {
     repoRoot,
-    hasJigConfig: jigConfig !== null,
-    trunk: jigConfig?.trunk || detectTrunkBranch(repoRoot),
+    hasAi1Config: ai1Config !== null,
+    trunk: featureSourceConfig?.trunk || detectTrunkBranch(repoRoot),
     knowledge: knowledgePath,
     hasKnowledgeBundle: existsSync(join(repoRoot, knowledgePath, 'index.md')),
     worktreeRecipe: describeWorktreeRecipe(repoRoot),
+    legacyMigration: planLegacyMigration(repoRoot),
     features: FEATURES.filter((featureDefinition) => !featureDefinition.alwaysOn).map((featureDefinition) => ({
       id: featureDefinition.id,
       title: featureDefinition.title,
       description: featureDefinition.description,
       enabledByDefault: featureDefinition.enabledByDefault,
-      enabled: jigConfig ? isFeatureEnabled(featureDefinition.id, { features: jigConfig.features || {} }) : featureDefinition.enabledByDefault,
+      enabled: featureSourceConfig ? isFeatureEnabled(featureDefinition.id, { features: featureSourceConfig.features || {} }) : featureDefinition.enabledByDefault,
     })),
   };
 }
@@ -99,30 +101,32 @@ export function describeRepo(repoRoot) {
 export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, knowledgePath, userSettingsPath = join(homedir(), '.claude', 'settings.json') }) {
   const unknownFeatureIds = enabledFeatureIds.filter((featureId) => !KNOWN_FEATURE_IDS.includes(featureId));
   if (unknownFeatureIds.length) throw new Error(`unknown features: ${unknownFeatureIds.join(', ')}`);
+  const legacyMigration = migrateLegacyLayout(repoRoot);
   const claudeDirectory = join(repoRoot, '.claude');
   mkdirSync(claudeDirectory, { recursive: true });
 
-  const jigConfigPath = join(claudeDirectory, 'jig.json');
-  const existingJigConfig = readJsonFile(jigConfigPath) || {};
+  mkdirSync(join(repoRoot, AI1_DIRECTORY), { recursive: true });
+  const ai1ConfigPath = join(repoRoot, CONFIG_RELATIVE_PATH);
+  const existingAi1Config = readJsonFile(ai1ConfigPath) || {};
   const selectableFeatureIds = FEATURES.filter((featureDefinition) => !featureDefinition.alwaysOn).map((featureDefinition) => featureDefinition.id);
   const chosenFeatures = Object.fromEntries(selectableFeatureIds.map((featureId) => [featureId, enabledFeatureIds.includes(featureId)]));
-  const jigConfig = {
+  const ai1Config = {
     $schema: SCHEMA_URL,
     version: SUPPORTED_CONFIG_VERSION,
-    ...existingJigConfig,
+    ...existingAi1Config,
     features: chosenFeatures,
-    trunk: existingJigConfig.trunk || detectTrunkBranch(repoRoot),
-    verify: verifyCommands ?? existingJigConfig.verify ?? [],
-    knowledge: knowledgePath || existingJigConfig.knowledge || '.okf',
+    trunk: existingAi1Config.trunk || detectTrunkBranch(repoRoot),
+    verify: verifyCommands ?? existingAi1Config.verify ?? [],
+    knowledge: knowledgePath || existingAi1Config.knowledge || DEFAULT_KNOWLEDGE_PATH,
   };
-  const validationErrors = [...validateHarnessConfig(jigConfig), ...listUnknownConfigEntries(jigConfig, KNOWN_MODULE_IDS).map((unknownEntry) => `unknown ${unknownEntry}`)];
-  if (validationErrors.length) throw new Error(`resulting jig.json is invalid: ${validationErrors.join('; ')}`);
-  writeJsonFile(jigConfigPath, jigConfig);
+  const validationErrors = [...validateHarnessConfig(ai1Config), ...listUnknownConfigEntries(ai1Config, KNOWN_MODULE_IDS).map((unknownEntry) => `unknown ${unknownEntry}`)];
+  if (validationErrors.length) throw new Error(`resulting ${CONFIG_RELATIVE_PATH} is invalid: ${validationErrors.join('; ')}`);
+  writeJsonFile(ai1ConfigPath, ai1Config);
 
   const settingsPath = join(claudeDirectory, 'settings.json');
   const projectSettings = readJsonFile(settingsPath) || {};
-  projectSettings.extraKnownMarketplaces = { ...projectSettings.extraKnownMarketplaces, jig: JIG_MARKETPLACE };
-  projectSettings.enabledPlugins = { ...projectSettings.enabledPlugins, [JIG_PLUGIN_ID]: true };
+  projectSettings.extraKnownMarketplaces = { ...projectSettings.extraKnownMarketplaces, ai1: AI1_MARKETPLACE };
+  projectSettings.enabledPlugins = { ...projectSettings.enabledPlugins, [AI1_PLUGIN_ID]: true };
   writeJsonFile(settingsPath, projectSettings);
 
   const disabledPlugins = chosenFeatures.okf ? findOtherOkfPlugins(readJsonFile(userSettingsPath)) : [];
@@ -137,14 +141,15 @@ export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, knowled
   }
 
   return {
-    jigConfigPath,
+    ai1ConfigPath,
     settingsPath,
     localSettingsPath: disabledPlugins.length ? localSettingsPath : null,
     gitignoreUpdated,
     features: chosenFeatures,
-    trunk: jigConfig.trunk,
-    knowledge: jigConfig.knowledge,
-    hasKnowledgeBundle: existsSync(join(repoRoot, jigConfig.knowledge, 'index.md')),
+    trunk: ai1Config.trunk,
+    knowledge: ai1Config.knowledge,
+    hasKnowledgeBundle: existsSync(join(repoRoot, ai1Config.knowledge, 'index.md')),
     disabledPlugins,
+    legacyMigration,
   };
 }

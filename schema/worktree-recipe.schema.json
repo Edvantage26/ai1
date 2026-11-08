@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/Edvantage26/jig/main/schema/worktree-recipe.schema.json",
-  "title": "jig worktree recipe (.claude/skills/worktree/recipe.json)",
-  "description": "How this project makes worktrees: where, which modes, what to copy, share, regenerate or exclude, ports, env, setup, named commands and how to close. Written by /jig:worktree after the person approves it.",
+  "$id": "https://raw.githubusercontent.com/Edvantage26/ai1/main/schema/worktree-recipe.schema.json",
+  "title": "ai1 worktree recipe (.claude/skills/worktree/recipe.json)",
+  "description": "How this project makes worktrees: where, which modes, what to copy, share, regenerate or exclude, ports, env, setup, named commands and how to close. Written by /ai1:worktrees-plan-recipe after the person approves it.",
   "type": "object",
   "properties": {
     "$schema": { "type": "string" },
@@ -16,7 +16,7 @@
     "base": {
       "type": "string",
       "minLength": 1,
-      "description": "Branch a new worktree starts from: current (the main checkout's branch), trunk (jig.json trunk) or a branch name. Default current."
+      "description": "Branch a new worktree starts from: current (the main checkout's branch), trunk (.ai1/config.json trunk) or a branch name. Default current."
     },
     "default_mode": {
       "type": "string",
@@ -82,16 +82,16 @@
     "env": {
       "type": "object",
       "additionalProperties": { "type": "string" },
-      "description": "Variables exported by `jig worktree run`. Placeholders: {{name}}, {{branch}}, {{path}}, {{repo_root}}, {{repo_parent}}, {{port}}."
+      "description": "Variables exported by `ai1 worktree run`. Placeholders: {{name}}, {{branch}}, {{path}}, {{repo_root}}, {{repo_parent}}, {{port}}."
     },
     "setup": {
       "type": "array",
       "items": { "type": "string", "minLength": 1 },
-      "description": "Commands the agent runs in a new worktree with `jig worktree run <name> setup`."
+      "description": "Commands the agent runs in a new worktree with `ai1 worktree run <name> setup`."
     },
     "commands": {
       "type": "object",
-      "description": "Named project steps run with `jig worktree run <name> <command> [args...]` (args fill {{args}} or are appended). pre-finish runs before finish integrates.",
+      "description": "Named project steps run with `ai1 worktree run <name> <command> [args...]` (args fill {{args}} or are appended). pre-finish runs before finish integrates.",
       "additionalProperties": {
         "oneOf": [
           { "type": "string", "minLength": 1 },
@@ -107,7 +107,7 @@
         "dirty_base_paths_ok": {
           "type": "array",
           "items": { "type": "string", "minLength": 1 },
-          "description": "Uncommitted paths in the base checkout that do not stop finish (e.g. .okf/ edited by another session)."
+          "description": "Uncommitted paths in the base checkout that do not stop finish (e.g. .ai1/okf/ edited by another session)."
         }
       }
     },

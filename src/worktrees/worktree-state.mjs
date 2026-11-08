@@ -1,5 +1,5 @@
 // Where the worktree engine keeps its records: one JSON per worktree in
-// `<git-common-dir>/jig-worktrees/`, shared by every checkout of the repo, outside all of them
+// `<git-common-dir>/ai1-worktrees/`, shared by every checkout of the repo, outside all of them
 // (invisible to git status, untouched when a worktree is removed).
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, unlinkSync, writeFileSync } from 'node:fs';
@@ -25,7 +25,7 @@ export function validateWorktreeName(worktreeName) {
 }
 
 export function worktreeStateDirectory(commonDirectory) {
-  return join(commonDirectory, 'jig-worktrees');
+  return join(commonDirectory, 'ai1-worktrees');
 }
 
 function worktreeStatePath(commonDirectory, worktreeName) {

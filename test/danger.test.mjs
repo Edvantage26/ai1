@@ -42,10 +42,10 @@ const EXPECTED_DECISIONS = [
   ['sudo rm -rf /var/lib/app', 'ask'],
   ['git worktree remove --force .claude/worktrees/feature', 'ask'],
   ['git worktree remove -f ../feature', 'ask'],
-  ['jig worktree drop feature --confirm', 'ask'],
-  ['jig worktree finish feature', 'ask'],
+  ['ai1 worktree drop feature --confirm', 'ask'],
+  ['ai1 worktree finish feature', 'ask'],
   ['git worktree list', 'allow'],
-  ['jig worktree list', 'allow'],
+  ['ai1 worktree list', 'allow'],
   // Bypassing safety or wiping everything: refused.
   ['git commit --no-verify -m "wip"', 'deny'],
   ['git commit -nm "wip"', 'deny'],
@@ -76,7 +76,7 @@ test('ignore_rules switches a rule off for the repo', () => {
 });
 
 test('plain git worktree remove asks only when the worktree holds ignored files', () => {
-  const mainRoot = realpathSync(mkdtempSync(join(tmpdir(), 'jig-danger-wt-')));
+  const mainRoot = realpathSync(mkdtempSync(join(tmpdir(), 'ai1-danger-wt-')));
   const runGit = (gitArguments) => execFileSync('git', ['-C', mainRoot, ...gitArguments], { stdio: 'ignore' });
   writeFileSync(join(mainRoot, '.gitignore'), '.env\n');
   runGit(['init', '-q']);

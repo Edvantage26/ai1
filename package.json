@@ -1,7 +1,7 @@
 {
-  "name": "@edvantage/jig",
+  "name": "@edvantage/ai1",
   "version": "0.11.0",
-  "description": "The jig for your coding agent: guardrails, verification and project memory, configured per repo.",
+  "description": "ai1 (all in one) for your coding agent: guardrails, verification and project memory, configured per repo.",
   "type": "module",
   "private": true,
   "license": "MIT",

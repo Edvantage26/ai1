@@ -47,7 +47,7 @@ export function buildDesignReport(relativePath, newFindings) {
     if (!linesByRule.has(designFinding.ruleId)) linesByRule.set(designFinding.ruleId, []);
     linesByRule.get(designFinding.ruleId).push(designFinding.line);
   }
-  const reportLines = [`Design check (jig/design-detect) on ${relativePath}, in the lines this edit wrote:`];
+  const reportLines = [`Design check (ai1/design-detect) on ${relativePath}, in the lines this edit wrote:`];
   for (const [ruleId, findingLines] of [...linesByRule].slice(0, MAX_LISTED_RULES)) {
     const designRule = DESIGN_RULES.find((candidateRule) => candidateRule.id === ruleId);
     const listedLines = findingLines.slice(0, MAX_LISTED_LINES_PER_RULE).map((findingLine) => `L${findingLine}`).join(', ')
@@ -55,7 +55,7 @@ export function buildDesignReport(relativePath, newFindings) {
     reportLines.push(`  - [${ruleId}]${designRule.isHint ? ' (hint)' : ''} ${listedLines}: ${designRule.summary}`);
   }
   if (linesByRule.size > MAX_LISTED_RULES) reportLines.push(`  - ... and ${linesByRule.size - MAX_LISTED_RULES} more rules`);
-  reportLines.push('Fix the ones that are not a deliberate choice. If one is deliberate (brand font, a chosen style), keep it and say why in one line. Hints are for review, not mandatory. The repo can switch a rule off in .claude/jig.json (modules.design-detect.ignore_rules).');
+  reportLines.push('Fix the ones that are not a deliberate choice. If one is deliberate (brand font, a chosen style), keep it and say why in one line. Hints are for review, not mandatory. The repo can switch a rule off in .ai1/config.json (modules.design-detect.ignore_rules).');
   return reportLines.join('\n');
 }
 

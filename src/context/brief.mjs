@@ -11,10 +11,10 @@ const MODULE_ID = 'brief';
 export function buildHarnessBrief(config, enabledModules) {
   const activeFeatures = FEATURES.filter((featureDefinition) => !featureDefinition.alwaysOn && isFeatureEnabled(featureDefinition.id, config));
   const briefLines = [
-    `jig harness is active in this repo (protected branch: ${config.trunk}).`,
+    `ai1 harness is active in this repo (protected branch: ${config.trunk}).`,
   ];
   if (activeFeatures.length) {
-    briefLines.push('Features enabled in .claude/jig.json:');
+    briefLines.push('Features enabled in .ai1/config.json:');
     for (const featureDefinition of activeFeatures) briefLines.push(`- ${featureDefinition.id}: ${featureDefinition.description}`);
   }
   const hookModules = enabledModules.filter((moduleDefinition) => moduleDefinition.id !== MODULE_ID);
@@ -25,7 +25,7 @@ export function buildHarnessBrief(config, enabledModules) {
       ? `Before saying a change is done, run: ${verifyList}, in full (no filters); the verify gate checks it when you stop.`
       : `Before saying a change is done, run: ${verifyList}.`);
   }
-  briefLines.push('When a jig hook asks or refuses, follow its reason; do not work around it.');
+  briefLines.push('When a ai1 hook asks or refuses, follow its reason; do not work around it.');
   return briefLines.join('\n');
 }
 

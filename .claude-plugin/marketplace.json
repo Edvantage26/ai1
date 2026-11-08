@@ -1,18 +1,18 @@
 {
-  "name": "jig",
+  "name": "ai1",
   "owner": {
     "name": "Edvantage",
     "url": "https://github.com/Edvantage26"
   },
   "metadata": {
-    "description": "Marketplace for jig, a configurable harness for coding agents.",
+    "description": "Marketplace for ai1, a configurable harness for coding agents.",
     "version": "0.11.0"
   },
   "plugins": [
     {
-      "name": "jig",
+      "name": "ai1",
       "source": "./",
-      "description": "Per-repo features for coding agents: OKF project knowledge, destructive-command guard and more, chosen in .claude/jig.json.",
+      "description": "Per-repo features for coding agents: OKF project knowledge, destructive-command guard and more, chosen in .ai1/config.json.",
       "category": "development"
     }
   ]

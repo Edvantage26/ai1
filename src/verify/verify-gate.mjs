@@ -2,7 +2,7 @@
 // this session is newer than the last run of each `verify` command, or while that last run failed.
 // "Done" means a command showed it, not that the agent said so.
 // - Runs are read from the transcript: a Bash call whose simple commands include the full verify
-//   command (redirects allowed, extra arguments or filters not), or `jig verify` / `jig step-done`.
+//   command (redirects allowed, extra arguments or filters not), or `ai1 verify` / `ai1 step-done`.
 //   Exit code from the tool result (`is_error`), plus common failure summaries for piped output.
 // - Changes are judged by file modification time against the end of the run, so edits made by
 //   subagents or shell commands count too.
@@ -20,7 +20,7 @@ import { readNewTranscriptEvents, eventContentBlocks, TOOL_USE_MARKER, TOOL_RESU
 const MODULE_ID = 'verify-gate';
 const MAX_BLOCKS_PER_SITUATION = 2;
 const MAX_LISTED_FILES = 10;
-export const DEFAULT_IGNORED_PATHS = ['*.md', '.claude/**', '.jig/**'];
+export const DEFAULT_IGNORED_PATHS = ['*.md', '.claude/**', '.ai1/**'];
 const REDIRECT_WORD = /^(?:\d|&)?(?:>>?|<<?)/;
 const FAILURE_SUMMARIES = [
   /^# fail [1-9]/m, // node:test, TAP
@@ -28,7 +28,7 @@ const FAILURE_SUMMARIES = [
   /^FAILED\b/m, // pytest, go
   /^FAIL\b/m, // jest, go
 ];
-const JIG_VERIFYING_SUBCOMMANDS = new Set(['verify', 'step-done']);
+const AI1_VERIFYING_SUBCOMMANDS = new Set(['verify', 'step-done']);
 
 // The words of a simple command without its redirects, e.g. `npm test 2>&1` -> `npm test`.
 function commandWordsWithoutRedirects(commandWords) {
@@ -44,7 +44,7 @@ function commandWordsWithoutRedirects(commandWords) {
 // Indexes of the verify commands a shell command line runs in full.
 export function verifyCommandsRunBy(commandLine, verifyCommands) {
   const runCommands = splitSimpleCommands(String(commandLine || '')).map(({ words }) => words);
-  if (runCommands.some((commandWords) => baseName(commandWords[0]) === 'jig' && JIG_VERIFYING_SUBCOMMANDS.has(commandWords[1]))) {
+  if (runCommands.some((commandWords) => baseName(commandWords[0]) === 'ai1' && AI1_VERIFYING_SUBCOMMANDS.has(commandWords[1]))) {
     return verifyCommands.map((verifyCommand, verifyIndex) => verifyIndex);
   }
   const runTexts = runCommands.map(commandWordsWithoutRedirects);

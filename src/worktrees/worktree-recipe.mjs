@@ -1,8 +1,8 @@
-// The per-project worktree recipe: `.claude/skills/worktree/recipe.json`, written by /jig:worktree
+// The per-project worktree recipe: `.claude/skills/worktree/recipe.json`, written by /ai1:worktrees-plan-recipe
 // after the person approves it and committed with the repo. The project skill next to it
 // (`SKILL.md`) holds the rules in prose; this file holds the data the engine needs.
 // schema/worktree-recipe.schema.json describes the same rules for editors; this validator is
-// hand-written so jig keeps zero dependencies (test/worktrees.test.mjs checks both agree).
+// hand-written so ai1 keeps zero dependencies (test/worktrees.test.mjs checks both agree).
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -12,7 +12,7 @@ export const RECIPE_RELATIVE_PATH = join(PROJECT_SKILL_DIRECTORY, 'recipe.json')
 export const SUPPORTED_RECIPE_VERSION = 1;
 export const BUILT_IN_MODES = ['auto', 'full', 'light'];
 export const HEAVY_STRATEGIES = ['copy', 'share', 'regenerate', 'exclude'];
-// Fields of the recipe format that a later jig phase implements; accepted and ignored for now.
+// Fields of the recipe format that a later ai1 phase implements; accepted and ignored for now.
 export const PLANNED_RECIPE_FIELDS = ['caches', 'slots'];
 
 const KNOWN_RECIPE_FIELDS = new Set([
@@ -140,7 +140,7 @@ export function loadRecipe(repoRoot) {
   const validationErrors = validateRecipe(rawRecipe);
   if (validationErrors.length) return { status: 'invalid', recipePath, errors: validationErrors };
   const warnings = [
-    ...listUnknownRecipeFields(rawRecipe).map((fieldName) => `field "${fieldName}" is unknown to this jig version; ignored`),
+    ...listUnknownRecipeFields(rawRecipe).map((fieldName) => `field "${fieldName}" is unknown to this ai1 version; ignored`),
     ...PLANNED_RECIPE_FIELDS.filter((fieldName) => rawRecipe[fieldName] !== undefined).map((fieldName) => `field "${fieldName}" is planned, not built yet; ignored`),
   ];
   return {

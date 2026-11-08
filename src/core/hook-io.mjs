@@ -48,7 +48,7 @@ export function combineDecisions(moduleDecisions) {
   const winningDecisions = blockingDecisions.filter((decision) => DECISION_RANK[decision.kind] === highestRank);
   return {
     kind: winningDecisions[0].kind,
-    reason: winningDecisions.map((decision) => `jig/${decision.moduleId}: ${decision.reason}`).join('\n'),
+    reason: winningDecisions.map((decision) => `ai1/${decision.moduleId}: ${decision.reason}`).join('\n'),
   };
 }
 

@@ -147,9 +147,9 @@ test('findEditedLineRanges: Write is the whole file, Edit and MultiEdit the writ
   assert.deepEqual(findEditedLineRanges({ tool_name: 'MultiEdit', tool_input: { edits: [{ new_string: 'one' }, { new_string: 'four' }] } }, fileText), [[1, 1], [4, 4]]);
 });
 
-function hookOptions(homeDirectory = mkdtempSync(join(tmpdir(), 'jig-home-'))) {
+function hookOptions(homeDirectory = mkdtempSync(join(tmpdir(), 'ai1-home-'))) {
   return {
-    environment: { CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'jig-data-')) },
+    environment: { CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'ai1-data-')) },
     homeDirectory,
     reportInternalError: (errorMessage) => { throw new Error(errorMessage); },
   };
@@ -188,7 +188,7 @@ test('design-detect: off by default, silent on non-UI files, honours ignore_rule
   assert.equal(runHookEvent('PostToolUse', editPayload(designProject, 'notes.md', 'font-size: 9px'), hookOptions()), null);
   assert.equal(runHookEvent('PostToolUse', editPayload(designProject, 'styles.css', '.title { font-size: 9px; }'), hookOptions()), null);
 
-  const outsideDirectory = mkdtempSync(join(tmpdir(), 'jig-outside-'));
+  const outsideDirectory = mkdtempSync(join(tmpdir(), 'ai1-outside-'));
   writeFileSync(join(outsideDirectory, 'styles.css'), '.title { font-size: 9px; }\n');
   const outsidePayload = { ...editPayload(designProject, 'x', '.title { font-size: 9px; }'), tool_input: { file_path: join(outsideDirectory, 'styles.css'), new_string: '.title { font-size: 9px; }' } };
   assert.equal(runHookEvent('PostToolUse', outsidePayload, hookOptions()), null, 'files outside the project are not checked');
@@ -200,14 +200,14 @@ function startSessionContext(projectRoot, options = hookOptions(), source = 'sta
 
 test('design-brief: points to the bundle concepts of type Product and DesignSystem, and to Impeccable files', () => {
   const projectRoot = createTemporaryProject({ features: { okf: true, design: true } });
-  mkdirSync(join(projectRoot, '.okf', 'design'), { recursive: true });
-  writeFileSync(join(projectRoot, '.okf', 'index.md'), '---\nokf_version: "0.2"\n---\n# Index\n');
-  writeFileSync(join(projectRoot, '.okf', 'design', 'system.md'), '---\ntype: DesignSystem\ntitle: Design system\n---\nPalette.\n');
-  writeFileSync(join(projectRoot, '.okf', 'design', 'api.md'), '---\ntype: Service\ntitle: API\n---\nNot design.\n');
+  mkdirSync(join(projectRoot, '.ai1', 'okf', 'design'), { recursive: true });
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'index.md'), '---\nokf_version: "0.2"\n---\n# Index\n');
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'design', 'system.md'), '---\ntype: DesignSystem\ntitle: Design system\n---\nPalette.\n');
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'design', 'api.md'), '---\ntype: Service\ntitle: API\n---\nNot design.\n');
   writeFileSync(join(projectRoot, 'PRODUCT.md'), '# Product\n');
   const contextText = startSessionContext(projectRoot);
   assert.match(contextText, /Design: UI in this repo/);
-  assert.match(contextText, /`\.okf\/design\/system\.md`, `PRODUCT\.md`/);
+  assert.match(contextText, /`\.ai1\/okf\/design\/system\.md`, `PRODUCT\.md`/);
   assert.doesNotMatch(contextText, /api\.md/);
 });
 
@@ -217,7 +217,7 @@ test('design-brief: asks for the context when there is none, and mentions Impecc
   assert.match(contextText, /no product or design-system context yet.*type `Product` and `DesignSystem`/);
   assert.doesNotMatch(contextText, /\/impeccable critique/);
 
-  const homeDirectory = mkdtempSync(join(tmpdir(), 'jig-home-'));
+  const homeDirectory = mkdtempSync(join(tmpdir(), 'ai1-home-'));
   mkdirSync(join(homeDirectory, '.claude', 'plugins'), { recursive: true });
   writeFileSync(join(homeDirectory, '.claude', 'plugins', 'installed_plugins.json'), JSON.stringify({ version: 2, plugins: { 'impeccable@impeccable': [] } }));
   assert.match(startSessionContext(projectRoot, hookOptions(homeDirectory)), /\/impeccable critique/);

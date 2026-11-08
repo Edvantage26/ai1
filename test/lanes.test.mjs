@@ -25,8 +25,8 @@ function createLanesRepo(lanesConfig = {}) {
 
 function hookOptions() {
   return {
-    environment: { CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'jig-data-')) },
-    homeDirectory: mkdtempSync(join(tmpdir(), 'jig-home-')),
+    environment: { CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'ai1-data-')) },
+    homeDirectory: mkdtempSync(join(tmpdir(), 'ai1-home-')),
     reportInternalError: (errorMessage) => { throw new Error(errorMessage); },
   };
 }
@@ -44,7 +44,7 @@ function useTool(projectRoot, options, toolName, toolInput) {
 }
 
 function writePlan(projectRoot, slug, status, title = 'Billing export') {
-  const planDirectory = join(projectRoot, '.jig', 'work', slug);
+  const planDirectory = join(projectRoot, '.ai1', 'work', slug);
   mkdirSync(planDirectory, { recursive: true });
   const planPath = join(planDirectory, 'plan.md');
   writeFileSync(planPath, `---\ntitle: ${title}\nstatus: ${status}\n---\n\n# Goal\nExport invoices.\n`);
@@ -58,9 +58,9 @@ test('lanes-brief: the recipe names the three lanes, the verify command and the 
   const contextText = startSession(projectRoot, hookOptions()).hookSpecificOutput.additionalContext;
   assert.match(contextText, /quick: .*run `npm test`/);
   assert.match(contextText, /plan: /);
-  assert.match(contextText, /deep: .*\/jig:deep/);
+  assert.match(contextText, /deep: .*\/ai1:lanes-design-before-code/);
   assert.match(contextText, /lightest lane/);
-  assert.equal(readFileSync(join(projectRoot, '.jig', '.gitignore'), 'utf8'), '*\n', '.jig ignores itself');
+  assert.equal(readFileSync(join(projectRoot, '.ai1', 'work', '.gitignore'), 'utf8'), '*\n', '.ai1/work ignores itself');
 });
 
 test('lanes-brief: silent on resume, and off unless the repo enables lanes', () => {
@@ -75,9 +75,9 @@ test('lanes-brief: after compaction the active plan comes back with its progress
   const options = hookOptions();
   startSession(projectRoot, options);
   const planPath = writePlan(projectRoot, 'billing', 'approved');
-  writeFileSync(join(projectRoot, '.jig', 'work', 'billing', 'progress.md'), 'Step 1 - green - src/export.js\nStep 2 - green - src/csv.js\n');
+  writeFileSync(join(projectRoot, '.ai1', 'work', 'billing', 'progress.md'), 'Step 1 - green - src/export.js\nStep 2 - green - src/csv.js\n');
   const contextText = startSession(projectRoot, options, 'compact').hookSpecificOutput.additionalContext;
-  assert.match(contextText, /\.jig\/work\/billing\/plan\.md/);
+  assert.match(contextText, /\.ai1\/work\/billing\/plan\.md/);
   assert.match(contextText, /Step 2 - green/);
   assert.match(contextText, /trust these files/);
   assert.ok(existsSync(planPath));
@@ -93,15 +93,15 @@ test('lanes-brief: an old unfinished plan is listed at startup without its progr
 });
 
 test('lanes-gate: a draft design blocks code edits but not the plan or the bundle', () => {
-  const projectRoot = createLanesRepo({ knowledge: '.okf' });
+  const projectRoot = createLanesRepo({ knowledge: '.ai1/okf' });
   const options = hookOptions();
   startSession(projectRoot, options);
   writePlan(projectRoot, 'billing', 'draft');
   const deniedEdit = useTool(projectRoot, options, 'Edit', editCode(projectRoot));
   assert.equal(deniedEdit.hookSpecificOutput.permissionDecision, 'deny');
   assert.match(deniedEdit.hookSpecificOutput.permissionDecisionReason, /not approved by the person/);
-  assert.equal(useTool(projectRoot, options, 'Write', { file_path: join(projectRoot, '.jig', 'work', 'billing', 'plan.md'), content: 'x' }), null);
-  assert.equal(useTool(projectRoot, options, 'Write', { file_path: join(projectRoot, '.okf', 'decisions', 'x.md'), content: 'x' }), null);
+  assert.equal(useTool(projectRoot, options, 'Write', { file_path: join(projectRoot, '.ai1', 'work', 'billing', 'plan.md'), content: 'x' }), null);
+  assert.equal(useTool(projectRoot, options, 'Write', { file_path: join(projectRoot, '.ai1', 'okf', 'decisions', 'x.md'), content: 'x' }), null);
   assert.equal(useTool(projectRoot, options, 'Write', { file_path: '/tmp/scratch.txt', content: 'x' }), null, 'outside the project is not gated');
 });
 
@@ -113,7 +113,7 @@ test('lanes-gate: shell writes to code are refused too, reads are not', () => {
   assert.equal(useTool(projectRoot, options, 'Bash', { command: "sed -i 's/1/2/' src/app.js" }).hookSpecificOutput.permissionDecision, 'deny');
   assert.equal(useTool(projectRoot, options, 'Bash', { command: 'echo x > src/new.js' }).hookSpecificOutput.permissionDecision, 'deny');
   assert.equal(useTool(projectRoot, options, 'Bash', { command: 'cat src/app.js && npm test' }), null);
-  assert.equal(useTool(projectRoot, options, 'Bash', { command: 'echo step >> .jig/work/billing/progress.md' }), null);
+  assert.equal(useTool(projectRoot, options, 'Bash', { command: 'echo step >> .ai1/work/billing/progress.md' }), null);
 });
 
 test('lanes-gate: a plan written in the file as approved, without the person, still blocks', () => {
@@ -130,7 +130,7 @@ test('lanes-approval: the person approves a ready design and edits open', () => 
   startSession(projectRoot, options);
   const planPath = writePlan(projectRoot, 'billing', 'ready');
   const approvalOutput = sendPrompt(projectRoot, options, 'Aprobado, adelante');
-  assert.match(approvalOutput.hookSpecificOutput.additionalContext, /approved the design `\.jig\/work\/billing\/plan\.md`/);
+  assert.match(approvalOutput.hookSpecificOutput.additionalContext, /approved the design `\.ai1\/work\/billing\/plan\.md`/);
   assert.match(readFileSync(planPath, 'utf8'), /status: approved/);
   assert.equal(useTool(projectRoot, options, 'Edit', editCode(projectRoot)), null);
 });

@@ -1,5 +1,5 @@
-// `jig verify` runs the repo's verify commands (from .claude/jig.json) in order, with their output
-// shown as is, and stops at the first failure. `jig step-done <slug> "<step>"` does the same and,
+// `ai1 verify` runs the repo's verify commands (from .ai1/config.json) in order, with their output
+// shown as is, and stops at the first failure. `ai1 step-done <slug> "<step>"` does the same and,
 // only when everything passes, appends the step to the deep-lane progress log: progress written
 // there is evidence, not the agent's word.
 
@@ -12,13 +12,13 @@ import { WORK_DIRECTORY } from '../lanes/lanes-work.mjs';
 
 export function readVerifyCommands(repoRoot) {
   const loadedConfig = loadHarnessConfig(repoRoot, KNOWN_MODULE_IDS);
-  if (loadedConfig.status !== 'ok') throw new Error(`no valid .claude/jig.json in ${repoRoot} (${loadedConfig.status})`);
+  if (loadedConfig.status !== 'ok') throw new Error(`no valid .ai1/config.json in ${repoRoot} (${loadedConfig.status})`);
   return loadedConfig.config.verify;
 }
 
 // { passed, failedCommand, exitCode }. `runCommand` is injectable for tests.
 export function runVerifyCommands(repoRoot, verifyCommands, runCommand = defaultRunCommand) {
-  if (verifyCommands.length === 0) throw new Error('no verify commands in .claude/jig.json ("verify": [...])');
+  if (verifyCommands.length === 0) throw new Error('no verify commands in .ai1/config.json ("verify": [...])');
   for (const verifyCommand of verifyCommands) {
     const exitCode = runCommand(verifyCommand, repoRoot);
     if (exitCode !== 0) return { passed: false, failedCommand: verifyCommand, exitCode };

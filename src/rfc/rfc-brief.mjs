@@ -14,8 +14,8 @@ export function buildRfcRecipe(knowledgePath) {
   return [
     `RFCs: proposals for large changes and future features that are not decided yet live in \`${RFC_DIRECTORY}/\` (one file each, index in \`${RFC_DIRECTORY}/${RFC_INDEX_FILE}\`).`,
     `- A proposal is not the system: never describe a proposed design in ${bundleText} as if it were real; only what is decided or built goes there.`,
-    '- When the person wants to save a future feature, an idea or a proposal for later, or asks for an RFC, load /jig:rfc.',
-    '- Create and change RFCs with `jig rfc new` and `jig rfc set`; never number, rename or index them by hand.',
+    '- When the person wants to save a future feature, an idea or a proposal for later, or asks for an RFC, load /ai1:rfc-write-proposal.',
+    '- Create and change RFCs with `ai1 rfc new` and `ai1 rfc set`; never number, rename or index them by hand.',
   ].join('\n');
 }
 

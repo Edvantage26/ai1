@@ -11,14 +11,14 @@ function runGit(repoRoot, gitArguments) {
   return execFileSync('git', ['-C', repoRoot, ...gitArguments], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
 }
 
-// A repo with jig.json and one commit, plus a linked worktree under .claude/worktrees/feature.
-function createRepoWithWorktree(jigConfig = { features: { okf: false } }) {
-  const mainRoot = realpathSync(mkdtempSync(join(tmpdir(), 'jig-roots-')));
-  mkdirSync(join(mainRoot, '.claude'), { recursive: true });
-  writeFileSync(join(mainRoot, '.claude', 'jig.json'), JSON.stringify(jigConfig));
+// A repo with .ai1/config.json and one commit, plus a linked worktree under .claude/worktrees/feature.
+function createRepoWithWorktree(ai1Config = { features: { okf: false } }) {
+  const mainRoot = realpathSync(mkdtempSync(join(tmpdir(), 'ai1-roots-')));
+  mkdirSync(join(mainRoot, '.ai1'), { recursive: true });
+  writeFileSync(join(mainRoot, '.ai1', 'config.json'), JSON.stringify(ai1Config));
   mkdirSync(join(mainRoot, 'src'));
   writeFileSync(join(mainRoot, 'src', 'app.js'), 'console.log(1);\n');
-  writeFileSync(join(mainRoot, '.gitignore'), '.claude/worktrees/\n.jig/\n');
+  writeFileSync(join(mainRoot, '.gitignore'), '.claude/worktrees/\n.ai1/\n');
   runGit(mainRoot, ['init', '-q']);
   runGit(mainRoot, ['add', '.']);
   runGit(mainRoot, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'init']);
@@ -55,20 +55,20 @@ test('cwd in another repository does not move the tree root', () => {
 });
 
 test('a launch folder that is not a repository is kept as is', () => {
-  const parentFolder = realpathSync(mkdtempSync(join(tmpdir(), 'jig-parent-')));
+  const parentFolder = realpathSync(mkdtempSync(join(tmpdir(), 'ai1-parent-')));
   assert.deepEqual(resolveProjectRoots({ cwd: parentFolder }, { CLAUDE_PROJECT_DIR: parentFolder }), { projectRoot: parentFolder, sharedRoot: parentFolder });
 });
 
 test('a deep-lane plan in the main checkout gates edits made inside a worktree', () => {
   const { mainRoot, worktreeRoot } = createRepoWithWorktree({ features: { okf: false, lanes: true } });
   const options = {
-    environment: { CLAUDE_PROJECT_DIR: mainRoot, CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'jig-data-')) },
-    homeDirectory: mkdtempSync(join(tmpdir(), 'jig-home-')),
+    environment: { CLAUDE_PROJECT_DIR: mainRoot, CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'ai1-data-')) },
+    homeDirectory: mkdtempSync(join(tmpdir(), 'ai1-home-')),
     reportInternalError: (errorMessage) => { throw new Error(errorMessage); },
   };
   runHookEvent('SessionStart', { session_id: 'session-1', cwd: mainRoot, source: 'startup' }, options);
-  mkdirSync(join(mainRoot, '.jig', 'work', 'feature'), { recursive: true });
-  writeFileSync(join(mainRoot, '.jig', 'work', 'feature', 'plan.md'), '---\ntitle: Feature\nstatus: ready\n---\n# Goal\n');
+  mkdirSync(join(mainRoot, '.ai1', 'work', 'feature'), { recursive: true });
+  writeFileSync(join(mainRoot, '.ai1', 'work', 'feature', 'plan.md'), '---\ntitle: Feature\nstatus: ready\n---\n# Goal\n');
   const editPayload = {
     session_id: 'session-1', cwd: worktreeRoot, tool_name: 'Edit',
     tool_input: { file_path: join(worktreeRoot, 'src', 'app.js'), old_string: '1', new_string: '2' },

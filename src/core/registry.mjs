@@ -1,6 +1,6 @@
-// Every jig module, in one list. A module is:
+// Every ai1 module, in one list. A module is:
 //   { id, event, feature, description, toolNames?, run(moduleContext) -> decision }
-// `feature` is an id from src/core/features.mjs; the repo enables features in jig.json.
+// `feature` is an id from src/core/features.mjs; the repo enables features in .ai1/config.json.
 // `toolNames` (PreToolUse/PostToolUse only) limits the module to those tools; omit it to see all.
 // Adding a module means adding it here; hooks/hooks.json does not change.
 

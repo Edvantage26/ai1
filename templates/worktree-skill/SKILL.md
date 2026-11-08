@@ -7,7 +7,7 @@ description: One worktree per development in <project>. Use before starting a si
 
 **Idea:** one conversation = one development = one worktree. The whole development happens in its
 worktree (edit, run, commit) without touching the main checkout; when done it is integrated into
-its base. The engine is `jig worktree`; the data is `recipe.json` next to this file.
+its base. The engine is `ai1 worktree`; the data is `recipe.json` next to this file.
 
 ## When to propose it
 
@@ -20,16 +20,16 @@ person decides. Not for questions, research without changes or a one-line fix.
 
 ## Flow
 
-1. **Create** (after the yes): `jig worktree create <name>`; mode `auto` decides by disk on this
+1. **Create** (after the yes): `ai1 worktree create <name>`; mode `auto` decides by disk on this
    machine (<what full and light mean here>). Tell the person the path, size, mode and port.
 2. **Enter**: EnterWorktree with the printed path. Then run what it lists under "next":
-   `jig worktree run <name> setup`.
+   `ai1 worktree run <name> setup`.
 3. **Work inside**: edits and commits only in the worktree. Project steps:
-   <`jig worktree run <name> dev` (port {{port}}), `jig worktree run <name> build`, ...>.
+   <`ai1 worktree run <name> dev` (port {{port}}), `ai1 worktree run <name> build`, ...>.
 4. **Progress**: start every progress report with one line naming the worktree; if the task has a
    deep-lane plan, write the worktree name in it.
-5. **Close** when the person approves: `jig worktree finish <name>` (<rebase|merge>; runs
-   `pre-finish`: <checks>; then fast-forwards <base>), or `jig worktree drop <name> --confirm`.
+5. **Close** when the person approves: `ai1 worktree finish <name>` (<rebase|merge>; runs
+   `pre-finish`: <checks>; then fast-forwards <base>), or `ai1 worktree drop <name> --confirm`.
    After finishing from inside the worktree, leave it with ExitWorktree (keep).
 
 ## Modes

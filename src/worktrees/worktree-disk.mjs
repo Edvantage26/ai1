@@ -35,7 +35,7 @@ export function readDiskSpace(targetPath) {
 
 // True when files copied inside `directoryPath` can share blocks (btrfs, XFS, APFS...).
 export function supportsCopyOnWrite(directoryPath) {
-  const probeDirectory = join(directoryPath, `.jig-cow-probe-${process.pid}`);
+  const probeDirectory = join(directoryPath, `.ai1-cow-probe-${process.pid}`);
   try {
     mkdirSync(probeDirectory, { recursive: true });
     const sourcePath = join(probeDirectory, 'source');

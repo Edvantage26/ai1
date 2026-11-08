@@ -23,6 +23,7 @@ import {
 import { readSessionBase, listFilesChangedSinceBase } from '../core/session-base.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
 import { RFC_DIRECTORY } from '../rfc/rfc-documents.mjs';
+import { DEFAULT_KNOWLEDGE_PATH } from '../core/config.mjs';
 
 const MODULE_ID = 'okf-upkeep';
 const BUNDLED_VALIDATOR_SCRIPT = fileURLToPath(new URL('../../packs/okf/skills/validate/scripts/okf_validate.py', import.meta.url));
@@ -31,7 +32,7 @@ const MAX_VALIDATION_BLOCKS_PER_SESSION = 3;
 const MAX_LISTED_ERRORS = 15;
 const MAX_LISTED_FILES = 20;
 // Harness configuration is not project knowledge: editing it never asks for a concept update.
-const IGNORED_PATHS = new Set(['.claude/settings.json', '.claude/settings.local.json', '.claude/jig.json']);
+const IGNORED_PATHS = new Set(['.claude/settings.json', '.claude/settings.local.json', '.ai1/config.json']);
 
 // `ignoredDirectories`: folders whose changes are not system knowledge (RFC drafts, when the rfc
 // feature is on: rfc-upkeep handles them, and a proposal must not be written into the bundle).
@@ -62,10 +63,10 @@ function namesBundlePath(shellWord, bundleName) {
     || bundlePath.endsWith(`/${bundleName}`);
 }
 
-// Whether a Bash command writes to the bundle: an edit made with the shell (`cat >> .okf/x.md`,
+// Whether a Bash command writes to the bundle: an edit made with the shell (`cat >> .ai1/okf/x.md`,
 // `sed -i`, `tee`, `mv`, an inline python/node script naming a bundle file) counts as updating it,
 // just like Write/Edit. Reading the bundle (validator, cat, grep) never counts.
-export function shellCommandWritesBundle(commandLine, bundleRelativePath = '.okf') {
+export function shellCommandWritesBundle(commandLine, bundleRelativePath = DEFAULT_KNOWLEDGE_PATH) {
   const bundleName = String(bundleRelativePath).replace(/^\.\//, '').replace(/\/+$/, '');
   const commandText = String(commandLine || '');
   if (!commandText.includes(bundleName)) return false;
@@ -85,7 +86,7 @@ export function scanSessionTranscript(transcriptPath, { memoryDirectories, bundl
   if (!newTranscript) return null;
   const writtenMemoryPaths = new Set(newTranscript.restarted ? [] : scanState.paths || []);
   let investigationCalls = newTranscript.restarted ? 0 : scanState.investigationCalls || 0;
-  const bundleMarker = `/${String(bundleRelativePath || '.okf').replace(/^\.\//, '').replace(/\/+$/, '')}/`;
+  const bundleMarker = `/${String(bundleRelativePath || DEFAULT_KNOWLEDGE_PATH).replace(/^\.\//, '').replace(/\/+$/, '')}/`;
   for (const transcriptEvent of newTranscript.events) {
     for (const contentBlock of eventContentBlocks(transcriptEvent, 'tool_use')) {
       const toolPath = contentBlock?.input?.file_path;
@@ -106,7 +107,7 @@ export function scanSessionTranscript(transcriptPath, { memoryDirectories, bundl
 
 // Kept for callers that only need the memory files.
 export function listMemoryFilesWrittenBySession(transcriptPath, memoryDirectories, scanState) {
-  const transcriptScan = scanSessionTranscript(transcriptPath, { memoryDirectories, bundleRelativePath: '.okf' }, scanState);
+  const transcriptScan = scanSessionTranscript(transcriptPath, { memoryDirectories, bundleRelativePath: DEFAULT_KNOWLEDGE_PATH }, scanState);
   return transcriptScan ? transcriptScan.memoryPaths : null;
 }
 
@@ -176,10 +177,10 @@ export function buildUpkeepReminder(bundleRelativePath, specVersion, pendingFile
 }
 
 // Runs the bundled OKF validator. Returns { ran: true, errors } or { ran: false, reason }.
-// JIG_PYTHON / JIG_OKF_VALIDATOR override the interpreter and the script (used by tests).
+// AI1_PYTHON / AI1_OKF_VALIDATOR override the interpreter and the script (used by tests).
 export function runBundleValidator(bundleDirectory, environment = process.env) {
-  const pythonCommand = environment.JIG_PYTHON || 'python3';
-  const validatorScript = environment.JIG_OKF_VALIDATOR || BUNDLED_VALIDATOR_SCRIPT;
+  const pythonCommand = environment.AI1_PYTHON || 'python3';
+  const validatorScript = environment.AI1_OKF_VALIDATOR || BUNDLED_VALIDATOR_SCRIPT;
   let validatorOutput;
   try {
     validatorOutput = execFileSync(pythonCommand, [validatorScript, bundleDirectory, '--json'], {
@@ -202,7 +203,7 @@ export function buildValidationReminder(bundleRelativePath, validationErrors) {
   return [
     `OKF: the bundle at ${bundleRelativePath}/ was changed in this session and the validator reports ${validationErrors.length} ERROR(s) (warnings are not shown and do not block):`,
     ...validationErrors.slice(0, MAX_LISTED_ERRORS).map((validationError) => `  - ${validationError}`),
-    ...(validationErrors.length > MAX_LISTED_ERRORS ? [`  - ... and ${validationErrors.length - MAX_LISTED_ERRORS} more (run /jig:validate ${bundleRelativePath})`] : []),
+    ...(validationErrors.length > MAX_LISTED_ERRORS ? [`  - ... and ${validationErrors.length - MAX_LISTED_ERRORS} more (run /ai1:okf-validate-bundle ${bundleRelativePath})`] : []),
     'Fix every error, then finish.',
   ].join('\n');
 }
@@ -210,7 +211,7 @@ export function buildValidationReminder(bundleRelativePath, validationErrors) {
 function checkBundleValidity({ hookInput, projectRoot, stateDirectory, bundleDirectory, bundleRelativePath, environment }) {
   const validation = runBundleValidator(bundleDirectory, environment);
   if (!validation.ran) {
-    process.stderr.write(`jig: okf-upkeep could not validate ${bundleRelativePath}: ${validation.reason}\n`);
+    process.stderr.write(`ai1: okf-upkeep could not validate ${bundleRelativePath}: ${validation.reason}\n`);
     return allowDecision();
   }
   if (!validation.errors.length) return allowDecision();
@@ -230,7 +231,7 @@ export default {
   feature: 'okf',
   description: 'Asks to update the OKF bundle after file changes, new memories or a long run of investigation, and validates the bundle when the session changed it.',
   run({ hookInput, config, projectRoot, environment, homeDirectory }) {
-    const bundleRelativePath = config.knowledge || '.okf';
+    const bundleRelativePath = config.knowledge || DEFAULT_KNOWLEDGE_PATH;
     const bundleDirectory = resolveBundleDirectory(projectRoot, config);
     const indexText = readBundleIndex(bundleDirectory);
     if (indexText === null) return allowDecision();

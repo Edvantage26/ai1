@@ -1,6 +1,6 @@
 ---
-name: worktree
-description: Plan, follow or revise how this repository makes git worktrees, one per significant change. Use when the person wants changes done in worktrees ("trabaja en un worktree", "un worktree por desarrollo", "work in a worktree"), when a session says the worktrees feature has no recipe yet, before starting a significant change in a repo with the worktrees feature, or to revise the recipe ("revisa la receta de worktrees", "/jig:worktree revisar").
+name: worktrees-plan-recipe
+description: Worktrees — Plan, follow or revise how this repository makes git worktrees, one per significant change. Use when the person wants changes done in worktrees ("trabaja en un worktree", "un worktree por desarrollo", "work in a worktree"), when a session says the worktrees feature has no recipe yet, before starting a significant change in a repo with the worktrees feature, or to revise the recipe ("revisa la receta de worktrees", "/ai1:worktrees-plan-recipe revisar").
 ---
 
 # Worktrees made the way this project needs
@@ -10,14 +10,14 @@ folders, ports, env files, build outputs, closing rules), so it is planned once 
 and saved as the **project skill** `.claude/skills/worktree/` (committed):
 
 - `SKILL.md`: the project's rules in prose (when to propose a worktree, modes, traps, commands).
-- `recipe.json`: the data the engine reads (schema: `schema/worktree-recipe.schema.json` of jig).
+- `recipe.json`: the data the engine reads (schema: `schema/worktree-recipe.schema.json` of ai1).
 - `scripts/`: only when a project step needs more than a one-line command.
 
-The engine is `jig worktree create|list|run|finish|drop` (on the Bash PATH while jig is enabled).
+The engine is `ai1 worktree create|list|run|finish|drop` (on the Bash PATH while ai1 is enabled).
 
 ## 0. Which path
 
-Run `jig status`. The line `worktree recipe:` decides:
+Run `ai1 status`. The line `worktree recipe:` decides:
 
 - `ok` and the person did not ask to revise it: **follow** the project skill (`/worktree`, or read
   `.claude/skills/worktree/SKILL.md`). Its rules win over this file. Stop here.
@@ -50,7 +50,7 @@ Answer these from the repo itself; note the evidence for each:
   schema, migrations or dependencies uses `full` mode and its own services.
 - **Checks**: the tests or linters to run before integrating -> `commands.pre-finish`.
 - **Closing**: rebase or merge (merge keeps hashes when commits are already deployed or cited);
-  paths another session may leave uncommitted in the base (e.g. `.okf/`) -> `finish.dirty_base_paths_ok`.
+  paths another session may leave uncommitted in the base (e.g. `.ai1/okf/`) -> `finish.dirty_base_paths_ok`.
 - **Subagents**: if a full checkout is large, the project skill says subagents work inside the
   conversation's worktree instead of their own (`isolation: worktree` makes a full checkout).
 - **OS**: Windows needs junctions for shared folders (the engine does it) and backslash paths.
@@ -63,7 +63,7 @@ Practical first: trim only what would really fill the disk; `auto` mode decides 
 
 ## 4. Propose
 
-Show the person, in one message: the recipe as JSON (start from jig's
+Show the person, in one message: the recipe as JSON (start from ai1's
 `templates/worktree-skill/recipe.json`, drop what does not apply) and a summary of the project
 `SKILL.md` (from `templates/worktree-skill/SKILL.md`): when to propose a worktree, the modes and
 what each trims, the commands, the traps you found. Iterate until they approve.
@@ -73,15 +73,15 @@ what each trims, the commands, the traps you found. Iterate until they approve.
 - Write `.claude/skills/worktree/recipe.json` and `.claude/skills/worktree/SKILL.md` (and
   `scripts/` if needed). Keep the project `SKILL.md` under ~120 lines and specific: no generic advice.
 - Make sure the worktrees folder (`location`, default `.claude/worktrees/`) is in `.gitignore`.
-- Enable the feature: `jig status --json` gives the features on now; run
-  `jig init --features <those ids>,worktrees` (it keeps verify, trunk and knowledge).
-- `jig status` must say `worktree recipe: ok`.
+- Enable the feature: `ai1 status --json` gives the features on now; run
+  `ai1 init --features <those ids>,worktrees` (it keeps verify, trunk and knowledge).
+- `ai1 status` must say `worktree recipe: ok`.
 
 ## 6. Dry run, then report
 
-`jig worktree create probe --mode auto`, `jig worktree list --size`, run the setup it lists if it is
-quick, then `jig worktree drop probe --confirm`. Report the size, the mode chosen and why, and the
-time it took. Tell the person to commit `.claude/skills/worktree/` and `.claude/jig.json`.
+`ai1 worktree create probe --mode auto`, `ai1 worktree list --size`, run the setup it lists if it is
+quick, then `ai1 worktree drop probe --confirm`. Report the size, the mode chosen and why, and the
+time it took. Tell the person to commit `.claude/skills/worktree/` and `.ai1/config.json`.
 
 ## 7. Revise
 
@@ -91,7 +91,7 @@ dry run again. Never start from scratch when a recipe exists.
 
 ## Rules for every path
 
-- Integrating (`jig worktree finish`) and abandoning (`jig worktree drop`) are the person's call;
+- Integrating (`ai1 worktree finish`) and abandoning (`ai1 worktree drop`) are the person's call;
   the danger guard asks them. Never push unless they ask for it.
-- `jig worktree create` never installs anything: run what it prints under "next".
+- `ai1 worktree create` never installs anything: run what it prints under "next".
 - Inside a worktree, mention it at the start of every progress report.

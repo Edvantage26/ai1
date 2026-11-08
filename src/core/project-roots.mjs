@@ -4,7 +4,7 @@
 //   launch checkout after EnterWorktree and passes the worktree in the hook input's `cwd`, so the
 //   tree root follows `cwd` when it is a linked worktree of the same repository.
 // - shared root: the main checkout of the repository, where state that every worktree shares lives
-//   (`.jig/` plans and approvals). Equal to the tree root outside linked worktrees.
+//   (`.ai1/` plans and approvals). Equal to the tree root outside linked worktrees.
 
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';

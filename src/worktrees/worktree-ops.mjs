@@ -14,7 +14,7 @@ import { loadRecipeOrFail } from './worktree-create.mjs';
 export function readStateOrFail(commonDirectory, worktreeName) {
   validateWorktreeName(worktreeName);
   const worktreeState = readWorktreeState(commonDirectory, worktreeName);
-  if (!worktreeState) throw new Error(`no worktree "${worktreeName}" (jig worktree list)`);
+  if (!worktreeState) throw new Error(`no worktree "${worktreeName}" (ai1 worktree list)`);
   return worktreeState;
 }
 
@@ -65,7 +65,7 @@ export function buildWorktreeEnvironment(recipe, worktreeState, mainRoot, baseEn
   if (recipe.port && worktreeState.port) {
     for (const variableName of recipe.port.variables) worktreeEnvironment[variableName] = String(worktreeState.port);
   }
-  worktreeEnvironment.JIG_WORKTREE = worktreeState.name;
+  worktreeEnvironment.AI1_WORKTREE = worktreeState.name;
   return worktreeEnvironment;
 }
 

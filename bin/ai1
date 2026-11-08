@@ -1,13 +1,13 @@
 #!/usr/bin/env node
-// jig CLI. On the Bash PATH while the plugin is enabled.
-//   jig status [--json]                         what this repo runs, and the available features
-//   jig init --features okf,danger [--verify "npm test" ...] [--knowledge .okf] [--json]
-//   jig verify                                  run the repo's verify commands, stop at the first failure
-//   jig step-done <slug> "<step>"               jig verify, then log the step in .jig/work/<slug>/progress.md
-//   jig rfc new <slug> [--idea] [--title "..."] create docs/rfc/NNNN-<slug>.md with the next number
-//   jig rfc set <number> <status> [--by <n>]    change an RFC's status (dates, History line, index)
-//   jig rfc index | jig rfc check               regenerate docs/rfc/README.md | report what is inconsistent
-//   jig worktree <create|list|run|finish|drop>  worktrees from the project recipe (see src/cli/worktree-cli.mjs)
+// ai1 CLI. On the Bash PATH while the plugin is enabled.
+//   ai1 status [--json]                         what this repo runs, and the available features
+//   ai1 init --features okf,danger [--verify "npm test" ...] [--knowledge .ai1/okf] [--json]
+//   ai1 verify                                  run the repo's verify commands, stop at the first failure
+//   ai1 step-done <slug> "<step>"               ai1 verify, then log the step in .ai1/work/<slug>/progress.md
+//   ai1 rfc new <slug> [--idea] [--title "..."] create .ai1/rfc/NNNN-<slug>.md with the next number
+//   ai1 rfc set <number> <status> [--by <n>]    change an RFC's status (dates, History line, index)
+//   ai1 rfc index | ai1 rfc check               regenerate .ai1/rfc/README.md | report what is inconsistent
+//   ai1 worktree <create|list|run|finish|drop>  worktrees from the project recipe (see src/cli/worktree-cli.mjs)
 // Run from anywhere inside the repo; files are written at the repo root.
 
 import { findRepoRoot, describeRepo, setupRepo } from '../src/cli/setup-repo.mjs';
@@ -44,8 +44,12 @@ try {
     if (wantsJson) console.log(JSON.stringify(repoDescription, null, 2));
     else {
       console.log(`repo: ${repoDescription.repoRoot}`);
-      console.log(`jig.json: ${repoDescription.hasJigConfig ? 'present' : 'missing (run jig init)'}`);
+      console.log(`.ai1/config.json: ${repoDescription.hasAi1Config ? 'present' : 'missing (run ai1 init)'}`);
       console.log(`trunk: ${repoDescription.trunk} | knowledge: ${repoDescription.knowledge} (${repoDescription.hasKnowledgeBundle ? 'bundle found' : 'no bundle'})`);
+      const { legacyMigration } = repoDescription;
+      if (legacyMigration.moves.length || legacyMigration.settingsFiles.length) {
+        console.log(`old layout to migrate (ai1 init does it): ${[...legacyMigration.moves.map((plannedMove) => `${plannedMove.from} -> ${plannedMove.to}`), ...legacyMigration.settingsFiles.map((settingsPath) => `${settingsPath}: jig@jig -> ai1@ai1`)].join(', ')}${legacyMigration.conflicts.length ? ` (blocked: ${legacyMigration.conflicts.join(', ')} already exist)` : ''}`);
+      }
       const { worktreeRecipe } = repoDescription;
       console.log(`worktree recipe: ${worktreeRecipe.status}${worktreeRecipe.errors.length ? ` (${worktreeRecipe.errors.join('; ')})` : ''}${worktreeRecipe.warnings.length ? ` (${worktreeRecipe.warnings.join('; ')})` : ''}`);
       for (const featureStatus of repoDescription.features) {
@@ -63,34 +67,38 @@ try {
     });
     if (wantsJson) console.log(JSON.stringify(setupResult, null, 2));
     else {
-      console.log(`wrote ${setupResult.jigConfigPath}`);
+      const { legacyMigration } = setupResult;
+      for (const plannedMove of legacyMigration.moves) console.log(`moved ${plannedMove.from} -> ${plannedMove.to}`);
+      for (const settingsPath of legacyMigration.settingsFiles) console.log(`updated ${settingsPath}: jig@jig -> ai1@ai1`);
+      if (legacyMigration.filesMentioningOldPaths.length) console.log(`still mention old paths (update them): ${legacyMigration.filesMentioningOldPaths.join(', ')}`);
+      console.log(`wrote ${setupResult.ai1ConfigPath}`);
       console.log(`wrote ${setupResult.settingsPath}`);
       console.log(`features: ${Object.entries(setupResult.features).map(([featureId, isEnabled]) => `${featureId}=${isEnabled ? 'on' : 'off'}`).join(', ')}`);
       if (setupResult.disabledPlugins.length) console.log(`disabled for you in this repo (duplicate OKF skills), in ${setupResult.localSettingsPath}: ${setupResult.disabledPlugins.join(', ')}${setupResult.gitignoreUpdated ? ' (added to .gitignore)' : ''}`);
-      if (setupResult.features.okf && !setupResult.hasKnowledgeBundle) console.log(`no OKF bundle at ${setupResult.knowledge}/ yet: create it with /jig:okf (produce mode)`);
-      console.log('Commit .claude/jig.json and .claude/settings.json, then restart the Claude Code session.');
+      if (setupResult.features.okf && !setupResult.hasKnowledgeBundle) console.log(`no OKF bundle at ${setupResult.knowledge}/ yet: create it with /ai1:okf-maintain-knowledge (produce mode)`);
+      console.log(`Commit ${legacyMigration.moves.length ? 'the moves, ' : ''}.ai1/config.json and .claude/settings.json, then restart the Claude Code session.`);
     }
   } else if (commandName === 'verify' || commandName === 'step-done') {
     const [planSlug, stepText] = commandArguments;
-    if (commandName === 'step-done' && (!planSlug || !stepText)) throw new Error('usage: jig step-done <slug> "<step>"');
+    if (commandName === 'step-done' && (!planSlug || !stepText)) throw new Error('usage: ai1 step-done <slug> "<step>"');
     const verifyCommands = readVerifyCommands(repoRoot);
     const verifyResult = runVerifyCommands(repoRoot, verifyCommands);
     if (!verifyResult.passed) {
-      console.error(`jig: \`${verifyResult.failedCommand}\` failed (exit ${verifyResult.exitCode})${commandName === 'step-done' ? '; step not recorded' : ''}`);
+      console.error(`ai1: \`${verifyResult.failedCommand}\` failed (exit ${verifyResult.exitCode})${commandName === 'step-done' ? '; step not recorded' : ''}`);
       process.exitCode = verifyResult.exitCode || 1;
     } else if (commandName === 'step-done') {
-      console.log(`jig: verify green; step recorded in ${recordStepDone(findMainCheckout(repoRoot), planSlug, stepText, verifyCommands)}`);
+      console.log(`ai1: verify green; step recorded in ${recordStepDone(findMainCheckout(repoRoot), planSlug, stepText, verifyCommands)}`);
     } else {
-      console.log(`jig: verify green (${verifyCommands.join(', ')})`);
+      console.log(`ai1: verify green (${verifyCommands.join(', ')})`);
     }
   } else if (commandName === 'rfc') {
     process.exitCode = runRfcCommand(repoRoot, commandArguments, { readOption });
   } else {
-    console.log(`usage: jig status [--json] | jig init --features okf,danger [--verify "<command>" ...] [--knowledge <path>] [--json] | jig verify | jig step-done <slug> "<step>" | ${RFC_USAGE}`);
+    console.log(`usage: ai1 status [--json] | ai1 init --features okf,danger [--verify "<command>" ...] [--knowledge <path>] [--json] | ai1 verify | ai1 step-done <slug> "<step>" | ${RFC_USAGE}`);
     console.log(WORKTREE_USAGE);
     process.exitCode = commandName ? 1 : 0;
   }
 } catch (commandError) {
-  console.error(`jig: ${commandError.message}`);
+  console.error(`ai1: ${commandError.message}`);
   process.exitCode = 1;
 }

@@ -1,5 +1,5 @@
 {
-  "description": "jig: one entry point per event; modules and options come from the repo's .claude/jig.json.",
+  "description": "ai1: one entry point per event; modules and options come from the repo's .ai1/config.json.",
   "hooks": {
     "SessionStart": [
       {
@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/jig-hook.mjs\" SessionStart",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/ai1-hook.mjs\" SessionStart",
             "timeout": 10
           }
         ]
@@ -19,7 +19,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/jig-hook.mjs\" PreToolUse",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/ai1-hook.mjs\" PreToolUse",
             "timeout": 10
           }
         ]
@@ -31,7 +31,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/jig-hook.mjs\" PostToolUse",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/ai1-hook.mjs\" PostToolUse",
             "timeout": 10
           }
         ]
@@ -42,7 +42,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/jig-hook.mjs\" Stop",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/ai1-hook.mjs\" Stop",
             "timeout": 15
           }
         ]
@@ -53,7 +53,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/jig-hook.mjs\" UserPromptSubmit",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/bin/ai1-hook.mjs\" UserPromptSubmit",
             "timeout": 10
           }
         ]

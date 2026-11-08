@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createTemporaryProject, bashPayload } from './helpers.mjs';
 
-const HOOK_ENTRYPOINT = fileURLToPath(new URL('../bin/jig-hook.mjs', import.meta.url));
+const HOOK_ENTRYPOINT = fileURLToPath(new URL('../bin/ai1-hook.mjs', import.meta.url));
 
 function runEntrypoint(eventName, stdinText, environment = {}) {
   return spawnSync(process.execPath, [HOOK_ENTRYPOINT, eventName], {

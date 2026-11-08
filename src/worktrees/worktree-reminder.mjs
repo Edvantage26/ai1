@@ -16,7 +16,7 @@ export function describeActiveWorktrees(worktreeStates, projectRoot) {
     return `${worktreeState.name} (${detailText})${worktreeState.path === projectRoot ? ' <- this session' : ''}`;
   });
   const sessionInWorktree = worktreeStates.some((worktreeState) => worktreeState.path === projectRoot);
-  return `[jig worktrees] Active: ${worktreeTexts.join('; ')}.${sessionInWorktree ? ' Start your reply with one line naming this session\'s worktree.' : ' Worktrees not marked are from other sessions.'}`;
+  return `[ai1 worktrees] Active: ${worktreeTexts.join('; ')}.${sessionInWorktree ? ' Start your reply with one line naming this session\'s worktree.' : ' Worktrees not marked are from other sessions.'}`;
 }
 
 export default {
@@ -41,7 +41,7 @@ export default {
     const promptCount = reminderState.prompts + 1;
     writeStateText(reminderStatePath, JSON.stringify({ prompts: promptCount, snapshot: snapshotText }));
     if (worktreeStates.length === 0) {
-      return reminderState.snapshot ? contextDecision(MODULE_ID, '[jig worktrees] No active worktrees now.') : allowDecision();
+      return reminderState.snapshot ? contextDecision(MODULE_ID, '[ai1 worktrees] No active worktrees now.') : allowDecision();
     }
     const reminderEvery = loadedRecipe.recipe.reminder_every;
     const isPeriodicTurn = reminderEvery > 0 && promptCount % reminderEvery === 0;

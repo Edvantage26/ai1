@@ -1,13 +1,13 @@
 {
-  "name": "jig",
+  "name": "ai1",
   "version": "0.11.0",
-  "description": "The jig for your coding agent: per-repo features (OKF project knowledge, destructive-command guard...) chosen in .claude/jig.json.",
+  "description": "ai1 (all in one) for your coding agent: per-repo features (OKF project knowledge, destructive-command guard...) chosen in .ai1/config.json.",
   "author": {
     "name": "Edvantage",
     "url": "https://github.com/Edvantage26"
   },
-  "homepage": "https://github.com/Edvantage26/jig",
-  "repository": "https://github.com/Edvantage26/jig",
+  "homepage": "https://github.com/Edvantage26/ai1",
+  "repository": "https://github.com/Edvantage26/ai1",
   "license": "MIT",
   "keywords": [
     "harness",

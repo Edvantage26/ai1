@@ -1,16 +1,16 @@
 // Shared state of the lanes feature: work plans of deep-lane tasks and their approvals.
-// A plan lives in `.jig/work/<slug>/plan.md` (frontmatter `status: draft | ready | approved | done`)
-// with `progress.md` next to it. `.jig/` ignores itself, so plans never reach git.
-// Approval comes only from the person: the lanes-approval hook records it in jig's state
+// A plan lives in `.ai1/work/<slug>/plan.md` (frontmatter `status: draft | ready | approved | done`)
+// with `progress.md` next to it. `.ai1/work/` ignores itself, so plans never reach git.
+// Approval comes only from the person: the lanes-approval hook records it in ai1's state
 // directory, outside the repo; the `status` written in the plan is informative.
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { writeFrontmatterField } from '../core/frontmatter.mjs';
+import { AI1_DIRECTORY } from '../core/config.mjs';
 import { resolveStateDirectory, shortHash, readStateText, writeStateText } from '../core/session-state.mjs';
 
-export const JIG_DIRECTORY = '.jig';
-export const WORK_DIRECTORY = join(JIG_DIRECTORY, 'work');
+export const WORK_DIRECTORY = join(AI1_DIRECTORY, 'work');
 export const UNAPPROVED_STATUSES = new Set(['draft', 'ready']);
 const FINISHED_STATUSES = new Set(['done', 'abandoned']);
 
@@ -30,7 +30,7 @@ export function writePlanStatus(planPath, newStatus) {
   writeFileSync(planPath, writeFrontmatterField(readFileSync(planPath, 'utf8'), 'status', newStatus));
 }
 
-// Every plan in .jig/work, newest first: { slug, planPath, relativePath, status, title, modifiedMilliseconds }.
+// Every plan in .ai1/work, newest first: { slug, planPath, relativePath, status, title, modifiedMilliseconds }.
 export function listWorkPlans(projectRoot) {
   const workDirectory = join(projectRoot, WORK_DIRECTORY);
   if (!existsSync(workDirectory)) return [];
@@ -83,12 +83,13 @@ export function isPlanApproved(workPlan, approvals) {
   return Boolean(approvals[workPlan.relativePath]);
 }
 
-// `.jig/.gitignore` with `*` keeps plans out of git without touching the repo's own .gitignore.
-export function ensureJigDirectoryIgnored(projectRoot) {
-  const jigDirectory = join(projectRoot, JIG_DIRECTORY);
-  const ignorePath = join(jigDirectory, '.gitignore');
+// `.ai1/work/.gitignore` with `*` keeps plans out of git without touching the repo's own .gitignore
+// (the rest of `.ai1/` - config, bundle, RFCs - is committed).
+export function ensureWorkDirectoryIgnored(projectRoot) {
+  const workDirectory = join(projectRoot, WORK_DIRECTORY);
+  const ignorePath = join(workDirectory, '.gitignore');
   if (existsSync(ignorePath)) return false;
-  mkdirSync(jigDirectory, { recursive: true });
+  mkdirSync(workDirectory, { recursive: true });
   writeFileSync(ignorePath, '*\n');
   return true;
 }

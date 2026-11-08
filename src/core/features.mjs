@@ -1,4 +1,4 @@
-// Features are what a repo chooses in .claude/jig.json (`features.<id>: true | false`).
+// Features are what a repo chooses in .ai1/config.json (`features.<id>: true | false`).
 // Each module belongs to one feature; a feature can also ship skills (e.g. the OKF pack).
 // `enabledByDefault` applies when the repo does not mention the feature.
 
@@ -6,7 +6,7 @@ export const FEATURES = [
   {
     id: 'okf',
     title: 'OKF project knowledge',
-    description: 'Loads the knowledge bundle index at session start, points to the concepts related to each message, and asks to keep the bundle up to date after changes. Skills: /jig:okf, /jig:validate, /jig:visualize, /jig:backfill.',
+    description: 'Loads the knowledge bundle index at session start, points to the concepts related to each message, and asks to keep the bundle up to date after changes. Skills: /ai1:okf-maintain-knowledge, /ai1:okf-validate-bundle, /ai1:okf-visualize-bundle, /ai1:okf-backfill-from-history.',
     enabledByDefault: true,
   },
   {
@@ -24,19 +24,19 @@ export const FEATURES = [
   {
     id: 'lanes',
     title: 'Work lanes by task size',
-    description: 'The agent sizes each task: quick ones are done directly, medium ones get a short plan, complex or risky ones a design with questions that the person approves before any code is edited (skill /jig:deep). Restores progress after compaction.',
+    description: 'The agent sizes each task: quick ones are done directly, medium ones get a short plan, complex or risky ones a design with questions that the person approves before any code is edited (skill /ai1:lanes-design-before-code). Restores progress after compaction.',
     enabledByDefault: false,
   },
   {
     id: 'worktrees',
     title: 'A worktree per significant change',
-    description: 'Each significant change is done in its own worktree, made the way this project needs (modes full/light/auto by disk, copied env, shared or regenerated heavy folders, a port per worktree, named commands, checked integration). The recipe is planned once with the person (/jig:worktree) and saved as the project skill .claude/skills/worktree/. The agent keeps saying which worktree it works in. Adds `jig worktree`.',
+    description: 'Each significant change is done in its own worktree, made the way this project needs (modes full/light/auto by disk, copied env, shared or regenerated heavy folders, a port per worktree, named commands, checked integration). The recipe is planned once with the person (/ai1:worktrees-plan-recipe) and saved as the project skill .claude/skills/worktree/. The agent keeps saying which worktree it works in. Adds `ai1 worktree`.',
     enabledByDefault: false,
   },
   {
     id: 'rfc',
     title: 'RFCs for undecided proposals',
-    description: 'Proposals for large changes and future features live in docs/rfc/ (one versioned file each, idea or full size), apart from the knowledge bundle because they are not the system. Lists the open ones at session start, points to the related ones on each message, and when the session touched them checks they are consistent and that accepted ones are recorded in the bundle. Skill /jig:rfc; `jig rfc new|set|index|check`.',
+    description: 'Proposals for large changes and future features live in .ai1/rfc/ (one versioned file each, idea or full size), apart from the knowledge bundle because they are not the system. Lists the open ones at session start, points to the related ones on each message, and when the session touched them checks they are consistent and that accepted ones are recorded in the bundle. Skill /ai1:rfc-write-proposal; `ai1 rfc new|set|index|check`.',
     enabledByDefault: false,
   },
   {
@@ -48,7 +48,7 @@ export const FEATURES = [
   {
     id: 'verify',
     title: 'Verification gate',
-    description: 'The agent cannot finish while code it changed is newer than the last passing run of the verify commands in jig.json (run in full, no filters). Adds `jig verify` and `jig step-done`.',
+    description: 'The agent cannot finish while code it changed is newer than the last passing run of the verify commands in .ai1/config.json (run in full, no filters). Adds `ai1 verify` and `ai1 step-done`.',
     enabledByDefault: true,
   },
   {

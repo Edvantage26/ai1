@@ -1,4 +1,4 @@
-// Minimal glob matching for repo-relative paths, so jig.json can list paths without a dependency.
+// Minimal glob matching for repo-relative paths, so .ai1/config.json can list paths without a dependency.
 // `**` matches any number of directories, `*` anything but `/`, `?` one character but `/`.
 // A pattern without `/` matches the file name at any depth (`*.md` == `**/*.md`).
 

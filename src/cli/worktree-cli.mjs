@@ -1,4 +1,4 @@
-// `jig worktree <command>`: the engine behind the per-project worktree recipe.
+// `ai1 worktree <command>`: the engine behind the per-project worktree recipe.
 //   create <name> [--mode auto|full|light|<extra>] [--base <branch>]
 //   list [--size]
 //   run <name> <command> [args]   setup, or a name from the recipe's `commands` (args fill {{args}} or are appended)
@@ -11,7 +11,7 @@ import { listWorktrees, runWorktreeCommand, dropWorktree } from '../worktrees/wo
 import { finishWorktree } from '../worktrees/worktree-finish.mjs';
 import { formatBytes } from '../worktrees/worktree-disk.mjs';
 
-export const WORKTREE_USAGE = 'usage: jig worktree create <name> [--mode auto|full|light|<extra>] [--base <branch>] | list [--size] | run <name> <command> [args...] | finish <name> [--merge] [--ack "<reason>"] | drop <name> --confirm [--discard-uncommitted]  (all take --json)';
+export const WORKTREE_USAGE = 'usage: ai1 worktree create <name> [--mode auto|full|light|<extra>] [--base <branch>] | list [--size] | run <name> <command> [args...] | finish <name> [--merge] [--ack "<reason>"] | drop <name> --confirm [--discard-uncommitted]  (all take --json)';
 
 function describeCreated(created) {
   const trimmedText = created.trimmed.length
@@ -21,14 +21,14 @@ function describeCreated(created) {
     `worktree ${created.name} ready at ${created.path}`,
     `branch ${created.branch} from ${created.base} | mode ${created.mode} (${created.mode_reason}) | ${formatBytes(created.size_bytes)}${created.port ? ` | port ${created.port}` : ''}`,
     `trimmed: ${trimmedText}`,
-    ...(created.setup_commands.length ? [`next: jig worktree run ${created.name} setup  (${created.setup_commands.join(' && ')})`] : []),
+    ...(created.setup_commands.length ? [`next: ai1 worktree run ${created.name} setup  (${created.setup_commands.join(' && ')})`] : []),
     `enter it: EnterWorktree with path ${created.path} (or work with absolute paths under it)`,
     ...created.warnings.map((warningText) => `warning: ${warningText}`),
   ].join('\n');
 }
 
 function describeListed(listedWorktrees) {
-  if (listedWorktrees.length === 0) return 'no worktrees (jig worktree create <name>)';
+  if (listedWorktrees.length === 0) return 'no worktrees (ai1 worktree create <name>)';
   return listedWorktrees.map((listedWorktree) => [
     `${listedWorktree.name}  ${listedWorktree.branch} <- ${listedWorktree.base}`,
     `ahead ${listedWorktree.ahead ?? '?'} behind ${listedWorktree.behind ?? '?'}`,
@@ -53,23 +53,23 @@ export function runWorktreeCli(workingDirectory, commandArguments) {
   const respond = (resultValue, describeResult) => ({ output: wantsJson ? JSON.stringify(resultValue, null, 2) : describeResult(resultValue), exitCode: 0 });
 
   if (subcommandName === 'create') {
-    if (!positionalArguments[0]) throw new Error('usage: jig worktree create <name> [--mode ...] [--base <branch>]');
+    if (!positionalArguments[0]) throw new Error('usage: ai1 worktree create <name> [--mode ...] [--base <branch>]');
     return respond(createWorktree(workingDirectory, positionalArguments[0], { mode: readOption('--mode'), base: readOption('--base') }), describeCreated);
   }
   if (subcommandName === 'list') return respond(listWorktrees(workingDirectory, { withSize: restArguments.includes('--size') }), describeListed);
   if (subcommandName === 'run') {
     const [worktreeName, commandName] = positionalArguments;
-    if (!worktreeName || !commandName) throw new Error('usage: jig worktree run <name> <command> [args...]');
+    if (!worktreeName || !commandName) throw new Error('usage: ai1 worktree run <name> <command> [args...]');
     const commandIndex = restArguments.indexOf(commandName, restArguments.indexOf(worktreeName) + 1);
     const extraArguments = restArguments.slice(commandIndex + 1).filter((argumentText) => argumentText !== '--json');
     const runResult = runWorktreeCommand(workingDirectory, worktreeName, commandName, { extraArguments });
     return {
-      output: wantsJson ? JSON.stringify(runResult) : (runResult.exitCode === 0 ? `jig: ${commandName} passed in ${worktreeName}` : `jig: \`${runResult.failedCommand}\` failed (exit ${runResult.exitCode}) in ${worktreeName}`),
+      output: wantsJson ? JSON.stringify(runResult) : (runResult.exitCode === 0 ? `ai1: ${commandName} passed in ${worktreeName}` : `ai1: \`${runResult.failedCommand}\` failed (exit ${runResult.exitCode}) in ${worktreeName}`),
       exitCode: runResult.exitCode,
     };
   }
   if (subcommandName === 'finish') {
-    if (!positionalArguments[0]) throw new Error('usage: jig worktree finish <name> [--merge] [--ack "<reason>"]');
+    if (!positionalArguments[0]) throw new Error('usage: ai1 worktree finish <name> [--merge] [--ack "<reason>"]');
     return respond(finishWorktree(workingDirectory, positionalArguments[0], { merge: restArguments.includes('--merge'), acknowledgement: readOption('--ack') }), (finishResult) => [
       `worktree ${finishResult.name} integrated into ${finishResult.base}:`,
       ...finishResult.steps.map((stepText) => `  - ${stepText}`),
@@ -79,7 +79,7 @@ export function runWorktreeCli(workingDirectory, commandArguments) {
     ].join('\n'));
   }
   if (subcommandName === 'drop') {
-    if (!positionalArguments[0]) throw new Error('usage: jig worktree drop <name> --confirm [--discard-uncommitted]');
+    if (!positionalArguments[0]) throw new Error('usage: ai1 worktree drop <name> --confirm [--discard-uncommitted]');
     return respond(dropWorktree(workingDirectory, positionalArguments[0], {
       confirm: restArguments.includes('--confirm'), discardUncommitted: restArguments.includes('--discard-uncommitted'),
     }), (dropResult) => `worktree ${dropResult.name} dropped (branch ${dropResult.branch} deleted)${dropResult.bundlePath ? `; its commits are in ${dropResult.bundlePath} (git fetch <bundle> ${dropResult.branch})` : ''}`);

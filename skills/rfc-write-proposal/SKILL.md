@@ -1,6 +1,6 @@
 ---
-name: rfc
-description: Write and manage RFCs - proposals for large changes and future features that are NOT decided yet - in docs/rfc/, with honest options, criteria, assumptions, phases and how to resume them; when one is accepted or rejected, carry its decisions to the knowledge bundle. Use when the person asks for an RFC ("escribe un RFC", "hazlo como RFC", "write an RFC"), wants to save a future feature, an idea or a proposal for later ("guarda esta idea", "apúntalo para más adelante", "save this for later"), or asks to update, accept, reject or resume an RFC. Not for recording facts or decisions already taken (that is /jig:okf) nor for planning how to build something already accepted (that is a plan or /jig:deep).
+name: rfc-write-proposal
+description: RFC — Write and manage RFCs - proposals for large changes and future features that are NOT decided yet - in .ai1/rfc/, with honest options, criteria, assumptions, phases and how to resume them; when one is accepted or rejected, carry its decisions to the knowledge bundle. Use when the person asks for an RFC ("escribe un RFC", "hazlo como RFC", "write an RFC"), wants to save a future feature, an idea or a proposal for later ("guarda esta idea", "apúntalo para más adelante", "save this for later"), or asks to update, accept, reject or resume an RFC. Not for recording facts or decisions already taken (that is /ai1:okf-maintain-knowledge) nor for planning how to build something already accepted (that is a plan or /ai1:lanes-design-before-code).
 ---
 
 # RFC: proposals that are not the system yet
@@ -9,22 +9,22 @@ An RFC is a **proposal**: something that is not the system and may never be. It 
 through and decide a large change calmly, and so that months later someone (a person or a new
 conversation) understands what was proposed, why, what was decided, what was not, and how to go on.
 
-It lives in `docs/rfc/`, versioned. **It is not knowledge of the system**: that is the knowledge
+It lives in `.ai1/rfc/`, versioned. **It is not knowledge of the system**: that is the knowledge
 bundle, which is trusted because it is verified. The boundary matters: a proposed design written in
-the bundle as if it were real will be taken as true. So an RFC stays in `docs/rfc/` while it is a
+the bundle as if it were real will be taken as true. So an RFC stays in `.ai1/rfc/` while it is a
 proposal, and only what is decided or built moves to the bundle.
 
 ## Files and commands
 
-- **One RFC = one file** `docs/rfc/NNNN-<slug>.md`. The frontmatter (`rfc`, `title`, `size`,
-  `status`, `created`, `updated`, later `decided` and `superseded_by`) is what jig reads.
-- **Never number, rename or index by hand.** The `jig` CLI (on the Bash PATH) does it:
+- **One RFC = one file** `.ai1/rfc/NNNN-<slug>.md`. The frontmatter (`rfc`, `title`, `size`,
+  `status`, `created`, `updated`, later `decided` and `superseded_by`) is what ai1 reads.
+- **Never number, rename or index by hand.** The `ai1` CLI (on the Bash PATH) does it:
 
   ```bash
-  jig rfc new <slug> [--idea] [--title "<what is proposed>"]   # next free number, from the template
-  jig rfc set <number> <status> [--by <number>]                # status, dates, History line, index
-  jig rfc index                                                # regenerate docs/rfc/README.md
-  jig rfc check                                                # what is inconsistent, exit 1 if anything
+  ai1 rfc new <slug> [--idea] [--title "<what is proposed>"]   # next free number, from the template
+  ai1 rfc set <number> <status> [--by <number>]                # status, dates, History line, index
+  ai1 rfc index                                                # regenerate .ai1/rfc/README.md
+  ai1 rfc check                                                # what is inconsistent, exit 1 if anything
   ```
 
 - **Two sizes.** `--idea` gives a one-page RFC (problem, idea, why it matters, open questions, how to
@@ -32,7 +32,7 @@ proposal, and only what is decided or built moves to the bundle.
   grows into a full RFC with the same number: set `size: full` and add the missing sections from
   [templates/full.md](templates/full.md).
 - **Long design apart:** detail that does not fit (sizing, tables, diagrams, configuration examples)
-  goes to `docs/rfc/NNNN-<slug>/` and the RFC links it. The RFC must be readable alone in 10 minutes.
+  goes to `.ai1/rfc/NNNN-<slug>/` and the RFC links it. The RFC must be readable alone in 10 minutes.
 - The slug is short, lowercase, dashes (`prod-guard`), in the language of the repo's docs.
 
 ## Statuses
@@ -43,7 +43,7 @@ proposal, and only what is decided or built moves to the bundle.
 | `review` | ready for the people who decide | note in the RFC who it was sent to and the deadline, if any |
 | `accepted` | it was decided to do it (fully or in part) | fill in Outcome and **carry the decisions to the bundle** (below) |
 | `rejected` | it was decided not to do it | fill in Outcome with the why; if the reason is useful later, record it in the bundle too |
-| `superseded` | another RFC replaces it | `jig rfc set <n> superseded --by <m>`; mention it in the new one |
+| `superseded` | another RFC replaces it | `ai1 rfc set <n> superseded --by <m>`; mention it in the new one |
 | `implemented` | it is reality now | check the new mechanisms are documented in the bundle like any code change |
 
 An RFC is never deleted: the history of why something was decided (or not) is the valuable part.
@@ -54,7 +54,7 @@ Only the person (or whoever decides) moves an RFC to `accepted` or `rejected`; y
 1. **Gather context before asking.** The conversation usually carries it. Otherwise search the
    knowledge bundle, the code and the history. Ask the person only what cannot be found out (who
    pushes it, who decides, deadline), one question at a time, with options when they help.
-2. **Create the file** with `jig rfc new`, then read the template comments: they say what goes in
+2. **Create the file** with `ai1 rfc new`, then read the template comments: they say what goes in
    each section and why. Replace every comment; a section that does not apply gets one line saying why.
 3. **Criteria before options** (full RFCs). Write what the decision will be based on, and how much
    each thing weighs, before presenting options. Written afterwards, they look chosen to justify the
@@ -68,25 +68,25 @@ Only the person (or whoever decides) moves an RFC to `accepted` or `rejected`; y
    forgotten, and what explains, months later, why a decision stopped working.
 7. **How to resume:** for every dated fact, the command, query or concept that redoes it. Figures go
    stale; whoever resumes the RFC must refresh them without repeating the research.
-8. **Tell the person** what you created, one line per file. `jig rfc new` already updated the index.
+8. **Tell the person** what you created, one line per file. `ai1 rfc new` already updated the index.
 
 When naming anything in the system, say what it is and its name first, ids in parentheses.
 
 ## When it is accepted or rejected: carry it to the bundle
 
-This is where the RFC stops being only a proposal. With /jig:okf (produce or maintain mode):
+This is where the RFC stops being only a proposal. With /ai1:okf-maintain-knowledge (produce or maintain mode):
 
-1. `jig rfc set <n> accepted` (or `rejected`), then fill in the **Outcome** section.
+1. `ai1 rfc set <n> accepted` (or `rejected`), then fill in the **Outcome** section.
 2. **One durable decision = one concept** of `type: Decision` in the bundle's decisions folder: the
    decision, the why, the discarded alternatives and the consequences, briefly. In `sources`, the RFC
-   (`resource: docs/rfc/NNNN-<slug>.md`). If a concept on the same subject exists, update it instead.
-   `jig rfc check` (and the hook at stop) reports an accepted RFC that no concept cites.
+   (`resource: .ai1/rfc/NNNN-<slug>.md`). If a concept on the same subject exists, update it instead.
+   `ai1 rfc check` (and the hook at stop) reports an accepted RFC that no concept cites.
 3. **Rejected ones too**, when the reason saves discussing it again.
 4. **Link back:** list in Outcome the concepts that came out of it.
 5. Add the work to the project's roadmap if it has one. Building it is a separate task: with the
-   lanes feature, a deep plan whose frontmatter says `rfc: <number>`; when that plan is done, jig
-   reminds you to `jig rfc set <n> implemented`.
-6. Validate the bundle with /jig:validate.
+   lanes feature, a deep plan whose frontmatter says `rfc: <number>`; when that plan is done, ai1
+   reminds you to `ai1 rfc set <n> implemented`.
+6. Validate the bundle with /ai1:okf-validate-bundle.
 
 While an RFC is a draft or in review, the bundle gets at most **one short concept** with
 `status: draft` that summarises and links it, so a future conversation finds it when searching the
@@ -97,4 +97,4 @@ subject. Nothing of the design.
 - No commit or push: the files stay for the person to review and commit.
 - No publishing to external services unless the person asks.
 - No deciding for the person.
-- No replacing /jig:okf (facts and decisions already taken) or a plan (how to build what was accepted).
+- No replacing /ai1:okf-maintain-knowledge (facts and decisions already taken) or a plan (how to build what was accepted).

@@ -1,5 +1,5 @@
-// rfc-upkeep (Stop, feature `rfc`): when this session touched docs/rfc/, stops the agent from
-// finishing while the RFC folder is inconsistent (the same checks as `jig rfc check`: frontmatter,
+// rfc-upkeep (Stop, feature `rfc`): when this session touched .ai1/rfc/, stops the agent from
+// finishing while the RFC folder is inconsistent (the same checks as `ai1 rfc check`: frontmatter,
 // numbering, decided dates, an outdated index, an accepted RFC that no bundle concept cites). Also
 // reminds to mark an accepted RFC implemented when a deep-lane plan built from it (`rfc: <number>`
 // in its frontmatter) was finished in this session.
@@ -25,7 +25,7 @@ export function listBuiltRfcReminders(sharedRoot, rfcDocuments, sessionStartMill
       const rfcNumber = readFrontmatterField(splitFrontmatter(readFileSync(workPlan.planPath, 'utf8')).frontmatterText, 'rfc');
       const builtRfc = rfcNumber ? findRfc(rfcDocuments, rfcNumber) : null;
       if (!builtRfc || builtRfc.status !== 'accepted') return [];
-      return [`${builtRfc.relativePath}: the plan \`${workPlan.relativePath}\` built from it is done; if the RFC is fully built, run \`jig rfc set ${builtRfc.fileNumber} implemented\` and check its mechanisms are documented in the bundle`];
+      return [`${builtRfc.relativePath}: the plan \`${workPlan.relativePath}\` built from it is done; if the RFC is fully built, run \`ai1 rfc set ${builtRfc.fileNumber} implemented\` and check its mechanisms are documented in the bundle`];
     });
 }
 
@@ -33,8 +33,8 @@ export function buildRfcUpkeepReminder(rfcProblems) {
   return [
     `RFCs: ${RFC_DIRECTORY}/ needs attention before finishing:`,
     ...rfcProblems.slice(0, MAX_LISTED_PROBLEMS).map((rfcProblem) => `  - ${rfcProblem}`),
-    ...(rfcProblems.length > MAX_LISTED_PROBLEMS ? [`  - ... and ${rfcProblems.length - MAX_LISTED_PROBLEMS} more (run \`jig rfc check\`)`] : []),
-    'Fix them (the /jig:rfc skill says how), or say in one line why not and finish.',
+    ...(rfcProblems.length > MAX_LISTED_PROBLEMS ? [`  - ... and ${rfcProblems.length - MAX_LISTED_PROBLEMS} more (run \`ai1 rfc check\`)`] : []),
+    'Fix them (the /ai1:rfc-write-proposal skill says how), or say in one line why not and finish.',
   ].join('\n');
 }
 
@@ -42,7 +42,7 @@ export default {
   id: MODULE_ID,
   event: 'Stop',
   feature: 'rfc',
-  description: 'When the session touched docs/rfc/, checks the RFCs are consistent and that accepted ones are carried to the bundle; reminds to mark an RFC implemented when its plan is done.',
+  description: 'When the session touched .ai1/rfc/, checks the RFCs are consistent and that accepted ones are carried to the bundle; reminds to mark an RFC implemented when its plan is done.',
   run({ hookInput, config, projectRoot, sharedRoot = projectRoot, environment }) {
     const sessionBase = readSessionBase(hookInput, projectRoot, environment);
     if (!sessionBase) return allowDecision();

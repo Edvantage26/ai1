@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/Edvantage26/jig/main/schema/jig.schema.json",
+  "$schema": "https://raw.githubusercontent.com/Edvantage26/ai1/main/schema/ai1.schema.json",
   "version": 1,
   "features": {
     "okf": true,
@@ -9,7 +9,7 @@
   "verify": [
     "npm test"
   ],
-  "knowledge": ".okf",
+  "knowledge": ".ai1/okf",
   "modules": {
     "danger": {
       "ignore_rules": []

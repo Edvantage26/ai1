@@ -1,5 +1,5 @@
 // lanes-gate (PreToolUse, feature `lanes`): while a deep-lane design of this session is not approved
-// by the person, refuses edits to project files outside `.jig/`, the knowledge bundle and RFCs (Edit,
+// by the person, refuses edits to project files outside `.ai1/`, the knowledge bundle and RFCs (Edit,
 // Write, MultiEdit, NotebookEdit, and shell commands that write files). Designing, asking and
 // reading stay free; building waits for the approval that lanes-approval records.
 
@@ -7,7 +7,7 @@ import { allowDecision, denyDecision } from '../core/hook-io.mjs';
 import { readSessionBase } from '../core/session-base.mjs';
 import { listShellWriteTargets } from '../core/shell-writes.mjs';
 import {
-  listActivePlans, readApprovals, isPlanApproved, UNAPPROVED_STATUSES, JIG_DIRECTORY,
+  listActivePlans, readApprovals, isPlanApproved, UNAPPROVED_STATUSES, WORK_DIRECTORY,
 } from './lanes-work.mjs';
 import { projectRelativePath } from '../core/project-paths.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
@@ -46,7 +46,7 @@ export default {
   description: 'Refuses code edits while a deep-lane design of this session waits for the person\'s approval.',
   run({ hookInput, config, projectRoot, sharedRoot = projectRoot, environment }) {
     // Designing stays free: the work folder, the knowledge bundle and, with the rfc feature, RFCs.
-    const designDirectories = [JIG_DIRECTORY, config.knowledge, isFeatureEnabled('rfc', config) && RFC_DIRECTORY].filter(Boolean);
+    const designDirectories = [WORK_DIRECTORY, config.knowledge, isFeatureEnabled('rfc', config) && RFC_DIRECTORY].filter(Boolean);
     const editedPaths = listEditedProjectPaths(hookInput, projectRoot)
       .filter((relativePath) => !designDirectories.some((designDirectory) => isPathInside(relativePath, designDirectory)));
     if (editedPaths.length === 0) return allowDecision();

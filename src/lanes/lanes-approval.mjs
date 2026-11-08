@@ -34,7 +34,7 @@ export default {
     writePlanStatus(readyPlan.planPath, 'approved');
     return contextDecision(MODULE_ID, [
       `The person approved the design \`${readyPlan.relativePath}\` ("${readyPlan.title}"); code edits are open now.`,
-      `Implement it step by step. Close each step with \`jig step-done ${readyPlan.slug} "<step>: <files>"\` (runs the verify commands, logs the step in progress.md only if green).`,
+      `Implement it step by step. Close each step with \`ai1 step-done ${readyPlan.slug} "<step>: <files>"\` (runs the verify commands, logs the step in progress.md only if green).`,
       'If the design turns out wrong, stop and update the plan; set `status: ready` again to ask for a new approval. When finished, set `status: done` and move lasting decisions to the knowledge bundle.',
     ].join('\n'));
   },

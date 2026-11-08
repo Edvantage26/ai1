@@ -1,4 +1,4 @@
-// `jig worktree create`: makes a worktree following the project recipe and records it.
+// `ai1 worktree create`: makes a worktree following the project recipe and records it.
 // Modes: full trims nothing; light applies every heavy strategy; extra modes are light plus their
 // own excludes; auto is full when it fits on the disk with the recipe's margin (always when the
 // filesystem shares blocks on copy), else trims the heavy paths that free space, largest first.
@@ -20,7 +20,7 @@ const WORKTREE_INCLUDE_FILE = '.worktreeinclude';
 
 export function loadRecipeOrFail(mainRoot) {
   const loadedRecipe = loadRecipe(mainRoot);
-  if (loadedRecipe.status === 'missing') throw new Error(`no worktree recipe at ${loadedRecipe.recipePath}: plan one with /jig:worktree`);
+  if (loadedRecipe.status === 'missing') throw new Error(`no worktree recipe at ${loadedRecipe.recipePath}: plan one with /ai1:worktrees-plan-recipe`);
   if (loadedRecipe.status === 'invalid') throw new Error(`invalid ${loadedRecipe.recipePath}: ${loadedRecipe.errors.join('; ')}`);
   return loadedRecipe;
 }
@@ -146,7 +146,7 @@ export function createWorktree(startDirectory, worktreeName, options = {}) {
   const requestedMode = options.mode || recipe.default_mode;
   const knownModes = ['auto', 'full', 'light', ...Object.keys(recipe.modes)];
   if (!knownModes.includes(requestedMode)) throw new Error(`unknown mode "${requestedMode}": use ${knownModes.join(', ')}`);
-  if (readWorktreeState(commonDirectory, worktreeName)) throw new Error(`worktree "${worktreeName}" already exists (jig worktree list)`);
+  if (readWorktreeState(commonDirectory, worktreeName)) throw new Error(`worktree "${worktreeName}" already exists (ai1 worktree list)`);
   const branchName = `${recipe.branch_prefix}${worktreeName}`;
   if (tryGit(mainRoot, ['rev-parse', '--verify', '--quiet', `refs/heads/${branchName}`])) throw new Error(`branch ${branchName} already exists`);
   const worktreePath = resolve(mainRoot, recipe.location, worktreeName);

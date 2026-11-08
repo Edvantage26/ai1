@@ -1,13 +1,18 @@
-// Loads and validates the per-repo contract, `.claude/jig.json`.
-// The JSON schema in schema/jig.schema.json describes the same rules for editors; this
-// validator is hand-written so jig keeps zero dependencies. test/config.test.mjs checks that
+// Loads and validates the per-repo contract, `.ai1/config.json`.
+// The JSON schema in schema/ai1.schema.json describes the same rules for editors; this
+// validator is hand-written so ai1 keeps zero dependencies. test/config.test.mjs checks that
 // both agree on the shipped templates.
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { KNOWN_FEATURE_IDS, isFeatureEnabled } from './features.mjs';
 
-export const CONFIG_RELATIVE_PATH = join('.claude', 'jig.json');
+// Everything ai1 writes in a repo lives under `.ai1/`: config, knowledge bundle, RFCs, work plans.
+export const AI1_DIRECTORY = '.ai1';
+export const CONFIG_RELATIVE_PATH = join(AI1_DIRECTORY, 'config.json');
+export const DEFAULT_KNOWLEDGE_PATH = join(AI1_DIRECTORY, 'okf');
+export const AI1_PLUGIN_ID = 'ai1@ai1';
+export const SCHEMA_URL = 'https://raw.githubusercontent.com/Edvantage26/ai1/main/schema/ai1.schema.json';
 export const SUPPORTED_CONFIG_VERSION = 1;
 
 const KNOWN_TOP_LEVEL_FIELDS = new Set(['$schema', 'version', 'features', 'trunk', 'verify', 'knowledge', 'modules']);
@@ -17,12 +22,12 @@ const DEFAULT_CONFIG = {
   features: {},
   trunk: 'main',
   verify: [],
-  knowledge: '.okf',
+  knowledge: DEFAULT_KNOWLEDGE_PATH,
   modules: {},
 };
 
-// Names this jig version does not know (fields, features, modules), e.g. from a repo set up with a
-// newer jig. They are warnings, not errors: the rest of the harness keeps working and the unknown
+// Names this ai1 version does not know (fields, features, modules), e.g. from a repo set up with a
+// newer ai1. They are warnings, not errors: the rest of the harness keeps working and the unknown
 // entries are ignored, so an older plugin never switches off a repo's guards.
 export function listUnknownConfigEntries(rawConfig, knownModuleIds = []) {
   if (rawConfig === null || typeof rawConfig !== 'object' || Array.isArray(rawConfig)) return [];
@@ -36,7 +41,7 @@ export function listUnknownConfigEntries(rawConfig, knownModuleIds = []) {
   return unknownEntries;
 }
 
-// Errors in what this jig version knows (wrong types, unsupported version). Unknown names are
+// Errors in what this ai1 version knows (wrong types, unsupported version). Unknown names are
 // reported by listUnknownConfigEntries instead.
 export function validateHarnessConfig(rawConfig) {
   const validationErrors = [];
@@ -86,7 +91,7 @@ export function validateHarnessConfig(rawConfig) {
   return validationErrors;
 }
 
-// status: 'missing' (jig stays inactive), 'invalid' (errors listed), 'ok' (config merged with defaults).
+// status: 'missing' (ai1 stays inactive), 'invalid' (errors listed), 'ok' (config merged with defaults).
 export function loadHarnessConfig(projectRoot, knownModuleIds = []) {
   const configPath = join(projectRoot, CONFIG_RELATIVE_PATH);
   if (!existsSync(configPath)) return { status: 'missing', configPath };

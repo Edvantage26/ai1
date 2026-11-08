@@ -1,7 +1,7 @@
 // danger: shell commands that destroy work, history or data with no undo.
 // `ask` stops and lets the person confirm in one click; `deny` refuses outright and is reserved for
 // bypassing safety checks or wiping things nobody means to wipe.
-// Options (`modules.danger` in jig.json):
+// Options (`modules.danger` in .ai1/config.json):
 //   ignore_rules: rule ids to switch off in this repo, e.g. ["rm-recursive-force"].
 
 import { askDecision, denyDecision, allowDecision } from '../core/hook-io.mjs';
@@ -132,17 +132,17 @@ export const DANGER_RULES = [
     },
   },
   {
-    id: 'jig-worktree-drop',
+    id: 'ai1-worktree-drop',
     check(commandWords) {
-      if (baseName(commandWords[0]) !== 'jig' || commandWords[1] !== 'worktree' || commandWords[2] !== 'drop') return null;
-      return { action: 'ask', why: 'jig worktree drop abandons the worktree and deletes its branch (its commits are kept in a bundle).' };
+      if (baseName(commandWords[0]) !== 'ai1' || commandWords[1] !== 'worktree' || commandWords[2] !== 'drop') return null;
+      return { action: 'ask', why: 'ai1 worktree drop abandons the worktree and deletes its branch (its commits are kept in a bundle).' };
     },
   },
   {
-    id: 'jig-worktree-finish',
+    id: 'ai1-worktree-finish',
     check(commandWords) {
-      if (baseName(commandWords[0]) !== 'jig' || commandWords[1] !== 'worktree' || commandWords[2] !== 'finish') return null;
-      return { action: 'ask', why: 'jig worktree finish integrates the branch into its base and removes the worktree: the person decides when.' };
+      if (baseName(commandWords[0]) !== 'ai1' || commandWords[1] !== 'worktree' || commandWords[2] !== 'finish') return null;
+      return { action: 'ask', why: 'ai1 worktree finish integrates the branch into its base and removes the worktree: the person decides when.' };
     },
   },
   {

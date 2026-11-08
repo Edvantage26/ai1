@@ -33,7 +33,7 @@ const TEST_RECIPE = {
 
 // A repo with a recipe: tracked src/ and assets/video (heavy), ignored .env, node_modules and data/models.
 function createRecipeRepo(recipe = TEST_RECIPE) {
-  const mainRoot = realpathSync(mkdtempSync(join(tmpdir(), 'jig-wt-')));
+  const mainRoot = realpathSync(mkdtempSync(join(tmpdir(), 'ai1-wt-')));
   mkdirSync(join(mainRoot, '.claude', 'skills', 'worktree'), { recursive: true });
   writeFileSync(join(mainRoot, RECIPE_RELATIVE_PATH), JSON.stringify(recipe));
   writeFileSync(join(mainRoot, '.gitignore'), '.env\nnode_modules/\ndata/\n.claude/worktrees/\n');
@@ -195,7 +195,7 @@ test('run executes recipe commands in the worktree with env, port and placeholde
   const created = createWorktree(mainRoot, 'runner', { mode: 'light' });
   const executedCommands = [];
   const recordCommand = (commandText, workingDirectory, commandEnvironment) => {
-    executedCommands.push({ commandText, workingDirectory, outDir: commandEnvironment.OUT_DIR, port: commandEnvironment.PORT, worktree: commandEnvironment.JIG_WORKTREE });
+    executedCommands.push({ commandText, workingDirectory, outDir: commandEnvironment.OUT_DIR, port: commandEnvironment.PORT, worktree: commandEnvironment.AI1_WORKTREE });
     return commandText === 'test' ? 3 : 0;
   };
   assert.deepEqual(runWorktreeCommand(mainRoot, 'runner', 'dev', { runCommand: recordCommand }), { exitCode: 0, failedCommand: null });
@@ -228,7 +228,7 @@ test('drop needs --confirm, refuses uncommitted work, bundles own commits and cl
 });
 
 const commitInMain = (mainRoot, fileName, fileText) => commitInWorktree(mainRoot, fileName, fileText);
-const NO_PYTHON = { JIG_PYTHON: 'no-such-python-for-jig-tests' };
+const NO_PYTHON = { AI1_PYTHON: 'no-such-python-for-ai1-tests' };
 
 test('finish rebases onto a moved base, fast-forwards it and cleans everything', () => {
   const mainRoot = createRecipeRepo();
@@ -281,9 +281,9 @@ test('finish runs pre-finish and moves a base that is not checked out anywhere',
 
 test('finish asks for the knowledge bundle when the branch changes code without touching it', () => {
   const mainRoot = createRecipeRepo();
-  mkdirSync(join(mainRoot, '.okf'));
-  writeFileSync(join(mainRoot, '.okf', 'index.md'), '---\nokf_version: "0.2"\n---\n# Bundle\n');
-  writeFileSync(join(mainRoot, '.claude', 'jig.json'), JSON.stringify({ features: { okf: true } }));
+  mkdirSync(join(mainRoot, '.ai1', 'okf'), { recursive: true });
+  writeFileSync(join(mainRoot, '.ai1', 'okf', 'index.md'), '---\nokf_version: "0.2"\n---\n# Bundle\n');
+  writeFileSync(join(mainRoot, '.ai1', 'config.json'), JSON.stringify({ features: { okf: true } }));
   runGit(mainRoot, ['add', '.']);
   runGit(mainRoot, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'okf']);
   const created = createWorktree(mainRoot, 'docs', { mode: 'light' });
@@ -293,38 +293,39 @@ test('finish asks for the knowledge bundle when the branch changes code without 
   assert.match(finishResult.notes.join('\n'), /internal helper[\s\S]*validator not run/);
 });
 
-test('the jig worktree CLI creates, lists and drops, in text and JSON', () => {
+test('the ai1 worktree CLI creates, lists and drops, in text and JSON', () => {
   const mainRoot = createRecipeRepo();
-  const jigCli = (cliArguments) => execFileSync(process.execPath, [new URL('../bin/jig', import.meta.url).pathname, ...cliArguments], { cwd: mainRoot, encoding: 'utf8' });
-  const createdText = jigCli(['worktree', 'create', 'cli-made', '--mode', 'light']);
+  const ai1Cli = (cliArguments) => execFileSync(process.execPath, [new URL('../bin/ai1', import.meta.url).pathname, ...cliArguments], { cwd: mainRoot, encoding: 'utf8' });
+  const createdText = ai1Cli(['worktree', 'create', 'cli-made', '--mode', 'light']);
   assert.match(createdText, /worktree cli-made ready at .*cli-made\nbranch wt\/cli-made from main \| mode light/);
-  assert.match(createdText, /next: jig worktree run cli-made setup/);
+  assert.match(createdText, /next: ai1 worktree run cli-made setup/);
   assert.match(createdText, /EnterWorktree with path/);
-  assert.equal(JSON.parse(jigCli(['worktree', 'list', '--json']))[0].name, 'cli-made');
-  assert.match(jigCli(['worktree', 'list']), /cli-made {2}wt\/cli-made <- main \| ahead 0 behind 0 \| clean \| mode light \| port \d+/);
-  assert.match(jigCli(['worktree', 'drop', 'cli-made', '--confirm']), /worktree cli-made dropped/);
-  assert.throws(() => jigCli(['worktree', 'drop', 'cli-made', '--confirm']), /no worktree "cli-made"/);
+  assert.equal(JSON.parse(ai1Cli(['worktree', 'list', '--json']))[0].name, 'cli-made');
+  assert.match(ai1Cli(['worktree', 'list']), /cli-made {2}wt\/cli-made <- main \| ahead 0 behind 0 \| clean \| mode light \| port \d+/);
+  assert.match(ai1Cli(['worktree', 'drop', 'cli-made', '--confirm']), /worktree cli-made dropped/);
+  assert.throws(() => ai1Cli(['worktree', 'drop', 'cli-made', '--confirm']), /no worktree "cli-made"/);
 });
 
 function hookOptions(mainRoot) {
   return {
-    environment: { CLAUDE_PROJECT_DIR: mainRoot, CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'jig-data-')) },
-    homeDirectory: mkdtempSync(join(tmpdir(), 'jig-home-')),
+    environment: { CLAUDE_PROJECT_DIR: mainRoot, CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'ai1-data-')) },
+    homeDirectory: mkdtempSync(join(tmpdir(), 'ai1-home-')),
     reportInternalError: (errorMessage) => { throw new Error(errorMessage); },
   };
 }
 
 const contextOf = (hookOutput) => hookOutput?.hookSpecificOutput?.additionalContext ?? '';
 
-test('worktree-brief: points to /jig:worktree without a recipe, gives the rules with one, names the session worktree', () => {
+test('worktree-brief: points to /ai1:worktrees-plan-recipe without a recipe, gives the rules with one, names the session worktree', () => {
   const bareRoot = createTemporaryProject({ features: { okf: false, worktrees: true } });
   runGit(bareRoot, ['init', '-q']);
-  assert.match(contextOf(runHookEvent('SessionStart', { session_id: 's', cwd: bareRoot, source: 'startup' }, hookOptions(bareRoot))), /no worktree recipe[\s\S]*\/jig:worktree/);
+  assert.match(contextOf(runHookEvent('SessionStart', { session_id: 's', cwd: bareRoot, source: 'startup' }, hookOptions(bareRoot))), /no worktree recipe[\s\S]*\/ai1:worktrees-plan-recipe/);
   const mainRoot = createRecipeRepo();
-  writeFileSync(join(mainRoot, '.claude', 'jig.json'), JSON.stringify({ features: { okf: false, worktrees: true, lanes: true } }));
+  mkdirSync(join(mainRoot, '.ai1'), { recursive: true });
+  writeFileSync(join(mainRoot, '.ai1', 'config.json'), JSON.stringify({ features: { okf: false, worktrees: true, lanes: true } }));
   const options = hookOptions(mainRoot);
   const mainContext = contextOf(runHookEvent('SessionStart', { session_id: 's', cwd: mainRoot, source: 'startup' }, options));
-  assert.match(mainContext, /Worktrees: do each significant change[\s\S]*jig worktree create <name>/);
+  assert.match(mainContext, /Worktrees: do each significant change[\s\S]*ai1 worktree create <name>/);
   assert.match(mainContext, /plan and deep tasks are built in their own worktree/);
   assert.doesNotMatch(mainContext, /This session works in/);
   assert.equal(mainContext, contextOf(runHookEvent('SessionStart', { session_id: 's', cwd: mainRoot, source: 'startup' }, options)), 'byte-stable');
@@ -335,19 +336,20 @@ test('worktree-brief: points to /jig:worktree without a recipe, gives the rules 
 
 test('worktree-reminder: on change and every N prompts, marking this session, then once when none are left', () => {
   const mainRoot = createRecipeRepo({ ...TEST_RECIPE, reminder_every: 4 });
-  writeFileSync(join(mainRoot, '.claude', 'jig.json'), JSON.stringify({ features: { okf: false, worktrees: true } }));
+  mkdirSync(join(mainRoot, '.ai1'), { recursive: true });
+  writeFileSync(join(mainRoot, '.ai1', 'config.json'), JSON.stringify({ features: { okf: false, worktrees: true } }));
   const options = hookOptions(mainRoot);
   const sendPrompt = (workingDirectory) => contextOf(runHookEvent('UserPromptSubmit', { session_id: 's', cwd: workingDirectory, prompt: 'go' }, options));
   assert.equal(sendPrompt(mainRoot), '', 'no worktrees, nothing to say');
   const created = createWorktree(mainRoot, 'remind', { mode: 'light' });
-  assert.match(sendPrompt(created.path), /\[jig worktrees\] Active: remind \(wt\/remind, light, port \d+\) <- this session\. Start your reply/);
+  assert.match(sendPrompt(created.path), /\[ai1 worktrees\] Active: remind \(wt\/remind, light, port \d+\) <- this session\. Start your reply/);
   assert.equal(sendPrompt(created.path), '', 'unchanged, not yet periodic');
   assert.match(sendPrompt(created.path), /Active: remind/, 'fourth prompt is periodic');
   createWorktree(mainRoot, 'other', { mode: 'light' });
   assert.match(sendPrompt(created.path), /other \(wt\/other[^;]*\); remind .*<- this session/);
   dropWorktree(mainRoot, 'remind', { confirm: true });
   dropWorktree(mainRoot, 'other', { confirm: true });
-  assert.equal(sendPrompt(mainRoot), '[jig worktrees] No active worktrees now.');
+  assert.equal(sendPrompt(mainRoot), '[ai1 worktrees] No active worktrees now.');
   assert.equal(sendPrompt(mainRoot), '');
 });
 
@@ -357,7 +359,7 @@ test('ports are stable per name and skip taken ones; env files keep other lines'
   assert.notEqual(pickWorktreePort('feature-a', [12000, 12999], new Set([firstPort])), firstPort);
   assert.throws(() => pickWorktreePort('x', [12000, 12001], new Set([12000, 12001])), /no free port/);
   assert.ok(listListeningPorts() instanceof Set);
-  const envPath = join(mkdtempSync(join(tmpdir(), 'jig-env-')), '.env');
+  const envPath = join(mkdtempSync(join(tmpdir(), 'ai1-env-')), '.env');
   writeFileSync(envPath, '# comment\nexport PORT=1\nOTHER=x\n');
   writeEnvVariables(envPath, { PORT: '12345', NEW_VAR: 'y' });
   assert.equal(readFileSync(envPath, 'utf8'), '# comment\nPORT=12345\nOTHER=x\nNEW_VAR=y\n');

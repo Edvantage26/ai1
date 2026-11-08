@@ -24,7 +24,7 @@ test('invalid contracts are reported with a readable reason', () => {
   assert.match(validateHarnessConfig([]).join(), /JSON object/);
 });
 
-test('names from a newer jig are warnings, not errors', () => {
+test('names from a newer ai1 are warnings, not errors', () => {
   const newerConfig = { features: { okf: true, teleport: true }, surprise: 1, modules: { nope: true } };
   assert.deepEqual(validateHarnessConfig(newerConfig), []);
   assert.deepEqual(listUnknownConfigEntries(newerConfig, KNOWN_MODULE_IDS), ['field "surprise"', 'feature "teleport"', 'module "nope"']);
@@ -35,9 +35,9 @@ test('names from a newer jig are warnings, not errors', () => {
   const reportedErrors = [];
   const sessionOutput = runHookEvent('SessionStart', { session_id: 's', cwd: projectRoot }, { reportInternalError: (errorMessage) => reportedErrors.push(errorMessage) });
   const contextText = sessionOutput.hookSpecificOutput.additionalContext;
-  assert.match(contextText, /jig harness is active/, 'the rest of jig keeps working');
-  assert.match(contextText, /feature "teleport", which this jig version does not know.*update the jig plugin/);
-  assert.match(reportedErrors.join(), /unknown to this jig version/);
+  assert.match(contextText, /ai1 harness is active/, 'the rest of ai1 keeps working');
+  assert.match(contextText, /feature "teleport", which this ai1 version does not know.*update the ai1 plugin/);
+  assert.match(reportedErrors.join(), /unknown to this ai1 version/);
 });
 
 test('load reports missing, invalid JSON and merges defaults', () => {
@@ -47,7 +47,7 @@ test('load reports missing, invalid JSON and merges defaults', () => {
   assert.equal(loadedConfig.status, 'ok');
   assert.equal(loadedConfig.config.trunk, 'main');
   assert.deepEqual(loadedConfig.config.verify, []);
-  assert.equal(loadedConfig.config.knowledge, '.okf');
+  assert.equal(loadedConfig.config.knowledge, '.ai1/okf');
 });
 
 test('modules follow their feature; a single module can still be switched off', () => {
@@ -62,7 +62,7 @@ test('modules follow their feature; a single module can still be switched off', 
 });
 
 test('schema lists every module, every user-facing feature and every danger rule', () => {
-  const harnessSchema = readJson('schema/jig.schema.json');
+  const harnessSchema = readJson('schema/ai1.schema.json');
   const selectableFeatureIds = FEATURES.filter((featureDefinition) => !featureDefinition.alwaysOn).map((featureDefinition) => featureDefinition.id);
   assert.deepEqual(Object.keys(harnessSchema.properties.features.properties).sort(), selectableFeatureIds.sort());
   assert.deepEqual(Object.keys(harnessSchema.properties.modules.properties).sort(), [...KNOWN_MODULE_IDS].sort());

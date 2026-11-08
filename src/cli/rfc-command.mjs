@@ -1,15 +1,15 @@
-// `jig rfc ...`: the only way RFC files get numbered, moved between statuses and indexed, so the
-// agent never does it by hand. Reads the knowledge path and the okf feature from .claude/jig.json
+// `ai1 rfc ...`: the only way RFC files get numbered, moved between statuses and indexed, so the
+// agent never does it by hand. Reads the knowledge path and the okf feature from .ai1/config.json
 // (defaults when the repo has none) to word the index and check bundle citations.
 
-import { loadHarnessConfig } from '../core/config.mjs';
+import { loadHarnessConfig, DEFAULT_KNOWLEDGE_PATH } from '../core/config.mjs';
 import { createRfc, setRfcStatus, writeRfcIndex, checkRfcs, listRfcs, resolveCitingBundle, resolveKnowledgePath, RFC_DIRECTORY } from '../rfc/rfc-documents.mjs';
 
-export const RFC_USAGE = 'jig rfc new <slug> [--idea] [--title "<title>"] | jig rfc set <number> <status> [--by <number>] | jig rfc index | jig rfc check';
+export const RFC_USAGE = 'ai1 rfc new <slug> [--idea] [--title "<title>"] | ai1 rfc set <number> <status> [--by <number>] | ai1 rfc index | ai1 rfc check';
 
 function loadRepoConfig(repoRoot) {
   const loadedConfig = loadHarnessConfig(repoRoot);
-  return loadedConfig.status === 'ok' ? loadedConfig.config : { features: {}, knowledge: '.okf' };
+  return loadedConfig.status === 'ok' ? loadedConfig.config : { features: {}, knowledge: DEFAULT_KNOWLEDGE_PATH };
 }
 
 // Prints the result and returns the exit code.
@@ -26,7 +26,7 @@ export function runRfcCommand(repoRoot, commandArguments, { readOption }) {
     return 0;
   }
   if (subcommandName === 'set') {
-    if (!firstArgument || !secondArgument) throw new Error('usage: jig rfc set <number> <status> [--by <number>]');
+    if (!firstArgument || !secondArgument) throw new Error('usage: ai1 rfc set <number> <status> [--by <number>]');
     const { relativePath, indexPath } = setRfcStatus(repoRoot, firstArgument, secondArgument, { supersededBy: readOption('--by'), knowledgePath });
     console.log(`${relativePath}: status ${secondArgument}`);
     console.log(`updated ${indexPath}`);
@@ -39,7 +39,7 @@ export function runRfcCommand(repoRoot, commandArguments, { readOption }) {
   if (subcommandName === 'check') {
     const rfcProblems = checkRfcs(repoRoot, { knowledgePath, bundleDirectory: resolveCitingBundle(repoRoot, config) });
     if (!rfcProblems.length) {
-      console.log(`jig: ${listRfcs(repoRoot).length} RFC(s) in ${RFC_DIRECTORY}/, all consistent`);
+      console.log(`ai1: ${listRfcs(repoRoot).length} RFC(s) in ${RFC_DIRECTORY}/, all consistent`);
       return 0;
     }
     for (const rfcProblem of rfcProblems) console.error(`- ${rfcProblem}`);

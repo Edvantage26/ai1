@@ -1,5 +1,5 @@
-// YAML frontmatter of markdown files, read and written with plain regexes (no YAML parser: jig has
-// zero dependencies). Enough for the flat fields jig uses: scalars, inline lists and block lists.
+// YAML frontmatter of markdown files, read and written with plain regexes (no YAML parser: ai1 has
+// zero dependencies). Enough for the flat fields ai1 uses: scalars, inline lists and block lists.
 // Shared by okf (bundle concepts), lanes (work plans) and rfc (proposals).
 
 const FRONTMATTER_PATTERN = /^---\n([\s\S]*?)\n---\n?([\s\S]*)$/;

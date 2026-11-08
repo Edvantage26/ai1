@@ -20,25 +20,25 @@ function setModifiedSeconds(filePath, epochSeconds) {
 }
 
 // A committed repo with a bundle whose files are dated `bundleEpochSeconds`.
-function createRepoWithBundle({ indexText = V02_INDEX, jigConfig = {}, bundleEpochSeconds = 1_000_000 } = {}) {
-  const projectRoot = createTemporaryProject(jigConfig);
-  mkdirSync(join(projectRoot, '.okf'));
-  writeFileSync(join(projectRoot, '.okf', 'index.md'), indexText);
-  writeFileSync(join(projectRoot, '.okf', 'overview.md'), '---\ntype: Overview\n---\nHello.\n');
+function createRepoWithBundle({ indexText = V02_INDEX, ai1Config = {}, bundleEpochSeconds = 1_000_000 } = {}) {
+  const projectRoot = createTemporaryProject(ai1Config);
+  mkdirSync(join(projectRoot, '.ai1', 'okf'));
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'index.md'), indexText);
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'overview.md'), '---\ntype: Overview\n---\nHello.\n');
   mkdirSync(join(projectRoot, 'src'));
   writeFileSync(join(projectRoot, 'src', 'app.py'), 'print(1)\n');
   runGit(projectRoot, ['init', '-q']);
   runGit(projectRoot, ['add', '.']);
   runGit(projectRoot, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'init']);
-  for (const bundleFile of readdirSync(join(projectRoot, '.okf'))) setModifiedSeconds(join(projectRoot, '.okf', bundleFile), bundleEpochSeconds);
-  setModifiedSeconds(join(projectRoot, '.okf'), bundleEpochSeconds);
+  for (const bundleFile of readdirSync(join(projectRoot, '.ai1', 'okf'))) setModifiedSeconds(join(projectRoot, '.ai1', 'okf', bundleFile), bundleEpochSeconds);
+  setModifiedSeconds(join(projectRoot, '.ai1', 'okf'), bundleEpochSeconds);
   return projectRoot;
 }
 
 function hookOptions() {
   return {
-    environment: { CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'jig-data-')) },
-    homeDirectory: mkdtempSync(join(tmpdir(), 'jig-home-')),
+    environment: { CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'ai1-data-')) },
+    homeDirectory: mkdtempSync(join(tmpdir(), 'ai1-home-')),
     reportInternalError: (errorMessage) => { throw new Error(errorMessage); },
   };
 }
@@ -54,11 +54,11 @@ function stopSession(projectRoot, options, extraInput = {}, sessionId = 'session
 test('okf-index loads the bundle index with v0.2 maintenance rules', () => {
   const projectRoot = createRepoWithBundle();
   const contextText = startSession(projectRoot, hookOptions()).hookSpecificOutput.additionalContext;
-  assert.match(contextText, /OKF bundle at `\.okf\/` \(spec 0\.2\)/);
+  assert.match(contextText, /OKF bundle at `\.ai1\/okf\/` \(spec 0\.2\)/);
   assert.match(contextText, /# Demo bundle/);
   assert.match(contextText, /generated: \{ by: claude-code\/<model>, at: <now> \}/);
   assert.match(contextText, /date -u/);
-  assert.match(contextText, /\/jig:validate \.okf/);
+  assert.match(contextText, /\/ai1:okf-validate-bundle \.ai1\/okf/);
   assert.match(contextText, /only for lifecycle events/);
   assert.doesNotMatch(contextText, /Do NOT migrate/);
 });
@@ -74,12 +74,12 @@ test('a v0.1 bundle is told not to migrate on its own', () => {
 test('okf enabled without a bundle suggests creating one', () => {
   const projectRoot = createTemporaryProject({});
   const contextText = startSession(projectRoot, hookOptions()).hookSpecificOutput.additionalContext;
-  assert.match(contextText, /no bundle at `\.okf\/index\.md`/);
-  assert.match(contextText, /\/jig:okf/);
+  assert.match(contextText, /no bundle at `\.ai1\/okf\/index\.md`/);
+  assert.match(contextText, /\/ai1:okf-maintain-knowledge/);
 });
 
 test('features.okf false turns both OKF modules off', () => {
-  const projectRoot = createRepoWithBundle({ jigConfig: { features: { okf: false } } });
+  const projectRoot = createRepoWithBundle({ ai1Config: { features: { okf: false } } });
   const options = hookOptions();
   const contextText = startSession(projectRoot, options).hookSpecificOutput.additionalContext;
   assert.doesNotMatch(contextText, /OKF bundle/);
@@ -88,7 +88,7 @@ test('features.okf false turns both OKF modules off', () => {
 });
 
 test('a custom knowledge path is honoured', () => {
-  const projectRoot = createRepoWithBundle({ jigConfig: { knowledge: 'docs/kb' } });
+  const projectRoot = createRepoWithBundle({ ai1Config: { knowledge: 'docs/kb' } });
   const contextText = startSession(projectRoot, hookOptions()).hookSpecificOutput.additionalContext;
   assert.match(contextText, /no bundle at `docs\/kb\/index\.md`/);
 });
@@ -107,7 +107,7 @@ test('okf-upkeep: a code change after the last bundle update blocks once', () =>
   writeFileSync(join(projectRoot, 'src', 'app.py'), 'print(2)\n');
   const firstStop = stopSession(projectRoot, options);
   assert.equal(firstStop.decision, 'block');
-  assert.match(firstStop.reason, /^jig\/okf-upkeep: OKF: this session left knowledge newer/);
+  assert.match(firstStop.reason, /^ai1\/okf-upkeep: OKF: this session left knowledge newer/);
   assert.match(firstStop.reason, /- src\/app\.py/);
   assert.match(firstStop.reason, /you will not be asked again/);
   assert.equal(stopSession(projectRoot, options), null, 'same pending set is not asked twice');
@@ -121,8 +121,8 @@ test('okf-upkeep: updating the bundle after the change clears it', () => {
   startSession(projectRoot, options);
   writeFileSync(join(projectRoot, 'src', 'app.py'), 'print(2)\n');
   setModifiedSeconds(join(projectRoot, 'src', 'app.py'), 2_000_000);
-  writeFileSync(join(projectRoot, '.okf', 'overview.md'), '---\ntype: Overview\n---\nHello, updated.\n');
-  setModifiedSeconds(join(projectRoot, '.okf', 'overview.md'), 3_000_000);
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'overview.md'), '---\ntype: Overview\n---\nHello, updated.\n');
+  setModifiedSeconds(join(projectRoot, '.ai1', 'okf', 'overview.md'), 3_000_000);
   assert.equal(stopSession(projectRoot, options), null);
 });
 
@@ -130,7 +130,9 @@ test('okf-upkeep: harness configuration files never ask', () => {
   const projectRoot = createRepoWithBundle();
   const options = hookOptions();
   startSession(projectRoot, options);
+  mkdirSync(join(projectRoot, '.claude'), { recursive: true });
   writeFileSync(join(projectRoot, '.claude', 'settings.json'), '{}\n');
+  writeFileSync(join(projectRoot, '.ai1', 'config.json'), '{"features":{"okf":true}}\n');
   assert.equal(stopSession(projectRoot, options), null);
 });
 
@@ -173,15 +175,15 @@ test('okf-upkeep: a session that never ran SessionStart uses the current HEAD', 
 
 test('okf-upkeep: outside a git repo it fails open', () => {
   const projectRoot = createTemporaryProject({});
-  mkdirSync(join(projectRoot, '.okf'));
-  writeFileSync(join(projectRoot, '.okf', 'index.md'), V02_INDEX);
+  mkdirSync(join(projectRoot, '.ai1', 'okf'));
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'index.md'), V02_INDEX);
   const reportedErrors = [];
   const stopOutput = runHookEvent('Stop', { session_id: 's', cwd: projectRoot }, {
     ...hookOptions(),
     reportInternalError: (errorMessage) => reportedErrors.push(errorMessage),
   });
   assert.equal(stopOutput, null);
-  assert.ok(existsSync(join(projectRoot, '.okf', 'index.md')));
+  assert.ok(existsSync(join(projectRoot, '.ai1', 'okf', 'index.md')));
 });
 
 const BROKEN_CONCEPT = '---\ntitle: No type here\n---\nA concept without `type` is an OKF error.\n';
@@ -190,7 +192,7 @@ test('validation: a bundle edited in the session with an ERROR blocks with the e
   const projectRoot = createRepoWithBundle();
   const options = hookOptions();
   startSession(projectRoot, options);
-  writeFileSync(join(projectRoot, '.okf', 'broken.md'), BROKEN_CONCEPT);
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'broken.md'), BROKEN_CONCEPT);
   const stopOutput = stopSession(projectRoot, options);
   assert.equal(stopOutput.decision, 'block');
   assert.match(stopOutput.reason, /validator reports 1 ERROR/);
@@ -202,7 +204,7 @@ test('validation: runs even when the agent was already stopped once (stop_hook_a
   const projectRoot = createRepoWithBundle();
   const options = hookOptions();
   startSession(projectRoot, options);
-  writeFileSync(join(projectRoot, '.okf', 'broken.md'), BROKEN_CONCEPT);
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'broken.md'), BROKEN_CONCEPT);
   assert.equal(stopSession(projectRoot, options, { stop_hook_active: true }).decision, 'block');
 });
 
@@ -210,14 +212,14 @@ test('validation: v0.1 legacy warnings never block', () => {
   const projectRoot = createRepoWithBundle({ indexText: V01_INDEX });
   const options = hookOptions();
   startSession(projectRoot, options);
-  writeFileSync(join(projectRoot, '.okf', 'overview.md'), "---\ntype: Overview\ntimestamp: '2026-01-01T00:00:00Z'\n---\nUpdated.\n");
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'overview.md'), "---\ntype: Overview\ntimestamp: '2026-01-01T00:00:00Z'\n---\nUpdated.\n");
   assert.equal(stopSession(projectRoot, options), null);
 });
 
 test('validation: an untouched bundle is not validated', () => {
   const projectRoot = createRepoWithBundle();
-  writeFileSync(join(projectRoot, '.okf', 'broken.md'), BROKEN_CONCEPT);
-  setModifiedSeconds(join(projectRoot, '.okf', 'broken.md'), 1_000_000);
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'broken.md'), BROKEN_CONCEPT);
+  setModifiedSeconds(join(projectRoot, '.ai1', 'okf', 'broken.md'), 1_000_000);
   const options = hookOptions();
   startSession(projectRoot, options);
   assert.equal(stopSession(projectRoot, options), null);
@@ -229,7 +231,7 @@ test('validation: the upkeep reminder comes first, validation on the next stop',
   startSession(projectRoot, options);
   writeFileSync(join(projectRoot, 'src', 'app.py'), 'print(2)\n');
   assert.match(stopSession(projectRoot, options).reason, /left knowledge newer/);
-  writeFileSync(join(projectRoot, '.okf', 'broken.md'), BROKEN_CONCEPT);
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'broken.md'), BROKEN_CONCEPT);
   assert.match(stopSession(projectRoot, options, { stop_hook_active: true }).reason, /validator reports 1 ERROR/);
 });
 
@@ -238,19 +240,19 @@ test('validation: at most three validation blocks per session', () => {
   const options = hookOptions();
   startSession(projectRoot, options);
   for (let attemptNumber = 1; attemptNumber <= 3; attemptNumber += 1) {
-    writeFileSync(join(projectRoot, '.okf', `broken-${attemptNumber}.md`), BROKEN_CONCEPT);
+    writeFileSync(join(projectRoot, '.ai1', 'okf', `broken-${attemptNumber}.md`), BROKEN_CONCEPT);
     assert.equal(stopSession(projectRoot, options, { stop_hook_active: true }).decision, 'block', `attempt ${attemptNumber}`);
   }
-  writeFileSync(join(projectRoot, '.okf', 'broken-4.md'), BROKEN_CONCEPT);
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'broken-4.md'), BROKEN_CONCEPT);
   assert.equal(stopSession(projectRoot, options, { stop_hook_active: true }), null);
 });
 
 test('validation: without python3 it fails open', () => {
   const projectRoot = createRepoWithBundle();
   const options = hookOptions();
-  options.environment.JIG_PYTHON = 'python3-that-does-not-exist';
+  options.environment.AI1_PYTHON = 'python3-that-does-not-exist';
   startSession(projectRoot, options);
-  writeFileSync(join(projectRoot, '.okf', 'broken.md'), BROKEN_CONCEPT);
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'broken.md'), BROKEN_CONCEPT);
   assert.equal(stopSession(projectRoot, options), null);
 });
 
@@ -346,7 +348,7 @@ test('memories: the transcript scan is incremental and picks up appended writes'
 });
 
 function writeConcept(projectRoot, relativePath, frontmatterLines, bodyText) {
-  const conceptPath = join(projectRoot, '.okf', relativePath);
+  const conceptPath = join(projectRoot, '.ai1', 'okf', relativePath);
   mkdirSync(join(conceptPath, '..'), { recursive: true });
   writeFileSync(conceptPath, `---\n${frontmatterLines.join('\n')}\n---\n${bodyText}\n`);
 }
@@ -366,8 +368,8 @@ function createRecallRepo() {
 test('okf-recall: a message gets the related concepts, best first', () => {
   const projectRoot = createRecallRepo();
   const recallText = sendPrompt(projectRoot, hookOptions(), '¿Por qué la plantilla de Gastrohub no lee la cantidad?').hookSpecificOutput.additionalContext;
-  assert.match(recallText, /^jig\/okf-recall: OKF concepts related to this request|OKF concepts related to this request/);
-  assert.match(recallText, /\.okf\/extraction\/masks\.md — Máscara: Configuración de extracción por remitente\./);
+  assert.match(recallText, /^ai1\/okf-recall: OKF concepts related to this request|OKF concepts related to this request/);
+  assert.match(recallText, /\.ai1\/okf\/extraction\/masks\.md — Máscara: Configuración de extracción por remitente\./);
   assert.doesNotMatch(recallText, /seidor\.md/);
 });
 
@@ -382,12 +384,12 @@ test('okf-recall: short or unrelated messages and slash commands add nothing', (
   const options = hookOptions();
   assert.equal(sendPrompt(projectRoot, options, 'sí, adelante'), null);
   assert.equal(sendPrompt(projectRoot, options, 'cuéntame un chiste sobre gatos'), null);
-  assert.equal(sendPrompt(projectRoot, options, '/jig:validate .okf'), null);
+  assert.equal(sendPrompt(projectRoot, options, '/ai1:okf-validate-bundle .ai1/okf'), null);
 });
 
 test('okf-recall: switched off with the okf feature', () => {
   const projectRoot = createRecallRepo();
-  writeFileSync(join(projectRoot, '.claude', 'jig.json'), JSON.stringify({ features: { okf: false } }));
+  writeFileSync(join(projectRoot, '.ai1', 'config.json'), JSON.stringify({ features: { okf: false } }));
   assert.equal(sendPrompt(projectRoot, hookOptions(), '¿Por qué la plantilla de Gastrohub no lee la cantidad?'), null);
 });
 
@@ -424,8 +426,8 @@ test('investigation: fewer steps, or a bundle edit after them, do not ask', () =
   const options = hookOptions();
   startSession(projectRoot, options);
   assert.equal(stopSession(projectRoot, options, { transcript_path: writeToolTranscript(options, TEN_INVESTIGATION_STEPS.slice(0, 9)) }), null);
-  const editedTranscript = writeToolTranscript(options, [...TEN_INVESTIGATION_STEPS, ['Edit', { file_path: join(projectRoot, '.okf', 'overview.md') }]]);
-  const otherOptions = { ...options, environment: { CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'jig-data-')) } };
+  const editedTranscript = writeToolTranscript(options, [...TEN_INVESTIGATION_STEPS, ['Edit', { file_path: join(projectRoot, '.ai1', 'okf', 'overview.md') }]]);
+  const otherOptions = { ...options, environment: { CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'ai1-data-')) } };
   startSession(projectRoot, otherOptions);
   assert.equal(stopSession(projectRoot, otherOptions, { transcript_path: editedTranscript }), null);
 });
@@ -434,35 +436,35 @@ test('investigation: a bundle edit made from the shell resets the count', () => 
   const projectRoot = createRepoWithBundle();
   const options = hookOptions();
   startSession(projectRoot, options);
-  const shellEdit = ['Bash', { command: "cat >> .okf/decisions/prior-art.md <<'EOF'\n# Findings\nEOF" }];
+  const shellEdit = ['Bash', { command: "cat >> .ai1/okf/decisions/prior-art.md <<'EOF'\n# Findings\nEOF" }];
   const transcriptPath = writeToolTranscript(options, [...TEN_INVESTIGATION_STEPS, shellEdit]);
   assert.equal(stopSession(projectRoot, options, { transcript_path: transcriptPath }), null);
 });
 
 test('shellCommandWritesBundle: shell writes to the bundle count, reads do not', () => {
   const bundleWrites = [
-    'cat >> .okf/log.md <<EOF\nx\nEOF',
-    'echo x > ./.okf/overview.md',
-    'echo x >/home/me/repo/.okf/overview.md',
-    "sed -i 's/a/b/' .okf/roadmap.md",
-    'printf x | tee -a .okf/log.md',
-    'mv /tmp/draft.md .okf/decisions/new.md',
-    'rm .okf/old.md',
-    "python3 - <<'EOF'\nopen('.okf/log.md','w').write('x')\nEOF",
-    "node -e \"require('fs').writeFileSync('.okf/x.md','x')\"",
-    'cd /repo && bash -c "echo x >> .okf/log.md"',
+    'cat >> .ai1/okf/log.md <<EOF\nx\nEOF',
+    'echo x > ./.ai1/okf/overview.md',
+    'echo x >/home/me/repo/.ai1/okf/overview.md',
+    "sed -i 's/a/b/' .ai1/okf/roadmap.md",
+    'printf x | tee -a .ai1/okf/log.md',
+    'mv /tmp/draft.md .ai1/okf/decisions/new.md',
+    'rm .ai1/okf/old.md',
+    "python3 - <<'EOF'\nopen('.ai1/okf/log.md','w').write('x')\nEOF",
+    "node -e \"require('fs').writeFileSync('.ai1/okf/x.md','x')\"",
+    'cd /repo && bash -c "echo x >> .ai1/okf/log.md"',
   ];
-  for (const commandLine of bundleWrites) assert.equal(shellCommandWritesBundle(commandLine, '.okf'), true, commandLine);
+  for (const commandLine of bundleWrites) assert.equal(shellCommandWritesBundle(commandLine, '.ai1/okf'), true, commandLine);
   const bundleReads = [
-    'python3 packs/okf/skills/validate/scripts/okf_validate.py .okf --strict',
-    'cat .okf/index.md',
-    'grep -rn verify .okf/',
-    'git diff --stat .okf',
-    'cp .okf/overview.md /tmp/overview.md',
+    'python3 packs/okf/skills/validate/scripts/okf_validate.py .ai1/okf --strict',
+    'cat .ai1/okf/index.md',
+    'grep -rn verify .ai1/okf/',
+    'git diff --stat .ai1/okf',
+    'cp .ai1/okf/overview.md /tmp/overview.md',
     'echo x > notes.md',
     'npm test',
   ];
-  for (const commandLine of bundleReads) assert.equal(shellCommandWritesBundle(commandLine, '.okf'), false, commandLine);
+  for (const commandLine of bundleReads) assert.equal(shellCommandWritesBundle(commandLine, '.ai1/okf'), false, commandLine);
   assert.equal(shellCommandWritesBundle('echo x >> docs/kb/log.md', 'docs/kb'), true);
 });
 

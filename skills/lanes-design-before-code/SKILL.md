@@ -1,16 +1,16 @@
 ---
-name: deep
-description: Use when a task is in the deep lane - the goal is unclear, there are design choices with trade-offs, it touches a risky area (auth, data, money, migrations, public API), or it will take hours - or when the person says "piénsalo bien", "think it through", "dale una vuelta" or asks for a design before code.
+name: lanes-design-before-code
+description: Lanes — Use when a task is in the deep lane - the goal is unclear, there are design choices with trade-offs, it touches a risky area (auth, data, money, migrations, public API), or it will take hours - or when the person says "piénsalo bien", "think it through", "dale una vuelta" or asks for a design before code.
 ---
 
 # Deep lane: understand, design, get approval, then build
 
-Code edits outside `.jig/` and the knowledge bundle are refused by the `lanes-gate` hook until the
+Code edits outside `.ai1/` and the knowledge bundle are refused by the `lanes-gate` hook until the
 person approves the design. Designing, reading and asking are always free.
 
 ## 1. Open the work folder
 
-Pick a short slug for the task and create `.jig/work/<slug>/plan.md` right away (`.jig/` is
+Pick a short slug for the task and create `.ai1/work/<slug>/plan.md` right away (`.ai1/` is
 ignored by git), with this frontmatter:
 
 ```markdown
@@ -24,7 +24,7 @@ status: draft
 
 Read the code, the knowledge bundle and recent history that the task touches. Never ask what
 they already answer. Note in the plan what you learned that shapes the design.
-If the task builds an accepted RFC from `docs/rfc/`, read it first, reuse its decisions instead of
+If the task builds an accepted RFC from `.ai1/rfc/`, read it first, reuse its decisions instead of
 reopening them, and add `rfc: <number>` to the plan frontmatter.
 
 ## 3. Ask what only the person knows
@@ -73,7 +73,7 @@ edits. If they ask for changes, update the plan, keep `status: ready` and ask ag
 
 ## 7. Build step by step
 
-- One step at a time, in plan order. Close each step with `jig step-done <slug> "<step>: <files or
+- One step at a time, in plan order. Close each step with `ai1 step-done <slug> "<step>: <files or
   commit>"`: it runs the repo's verify commands and logs the step in `progress.md` only if they
   pass. Tick the step in the plan. If it fails, fix it before the next step.
 - When reality contradicts the design, stop: update the plan, set `status: ready`, ask again.

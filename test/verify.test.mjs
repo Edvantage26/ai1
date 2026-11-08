@@ -16,8 +16,8 @@ function runGit(projectRoot, gitArguments) {
   execFileSync('git', ['-C', projectRoot, ...gitArguments], { stdio: 'ignore' });
 }
 
-function createVerifyRepo(jigConfig = {}) {
-  const projectRoot = createTemporaryProject({ features: { okf: false }, verify: ['npm test'], ...jigConfig });
+function createVerifyRepo(ai1Config = {}) {
+  const projectRoot = createTemporaryProject({ features: { okf: false }, verify: ['npm test'], ...ai1Config });
   mkdirSync(join(projectRoot, 'src'));
   writeFileSync(join(projectRoot, 'src', 'app.js'), 'console.log(1);\n');
   writeFileSync(join(projectRoot, 'README.md'), '# demo\n');
@@ -29,8 +29,8 @@ function createVerifyRepo(jigConfig = {}) {
 
 function hookOptions() {
   return {
-    environment: { CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'jig-data-')) },
-    homeDirectory: mkdtempSync(join(tmpdir(), 'jig-home-')),
+    environment: { CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'ai1-data-')) },
+    homeDirectory: mkdtempSync(join(tmpdir(), 'ai1-home-')),
     reportInternalError: (errorMessage) => { throw new Error(errorMessage); },
   };
 }
@@ -113,15 +113,15 @@ test('verify-gate: a failure hidden by a pipe is caught from the summary', () =>
   assert.match(stopSession(projectRoot, options, transcriptPath).reason, /failed/);
 });
 
-test('verify-gate: a filtered run does not count, jig verify does', () => {
+test('verify-gate: a filtered run does not count, ai1 verify does', () => {
   const projectRoot = createVerifyRepo();
   const options = hookOptions();
   const sessionStart = startSession(projectRoot, options);
   changeFile(projectRoot, 'src/app.js', sessionStart + 10 * SECOND);
   const filteredTranscript = writeTranscript(options, [{ command: 'npm test -- --grep export', endMilliseconds: sessionStart + 20 * SECOND }]);
   assert.equal(stopSession(projectRoot, options, filteredTranscript).decision, 'block');
-  const jigTranscript = writeTranscript(options, [{ command: 'jig verify', endMilliseconds: sessionStart + 20 * SECOND }]);
-  assert.equal(stopSession(projectRoot, options, jigTranscript), null);
+  const ai1Transcript = writeTranscript(options, [{ command: 'ai1 verify', endMilliseconds: sessionStart + 20 * SECOND }]);
+  assert.equal(stopSession(projectRoot, options, ai1Transcript), null);
 });
 
 test('verify-gate: docs, harness config and ignore_paths need no verification', () => {
@@ -161,7 +161,7 @@ test('verifyCommandsRunBy: the full command, with redirects and pipes, in compou
   assert.deepEqual(verifyCommandsRunBy('npm test -- -t foo', ['npm test']), []);
   assert.deepEqual(verifyCommandsRunBy('npm run lint && npm test', ['npm test', 'npm run lint && npm test', 'pytest']), [0, 1]);
   assert.deepEqual(verifyCommandsRunBy('npm test && npm run lint', ['npm run lint && npm test']), [], 'order matters');
-  assert.deepEqual(verifyCommandsRunBy('jig step-done billing "step 1"', ['npm test', 'pytest']), [0, 1]);
+  assert.deepEqual(verifyCommandsRunBy('ai1 step-done billing "step 1"', ['npm test', 'pytest']), [0, 1]);
 });
 
 test('didRunFail: exit code first, then common failure summaries', () => {
@@ -172,10 +172,10 @@ test('didRunFail: exit code first, then common failure summaries', () => {
   assert.equal(didRunFail({ content: 'FAILED tests/test_api.py::test_login' }), true);
 });
 
-test('jig verify / step-done: stop at the first failure, log the step only when green', () => {
+test('ai1 verify / step-done: stop at the first failure, log the step only when green', () => {
   const projectRoot = createVerifyRepo();
-  mkdirSync(join(projectRoot, '.jig', 'work', 'billing'), { recursive: true });
-  writeFileSync(join(projectRoot, '.jig', 'work', 'billing', 'plan.md'), '---\nstatus: approved\n---\n');
+  mkdirSync(join(projectRoot, '.ai1', 'work', 'billing'), { recursive: true });
+  writeFileSync(join(projectRoot, '.ai1', 'work', 'billing', 'plan.md'), '---\nstatus: approved\n---\n');
   const commandsRun = [];
   const failingSecond = (verifyCommand) => { commandsRun.push(verifyCommand); return verifyCommand === 'pytest' ? 2 : 0; };
   assert.deepEqual(runVerifyCommands(projectRoot, ['npm test', 'pytest', 'npm run lint'], failingSecond), { passed: false, failedCommand: 'pytest', exitCode: 2 });

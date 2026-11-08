@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/Edvantage26/jig/main/schema/jig.schema.json",
-  "title": "jig repo configuration (.claude/jig.json)",
-  "description": "Per-repo contract read by the jig hooks (.claude/jig.json).",
+  "$id": "https://raw.githubusercontent.com/Edvantage26/ai1/main/schema/ai1.schema.json",
+  "title": "ai1 repo configuration (.ai1/config.json)",
+  "description": "Per-repo contract read by the ai1 hooks (.ai1/config.json).",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -21,7 +21,7 @@
         "okf": {
           "type": "boolean",
           "default": true,
-          "description": "OKF project knowledge: index at session start, upkeep reminder at stop, /jig:okf and /jig:validate skills."
+          "description": "OKF project knowledge: index at session start, upkeep reminder at stop, /ai1:okf-maintain-knowledge and /ai1:okf-validate-bundle skills."
         },
         "danger": {
           "type": "boolean",
@@ -36,17 +36,17 @@
         "lanes": {
           "type": "boolean",
           "default": false,
-          "description": "Work lanes: quick, plan or deep by task size; deep designs need the person's approval before code edits (/jig:deep)."
+          "description": "Work lanes: quick, plan or deep by task size; deep designs need the person's approval before code edits (/ai1:lanes-design-before-code)."
         },
         "worktrees": {
           "type": "boolean",
           "default": false,
-          "description": "A worktree per significant change, made with the project recipe planned once with /jig:worktree (.claude/skills/worktree/); the agent keeps saying which worktree it works in."
+          "description": "A worktree per significant change, made with the project recipe planned once with /ai1:worktrees-plan-recipe (.claude/skills/worktree/); the agent keeps saying which worktree it works in."
         },
         "rfc": {
           "type": "boolean",
           "default": false,
-          "description": "RFCs: undecided proposals and future features in docs/rfc/, open ones listed at session start, related ones recalled per message, consistency and bundle citation checked at stop (/jig:rfc, jig rfc)."
+          "description": "RFCs: undecided proposals and future features in .ai1/rfc/, open ones listed at session start, related ones recalled per message, consistency and bundle citation checked at stop (/ai1:rfc-write-proposal, ai1 rfc)."
         },
         "design": {
           "type": "boolean",
@@ -80,8 +80,8 @@
         "string",
         "null"
       ],
-      "default": ".okf",
-      "description": "Path of the OKF knowledge bundle (default .okf)."
+      "default": ".ai1/okf",
+      "description": "Path of the OKF knowledge bundle (default .ai1/okf)."
     },
     "modules": {
       "type": "object",
@@ -140,8 +140,8 @@
                       "git-clean",
                       "git-discard-changes",
                       "git-worktree-remove",
-                      "jig-worktree-drop",
-                      "jig-worktree-finish",
+                      "ai1-worktree-drop",
+                      "ai1-worktree-finish",
                       "rm-recursive-force",
                       "sql-destructive",
                       "docker-destructive",
@@ -409,7 +409,7 @@
                     "type": "string",
                     "minLength": 1
                   },
-                  "description": "Globs of changed files that do not need verification, added to the defaults (*.md, .claude/**, .jig/**, the knowledge bundle)."
+                  "description": "Globs of changed files that do not need verification, added to the defaults (*.md, .claude/**, .ai1/**, the knowledge bundle)."
                 }
               }
             }

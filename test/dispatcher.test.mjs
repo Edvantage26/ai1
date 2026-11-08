@@ -8,21 +8,21 @@ import { createTemporaryProject, bashPayload } from './helpers.mjs';
 
 const quietOptions = { environment: {}, reportInternalError: () => {} };
 
-test('without jig.json jig only leaves a one-line note at session start', () => {
+test('without .ai1/config.json ai1 only leaves a one-line note at session start', () => {
   const projectRoot = createTemporaryProject();
   const sessionOutput = runHookEvent('SessionStart', { cwd: projectRoot }, quietOptions);
   assert.match(sessionOutput.hookSpecificOutput.additionalContext, /inactive/);
   assert.equal(runHookEvent('PreToolUse', bashPayload(projectRoot, 'git reset --hard'), quietOptions), null);
 });
 
-test('an invalid jig.json deactivates jig and says why', () => {
+test('an invalid .ai1/config.json deactivates ai1 and says why', () => {
   const projectRoot = createTemporaryProject({ features: { danger: 'yes' } });
   const sessionOutput = runHookEvent('SessionStart', { cwd: projectRoot }, quietOptions);
   assert.match(sessionOutput.hookSpecificOutput.additionalContext, /invalid.*features\.danger/);
   assert.equal(runHookEvent('PreToolUse', bashPayload(projectRoot, 'git reset --hard'), quietOptions), null);
 });
 
-test('a feature unknown to this jig version does not switch the guards off', () => {
+test('a feature unknown to this ai1 version does not switch the guards off', () => {
   const projectRoot = createTemporaryProject({ features: { teleport: true } });
   assert.equal(runHookEvent('PreToolUse', bashPayload(projectRoot, 'git reset --hard'), quietOptions).hookSpecificOutput.permissionDecision, 'ask');
 });
@@ -32,7 +32,7 @@ test('a dangerous command produces a PreToolUse ask with the reason', () => {
   const hookOutput = runHookEvent('PreToolUse', bashPayload(projectRoot, 'git reset --hard'), quietOptions);
   assert.equal(hookOutput.hookSpecificOutput.hookEventName, 'PreToolUse');
   assert.equal(hookOutput.hookSpecificOutput.permissionDecision, 'ask');
-  assert.match(hookOutput.hookSpecificOutput.permissionDecisionReason, /^jig\/danger:/);
+  assert.match(hookOutput.hookSpecificOutput.permissionDecisionReason, /^ai1\/danger:/);
 });
 
 test('a safe command produces no output', () => {
@@ -40,7 +40,7 @@ test('a safe command produces no output', () => {
   assert.equal(runHookEvent('PreToolUse', bashPayload(projectRoot, 'ls -la'), quietOptions), null);
 });
 
-test('a module switched off in jig.json does not run', () => {
+test('a module switched off in .ai1/config.json does not run', () => {
   const projectRoot = createTemporaryProject({ modules: { danger: false } });
   assert.equal(runHookEvent('PreToolUse', bashPayload(projectRoot, 'git reset --hard'), quietOptions), null);
 });

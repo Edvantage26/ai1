@@ -11,7 +11,7 @@ updated: {{date}}
 
 <!-- The title says what is proposed, not the topic. Replace every comment; when a section does not
 apply, write one line saying why instead of deleting it, so readers know it was considered.
-Readable alone in 10 minutes: long detail goes to docs/rfc/{{padded_number}}-<slug>/ and is linked. -->
+Readable alone in 10 minutes: long detail goes to .ai1/rfc/{{padded_number}}-<slug>/ and is linked. -->
 
 | Field | Value |
 |---|---|
@@ -102,7 +102,7 @@ falls, the RFC is reviewed. -->
 ## Design of the recommended option
 
 <!-- Just enough to understand the proposal. Sizing, tables, configurations and diagrams go to
-docs/rfc/{{padded_number}}-<slug>/ and are linked from here. -->
+.ai1/rfc/{{padded_number}}-<slug>/ and are linked from here. -->
 
 ## Phases
 

@@ -1,4 +1,4 @@
-// `jig worktree finish`: integrates a finished worktree into its base branch and cleans up.
+// `ai1 worktree finish`: integrates a finished worktree into its base branch and cleans up.
 // Order: clean worktree -> bring the base into the branch (rebase, or merge to keep hashes) ->
 // recipe `pre-finish` and the OKF checks on the integrated result -> fast-forward the base ->
 // remove worktree, branch and record. It stops with a clear message at the first problem and
@@ -18,7 +18,7 @@ import {
   readStateOrFail, listUncommittedPaths, runWorktreeCommand, removeWorktreeCheckout,
 } from './worktree-ops.mjs';
 
-const HARNESS_PATHS = new Set(['.claude/settings.json', '.claude/settings.local.json', '.claude/jig.json']);
+const HARNESS_PATHS = new Set(['.claude/settings.json', '.claude/settings.local.json', '.ai1/config.json']);
 
 function isAncestor(repoRoot, ancestorRef, descendantRef) {
   return tryGit(repoRoot, ['merge-base', '--is-ancestor', ancestorRef, descendantRef]) !== null;
@@ -104,7 +104,7 @@ function fastForwardBase(mainRoot, baseBranch, branchName, dirtyPathsOk) {
 export function finishWorktree(startDirectory, worktreeName, options = {}) {
   const { mainRoot, commonDirectory } = findRepository(startDirectory);
   const worktreeState = readStateOrFail(commonDirectory, worktreeName);
-  if (!existsSync(worktreeState.path)) throw new Error(`${worktreeState.path} is missing; drop the record with jig worktree drop ${worktreeName} --confirm`);
+  if (!existsSync(worktreeState.path)) throw new Error(`${worktreeState.path} is missing; drop the record with ai1 worktree drop ${worktreeName} --confirm`);
   const uncommittedPaths = listUncommittedPaths(worktreeState.path);
   if (uncommittedPaths.length) throw new Error(`worktree "${worktreeName}" has uncommitted changes; commit them first:\n${uncommittedPaths.join('\n')}`);
   const { recipe } = loadRecipeOrFail(mainRoot);
