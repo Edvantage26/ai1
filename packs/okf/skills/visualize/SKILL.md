@@ -1,7 +1,7 @@
 ---
-name: visualize
+name: okf-visualize-bundle
 description: >-
-  Render an Open Knowledge Format (OKF) bundle as a single self-contained,
+  OKF — Render an Open Knowledge Format (OKF) bundle as a single self-contained,
   interactive HTML graph (viz.html) — concepts as nodes coloured by type and
   sized by body length, markdown links and bundle-internal `sources` as edges,
   a wiki-style detail panel with rendered markdown, v0.2 trust/lifecycle/provenance

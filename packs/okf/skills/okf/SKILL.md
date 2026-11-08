@@ -1,7 +1,7 @@
 ---
-name: okf
+name: okf-maintain-knowledge
 description: >-
-  Author, maintain, and consume Open Knowledge Format (OKF) knowledge bundles —
+  OKF — Author, maintain, and consume Open Knowledge Format (OKF) knowledge bundles —
   portable markdown + YAML frontmatter that both humans and agents read. Use when
   capturing project knowledge (services, APIs, schemas, metrics, runbooks,
   decisions) into an OKF bundle, when updating one after code or docs change, or
@@ -90,7 +90,7 @@ Templates to copy: [concept](templates/concept.md), [index](templates/index.md),
 ## Default bundle location
 
 Use `.okf/` at the repository root unless the project already uses another
-location. Commit it alongside the code it describes — knowledge as code.
+location or a harness names one for the session (for example `.ai1/okf/`). Commit it alongside the code it describes — knowledge as code.
 
 ## Modes
 
@@ -148,7 +148,7 @@ is given. Then extend it:
 ## Validation (do this before declaring done)
 
 Never eyeball conformance — run the deterministic checker. Invoke the companion
-**`validate`** skill (`/okf:validate <bundle-dir> --strict`), which ships the
+**`okf-validate-bundle`** skill (`/okf:okf-validate-bundle <bundle-dir> --strict`), which ships the
 checker. If that skill is not installed, run it directly:
 
 ```bash
