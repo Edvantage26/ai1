@@ -5,7 +5,7 @@ description: One entry point per hook event that loads jig.json and runs the ena
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T18:24:00Z'
+  at: '2026-11-08T18:37:37Z'
 ---
 
 # Flow
@@ -14,8 +14,13 @@ generated:
 `node "${CLAUDE_PLUGIN_ROOT}/bin/jig-hook.mjs" <Event>`.
 
 1. `bin/jig-hook.mjs` reads the hook input JSON from stdin. Always exits 0.
-2. `src/core/dispatcher.mjs` resolves the project root (`CLAUDE_PROJECT_DIR`, else input `cwd`) and
-   loads `.claude/jig.json` with `src/core/config.mjs`.
+2. `src/core/dispatcher.mjs` resolves two roots with `src/core/project-roots.mjs` (from the `.git`
+   entries on disk, no git process): the **tree root** (`CLAUDE_PROJECT_DIR`, else input `cwd`; it
+   follows `cwd` when that is a linked worktree of the same repository, because Claude Code keeps
+   `CLAUDE_PROJECT_DIR` at the launch checkout after EnterWorktree) and the **shared root** (the main
+   checkout, for state every worktree shares: `.jig/` plans and approvals). It loads
+   `.claude/jig.json` from the tree root with `src/core/config.mjs`, or from the shared root when
+   the worktree has none.
    - Missing: jig is inactive; only a one-line note at SessionStart.
    - Invalid: inactive; SessionStart tells the agent why.
 3. It picks the modules for the event (`src/core/registry.mjs`), filtered by profile, per-repo
@@ -27,7 +32,7 @@ generated:
 # Module contract
 
 `{ id, event, feature, description, toolNames?, run(moduleContext) -> decision }`, where
-`moduleContext` has `hookInput`, `config`, `projectRoot`, `environment`, `homeDirectory`, `enabledModules` and `moduleOptions`
+`moduleContext` has `hookInput`, `config`, `projectRoot` (tree root), `sharedRoot`, `environment`, `homeDirectory`, `enabledModules` and `moduleOptions`
 (`modules.<id>` from jig.json minus `enabled`). Decisions: `allow`, `ask`, `deny`, `block`,
 `context`. A reason always says how to carry on.
 

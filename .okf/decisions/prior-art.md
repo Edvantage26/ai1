@@ -5,7 +5,7 @@ description: What was reviewed before designing jig, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T17:55:50Z'
+  at: '2026-11-08T18:37:37Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -41,7 +41,7 @@ verify run" (scan as in `okf-upkeep`), test-weakening detector, fix-loop counter
 re-injection on `compact`, reviewer contract (merge-base range, read-only, "declined to judge" list),
 `review-package`/`task-brief` scripts, `jig doctor --session` (deterministic transcript diagnosis),
 opt-in `claude -p --output-format stream-json` evals. Small gaps found in jig: `danger` misses
-`git worktree remove --force`; `okf-index` re-injects on `resume`; the `/jig:init` description
+`git worktree remove --force` (closed 2026-11-08 with the [worktrees feature](../features/worktrees.md)); `okf-index` re-injects on `resume`; the `/jig:init` description
 describes the workflow instead of only triggers.
 
 Left out: the "1% chance" bootstrap prose, forced brainstorming and its network server, the full SDD
@@ -98,3 +98,31 @@ All small samples; read as signals, not proof.
 Takeaway for jig: process weight buys little measured quality and costs a lot; cheap deterministic
 checks are the part every workflow benefits from. jig's own evals should measure cost and turns as well
 as pass/fail, against a plain-Claude control, as these benchmarks do.
+
+# Worktrees (2026-11-08)
+
+Reviewed before the [worktrees feature](../features/worktrees.md):
+
+- **Claude Code native** (`claude -w`, `EnterWorktree`, subagent `isolation: worktree`): worktrees in
+  `.claude/worktrees/`, `.worktreeinclude` copies gitignored files, isolation checks block edits and
+  git aimed at the main checkout, exit asks before deleting work. A `WorktreeCreate` hook replaces
+  creation entirely (losing the sweep marker, PR refs and `.worktreeinclude`). Hooks get the worktree
+  in `cwd` while `CLAUDE_PROJECT_DIR` stays at the launch checkout. No modes, ports or recipe.
+- **Superpowers** `using-git-worktrees` / `finishing-a-development-branch`: detect state with
+  `git-dir` vs `git-common-dir` (plus a submodule guard), consent first, native tool before
+  `git worktree add` (naming the tools took compliance from 2/6 to 50/50), provenance-based cleanup,
+  never `--force`. Per-worktree env, ports and path hooks explicitly deferred.
+- **Worktrunk** (`.config/wt.toml`): hooks per event, `hash_port` (stable port per branch),
+  `copy-ignored`, copy-on-write build caches, one-command merge.
+- **git-worktree-runner** (`.gtrconfig`): copy include/exclude of files and folders, `postCreate`,
+  `trust` before running repo-defined commands.
+- **A private per-project skill** (~1,500 lines + tests): light/full/source-only via sparse-checkout,
+  read-only dependency cache per version linked into each worktree, `writable` escape hatch, isolated
+  build outputs, build slots and locks, finish with knowledge checks, drop with a bundle, reminder hook.
+
+Taken: state detection from git metadata, consent and one-line proposal, native `EnterWorktree` to
+enter, `.worktreeinclude` support, a stable port per name, copy-on-write when available, checks
+before integrating, bundle on drop, never force. jig's own: a recipe planned with the person and saved
+as a project skill, mode chosen by free disk on each machine, a tree root and a shared root in hooks.
+Measured on the way: `git worktree remove` without `--force` deletes ignored files silently; a
+symlink over a tracked path shows it as deleted and `commit -a` removes it.

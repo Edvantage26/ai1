@@ -5,7 +5,7 @@ description: Phases from proving jig in a real repo to the doctor command.
 tags: [roadmap]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T17:55:50Z'
+  at: '2026-11-08T18:37:37Z'
 ---
 
 Order changed on 2026-10-30: build the generic structure in jig first, then prove it in real repos.
@@ -18,6 +18,10 @@ Order changed on 2026-10-30: build the generic structure in jig first, then prov
    reuse, proposed refactors, names). See [craft feature](features/craft.md).
 2d. **Design** (done 2026-11-08): UI rules at session start and deterministic design checks on
    edited UI files, ideas from Impeccable. See [design feature](features/design.md).
+2e. **Worktrees** (phase 1 done 2026-11-08): a worktree per significant change with a per-project
+   recipe planned once (`/jig:worktree`), engine `jig worktree`, brief and reminder. Phase 2 (planned):
+   shared read-only caches per version, `writable`, build slots and locks, `WorktreeCreate` hook for
+   heavy repos. See [worktrees feature](features/worktrees.md).
 3. **`prod` and `secrets` guards**, driven by jig.json (MCP tools writing to production, shell
    patterns, secrets in staged files).
 4. **`verify` Stop gate** (done 2026-11-08): see [verify feature](features/verify.md).

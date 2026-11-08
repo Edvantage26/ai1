@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-11-08
+* **Creation**: [worktrees feature](features/worktrees.md) — per-project worktree recipe planned with `/jig:worktree` and saved as the project skill, `jig worktree` engine (modes full/light/auto by disk), session brief and reminder; hooks resolve a tree root and a shared root ([hook runtime](architecture/hook-runtime.md)).
 * **Creation**: [verify feature](features/verify.md) — Stop gate on unverified changes, `jig verify`, `jig step-done`.
 * **Creation**: [design feature](features/design.md) — UI rules at session start and the `design-detect` PostToolUse check (26 deterministic rules), ideas from Impeccable.
 * **Creation**: [lanes feature](features/lanes.md) — work lanes by task size, approval gate for deep designs, `/jig:deep` skill.

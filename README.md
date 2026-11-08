@@ -7,8 +7,8 @@ the same no matter who makes it. `jig` does that for coding agents (Claude Code 
 repo in place with guardrails, makes the agent prove its work before calling it done, and keeps what
 it learns in the repo instead of in a chat that disappears.
 
-> **Status: early (v0.9.0).** Per-repo features, the `okf` feature (project knowledge) and the
-> `danger` guard work, are tested and verified in real sessions. The `lanes`, `design` and `verify`
+> **Status: early (v0.10.0).** Per-repo features, the `okf` feature (project knowledge) and the
+> `danger` guard work, are tested and verified in real sessions. The `lanes`, `design`, `verify` and `worktrees`
 > features are new and tested, not yet tried in live sessions. Everything marked *planned* does not exist yet.
 
 ## Why
@@ -83,6 +83,14 @@ runs the `jig` CLI, so the result is merged and validated, not improvised).
 | `verify` | on | You cannot get a "done" while code changed after the last passing run of the `verify` commands (run in full: a filtered run does not count). Docs and harness config are exempt. `jig verify` runs them; `jig step-done` logs a deep-lane step only when they pass |
 | `lanes` | off | Sizes each task: quick ones are done directly, medium ones get a short plan, complex or risky ones get questions and a design (`/jig:deep`) that you approve before any code is edited. Restores progress after a compaction |
 
+| `worktrees` | off | Each significant change is done in its own git worktree, made the way your project needs. The first time, `/jig:worktree` studies the repo (heavy folders, env files, ports, where builds write, existing worktree tools), proposes a recipe, and once you approve it saves it as the project skill `.claude/skills/worktree/` (`SKILL.md` + `recipe.json`, committed). Modes: `full`, `light` (heavy folders shared, regenerated or left out) and `auto`, which picks full when it fits on that machine's disk. Each worktree gets its env files and its own port; the agent keeps telling you which worktree it is working in. `jig worktree create\|list\|run\|finish\|drop` |
+
+With `worktrees` on: `jig worktree create feat-x` → the agent enters it (EnterWorktree) and runs the
+setup it prints → works and commits there, starting each progress report with the worktree's name →
+when you say so, `jig worktree finish feat-x` brings in the base, runs the recipe's checks, fast-forwards
+the base and removes the worktree (the `danger` guard asks you first). Shared read-only dependency
+caches, build slots and a `WorktreeCreate` hook for very large repos are *planned*.
+
 With `lanes` on, a deep task goes: questions → design in `.jig/work/<slug>/plan.md` (git-ignored) →
 you approve it with a plain "ok"/"aprobado" → step-by-step build with a progress log. Until you
 approve, a hook refuses code edits; if a "quick" task grows past 6 files or 300 lines, it asks you
@@ -105,6 +113,10 @@ once whether to stop for a plan (`modules.lanes-escalate.max_files` / `max_lines
 | `/jig:deep`: questions, design, builder check, approval, step-by-step build | lanes | — | works |
 | `design-brief`: UI rules and the design context files at session start | design | SessionStart | works |
 | `design-detect`: design rules on every edited UI file, findings of that edit only, once per session (`modules.design-detect.ignore_rules`) | design | PostToolUse | works |
+| `worktree-brief`: worktree rules at session start, or a pointer to `/jig:worktree` when the repo has no recipe; names the worktree the session is in | worktrees | SessionStart | works |
+| `worktree-reminder`: the active worktrees when they change and every few prompts, marking this session's | worktrees | UserPromptSubmit | works |
+| `/jig:worktree` + `jig worktree` (`create`, `list`, `run`, `finish`, `drop`) | worktrees | — | works |
+| Shared read-only caches per dependency version, `writable`, build slots, `WorktreeCreate` hook for heavy repos | worktrees | — | planned |
 | `/jig:init` + `jig` CLI (`jig status`, `jig init`, `jig verify`, `jig step-done`) | — | — | works |
 | OKF toolkit skills and agents (from `packs/okf`) | okf | — | works |
 | `prod`: blocks writes to production resources declared in `jig.json` | prod | PreToolUse | planned |

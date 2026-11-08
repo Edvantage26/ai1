@@ -29,5 +29,5 @@ OKF validator in `--strict` mode (`python3 packs/okf/skills/validate/scripts/okf
 
 - `.claude-plugin/` manifests · `hooks/hooks.json` wiring
 - `bin/jig-hook.mjs` entry point · `bin/jig` CLI · `src/core/` runtime · `src/context/`, `src/okf/`, `src/guards/` modules
-- `skills/init/` `/jig:init` · `packs/okf/` vendored OKF toolkit
+- `skills/init/` `/jig:init` · `skills/worktree/` `/jig:worktree` (engine in `src/worktrees/`) · `packs/okf/` vendored OKF toolkit
 - `schema/`, `templates/` the jig.json contract · `test/` node:test suite
