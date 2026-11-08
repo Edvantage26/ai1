@@ -42,6 +42,8 @@ try {
       console.log(`repo: ${repoDescription.repoRoot}`);
       console.log(`jig.json: ${repoDescription.hasJigConfig ? 'present' : 'missing (run jig init)'}`);
       console.log(`trunk: ${repoDescription.trunk} | knowledge: ${repoDescription.knowledge} (${repoDescription.hasKnowledgeBundle ? 'bundle found' : 'no bundle'})`);
+      const { worktreeRecipe } = repoDescription;
+      console.log(`worktree recipe: ${worktreeRecipe.status}${worktreeRecipe.errors.length ? ` (${worktreeRecipe.errors.join('; ')})` : ''}${worktreeRecipe.warnings.length ? ` (${worktreeRecipe.warnings.join('; ')})` : ''}`);
       for (const featureStatus of repoDescription.features) {
         console.log(`  [${featureStatus.enabled ? 'x' : ' '}] ${featureStatus.id}: ${featureStatus.title}${featureStatus.enabledByDefault ? ' (default on)' : ''}`);
       }

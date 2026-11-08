@@ -9,6 +9,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { loadHarnessConfig } from '../core/config.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
+import { matchesAnyGlob } from '../core/path-glob.mjs';
 import { runBundleValidator } from '../okf/okf-upkeep.mjs';
 import { runGit, tryGit, listIgnoredPaths } from './worktree-git.mjs';
 import { findRepository, removeWorktreeState } from './worktree-state.mjs';
@@ -120,8 +121,10 @@ export function finishWorktree(startDirectory, worktreeName, options = {}) {
   if (knowledgeCheck.checked) steps.push('knowledge bundle checked');
   steps.push(fastForwardBase(mainRoot, worktreeState.base, worktreeState.branch, recipe.finish.dirty_base_paths_ok));
 
+  // What only existed in the worktree: copies made by create and heavy paths are not news.
+  const recreatablePaths = [...recipe.copy, ...recipe.heavy.map((heavyEntry) => heavyEntry.path), ...(recipe.port ? [recipe.port.env_file] : [])];
   const removedIgnoredPaths = (listIgnoredPaths(worktreeState.path) || [])
-    .filter((ignoredPath) => !(worktreeState.trimmed ?? []).some((trimmedEntry) => ignoredPath.replace(/\/$/, '') === trimmedEntry.path));
+    .filter((ignoredPath) => !matchesAnyGlob(ignoredPath.replace(/\/$/, ''), recreatablePaths));
   removeWorktreeCheckout(mainRoot, worktreeState);
   tryGit(mainRoot, ['branch', '-d', worktreeState.branch]);
   removeWorktreeState(commonDirectory, worktreeName);

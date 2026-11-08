@@ -11,6 +11,8 @@ import { join } from 'node:path';
 import { FEATURES, KNOWN_FEATURE_IDS, isFeatureEnabled } from '../core/features.mjs';
 import { validateHarnessConfig, listUnknownConfigEntries, SUPPORTED_CONFIG_VERSION } from '../core/config.mjs';
 import { KNOWN_MODULE_IDS } from '../core/registry.mjs';
+import { findMainCheckout } from '../core/project-roots.mjs';
+import { loadRecipe } from '../worktrees/worktree-recipe.mjs';
 
 export const SCHEMA_URL = 'https://raw.githubusercontent.com/Edvantage26/jig/main/schema/jig.schema.json';
 export const JIG_PLUGIN_ID = 'jig@jig';
@@ -68,6 +70,12 @@ export function ensureLocalSettingsIgnored(repoRoot) {
   return true;
 }
 
+// { status: missing | invalid | ok, path, errors?, warnings? } of the project worktree recipe.
+function describeWorktreeRecipe(repoRoot) {
+  const loadedRecipe = loadRecipe(findMainCheckout(repoRoot));
+  return { status: loadedRecipe.status, path: loadedRecipe.recipePath, errors: loadedRecipe.errors ?? [], warnings: loadedRecipe.warnings ?? [] };
+}
+
 export function describeRepo(repoRoot) {
   const jigConfig = readJsonFile(join(repoRoot, '.claude', 'jig.json'));
   const knowledgePath = jigConfig?.knowledge || '.okf';
@@ -77,6 +85,7 @@ export function describeRepo(repoRoot) {
     trunk: jigConfig?.trunk || detectTrunkBranch(repoRoot),
     knowledge: knowledgePath,
     hasKnowledgeBundle: existsSync(join(repoRoot, knowledgePath, 'index.md')),
+    worktreeRecipe: describeWorktreeRecipe(repoRoot),
     features: FEATURES.filter((featureDefinition) => !featureDefinition.alwaysOn).map((featureDefinition) => ({
       id: featureDefinition.id,
       title: featureDefinition.title,
