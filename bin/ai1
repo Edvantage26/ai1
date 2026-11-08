@@ -8,6 +8,7 @@
 //   ai1 rfc set <number> <status> [--by <n>]    change an RFC's status (dates, History line, index)
 //   ai1 rfc index | ai1 rfc check               regenerate .ai1/rfc/README.md | report what is inconsistent
 //   ai1 worktree <create|list|run|finish|drop>  worktrees from the project recipe (see src/cli/worktree-cli.mjs)
+//   ai1 fork <full|brief|brief-path|host>        a new conversation from this one (see src/cli/fork-command.mjs)
 // Run from anywhere inside the repo; files are written at the repo root.
 
 import { findRepoRoot, describeRepo, setupRepo } from '../src/cli/setup-repo.mjs';
@@ -15,6 +16,7 @@ import { findMainCheckout } from '../src/core/project-roots.mjs';
 import { runWorktreeCli, WORKTREE_USAGE } from '../src/cli/worktree-cli.mjs';
 import { readVerifyCommands, runVerifyCommands, recordStepDone } from '../src/cli/verify-run.mjs';
 import { runRfcCommand, RFC_USAGE } from '../src/cli/rfc-command.mjs';
+import { runForkCommand, FORK_USAGE } from '../src/cli/fork-command.mjs';
 
 const [commandName, ...commandArguments] = process.argv.slice(2);
 
@@ -91,11 +93,14 @@ try {
     } else {
       console.log(`ai1: verify green (${verifyCommands.join(', ')})`);
     }
+  } else if (commandName === 'fork') {
+    process.exitCode = runForkCommand(repoRoot, commandArguments, { readOption });
   } else if (commandName === 'rfc') {
     process.exitCode = runRfcCommand(repoRoot, commandArguments, { readOption });
   } else {
     console.log(`usage: ai1 status [--json] | ai1 init --features okf,danger [--verify "<command>" ...] [--knowledge <path>] [--json] | ai1 verify | ai1 step-done <slug> "<step>" | ${RFC_USAGE}`);
     console.log(WORKTREE_USAGE);
+    console.log(FORK_USAGE);
     process.exitCode = commandName ? 1 : 0;
   }
 } catch (commandError) {

@@ -5,7 +5,7 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T22:32:23Z'
+  at: '2026-11-08T22:54:41Z'
 ---
 
 # Layout
@@ -25,7 +25,8 @@ schema/  templates/config.json    the per-repo contract
 # Skill names
 
 Every skill is `/ai1:<module>-<what it does>` so its owner and purpose read from the name:
-`core-setup-repo`, `lanes-design-before-code`, `rfc-write-proposal`, `worktrees-plan-recipe`, and
+`core-setup-repo`, `lanes-design-before-code`, `rfc-write-proposal`, `worktrees-plan-recipe`,
+`session-fork-conversation` ([session fork](../features/session-fork.md)), and
 from the OKF pack `okf-maintain-knowledge`, `okf-validate-bundle`, `okf-visualize-bundle`,
 `okf-backfill-from-history` (see [OKF toolkit](../packs/okf-pack.md)). Claude Code
 has no nested skill names, so the module is a prefix; it names a plugin skill by its folder, so
