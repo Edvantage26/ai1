@@ -58,7 +58,7 @@ backfill works from the plugin install only.
 **Capture knowledge.** Ask Claude to "document the auth service in OKF", or:
 
 ```shell
-/okf:okf produce .okf
+/okf:okf-maintain-knowledge produce .okf
 ```
 
 **Backfill a repo that predates the bundle.** Event-sources git history and
@@ -66,14 +66,14 @@ Claude session transcripts into concepts, with a deterministic extractor and an
 auditable map/reduce over subagents:
 
 ```shell
-/okf:backfill .
+/okf:okf-backfill-from-history .
 ```
 
 **Validate** before committing. The checker is deterministic, §11 of the spec,
 not an eyeball pass. `--migrate` rewrites v0.1 constructs in place:
 
 ```shell
-/okf:validate .okf --strict
+/okf:okf-validate-bundle .okf --strict
 uv run skills/validate/scripts/okf_validate.py .okf --strict      # zero-config
 uv run skills/validate/scripts/okf_validate.py .okf --max-warnings 5
 ```
@@ -97,7 +97,7 @@ stores neither, so both are computed at render time. Above 1000 concepts the
 layout falls back to linear; `--layout cose` overrides, `--max-nodes N` refuses.
 
 ```shell
-/okf:visualize .okf
+/okf:okf-visualize-bundle .okf
 uv run skills/visualize/scripts/okf_visualize.py .okf -o viz.html \
   --title "My project" --link "https://github.com/me/project"
 ```

@@ -23,9 +23,9 @@ This project keeps shared knowledge as an OKF bundle in `.okf/`.
   asset. Append a dated entry to the bundle-root `log.md` only for a lifecycle
   event: a concept created, deprecated, superseded, regenerated after its source
   changed, or verified. Routine edits get no log entry.
-- **Capturing new knowledge** → use the `/okf:okf` skill (modes: produce,
+- **Capturing new knowledge** → use the `/okf:okf-maintain-knowledge` skill (modes: produce,
   maintain, consume).
-- **Before committing** bundle changes → run `/okf:validate .okf --strict` and
+- **Before committing** bundle changes → run `/okf:okf-validate-bundle .okf --strict` and
   resolve every error.
 
 Conformance rule to respect: every concept file needs YAML frontmatter with a

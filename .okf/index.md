@@ -7,7 +7,7 @@ upkeep: enforced
 
 This is the [okf-skills](https://github.com/scaccogatto/okf-skills) repository
 described as an OKF bundle — the toolkit eating its own dog food. Render it with
-`/okf:visualize .okf` (or see the [live graph](https://scaccogatto.github.io/okf-skills/self.html)).
+`/okf:okf-visualize-bundle .okf` (or see the [live graph](https://scaccogatto.github.io/okf-skills/self.html)).
 
 # Skills
 

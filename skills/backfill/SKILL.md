@@ -1,7 +1,7 @@
 ---
-name: backfill
+name: okf-backfill-from-history
 description: >-
-  Reconstruct an OKF bundle by event-sourcing a repository's history (git log
+  OKF — Reconstruct an OKF bundle by event-sourcing a repository's history (git log
   and Claude session transcripts). Use when creating an `.okf/` bundle for an
   existing repository that predates this skill, or when resuming an interrupted
   backfill session. Triggers on: "reconstruct the OKF bundle", "backfill the
@@ -12,6 +12,10 @@ allowed-tools: Bash Read Write Edit
 ---
 
 # Reconstruct an OKF bundle from history
+
+**Bundle path.** `.okf/` below means the bundle directory: `.okf/` at the repo
+root by default, or the path the project or a harness names for the session
+(for example `.ai1/okf/`). Use that path everywhere this skill says `.okf/`.
 
 This skill replays a repository's decision-making history (git commits and
 Claude session transcripts) to rebuild its OKF knowledge bundle as if the

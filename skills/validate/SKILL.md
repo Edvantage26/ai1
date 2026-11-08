@@ -1,7 +1,7 @@
 ---
-name: validate
+name: okf-validate-bundle
 description: >-
-  Check that an Open Knowledge Format (OKF) bundle is conformant with the v0.2
+  OKF — Check that an Open Knowledge Format (OKF) bundle is conformant with the v0.2
   spec (§11). Use when asked to validate, lint, or check an OKF bundle, or before
   committing changes to one. Runs a deterministic Python checker — not an
   eyeball pass. Also migrates a v0.1 bundle to v0.2 in place with `--migrate`.
