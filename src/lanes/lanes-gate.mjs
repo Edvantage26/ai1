@@ -42,12 +42,12 @@ export default {
   toolNames: [...FILE_EDITING_TOOLS, 'Bash'],
   feature: 'lanes',
   description: 'Refuses code edits while a deep-lane design of this session waits for the person\'s approval.',
-  run({ hookInput, config, projectRoot, environment }) {
+  run({ hookInput, config, projectRoot, sharedRoot = projectRoot, environment }) {
     const editedPaths = listEditedProjectPaths(hookInput, projectRoot)
       .filter((relativePath) => !isPathInside(relativePath, JIG_DIRECTORY) && !(config.knowledge && isPathInside(relativePath, config.knowledge)));
     if (editedPaths.length === 0) return allowDecision();
-    const sessionBase = readSessionBase(hookInput, projectRoot, environment);
-    const unapprovedPlan = findUnapprovedPlan(projectRoot, sessionBase?.sessionStartMilliseconds, readApprovals(projectRoot, environment));
+    const sessionBase = readSessionBase(hookInput, sharedRoot, environment);
+    const unapprovedPlan = findUnapprovedPlan(sharedRoot, sessionBase?.sessionStartMilliseconds, readApprovals(sharedRoot, environment));
     if (!unapprovedPlan) return allowDecision();
     return denyDecision(MODULE_ID, [
       `Deep lane: the design \`${unapprovedPlan.relativePath}\` (status: ${unapprovedPlan.status}) is not approved by the person yet, so \`${editedPaths[0]}\` cannot be edited.`,

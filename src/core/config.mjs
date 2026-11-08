@@ -4,7 +4,7 @@
 // both agree on the shipped templates.
 
 import { existsSync, readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import { KNOWN_FEATURE_IDS, isFeatureEnabled } from './features.mjs';
 
 export const CONFIG_RELATIVE_PATH = join('.claude', 'jig.json');
@@ -20,11 +20,6 @@ const DEFAULT_CONFIG = {
   knowledge: '.okf',
   modules: {},
 };
-
-// Claude Code exports CLAUDE_PROJECT_DIR to hooks; the hook input carries `cwd` as a fallback.
-export function resolveProjectRoot(hookInput = {}, environment = process.env) {
-  return resolve(environment.CLAUDE_PROJECT_DIR || hookInput.cwd || process.cwd());
-}
 
 // Names this jig version does not know (fields, features, modules), e.g. from a repo set up with a
 // newer jig. They are warnings, not errors: the rest of the harness keeps working and the unknown

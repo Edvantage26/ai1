@@ -7,6 +7,7 @@
 // Run from anywhere inside the repo; files are written at the repo root.
 
 import { findRepoRoot, describeRepo, setupRepo } from '../src/cli/setup-repo.mjs';
+import { findMainCheckout } from '../src/core/project-roots.mjs';
 import { readVerifyCommands, runVerifyCommands, recordStepDone } from '../src/cli/verify-run.mjs';
 
 const [commandName, ...commandArguments] = process.argv.slice(2);
@@ -66,7 +67,7 @@ try {
       console.error(`jig: \`${verifyResult.failedCommand}\` failed (exit ${verifyResult.exitCode})${commandName === 'step-done' ? '; step not recorded' : ''}`);
       process.exitCode = verifyResult.exitCode || 1;
     } else if (commandName === 'step-done') {
-      console.log(`jig: verify green; step recorded in ${recordStepDone(repoRoot, planSlug, stepText, verifyCommands)}`);
+      console.log(`jig: verify green; step recorded in ${recordStepDone(findMainCheckout(repoRoot), planSlug, stepText, verifyCommands)}`);
     } else {
       console.log(`jig: verify green (${verifyCommands.join(', ')})`);
     }

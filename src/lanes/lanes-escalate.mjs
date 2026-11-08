@@ -54,13 +54,14 @@ export default {
   toolNames: [...FILE_EDITING_TOOLS, 'Bash'],
   feature: 'lanes',
   description: 'Asks the person once when a task without a plan grows past the size of a quick change.',
-  run({ hookInput, config, projectRoot, environment, moduleOptions }) {
+  run({ hookInput, config, projectRoot, sharedRoot = projectRoot, environment, moduleOptions }) {
     if (listEditedProjectPaths(hookInput, projectRoot).length === 0) return allowDecision();
     const sessionBase = readSessionBase(hookInput, projectRoot, environment);
     if (!sessionBase) return allowDecision();
     const escalatedPath = sessionStatePath(resolveStateDirectory(environment), hookInput.session_id, projectRoot, 'escalated');
     if (readStateText(escalatedPath) !== null) return allowDecision();
-    if (listActivePlans(projectRoot, sessionBase.sessionStartMilliseconds).length > 0) return allowDecision();
+    const sharedSessionBase = sharedRoot === projectRoot ? sessionBase : readSessionBase(hookInput, sharedRoot, environment);
+    if (listActivePlans(sharedRoot, sharedSessionBase?.sessionStartMilliseconds).length > 0) return allowDecision();
     const excludedDirectories = [JIG_DIRECTORY, config.knowledge].filter(Boolean).map((directoryPath) => directoryPath.replace(/^\.\//, '').replace(/\/+$/, ''));
     const { changedFileCount, changedLines } = measureSessionChanges(projectRoot, sessionBase.baseHead, excludedDirectories);
     const maxFiles = moduleOptions.max_files ?? DEFAULT_MAX_FILES;

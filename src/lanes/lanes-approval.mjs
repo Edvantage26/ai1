@@ -27,10 +27,10 @@ export default {
   event: 'UserPromptSubmit',
   feature: 'lanes',
   description: 'Records the person\'s approval of a deep-lane design marked ready.',
-  run({ hookInput, projectRoot, environment }) {
-    const readyPlan = listWorkPlans(projectRoot).find((workPlan) => workPlan.status === 'ready');
+  run({ hookInput, projectRoot, sharedRoot = projectRoot, environment }) {
+    const readyPlan = listWorkPlans(sharedRoot).find((workPlan) => workPlan.status === 'ready');
     if (!readyPlan || !isApprovalMessage(hookInput.prompt)) return allowDecision();
-    recordApproval(projectRoot, environment, readyPlan.relativePath);
+    recordApproval(sharedRoot, environment, readyPlan.relativePath);
     writePlanStatus(readyPlan.planPath, 'approved');
     return contextDecision(MODULE_ID, [
       `The person approved the design \`${readyPlan.relativePath}\` ("${readyPlan.title}"); code edits are open now.`,

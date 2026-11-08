@@ -2,11 +2,12 @@
 // Internal failures never block the agent (fail open); a module that matched a rule does.
 
 import { combineDecisions, buildHookOutput, contextDecision } from './hook-io.mjs';
-import { loadHarnessConfig, resolveProjectRoot, isModuleEnabled, getModuleOptions, CONFIG_RELATIVE_PATH } from './config.mjs';
+import { loadHarnessConfig, isModuleEnabled, getModuleOptions, CONFIG_RELATIVE_PATH } from './config.mjs';
+import { resolveProjectRoots } from './project-roots.mjs';
 import { ALL_MODULES, KNOWN_MODULE_IDS, modulesForEvent } from './registry.mjs';
 
 export function runHookEvent(eventName, hookInput, { environment = process.env, homeDirectory, availableModules = ALL_MODULES, reportInternalError = defaultErrorReporter } = {}) {
-  const projectRoot = resolveProjectRoot(hookInput, environment);
+  const { projectRoot, sharedRoot } = resolveProjectRoots(hookInput, environment);
   const loadedConfig = loadHarnessConfig(projectRoot, KNOWN_MODULE_IDS);
 
   if (loadedConfig.status === 'missing') {
@@ -30,6 +31,7 @@ export function runHookEvent(eventName, hookInput, { environment = process.env, 
         hookInput,
         config,
         projectRoot,
+        sharedRoot,
         environment,
         homeDirectory,
         enabledModules,

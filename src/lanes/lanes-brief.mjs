@@ -51,19 +51,21 @@ export default {
   event: 'SessionStart',
   feature: 'lanes',
   description: 'Asks the agent to pick a lane (quick, plan, deep) per task and restores deep-lane progress after compaction.',
-  run({ hookInput, config, projectRoot, environment }) {
+  run({ hookInput, config, projectRoot, sharedRoot = projectRoot, environment }) {
     // A resumed session already has this text in its history.
     if (hookInput.source === 'resume') return allowDecision();
+    // Plans live in the main checkout (shared root), so every worktree of the repo sees the same ones.
     recordSessionBaseHead(hookInput, projectRoot, environment);
-    ensureJigDirectoryIgnored(projectRoot);
+    if (sharedRoot !== projectRoot) recordSessionBaseHead(hookInput, sharedRoot, environment);
+    ensureJigDirectoryIgnored(sharedRoot);
     const isAfterCompaction = hookInput.source === 'compact';
-    const sessionBase = isAfterCompaction ? readSessionBase(hookInput, projectRoot, environment) : null;
-    const unfinishedPlans = listWorkPlans(projectRoot).filter((workPlan) => !isPlanFinished(workPlan));
+    const sessionBase = isAfterCompaction ? readSessionBase(hookInput, sharedRoot, environment) : null;
+    const unfinishedPlans = listWorkPlans(sharedRoot).filter((workPlan) => !isPlanFinished(workPlan));
     const plansToRestore = isAfterCompaction && sessionBase
       ? unfinishedPlans.filter((workPlan) => workPlan.modifiedMilliseconds >= sessionBase.sessionStartMilliseconds)
       : [];
     const contextParts = [buildLanesRecipe(config.verify)];
-    const approvals = readApprovals(projectRoot, environment);
+    const approvals = readApprovals(sharedRoot, environment);
     const planDescription = plansToRestore.length
       ? describeUnfinishedPlans(plansToRestore, approvals, { withProgress: true })
       : describeUnfinishedPlans(unfinishedPlans, approvals, { withProgress: false });
