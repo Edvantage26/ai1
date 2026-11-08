@@ -29,7 +29,7 @@ function writeUserSettings(enabledPlugins) {
 test('setup writes a valid jig.json and enables jig for the project', () => {
   const repoRoot = createGitRepo();
   const setupResult = setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'danger'], userSettingsPath: writeUserSettings({}) });
-  assert.deepEqual(setupResult.features, { okf: true, danger: true, craft: false, lanes: false });
+  assert.deepEqual(setupResult.features, { okf: true, danger: true, craft: false, lanes: false, design: false });
   const loadedConfig = loadHarnessConfig(repoRoot);
   assert.equal(loadedConfig.status, 'ok');
   assert.equal(loadedConfig.config.trunk, 'main');
@@ -51,7 +51,7 @@ test('setup keeps existing settings and harness fields', () => {
   assert.equal(jigConfig.trunk, 'develop');
   assert.deepEqual(jigConfig.verify, ['make test']);
   assert.deepEqual(jigConfig.modules, { danger: { ignore_rules: ['git-clean'] } });
-  assert.deepEqual(jigConfig.features, { okf: false, danger: true, craft: false, lanes: false });
+  assert.deepEqual(jigConfig.features, { okf: false, danger: true, craft: false, lanes: false, design: false });
 });
 
 test('with okf on, a standalone okf plugin is switched off in the personal settings only', () => {
@@ -89,10 +89,10 @@ test('status reports defaults before setup and choices after it', () => {
   const repoRoot = createGitRepo();
   const beforeSetup = describeRepo(repoRoot);
   assert.equal(beforeSetup.hasJigConfig, false);
-  assert.deepEqual(beforeSetup.features.map((featureStatus) => [featureStatus.id, featureStatus.enabled]), [['okf', true], ['danger', true], ['craft', true], ['lanes', false]]);
+  assert.deepEqual(beforeSetup.features.map((featureStatus) => [featureStatus.id, featureStatus.enabled]), [['okf', true], ['danger', true], ['craft', true], ['lanes', false], ['design', false]]);
   setupRepo(repoRoot, { enabledFeatureIds: ['okf'], userSettingsPath: writeUserSettings({}) });
   const afterSetup = describeRepo(repoRoot);
-  assert.deepEqual(afterSetup.features.map((featureStatus) => [featureStatus.id, featureStatus.enabled]), [['okf', true], ['danger', false], ['craft', false], ['lanes', false]]);
+  assert.deepEqual(afterSetup.features.map((featureStatus) => [featureStatus.id, featureStatus.enabled]), [['okf', true], ['danger', false], ['craft', false], ['lanes', false], ['design', false]]);
 });
 
 test('the jig CLI runs init and status from a subdirectory', () => {

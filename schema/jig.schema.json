@@ -15,7 +15,7 @@
     },
     "features": {
       "type": "object",
-      "description": "Features enabled in this repo. Omitted features use their default (okf, danger and craft: on, lanes: off).",
+      "description": "Features enabled in this repo. Omitted features use their default (okf, danger and craft: on, lanes and design: off).",
       "additionalProperties": false,
       "properties": {
         "okf": {
@@ -37,6 +37,11 @@
           "type": "boolean",
           "default": false,
           "description": "Work lanes: quick, plan or deep by task size; deep designs need the person's approval before code edits (/jig:deep)."
+        },
+        "design": {
+          "type": "boolean",
+          "default": false,
+          "description": "UI design rules at session start and deterministic design checks on every edited UI file (design-detect)."
         }
       }
     },
@@ -265,6 +270,72 @@
                   "minimum": 1,
                   "default": 300,
                   "description": "Lines changed (added + removed) in the session, without a plan, before asking."
+                }
+              }
+            }
+          ]
+        },
+        "design-brief": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "design-detect": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "ignore_rules": {
+                  "type": "array",
+                  "description": "Design rule ids to switch off in this repo.",
+                  "items": {
+                    "enum": [
+                      "overused-font",
+                      "gradient-text",
+                      "ai-color-palette",
+                      "side-tab",
+                      "dark-glow",
+                      "bounce-easing",
+                      "pulsing-dot",
+                      "marquee",
+                      "kicker-above-heading",
+                      "icon-tile-stack",
+                      "italic-serif-display",
+                      "cream-palette",
+                      "marketing-buzzword",
+                      "em-dash-overuse",
+                      "theater-slop-phrase",
+                      "repeating-stripes-gradient",
+                      "codex-grid-background",
+                      "hard-offset-shadow",
+                      "organic-clip-path",
+                      "extreme-negative-tracking",
+                      "broken-image",
+                      "skipped-heading",
+                      "gray-on-color",
+                      "low-contrast",
+                      "tiny-text",
+                      "justified-text"
+                    ]
+                  }
                 }
               }
             }

@@ -28,6 +28,12 @@ export const FEATURES = [
     enabledByDefault: false,
   },
   {
+    id: 'design',
+    title: 'UI design rules and checks',
+    description: 'For repos with a frontend. Gives the agent the UI rules at session start (read the product and design-system context, avoid the generic AI look, keep a quality floor) and checks every UI file it edits with deterministic rules (overused fonts, purple gradients, low contrast, skipped headings, tiny text...), reporting what the edit introduced. Points to the impeccable skill when it is installed.',
+    enabledByDefault: false,
+  },
+  {
     id: 'core',
     title: 'Harness brief',
     description: 'Tells the agent at session start which harness runs in the repo. Always on.',

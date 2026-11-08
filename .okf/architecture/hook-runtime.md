@@ -5,7 +5,7 @@ description: One entry point per hook event that loads jig.json and runs the ena
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T17:33:51Z'
+  at: '2026-11-08T17:55:50Z'
 ---
 
 # Flow
@@ -22,7 +22,7 @@ generated:
    switches and `toolNames`, and runs each one.
 4. `src/core/hook-io.mjs` combines decisions (deny/block > ask > context > allow) and prints the
    JSON each event expects (PreToolUse `permissionDecision`, Stop `decision: block`,
-   SessionStart `additionalContext`).
+   SessionStart, UserPromptSubmit and PostToolUse `additionalContext`).
 
 # Module contract
 
@@ -52,12 +52,14 @@ decide. Garbage input makes the entry point exit 0 with no output.
 | `lanes-brief` | SessionStart | lanes |
 | `lanes-approval` | UserPromptSubmit | lanes |
 | `lanes-gate`, `lanes-escalate` | PreToolUse (Edit, Write, MultiEdit, NotebookEdit, Bash) | lanes |
+| `design-brief` | SessionStart | design |
+| `design-detect` | PostToolUse (Edit, Write, MultiEdit) | design |
 
 Shared helpers in `src/core/`: `shell-parse.mjs` (split commands), `shell-writes.mjs` (files a shell
 command writes; used by okf-upkeep and lanes-gate), `session-base.mjs` (HEAD at session start; used
 by okf and lanes), `session-state.mjs` (per-session state files).
 
-See [features](features.md), [okf feature](/features/okf.md), [lanes feature](/features/lanes.md), [craft feature](/features/craft.md), [danger guard](/guards/danger.md).
+See [features](features.md), [okf feature](/features/okf.md), [lanes feature](/features/lanes.md), [craft feature](/features/craft.md), [design feature](/features/design.md), [danger guard](/guards/danger.md).
 
 # Verified
 

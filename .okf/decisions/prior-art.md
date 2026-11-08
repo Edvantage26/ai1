@@ -5,7 +5,7 @@ description: What was reviewed before designing jig, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T17:33:51Z'
+  at: '2026-11-08T17:55:50Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -15,9 +15,10 @@ First review on 2026-10-30 by reading the repositories.
 | [Superpowers](https://github.com/obra/superpowers) v7.0.1 | 14 method skills + one SessionStart hook | Verification before completion, fresh implementer + separate reviewer, "red flags" tables against rationalization, evals of skills | Enforcement is prompt-only; forced brainstorming on every task |
 | [rsc-harness](https://github.com/ericrisco/rsc-harness) v3.6.0 (MIT) | Meta-harness: memory/hands/trade/reflexes, lanes Answer / FTD (Fast-Track Development) / ASDD (Agent Spec-Driven Development), hooks, 269 skills | The four pieces, lanes, tools with connection tests, refuting finding-verifier, OKF as memory | Auto-update from npm every session, grants `git commit`/`git push` without asking, ~56k lines of skills |
 | [andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills) | One CLAUDE.md with four rules against common LLM coding mistakes: think before coding, simplicity first, surgical changes, goal-driven execution | Simplicity first and surgical changes, in the [craft feature](/features/craft.md) | Think before coding and goal-driven execution: already covered by lanes and the verify gate |
+| [Impeccable](https://github.com/pbakaus/impeccable) (Apache 2.0, Paul Bakaus; reviewed 2026-11-08) | Design skill for coding agents: one `/impeccable` skill with ~24 commands (critique, audit, polish...), `PRODUCT.md`/`DESIGN.md` context, and a deterministic anti-pattern detector (62 rules, Rust) run as a hook, CLI and browser extension | The detector-as-hook idea and rule ids, re-implemented for source text, and the product/design context (as OKF concepts) in the [design feature](/features/design.md) | The command set and its reference texts: install Impeccable for those; jig points to it when present |
 | [rsc-factory](https://github.com/gregoryjp/rsc-factory) (unofficial) | PRD-to-product engine outside the agent | Risk classifier idea (auto vs human PR) for a future pipeline mode | Whole engine: out of scope |
 
-No code is copied at this stage; if any is, it keeps its MIT notice and attribution.
+No code is copied at this stage; if any is, it keeps its license notice and attribution.
 
 # Superpowers deep review (v7.0.2, 2026-11-08)
 

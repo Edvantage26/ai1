@@ -76,6 +76,7 @@ export function buildConceptCatalog(bundleDirectory) {
     const description = readFrontmatterField(frontmatterText, 'description');
     return {
       relativePath,
+      type: readFrontmatterField(frontmatterText, 'type'),
       title,
       description,
       keywordsByField: {

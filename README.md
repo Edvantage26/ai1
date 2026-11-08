@@ -7,9 +7,9 @@ the same no matter who makes it. `jig` does that for coding agents (Claude Code 
 repo in place with guardrails, makes the agent prove its work before calling it done, and keeps what
 it learns in the repo instead of in a chat that disappears.
 
-> **Status: early (v0.6.0).** Per-repo features, the `okf` feature (project knowledge) and the
-> `danger` guard work, are tested and verified in real sessions. The `lanes` feature is new and
-> tested, not yet tried in live sessions. Everything marked *planned* does not exist yet.
+> **Status: early (v0.8.0).** Per-repo features, the `okf` feature (project knowledge) and the
+> `danger` guard work, are tested and verified in real sessions. The `lanes` and `design` features
+> are new and tested, not yet tried in live sessions. Everything marked *planned* does not exist yet.
 
 ## Why
 
@@ -77,6 +77,7 @@ runs the `jig` CLI, so the result is merged and validated, not improvised).
 | `okf` | on | Project knowledge in an [OKF](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf) bundle: loads its index at session start, asks to update it when the session changed files or saved memories after its last update, and ships the OKF toolkit (`/jig:okf`, `/jig:validate`, `/jig:visualize`, `/jig:backfill`) |
 | `danger` | on | Confirms or refuses commands that destroy work or data |
 | `craft` | on | Gives the agent the rules for orderly code: the minimum change that solves the task, nothing outside it, reuse before writing, refactors proposed (not applied) when it sees duplication or dead code, self-explanatory names. Where things live (layout, how to add each kind of piece, reusable helpers) goes in the OKF bundle |
+| `design` | off | For repos with a frontend. At session start: read the product and design-system context (OKF concepts of type `Product` / `DesignSystem`, or Impeccable's `PRODUCT.md` / `DESIGN.md`), avoid the generic AI look, keep a quality floor. After every edit to a UI file, 26 deterministic rules (overused fonts, purple gradients, glows, gradient text, low contrast, skipped headings, tiny text, placeholder images...) report what that edit introduced. Points to [Impeccable](https://github.com/pbakaus/impeccable) commands when it is installed |
 | `lanes` | off | Sizes each task: quick ones are done directly, medium ones get a short plan, complex or risky ones get questions and a design (`/jig:deep`) that you approve before any code is edited. Restores progress after a compaction |
 
 With `lanes` on, a deep task goes: questions → design in `.jig/work/<slug>/plan.md` (git-ignored) →
@@ -99,6 +100,8 @@ once whether to stop for a plan (`modules.lanes-escalate.max_files` / `max_lines
 | `lanes-gate`: refuses code edits (tools and shell writes) while a deep design waits for approval | lanes | PreToolUse | works |
 | `lanes-escalate`: asks once when a task without a plan outgrows a quick change | lanes | PreToolUse | works |
 | `/jig:deep`: questions, design, builder check, approval, step-by-step build | lanes | — | works |
+| `design-brief`: UI rules and the design context files at session start | design | SessionStart | works |
+| `design-detect`: design rules on every edited UI file, findings of that edit only, once per session (`modules.design-detect.ignore_rules`) | design | PostToolUse | works |
 | `/jig:init` + `jig` CLI (`jig status`, `jig init`) | — | — | works |
 | OKF toolkit skills and agents (from `packs/okf`) | okf | — | works |
 | `prod`: blocks writes to production resources declared in `jig.json` | prod | PreToolUse | planned |
@@ -163,6 +166,10 @@ The design draws on ideas from [Superpowers](https://github.com/obra/superpowers
 skills, verification before completion) and [rsc-harness](https://github.com/ericrisco/rsc-harness)
 (memory/hands/trade/reflexes, work lanes, refuting reviewers). Both are MIT licensed. No code from
 them is included.
+
+The `design` feature takes its rule ids and the idea of a deterministic design detector run as a
+hook from [Impeccable](https://github.com/pbakaus/impeccable) by Paul Bakaus (Apache 2.0). The
+checks are written from scratch for source text; no code from it is included.
 
 The OKF toolkit in `packs/okf/` is a git subtree of
 [Edvantage26/okf-skills](https://github.com/Edvantage26/okf-skills), a fork of

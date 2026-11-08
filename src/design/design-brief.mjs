@@ -1,0 +1,87 @@
+// design-brief (SessionStart, feature `design`): tells the agent how UI work goes in this repo:
+// read the product and design-system context first, avoid the generic AI look, keep a quality floor,
+// and expect design-detect to report on every UI file it edits. The design context lives in the
+// knowledge bundle as concepts of type `Product` and `DesignSystem`; Impeccable's PRODUCT.md and
+// DESIGN.md at the repo root are read too, so both tools can share the same context. When the
+// Impeccable skill is installed, the brief points to it for deeper passes instead of repeating it.
+// The text only changes when those files or that install change, so it keeps the prompt cache.
+
+import { existsSync, readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+import { allowDecision, contextDecision } from '../core/hook-io.mjs';
+import { isFeatureEnabled } from '../core/features.mjs';
+import { resolveBundleDirectory, readBundleIndex } from '../okf/okf-bundle.mjs';
+import { buildConceptCatalog } from '../okf/okf-recall.mjs';
+
+const MODULE_ID = 'design-brief';
+const DESIGN_CONCEPT_TYPES = new Set(['product', 'designsystem']);
+const IMPECCABLE_CONTEXT_FILES = ['PRODUCT.md', 'DESIGN.md'];
+
+// Repo-relative paths of the files that hold the product and design-system context.
+export function listDesignContextFiles(projectRoot, config) {
+  const contextFiles = [];
+  if (isFeatureEnabled('okf', config) && config.knowledge) {
+    const bundleDirectory = resolveBundleDirectory(projectRoot, config);
+    if (readBundleIndex(bundleDirectory) !== null) {
+      const bundleRelativePath = config.knowledge.replace(/^\.\//, '').replace(/\/+$/, '');
+      contextFiles.push(...buildConceptCatalog(bundleDirectory)
+        .filter((bundleConcept) => DESIGN_CONCEPT_TYPES.has(bundleConcept.type.replace(/[\s_-]/g, '').toLowerCase()))
+        .map((bundleConcept) => `${bundleRelativePath}/${bundleConcept.relativePath}`)
+        .sort());
+    }
+  }
+  contextFiles.push(...IMPECCABLE_CONTEXT_FILES.filter((contextFileName) => existsSync(join(projectRoot, contextFileName))));
+  return contextFiles;
+}
+
+// Impeccable as a Claude Code plugin (any marketplace) or as a skill in the repo or the user folder.
+export function isImpeccableInstalled(projectRoot, homeDirectory = homedir()) {
+  const skillPaths = [join(projectRoot, '.claude', 'skills', 'impeccable', 'SKILL.md'), join(homeDirectory, '.claude', 'skills', 'impeccable', 'SKILL.md')];
+  if (skillPaths.some((skillPath) => existsSync(skillPath))) return true;
+  try {
+    const installedPlugins = JSON.parse(readFileSync(join(homeDirectory, '.claude', 'plugins', 'installed_plugins.json'), 'utf8'));
+    return Object.keys(installedPlugins.plugins || installedPlugins).some((pluginKey) => pluginKey.startsWith('impeccable@'));
+  } catch {
+    return false;
+  }
+}
+
+export function buildDesignRecipe({ contextFiles, canRecordInBundle, hasImpeccable }) {
+  let contextRule;
+  if (contextFiles.length) {
+    contextRule = `- Context first: before building or changing UI, read the product and design-system context (${contextFiles.map((contextFile) => `\`${contextFile}\``).join(', ')}): who the product is for, its tone, palette, type scale, spacing and radii. Use its tokens; a new colour, font or size is a deliberate addition to that context, not a one-off.`;
+  } else {
+    const recordWhere = canRecordInBundle
+      ? 'record the answers as knowledge concepts of type `Product` and `DesignSystem` (with /jig:okf)'
+      : 'write them down in the repo';
+    contextRule = `- Context first: there is no product or design-system context yet. Before a sizeable UI task, ask the person who the product is for, its tone and its brand (colours, typefaces), then ${recordWhere} and follow them.`;
+  }
+  const recipeLines = [
+    'Design: UI in this repo comes from its own context, not from defaults.',
+    contextRule,
+    '- Avoid the generic AI look: no Inter / Roboto / Geist by reflex, no purple-violet gradients or gradient text, no coloured glows, no thick accent border on one side of a card, no icon tile above every heading, no tiny uppercase kicker above headings, no cream background by reflex, no marketing buzzwords (seamless, empower, cutting-edge...).',
+    '- Quality floor: text contrast of at least 4.5:1 (WCAG AA), no text under 11px, heading levels in order, real images (no empty or placeholder src), spacing with rhythm (tight inside a group, generous between sections).',
+    '- The design-detect hook checks every UI file you edit and reports what the edit introduced: fix each finding or say in one line why the choice is deliberate.',
+  ];
+  if (hasImpeccable) {
+    recipeLines.push('- The impeccable skill is installed: for a deeper pass use /impeccable critique or /impeccable audit to review, and /impeccable polish before calling UI work done.');
+  }
+  return recipeLines.join('\n');
+}
+
+export default {
+  id: MODULE_ID,
+  event: 'SessionStart',
+  feature: 'design',
+  description: 'Gives the agent the UI rules at session start: read the product and design-system context, avoid the generic AI look, keep a quality floor.',
+  run({ hookInput, config, projectRoot, homeDirectory }) {
+    // A resumed session already has this text in its history.
+    if (hookInput.source === 'resume') return allowDecision();
+    return contextDecision(MODULE_ID, buildDesignRecipe({
+      contextFiles: listDesignContextFiles(projectRoot, config),
+      canRecordInBundle: isFeatureEnabled('okf', config) && Boolean(config.knowledge),
+      hasImpeccable: isImpeccableInstalled(projectRoot, homeDirectory),
+    }));
+  },
+};

@@ -36,6 +36,7 @@ jig/
 ├── src/core/features.mjs             feature registry (okf, danger, core)
 ├── src/context/                      SessionStart modules (brief)
 ├── src/okf/                          okf feature: okf-index (SessionStart), okf-upkeep (Stop)
+├── src/design/                       design feature: design-brief (SessionStart), design-detect (PostToolUse)
 ├── src/guards/                       PreToolUse modules (danger; planned: prod, secrets)
 ├── src/cli/ + bin/jig                setup CLI (jig status / jig init)
 ├── skills/init/                      /jig:init

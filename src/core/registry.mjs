@@ -14,10 +14,12 @@ import lanesBriefContext from '../lanes/lanes-brief.mjs';
 import lanesApprovalContext from '../lanes/lanes-approval.mjs';
 import lanesGate from '../lanes/lanes-gate.mjs';
 import lanesEscalateGuard from '../lanes/lanes-escalate.mjs';
+import designBriefContext from '../design/design-brief.mjs';
+import designDetectCheck from '../design/design-detect.mjs';
 
 export const ALL_MODULES = [
   briefContext, okfIndexContext, okfRecallContext, dangerGuard, okfUpkeepGate, craftBriefContext,
-  lanesBriefContext, lanesApprovalContext, lanesGate, lanesEscalateGuard,
+  lanesBriefContext, lanesApprovalContext, lanesGate, lanesEscalateGuard, designBriefContext, designDetectCheck,
 ];
 
 export const KNOWN_MODULE_IDS = ALL_MODULES.map((moduleDefinition) => moduleDefinition.id);

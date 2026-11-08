@@ -5,7 +5,7 @@ description: Phases from proving jig in a real repo to the doctor command.
 tags: [roadmap]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T17:33:51Z'
+  at: '2026-11-08T17:55:50Z'
 ---
 
 Order changed on 2026-10-30: build the generic structure in jig first, then prove it in real repos.
@@ -16,6 +16,8 @@ Order changed on 2026-10-30: build the generic structure in jig first, then prov
    person's approval, progress restored after compaction. See [lanes feature](features/lanes.md).
 2c. **Craft** (done 2026-11-08): code craft rules at session start (simplicity, surgical changes,
    reuse, proposed refactors, names). See [craft feature](features/craft.md).
+2d. **Design** (done 2026-11-08): UI rules at session start and deterministic design checks on
+   edited UI files, ideas from Impeccable. See [design feature](features/design.md).
 3. **`prod` and `secrets` guards**, driven by jig.json (MCP tools writing to production, shell
    patterns, secrets in staged files).
 4. **`verify` Stop gate** (code changed and not verified).

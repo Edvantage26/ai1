@@ -5,7 +5,7 @@ description: What a repo chooses in jig.json; each hook module belongs to one fe
 tags: [features, config]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T17:33:51Z'
+  at: '2026-11-08T17:55:50Z'
 sources:
   - id: features-source
     resource: src/core/features.mjs
@@ -23,6 +23,7 @@ repo switches the single module off with `modules.<id>: false`.
 | `danger` | on | `danger` (PreToolUse Bash) | see [danger guard](/guards/danger.md) |
 | `craft` | on | `craft-brief` (SessionStart) | see [craft feature](/features/craft.md) |
 | `lanes` | off | `lanes-brief` (SessionStart), `lanes-approval` (UserPromptSubmit), `lanes-gate` and `lanes-escalate` (PreToolUse Edit/Write/Bash) | `/jig:deep`, see [lanes feature](/features/lanes.md) |
+| `design` | off | `design-brief` (SessionStart), `design-detect` (PostToolUse Edit/Write/MultiEdit) | see [design feature](/features/design.md) |
 | `core` | always on | `brief` (SessionStart) | — |
 
 Feature choice is per repo because plugin options (`userConfig`) are stored per user only in

@@ -40,6 +40,9 @@ including any plugin it disabled in this repo to avoid duplicate OKF skills.
 
 - If `okf` is on and there is no bundle yet, offer to create one with the `okf` skill of this
   plugin (`/jig:okf`, produce mode). Do not create it without a yes.
+- If `design` is on and the bundle has no concept of type `Product` or `DesignSystem`, offer to
+  capture them: who the product is for and its tone; palette, typefaces, type scale, spacing and
+  radii (read from the code first, ask only what it does not say). Do not write them without a yes.
 - Tell the person to commit `.claude/jig.json` and `.claude/settings.json`, and to restart
   the Claude Code session so the hooks and skills load with the new configuration.
 - Do not commit on your own.

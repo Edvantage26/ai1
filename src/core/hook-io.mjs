@@ -25,7 +25,7 @@ export function blockDecision(moduleId, reason) {
   return { kind: 'block', moduleId, reason };
 }
 
-// SessionStart / UserPromptSubmit only: text added to the agent's context.
+// SessionStart / UserPromptSubmit / PostToolUse only: text added to the agent's context.
 export function contextDecision(moduleId, text) {
   return { kind: 'context', moduleId, text };
 }
@@ -67,7 +67,7 @@ export function buildHookOutput(eventName, combinedDecision) {
   if (['Stop', 'SubagentStop', 'PostToolUse'].includes(eventName) && ['block', 'deny'].includes(combinedDecision.kind)) {
     return { decision: 'block', reason: combinedDecision.reason };
   }
-  if (['SessionStart', 'UserPromptSubmit'].includes(eventName) && combinedDecision.kind === 'context') {
+  if (['SessionStart', 'UserPromptSubmit', 'PostToolUse'].includes(eventName) && combinedDecision.kind === 'context') {
     return { hookSpecificOutput: { hookEventName: eventName, additionalContext: combinedDecision.text } };
   }
   return null;
