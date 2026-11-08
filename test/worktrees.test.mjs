@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { validateRecipe, loadRecipe, listUnknownRecipeFields, DEFAULT_RECIPE, RECIPE_RELATIVE_PATH } from '../src/worktrees/worktree-recipe.mjs';
 import { createWorktree, decideMode } from '../src/worktrees/worktree-create.mjs';
 import { readWorktreeState } from '../src/worktrees/worktree-state.mjs';
+import { listWorktrees, runWorktreeCommand, dropWorktree } from '../src/worktrees/worktree-ops.mjs';
 import { pickWorktreePort, writeEnvVariables, listListeningPorts } from '../src/worktrees/worktree-ports.mjs';
 import { createTemporaryProject } from './helpers.mjs';
 
@@ -108,7 +109,7 @@ test('create full: everything is there, the port is written and the state record
   assert.ok(created.port >= 12000 && created.port <= 12999);
   assert.equal(readFileSync(join(worktreePath, '.env'), 'utf8'), `API_URL=http://localhost\nPORT=${created.port}\nVITE_PORT=${created.port}\n`);
   assert.equal(readFileSync(join(mainRoot, '.env'), 'utf8'), 'API_URL=http://localhost\nPORT=3000\n', 'the main checkout keeps its env');
-  assert.deepEqual(created.commands_to_run, ['npm ci']);
+  assert.deepEqual(created.setup_commands, ['npm ci']);
   assert.equal(readWorktreeState(join(mainRoot, '.git'), 'feature-a').port, created.port);
   assert.equal(runGit(worktreePath, ['status', '--porcelain']), '');
   assert.throws(() => createWorktree(mainRoot, 'feature-a', { mode: 'full' }), /already exists/);
@@ -123,7 +124,7 @@ test('create light: tracked heavy excluded, ignored heavy shared or left to rege
   assert.ok(lstatSync(join(worktreePath, 'data', 'models')).isSymbolicLink());
   assert.equal(readFileSync(join(worktreePath, 'data', 'models', 'model.bin'), 'utf8').length, 5000);
   assert.equal(existsSync(join(worktreePath, 'node_modules')), false);
-  assert.deepEqual(created.commands_to_run, ['npm ci']);
+  assert.deepEqual(created.setup_commands, ['npm ci']);
   assert.deepEqual(created.trimmed.map((trimmedEntry) => trimmedEntry.path).sort(), ['assets/video', 'data/models', 'node_modules']);
   assert.equal(runGit(worktreePath, ['status', '--porcelain']), '');
   assert.equal(runGit(mainRoot, ['status', '--porcelain']), '', 'sparse-checkout stays in the worktree');
@@ -134,7 +135,7 @@ test('create with an extra mode applies its excludes and skips setup', () => {
   const created = createWorktree(mainRoot, 'look', { mode: 'source-only' });
   assert.equal(existsSync(join(created.path, 'assets')), false);
   assert.ok(existsSync(join(created.path, 'src', 'app.js')));
-  assert.deepEqual(created.commands_to_run, ['npm ci'], 'regenerate still listed, setup skipped');
+  assert.deepEqual(created.setup_commands, ['npm ci'], 'regenerate still listed, setup skipped');
 });
 
 test('create auto: full when it fits, trims the largest space-saving path first when it does not', () => {
@@ -165,6 +166,59 @@ test('create refuses bad names, unknown modes and undoes a failed creation', () 
   assert.throws(() => createWorktree(mainRoot, 'x', { base: 'no-such-branch' }));
   assert.equal(runGit(mainRoot, ['branch', '--list', 'wt/x']), '');
   assert.throws(() => createWorktree(createTemporaryProject(), 'x'), /not inside a git repository|no worktree recipe/);
+});
+
+function commitInWorktree(worktreePath, fileName, fileText) {
+  writeFileSync(join(worktreePath, fileName), fileText);
+  runGit(worktreePath, ['add', fileName]);
+  runGit(worktreePath, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', `change ${fileName}`]);
+}
+
+test('list shows each worktree with ahead/behind, uncommitted count and optional size', () => {
+  const mainRoot = createRecipeRepo();
+  const created = createWorktree(mainRoot, 'listed', { mode: 'light' });
+  commitInWorktree(created.path, 'feature.js', 'x\n');
+  writeFileSync(join(created.path, 'scratch.txt'), 'wip\n');
+  const [listedWorktree] = listWorktrees(created.path, { withSize: true });
+  assert.equal(listedWorktree.name, 'listed');
+  assert.equal(listedWorktree.ahead, 1);
+  assert.equal(listedWorktree.behind, 0);
+  assert.equal(listedWorktree.uncommitted, 1);
+  assert.ok(listedWorktree.size_bytes > 0);
+  assert.equal(listWorktrees(mainRoot)[0].size_bytes, null);
+});
+
+test('run executes recipe commands in the worktree with env, port and placeholders, and records the run', () => {
+  const mainRoot = createRecipeRepo({ ...TEST_RECIPE, env: { OUT_DIR: '{{repo_parent}}/out/{{name}}' }, commands: { dev: 'serve --port {{port}}', 'pre-finish': ['lint', 'test'] } });
+  const created = createWorktree(mainRoot, 'runner', { mode: 'light' });
+  const executedCommands = [];
+  const recordCommand = (commandText, workingDirectory, commandEnvironment) => {
+    executedCommands.push({ commandText, workingDirectory, outDir: commandEnvironment.OUT_DIR, port: commandEnvironment.PORT, worktree: commandEnvironment.JIG_WORKTREE });
+    return commandText === 'test' ? 3 : 0;
+  };
+  assert.deepEqual(runWorktreeCommand(mainRoot, 'runner', 'dev', { runCommand: recordCommand }), { exitCode: 0, failedCommand: null });
+  assert.deepEqual(executedCommands[0], { commandText: `serve --port ${created.port}`, workingDirectory: created.path, outDir: join(mainRoot, '..', 'out', 'runner'), port: String(created.port), worktree: 'runner' });
+  assert.deepEqual(runWorktreeCommand(mainRoot, 'runner', 'pre-finish', { runCommand: recordCommand }), { exitCode: 3, failedCommand: 'test' });
+  assert.equal(readWorktreeState(join(mainRoot, '.git'), 'runner').last_run.exit_code, 3);
+  runWorktreeCommand(mainRoot, 'runner', 'setup', { runCommand: recordCommand });
+  assert.equal(executedCommands.at(-1).commandText, 'npm ci');
+  assert.throws(() => runWorktreeCommand(mainRoot, 'runner', 'deploy', { runCommand: recordCommand }), /no command "deploy"/);
+});
+
+test('drop needs --confirm, refuses uncommitted work, bundles own commits and cleans everything', () => {
+  const mainRoot = createRecipeRepo();
+  const created = createWorktree(mainRoot, 'dropped', { mode: 'light' });
+  assert.throws(() => dropWorktree(mainRoot, 'dropped'), /--confirm/);
+  commitInWorktree(created.path, 'feature.js', 'x\n');
+  writeFileSync(join(created.path, 'src', 'app.js'), 'changed\n');
+  assert.throws(() => dropWorktree(mainRoot, 'dropped', { confirm: true }), /uncommitted changes[\s\S]*src\/app\.js/);
+  const dropResult = dropWorktree(mainRoot, 'dropped', { confirm: true, discardUncommitted: true });
+  assert.ok(existsSync(dropResult.bundlePath));
+  assert.match(runGit(mainRoot, ['bundle', 'list-heads', dropResult.bundlePath]), /refs\/heads\/wt\/dropped/);
+  assert.equal(existsSync(created.path), false);
+  assert.equal(runGit(mainRoot, ['branch', '--list', 'wt/dropped']), '');
+  assert.equal(readWorktreeState(join(mainRoot, '.git'), 'dropped'), null);
+  assert.ok(existsSync(join(mainRoot, 'data', 'models', 'model.bin')), 'the shared target survives');
 });
 
 test('ports are stable per name and skip taken ones; env files keep other lines', () => {

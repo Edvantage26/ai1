@@ -216,6 +216,7 @@ export function createWorktree(startDirectory, worktreeName, options = {}) {
       trimmed: decision.trimmedEntries.map((heavyEntry) => ({ path: heavyEntry.path, strategy: heavyEntry.effectiveStrategy, bytes: heavyEntry.bytes })),
       sparse_exclude: sparseExclusions,
       port: worktreePort,
+      setup_commands: [...new Set(commandsToRun)],
       created_at: new Date().toISOString(),
       last_run: null,
     };
@@ -225,7 +226,6 @@ export function createWorktree(startDirectory, worktreeName, options = {}) {
     return {
       ...worktreeState,
       size_bytes: measurePathBytes(worktreePath),
-      commands_to_run: [...new Set(commandsToRun)],
       warnings: [...warnings, ...shareOnTrackedWarnings],
     };
   } catch (creationError) {
