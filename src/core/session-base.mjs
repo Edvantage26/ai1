@@ -39,3 +39,12 @@ export function readSessionBase(hookInput, projectRoot, environment) {
   }
   return { baseHead, sessionStartMilliseconds: stateModifiedMilliseconds(baseHeadPath) };
 }
+
+// Repo-relative paths changed since `baseHead`: tracked changes (committed or not) and untracked
+// files that git does not ignore. Deleted files are included; callers check existence.
+export function listFilesChangedSinceBase(projectRoot, baseHead) {
+  const runGit = (gitArguments) => execFileSync('git', ['-C', projectRoot, ...gitArguments], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  const trackedChanges = runGit(['diff', '--name-only', baseHead]).split('\n');
+  const untrackedFiles = runGit(['ls-files', '--others', '--exclude-standard']).split('\n');
+  return [...new Set([...trackedChanges, ...untrackedFiles])].filter(Boolean);
+}

@@ -7,19 +7,20 @@
 //      Warnings never block; a missing python3 fails open.
 
 import { execFileSync } from 'node:child_process';
-import { closeSync, existsSync, openSync, readFileSync, readSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { allowDecision, blockDecision } from '../core/hook-io.mjs';
 import { listShellWriteTargets } from '../core/shell-writes.mjs';
+import { readNewTranscriptEvents, eventContentBlocks } from '../core/transcript-scan.mjs';
 import {
   resolveStateDirectory, sessionStatePath, readStateText, writeStateText, shortHash,
 } from '../core/session-state.mjs';
 import {
   resolveBundleDirectory, readBundleIndex, readBundleSpecVersion, newestModificationMilliseconds, buildMaintenanceRules,
 } from './okf-bundle.mjs';
-import { readSessionBase } from '../core/session-base.mjs';
+import { readSessionBase, listFilesChangedSinceBase } from '../core/session-base.mjs';
 
 const MODULE_ID = 'okf-upkeep';
 const BUNDLED_VALIDATOR_SCRIPT = fileURLToPath(new URL('../../packs/okf/skills/validate/scripts/okf_validate.py', import.meta.url));
@@ -30,16 +31,10 @@ const MAX_LISTED_FILES = 20;
 // Harness configuration is not project knowledge: editing it never asks for a concept update.
 const IGNORED_PATHS = new Set(['.claude/settings.json', '.claude/settings.local.json', '.claude/jig.json']);
 
-function runGit(projectRoot, gitArguments) {
-  return execFileSync('git', ['-C', projectRoot, ...gitArguments], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
-}
-
 export function listSessionChangedFiles(projectRoot, baseHead, bundleRelativePath) {
-  const trackedChanges = runGit(projectRoot, ['diff', '--name-only', baseHead]).split('\n');
-  const untrackedFiles = runGit(projectRoot, ['ls-files', '--others', '--exclude-standard']).split('\n');
   const bundlePrefix = `${bundleRelativePath.replace(/\/+$/, '')}/`;
-  return [...new Set([...trackedChanges, ...untrackedFiles])]
-    .filter((changedPath) => changedPath && !changedPath.startsWith(bundlePrefix) && !IGNORED_PATHS.has(changedPath));
+  return listFilesChangedSinceBase(projectRoot, baseHead)
+    .filter((changedPath) => !changedPath.startsWith(bundlePrefix) && !IGNORED_PATHS.has(changedPath));
 }
 
 // Claude Code stores auto-memory under ~/.claude/projects/<path with / and . as ->/memory.
@@ -51,7 +46,6 @@ export function memoryDirectoriesFor(directoryPaths, homeDirectory = homedir()) 
 const MEMORY_WRITING_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit']);
 const INVESTIGATION_TOOLS = new Set(['Bash', 'WebFetch', 'WebSearch']);
 const INVESTIGATION_CALLS_BEFORE_REMINDER = 10;
-const TOOL_USE_MARKER = '"type":"tool_use"';
 
 function isInvestigationTool(toolName) {
   return INVESTIGATION_TOOLS.has(toolName) || String(toolName).startsWith('mcp__');
@@ -77,59 +71,30 @@ export function shellCommandWritesBundle(commandLine, bundleRelativePath = '.okf
   return runsInlineScript && namesBundleFile;
 }
 
-// One incremental pass over the session transcript (tens of MB in long sessions): `scanState`
-// keeps the byte offset already read, so each call only reads what was appended since. It collects
+// One incremental pass over the session transcript (see core/transcript-scan.mjs). It collects
 //   - `paths`: memory files this session wrote (Write/Edit), and
 //   - `investigationCalls`: investigation tool calls (shell, MCP, web) since the session last
 //     edited the bundle, reset to 0 by any bundle edit.
 // Returns null when the transcript is not available.
 export function scanSessionTranscript(transcriptPath, { memoryDirectories, bundleRelativePath }, scanState = { offset: 0, paths: [], investigationCalls: 0 }) {
-  if (!transcriptPath || !existsSync(transcriptPath)) return null;
-  const writtenMemoryPaths = new Set(scanState.paths || []);
-  let investigationCalls = scanState.investigationCalls || 0;
+  const newTranscript = readNewTranscriptEvents(transcriptPath, scanState);
+  if (!newTranscript) return null;
+  const writtenMemoryPaths = new Set(newTranscript.restarted ? [] : scanState.paths || []);
+  let investigationCalls = newTranscript.restarted ? 0 : scanState.investigationCalls || 0;
   const bundleMarker = `/${String(bundleRelativePath || '.okf').replace(/^\.\//, '').replace(/\/+$/, '')}/`;
-  const transcriptSize = statSync(transcriptPath).size;
-  const startOffset = scanState.offset <= transcriptSize ? scanState.offset : 0;
-  if (startOffset === 0) {
-    writtenMemoryPaths.clear();
-    investigationCalls = 0;
-  }
-  const transcriptDescriptor = openSync(transcriptPath, 'r');
-  let appendedText;
-  try {
-    const appendedBytes = Buffer.alloc(transcriptSize - startOffset);
-    readSync(transcriptDescriptor, appendedBytes, 0, appendedBytes.length, startOffset);
-    appendedText = appendedBytes.toString('utf8');
-  } finally {
-    closeSync(transcriptDescriptor);
-  }
-  // Only complete lines are read; a line still being written is picked up next time.
-  const lastNewlineIndex = appendedText.lastIndexOf('\n');
-  const completeText = lastNewlineIndex >= 0 ? appendedText.slice(0, lastNewlineIndex + 1) : '';
-  let markerIndex = completeText.indexOf(TOOL_USE_MARKER);
-  while (markerIndex >= 0) {
-    const lineStart = completeText.lastIndexOf('\n', markerIndex) + 1;
-    const lineEnd = completeText.indexOf('\n', markerIndex);
-    try {
-      const transcriptEvent = JSON.parse(completeText.slice(lineStart, lineEnd));
-      for (const contentBlock of transcriptEvent?.message?.content || []) {
-        if (contentBlock?.type !== 'tool_use') continue;
-        const toolPath = contentBlock?.input?.file_path;
-        if (MEMORY_WRITING_TOOLS.has(contentBlock.name) && typeof toolPath === 'string') {
-          if (memoryDirectories.some((memoryDirectory) => toolPath.startsWith(`${memoryDirectory}/`))) writtenMemoryPaths.add(toolPath);
-          if (toolPath.includes(bundleMarker)) investigationCalls = 0;
-        } else if (contentBlock.name === 'Bash' && shellCommandWritesBundle(contentBlock?.input?.command, bundleRelativePath)) {
-          investigationCalls = 0;
-        } else if (isInvestigationTool(contentBlock.name)) {
-          investigationCalls += 1;
-        }
+  for (const transcriptEvent of newTranscript.events) {
+    for (const contentBlock of eventContentBlocks(transcriptEvent, 'tool_use')) {
+      const toolPath = contentBlock?.input?.file_path;
+      if (MEMORY_WRITING_TOOLS.has(contentBlock.name) && typeof toolPath === 'string') {
+        if (memoryDirectories.some((memoryDirectory) => toolPath.startsWith(`${memoryDirectory}/`))) writtenMemoryPaths.add(toolPath);
+        if (toolPath.includes(bundleMarker)) investigationCalls = 0;
+      } else if (contentBlock.name === 'Bash' && shellCommandWritesBundle(contentBlock?.input?.command, bundleRelativePath)) {
+        investigationCalls = 0;
+      } else if (isInvestigationTool(contentBlock.name)) {
+        investigationCalls += 1;
       }
-    } catch {
-      // Not a JSON event line: ignore.
     }
-    markerIndex = completeText.indexOf(TOOL_USE_MARKER, lineEnd);
   }
-  scanState.offset = startOffset + Buffer.byteLength(completeText, 'utf8');
   scanState.paths = [...writtenMemoryPaths];
   scanState.investigationCalls = investigationCalls;
   return { memoryPaths: writtenMemoryPaths, investigationCalls };
