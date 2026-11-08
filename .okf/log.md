@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-11-08
+* **Creation**: [rfc feature](features/rfc.md) — proposals and future features in `docs/rfc/`, `/jig:rfc`, `jig rfc`, rfc-brief/recall/upkeep; roadmap phases 3, 5 and 6 recorded as RFCs 0001-0003.
 * **Creation**: [verify feature](features/verify.md) — Stop gate on unverified changes, `jig verify`, `jig step-done`.
 * **Creation**: [design feature](features/design.md) — UI rules at session start and the `design-detect` PostToolUse check (26 deterministic rules), ideas from Impeccable.
 * **Creation**: [lanes feature](features/lanes.md) — work lanes by task size, approval gate for deep designs, `/jig:deep` skill.

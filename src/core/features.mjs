@@ -28,6 +28,12 @@ export const FEATURES = [
     enabledByDefault: false,
   },
   {
+    id: 'rfc',
+    title: 'RFCs for undecided proposals',
+    description: 'Proposals for large changes and future features live in docs/rfc/ (one versioned file each, idea or full size), apart from the knowledge bundle because they are not the system. Lists the open ones at session start, points to the related ones on each message, and when the session touched them checks they are consistent and that accepted ones are recorded in the bundle. Skill /jig:rfc; `jig rfc new|set|index|check`.',
+    enabledByDefault: false,
+  },
+  {
     id: 'design',
     title: 'UI design rules and checks',
     description: 'For repos with a frontend. Gives the agent the UI rules at session start (read the product and design-system context, avoid the generic AI look, keep a quality floor) and checks every UI file it edits with deterministic rules (overused fonts, purple gradients, low contrast, skipped headings, tiny text...), reporting what the edit introduced. Points to the impeccable skill when it is installed.',

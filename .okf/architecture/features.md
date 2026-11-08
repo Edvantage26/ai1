@@ -5,7 +5,7 @@ description: What a repo chooses in jig.json; each hook module belongs to one fe
 tags: [features, config]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T17:55:50Z'
+  at: '2026-11-08T18:23:08Z'
 sources:
   - id: features-source
     resource: src/core/features.mjs
@@ -24,6 +24,7 @@ repo switches the single module off with `modules.<id>: false`.
 | `craft` | on | `craft-brief` (SessionStart) | see [craft feature](/features/craft.md) |
 | `verify` | on | `verify-gate` (Stop) | `jig verify`, `jig step-done`, see [verify feature](/features/verify.md) |
 | `lanes` | off | `lanes-brief` (SessionStart), `lanes-approval` (UserPromptSubmit), `lanes-gate` and `lanes-escalate` (PreToolUse Edit/Write/Bash) | `/jig:deep`, see [lanes feature](/features/lanes.md) |
+| `rfc` | off | `rfc-brief` (SessionStart), `rfc-recall` (UserPromptSubmit), `rfc-upkeep` (Stop) | `/jig:rfc`, `jig rfc`, see [rfc feature](/features/rfc.md) |
 | `design` | off | `design-brief` (SessionStart), `design-detect` (PostToolUse Edit/Write/MultiEdit) | see [design feature](/features/design.md) |
 | `core` | always on | `brief` (SessionStart) | — |
 

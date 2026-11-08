@@ -21,6 +21,8 @@ import {
   resolveBundleDirectory, readBundleIndex, readBundleSpecVersion, newestModificationMilliseconds, buildMaintenanceRules,
 } from './okf-bundle.mjs';
 import { readSessionBase, listFilesChangedSinceBase } from '../core/session-base.mjs';
+import { isFeatureEnabled } from '../core/features.mjs';
+import { RFC_DIRECTORY } from '../rfc/rfc-documents.mjs';
 
 const MODULE_ID = 'okf-upkeep';
 const BUNDLED_VALIDATOR_SCRIPT = fileURLToPath(new URL('../../packs/okf/skills/validate/scripts/okf_validate.py', import.meta.url));
@@ -31,10 +33,12 @@ const MAX_LISTED_FILES = 20;
 // Harness configuration is not project knowledge: editing it never asks for a concept update.
 const IGNORED_PATHS = new Set(['.claude/settings.json', '.claude/settings.local.json', '.claude/jig.json']);
 
-export function listSessionChangedFiles(projectRoot, baseHead, bundleRelativePath) {
-  const bundlePrefix = `${bundleRelativePath.replace(/\/+$/, '')}/`;
+// `ignoredDirectories`: folders whose changes are not system knowledge (RFC drafts, when the rfc
+// feature is on: rfc-upkeep handles them, and a proposal must not be written into the bundle).
+export function listSessionChangedFiles(projectRoot, baseHead, bundleRelativePath, ignoredDirectories = []) {
+  const ignoredPrefixes = [bundleRelativePath, ...ignoredDirectories].map((directoryPath) => `${directoryPath.replace(/\/+$/, '')}/`);
   return listFilesChangedSinceBase(projectRoot, baseHead)
-    .filter((changedPath) => !changedPath.startsWith(bundlePrefix) && !IGNORED_PATHS.has(changedPath));
+    .filter((changedPath) => !ignoredPrefixes.some((ignoredPrefix) => changedPath.startsWith(ignoredPrefix)) && !IGNORED_PATHS.has(changedPath));
 }
 
 // Claude Code stores auto-memory under ~/.claude/projects/<path with / and . as ->/memory.
@@ -243,7 +247,7 @@ export default {
     // just edited is still validated.
     if (hookInput.stop_hook_active) return bundleChangedInSession ? checkBundleValidity(validityContext) : allowDecision();
 
-    const pendingFiles = listSessionChangedFiles(projectRoot, baseHead, bundleRelativePath)
+    const pendingFiles = listSessionChangedFiles(projectRoot, baseHead, bundleRelativePath, isFeatureEnabled('rfc', config) ? [RFC_DIRECTORY] : [])
       .map((changedPath) => {
         const absolutePath = join(projectRoot, changedPath);
         // A deleted file has no mtime: it is pending, with a fixed signature so it is asked only once.

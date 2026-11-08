@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index at session start, upkeep
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T16:28:03Z'
+  at: '2026-11-08T18:23:08Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -38,7 +38,8 @@ sources:
   ~0.5 s once on a 33 MB transcript, then ~0.15 s per stop) and, without a transcript, the memory's
   `originSessionId`. Other sessions open on the same repo share the memory folder; their memories
   are theirs to move. A deleted file is mentioned once per session. Asks once per set of pending changes (fingerprint in the
-  session state). `.claude/settings.json`, `settings.local.json` and `jig.json` never count.
+  session state). `.claude/settings.json`, `settings.local.json` and `jig.json` never count, nor
+  `docs/rfc/` when the [rfc feature](rfc.md) is on (a proposal must not be written into the bundle).
 - **Investigation reminder (Stop, same module):** knowledge found by querying or running commands
   leaves no file behind, so the same transcript scan counts investigation steps (Bash, MCP calls,
   web) since the session last edited the bundle; at 10 or more, with no file/memory reminder due,

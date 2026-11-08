@@ -4,7 +4,8 @@
   "features": {
     "okf": true,
     "danger": true,
-    "lanes": true
+    "lanes": true,
+    "rfc": true
   },
   "trunk": "main",
   "verify": [
