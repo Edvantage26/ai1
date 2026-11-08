@@ -43,6 +43,7 @@ const EXPECTED_DECISIONS = [
   ['git worktree remove --force .claude/worktrees/feature', 'ask'],
   ['git worktree remove -f ../feature', 'ask'],
   ['jig worktree drop feature --confirm', 'ask'],
+  ['jig worktree finish feature', 'ask'],
   ['git worktree list', 'allow'],
   ['jig worktree list', 'allow'],
   // Bypassing safety or wiping everything: refused.

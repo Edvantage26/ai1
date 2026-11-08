@@ -8,6 +8,7 @@ import { validateRecipe, loadRecipe, listUnknownRecipeFields, DEFAULT_RECIPE, RE
 import { createWorktree, decideMode } from '../src/worktrees/worktree-create.mjs';
 import { readWorktreeState } from '../src/worktrees/worktree-state.mjs';
 import { listWorktrees, runWorktreeCommand, dropWorktree } from '../src/worktrees/worktree-ops.mjs';
+import { finishWorktree } from '../src/worktrees/worktree-finish.mjs';
 import { pickWorktreePort, writeEnvVariables, listListeningPorts } from '../src/worktrees/worktree-ports.mjs';
 import { createTemporaryProject } from './helpers.mjs';
 
@@ -219,6 +220,72 @@ test('drop needs --confirm, refuses uncommitted work, bundles own commits and cl
   assert.equal(runGit(mainRoot, ['branch', '--list', 'wt/dropped']), '');
   assert.equal(readWorktreeState(join(mainRoot, '.git'), 'dropped'), null);
   assert.ok(existsSync(join(mainRoot, 'data', 'models', 'model.bin')), 'the shared target survives');
+});
+
+const commitInMain = (mainRoot, fileName, fileText) => commitInWorktree(mainRoot, fileName, fileText);
+const NO_PYTHON = { JIG_PYTHON: 'no-such-python-for-jig-tests' };
+
+test('finish rebases onto a moved base, fast-forwards it and cleans everything', () => {
+  const mainRoot = createRecipeRepo();
+  const created = createWorktree(mainRoot, 'done', { mode: 'light' });
+  commitInWorktree(created.path, 'feature.js', 'feature\n');
+  commitInMain(mainRoot, 'other.js', 'other\n');
+  const finishResult = finishWorktree(mainRoot, 'done', { environment: NO_PYTHON });
+  assert.match(finishResult.steps.join('\n'), /rebased onto main[\s\S]*main fast-forwarded/);
+  assert.ok(existsSync(join(mainRoot, 'feature.js')));
+  assert.equal(runGit(mainRoot, ['log', '--format=%s', '-1']).trim(), 'change feature.js');
+  assert.equal(existsSync(created.path), false);
+  assert.equal(runGit(mainRoot, ['branch', '--list', 'wt/done']), '');
+  assert.equal(readWorktreeState(join(mainRoot, '.git'), 'done'), null);
+  assert.ok(existsSync(join(mainRoot, 'data', 'models', 'model.bin')));
+});
+
+test('finish refuses uncommitted work, stops on conflicts and on a dirty base checkout', () => {
+  const mainRoot = createRecipeRepo({ ...TEST_RECIPE, finish: { dirty_base_paths_ok: ['notes/'] } });
+  const created = createWorktree(mainRoot, 'busy', { mode: 'light' });
+  writeFileSync(join(created.path, 'src', 'app.js'), 'wip\n');
+  assert.throws(() => finishWorktree(mainRoot, 'busy', { environment: NO_PYTHON }), /uncommitted changes/);
+  runGit(created.path, ['add', '.']);
+  runGit(created.path, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'branch edit']);
+  commitInMain(mainRoot, 'src/app.js', 'main edit\n');
+  assert.throws(() => finishWorktree(mainRoot, 'busy', { environment: NO_PYTHON }), /could not rebase onto main \(conflicts\)/);
+  assert.equal(runGit(created.path, ['status', '--porcelain']), '', 'the rebase was aborted');
+  runGit(created.path, ['merge', '-q', '-X', 'ours', '-m', 'merge main', 'main']);
+  writeFileSync(join(mainRoot, 'src', 'other.js'), 'uncommitted in main\n');
+  assert.throws(() => finishWorktree(mainRoot, 'busy', { environment: NO_PYTHON }), /uncommitted changes, so it cannot move[\s\S]*src\/other\.js/);
+  runGit(mainRoot, ['clean', '-fq', 'src']);
+  mkdirSync(join(mainRoot, 'notes'));
+  writeFileSync(join(mainRoot, 'notes', 'draft.md'), 'another session\n');
+  const finishResult = finishWorktree(mainRoot, 'busy', { environment: NO_PYTHON });
+  assert.match(finishResult.steps[0], /already contains the base/);
+  assert.ok(existsSync(join(mainRoot, 'notes', 'draft.md')), 'allowed dirty paths stay as they were');
+});
+
+test('finish runs pre-finish and moves a base that is not checked out anywhere', () => {
+  const mainRoot = createRecipeRepo({ ...TEST_RECIPE, commands: { 'pre-finish': 'npm test' } });
+  runGit(mainRoot, ['branch', 'release']);
+  const created = createWorktree(mainRoot, 'rel', { mode: 'light', base: 'release' });
+  commitInWorktree(created.path, 'fix.js', 'fix\n');
+  assert.throws(() => finishWorktree(mainRoot, 'rel', { environment: NO_PYTHON, runCommand: () => 1 }), /pre-finish failed/);
+  assert.ok(existsSync(created.path));
+  const finishResult = finishWorktree(mainRoot, 'rel', { environment: NO_PYTHON, runCommand: () => 0 });
+  assert.match(finishResult.steps.join('\n'), /pre-finish passed[\s\S]*release moved/);
+  assert.equal(runGit(mainRoot, ['log', '--format=%s', '-1', 'release']).trim(), 'change fix.js');
+  assert.equal(existsSync(join(mainRoot, 'fix.js')), false, 'main is untouched');
+});
+
+test('finish asks for the knowledge bundle when the branch changes code without touching it', () => {
+  const mainRoot = createRecipeRepo();
+  mkdirSync(join(mainRoot, '.okf'));
+  writeFileSync(join(mainRoot, '.okf', 'index.md'), '---\nokf_version: "0.2"\n---\n# Bundle\n');
+  writeFileSync(join(mainRoot, '.claude', 'jig.json'), JSON.stringify({ features: { okf: true } }));
+  runGit(mainRoot, ['add', '.']);
+  runGit(mainRoot, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'okf']);
+  const created = createWorktree(mainRoot, 'docs', { mode: 'light' });
+  commitInWorktree(created.path, 'feature.js', 'feature\n');
+  assert.throws(() => finishWorktree(mainRoot, 'docs', { environment: NO_PYTHON }), /does not touch the knowledge bundle[\s\S]*feature\.js[\s\S]*--ack/);
+  const finishResult = finishWorktree(mainRoot, 'docs', { environment: NO_PYTHON, acknowledgement: 'internal helper, no documented asset' });
+  assert.match(finishResult.notes.join('\n'), /internal helper[\s\S]*validator not run/);
 });
 
 test('ports are stable per name and skip taken ones; env files keep other lines', () => {

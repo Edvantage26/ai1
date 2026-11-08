@@ -139,6 +139,13 @@ export const DANGER_RULES = [
     },
   },
   {
+    id: 'jig-worktree-finish',
+    check(commandWords) {
+      if (baseName(commandWords[0]) !== 'jig' || commandWords[1] !== 'worktree' || commandWords[2] !== 'finish') return null;
+      return { action: 'ask', why: 'jig worktree finish integrates the branch into its base and removes the worktree: the person decides when.' };
+    },
+  },
+  {
     id: 'rm-recursive-force',
     check(commandWords) {
       if (baseName(commandWords[0]) !== 'rm') return null;

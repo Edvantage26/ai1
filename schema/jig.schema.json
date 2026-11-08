@@ -131,6 +131,7 @@
                       "git-discard-changes",
                       "git-worktree-remove",
                       "jig-worktree-drop",
+                      "jig-worktree-finish",
                       "rm-recursive-force",
                       "sql-destructive",
                       "docker-destructive",
