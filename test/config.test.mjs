@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
-import { validateHarnessConfig, loadHarnessConfig, isModuleEnabled } from '../src/core/config.mjs';
+import { validateHarnessConfig, listUnknownConfigEntries, loadHarnessConfig, isModuleEnabled } from '../src/core/config.mjs';
+import { runHookEvent } from '../src/core/dispatcher.mjs';
 import { KNOWN_MODULE_IDS } from '../src/core/registry.mjs';
 import { DANGER_RULES } from '../src/guards/danger.mjs';
 import { FEATURES } from '../src/core/features.mjs';
@@ -11,18 +12,32 @@ const readJson = (relativePath) => JSON.parse(readFileSync(new URL(`../${relativ
 
 test('every shipped template is a valid contract', () => {
   for (const templateName of readdirSync(new URL('../templates/', import.meta.url)).filter((fileName) => fileName.endsWith('.json'))) {
-    assert.deepEqual(validateHarnessConfig(readJson(`templates/${templateName}`), KNOWN_MODULE_IDS), [], templateName);
+    assert.deepEqual(validateHarnessConfig(readJson(`templates/${templateName}`)), [], templateName);
+    assert.deepEqual(listUnknownConfigEntries(readJson(`templates/${templateName}`), KNOWN_MODULE_IDS), [], templateName);
   }
 });
 
 test('invalid contracts are reported with a readable reason', () => {
-  assert.match(validateHarnessConfig({ features: { teleport: true } }).join(), /unknown feature "teleport"/);
   assert.match(validateHarnessConfig({ features: { okf: 'yes' } }).join(), /features.okf/);
-  assert.match(validateHarnessConfig({ profile: 'service' }).join(), /unknown field "profile"/);
   assert.match(validateHarnessConfig({ verify: 'npm test' }).join(), /verify/);
-  assert.match(validateHarnessConfig({ modules: { nope: true } }, KNOWN_MODULE_IDS).join(), /unknown module "nope"/);
-  assert.match(validateHarnessConfig({ surprise: 1 }).join(), /unknown field "surprise"/);
+  assert.match(validateHarnessConfig({ version: 2 }).join(), /version/);
   assert.match(validateHarnessConfig([]).join(), /JSON object/);
+});
+
+test('names from a newer jig are warnings, not errors', () => {
+  const newerConfig = { features: { okf: true, teleport: true }, surprise: 1, modules: { nope: true } };
+  assert.deepEqual(validateHarnessConfig(newerConfig), []);
+  assert.deepEqual(listUnknownConfigEntries(newerConfig, KNOWN_MODULE_IDS), ['field "surprise"', 'feature "teleport"', 'module "nope"']);
+  const projectRoot = createTemporaryProject({ features: { okf: false, teleport: true } });
+  const loadedConfig = loadHarnessConfig(projectRoot, KNOWN_MODULE_IDS);
+  assert.equal(loadedConfig.status, 'ok');
+  assert.deepEqual(loadedConfig.unknownEntries, ['feature "teleport"']);
+  const reportedErrors = [];
+  const sessionOutput = runHookEvent('SessionStart', { session_id: 's', cwd: projectRoot }, { reportInternalError: (errorMessage) => reportedErrors.push(errorMessage) });
+  const contextText = sessionOutput.hookSpecificOutput.additionalContext;
+  assert.match(contextText, /jig harness is active/, 'the rest of jig keeps working');
+  assert.match(contextText, /feature "teleport", which this jig version does not know.*update the jig plugin/);
+  assert.match(reportedErrors.join(), /unknown to this jig version/);
 });
 
 test('load reports missing, invalid JSON and merges defaults', () => {

@@ -9,7 +9,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } fr
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { FEATURES, KNOWN_FEATURE_IDS, isFeatureEnabled } from '../core/features.mjs';
-import { validateHarnessConfig, SUPPORTED_CONFIG_VERSION } from '../core/config.mjs';
+import { validateHarnessConfig, listUnknownConfigEntries, SUPPORTED_CONFIG_VERSION } from '../core/config.mjs';
 import { KNOWN_MODULE_IDS } from '../core/registry.mjs';
 
 export const SCHEMA_URL = 'https://raw.githubusercontent.com/Edvantage26/jig/main/schema/jig.schema.json';
@@ -106,7 +106,7 @@ export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, knowled
     verify: verifyCommands ?? existingJigConfig.verify ?? [],
     knowledge: knowledgePath || existingJigConfig.knowledge || '.okf',
   };
-  const validationErrors = validateHarnessConfig(jigConfig, KNOWN_MODULE_IDS);
+  const validationErrors = [...validateHarnessConfig(jigConfig), ...listUnknownConfigEntries(jigConfig, KNOWN_MODULE_IDS).map((unknownEntry) => `unknown ${unknownEntry}`)];
   if (validationErrors.length) throw new Error(`resulting jig.json is invalid: ${validationErrors.join('; ')}`);
   writeJsonFile(jigConfigPath, jigConfig);
 

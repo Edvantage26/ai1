@@ -26,13 +26,27 @@ export function resolveProjectRoot(hookInput = {}, environment = process.env) {
   return resolve(environment.CLAUDE_PROJECT_DIR || hookInput.cwd || process.cwd());
 }
 
-export function validateHarnessConfig(rawConfig, knownModuleIds = []) {
+// Names this jig version does not know (fields, features, modules), e.g. from a repo set up with a
+// newer jig. They are warnings, not errors: the rest of the harness keeps working and the unknown
+// entries are ignored, so an older plugin never switches off a repo's guards.
+export function listUnknownConfigEntries(rawConfig, knownModuleIds = []) {
+  if (rawConfig === null || typeof rawConfig !== 'object' || Array.isArray(rawConfig)) return [];
+  const unknownEntries = Object.keys(rawConfig).filter((fieldName) => !KNOWN_TOP_LEVEL_FIELDS.has(fieldName)).map((fieldName) => `field "${fieldName}"`);
+  if (rawConfig.features && typeof rawConfig.features === 'object' && !Array.isArray(rawConfig.features)) {
+    unknownEntries.push(...Object.keys(rawConfig.features).filter((featureId) => !KNOWN_FEATURE_IDS.includes(featureId)).map((featureId) => `feature "${featureId}"`));
+  }
+  if (knownModuleIds.length && rawConfig.modules && typeof rawConfig.modules === 'object' && !Array.isArray(rawConfig.modules)) {
+    unknownEntries.push(...Object.keys(rawConfig.modules).filter((moduleId) => !knownModuleIds.includes(moduleId)).map((moduleId) => `module "${moduleId}"`));
+  }
+  return unknownEntries;
+}
+
+// Errors in what this jig version knows (wrong types, unsupported version). Unknown names are
+// reported by listUnknownConfigEntries instead.
+export function validateHarnessConfig(rawConfig) {
   const validationErrors = [];
   if (rawConfig === null || typeof rawConfig !== 'object' || Array.isArray(rawConfig)) {
     return ['the file must contain a JSON object'];
-  }
-  for (const fieldName of Object.keys(rawConfig)) {
-    if (!KNOWN_TOP_LEVEL_FIELDS.has(fieldName)) validationErrors.push(`unknown field "${fieldName}"`);
   }
   if (rawConfig.version !== undefined && rawConfig.version !== SUPPORTED_CONFIG_VERSION) {
     validationErrors.push(`"version" must be ${SUPPORTED_CONFIG_VERSION}`);
@@ -42,9 +56,7 @@ export function validateHarnessConfig(rawConfig, knownModuleIds = []) {
       validationErrors.push('"features" must be an object of feature id -> true/false');
     } else {
       for (const [featureId, featureSetting] of Object.entries(rawConfig.features)) {
-        if (!KNOWN_FEATURE_IDS.includes(featureId)) {
-          validationErrors.push(`unknown feature "${featureId}" (known: ${KNOWN_FEATURE_IDS.join(', ')})`);
-        } else if (typeof featureSetting !== 'boolean') {
+        if (typeof featureSetting !== 'boolean') {
           validationErrors.push(`"features.${featureId}" must be true or false`);
         }
       }
@@ -66,9 +78,6 @@ export function validateHarnessConfig(rawConfig, knownModuleIds = []) {
       validationErrors.push('"modules" must be an object keyed by module id');
     } else {
       for (const [moduleId, moduleSetting] of Object.entries(rawConfig.modules)) {
-        if (knownModuleIds.length && !knownModuleIds.includes(moduleId)) {
-          validationErrors.push(`unknown module "${moduleId}" (known: ${knownModuleIds.join(', ')})`);
-        }
         const isBoolean = typeof moduleSetting === 'boolean';
         const isOptionsObject = moduleSetting !== null && typeof moduleSetting === 'object' && !Array.isArray(moduleSetting);
         if (!isBoolean && !isOptionsObject) {
@@ -92,11 +101,12 @@ export function loadHarnessConfig(projectRoot, knownModuleIds = []) {
   } catch (parseError) {
     return { status: 'invalid', configPath, errors: [`not valid JSON: ${parseError.message}`] };
   }
-  const validationErrors = validateHarnessConfig(rawConfig, knownModuleIds);
+  const validationErrors = validateHarnessConfig(rawConfig);
   if (validationErrors.length) return { status: 'invalid', configPath, errors: validationErrors };
   return {
     status: 'ok',
     configPath,
+    unknownEntries: listUnknownConfigEntries(rawConfig, knownModuleIds),
     config: { ...DEFAULT_CONFIG, ...rawConfig, features: { ...rawConfig.features }, modules: { ...rawConfig.modules } },
   };
 }

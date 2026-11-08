@@ -53,7 +53,9 @@ that pile a fixed shape.
 ```
 
 Without this file jig stays inactive (the session start only mentions `/jig:init`). If the file is
-invalid, jig stays inactive and tells the agent why at session start.
+invalid (wrong types), jig stays inactive and tells the agent why at session start. Names your jig
+version does not know yet (a feature added in a newer release) are ignored with a warning; the rest
+of jig keeps working.
 
 | Level | Examples | Lives in |
 |---|---|---|

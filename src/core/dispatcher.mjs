@@ -39,6 +39,13 @@ export function runHookEvent(eventName, hookInput, { environment = process.env, 
       reportInternalError(`module ${moduleDefinition.id} failed: ${moduleError.stack || moduleError}`);
     }
   }
+  if (loadedConfig.unknownEntries.length) {
+    const unknownText = loadedConfig.unknownEntries.join(', ');
+    reportInternalError(`${loadedConfig.configPath} mentions ${unknownText}, unknown to this jig version; ignored`);
+    if (eventName === 'SessionStart') {
+      moduleDecisions.push(contextDecision('setup', `${CONFIG_RELATIVE_PATH} mentions ${unknownText}, which this jig version does not know; they are ignored and the rest of jig works. Tell the person to update the jig plugin.`));
+    }
+  }
   return buildHookOutput(eventName, combineDecisions(moduleDecisions));
 }
 

@@ -16,10 +16,15 @@ test('without jig.json jig only leaves a one-line note at session start', () => 
 });
 
 test('an invalid jig.json deactivates jig and says why', () => {
-  const projectRoot = createTemporaryProject({ features: { teleport: true } });
+  const projectRoot = createTemporaryProject({ features: { danger: 'yes' } });
   const sessionOutput = runHookEvent('SessionStart', { cwd: projectRoot }, quietOptions);
-  assert.match(sessionOutput.hookSpecificOutput.additionalContext, /invalid.*teleport/);
+  assert.match(sessionOutput.hookSpecificOutput.additionalContext, /invalid.*features\.danger/);
   assert.equal(runHookEvent('PreToolUse', bashPayload(projectRoot, 'git reset --hard'), quietOptions), null);
+});
+
+test('a feature unknown to this jig version does not switch the guards off', () => {
+  const projectRoot = createTemporaryProject({ features: { teleport: true } });
+  assert.equal(runHookEvent('PreToolUse', bashPayload(projectRoot, 'git reset --hard'), quietOptions).hookSpecificOutput.permissionDecision, 'ask');
 });
 
 test('a dangerous command produces a PreToolUse ask with the reason', () => {
