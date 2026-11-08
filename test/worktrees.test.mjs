@@ -1,11 +1,56 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { validateRecipe, loadRecipe, listUnknownRecipeFields, DEFAULT_RECIPE, RECIPE_RELATIVE_PATH } from '../src/worktrees/worktree-recipe.mjs';
+import { createWorktree, decideMode } from '../src/worktrees/worktree-create.mjs';
+import { readWorktreeState } from '../src/worktrees/worktree-state.mjs';
+import { pickWorktreePort, writeEnvVariables, listListeningPorts } from '../src/worktrees/worktree-ports.mjs';
 import { createTemporaryProject } from './helpers.mjs';
 
 const readJson = (relativePath) => JSON.parse(readFileSync(new URL(`../${relativePath}`, import.meta.url), 'utf8'));
+
+function runGit(repoRoot, gitArguments) {
+  return execFileSync('git', ['-C', repoRoot, ...gitArguments], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+}
+
+const TEST_RECIPE = {
+  copy: ['.env'],
+  heavy: [
+    { path: 'node_modules', strategy: 'regenerate', command: 'npm ci' },
+    { path: 'data/models', strategy: 'share' },
+    { path: 'assets/video', strategy: 'exclude' },
+  ],
+  modes: { 'source-only': { sparse_exclude: ['assets'], skip_setup: true } },
+  port: { env_file: '.env', variables: ['PORT', 'VITE_PORT'], range: [12000, 12999] },
+  setup: ['npm ci'],
+};
+
+// A repo with a recipe: tracked src/ and assets/video (heavy), ignored .env, node_modules and data/models.
+function createRecipeRepo(recipe = TEST_RECIPE) {
+  const mainRoot = realpathSync(mkdtempSync(join(tmpdir(), 'jig-wt-')));
+  mkdirSync(join(mainRoot, '.claude', 'skills', 'worktree'), { recursive: true });
+  writeFileSync(join(mainRoot, RECIPE_RELATIVE_PATH), JSON.stringify(recipe));
+  writeFileSync(join(mainRoot, '.gitignore'), '.env\nnode_modules/\ndata/\n.claude/worktrees/\n');
+  mkdirSync(join(mainRoot, 'src'));
+  writeFileSync(join(mainRoot, 'src', 'app.js'), 'console.log(1);\n');
+  mkdirSync(join(mainRoot, 'assets', 'video'), { recursive: true });
+  writeFileSync(join(mainRoot, 'assets', 'video', 'clip.mp4'), 'v'.repeat(3000));
+  writeFileSync(join(mainRoot, 'assets', 'logo.svg'), '<svg/>');
+  runGit(mainRoot, ['init', '-q', '-b', 'main']);
+  runGit(mainRoot, ['add', '.']);
+  runGit(mainRoot, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'init']);
+  writeFileSync(join(mainRoot, '.env'), 'API_URL=http://localhost\nPORT=3000\n');
+  mkdirSync(join(mainRoot, 'node_modules', 'left-pad'), { recursive: true });
+  writeFileSync(join(mainRoot, 'node_modules', 'left-pad', 'index.js'), 'm'.repeat(1000));
+  mkdirSync(join(mainRoot, 'data', 'models'), { recursive: true });
+  writeFileSync(join(mainRoot, 'data', 'models', 'model.bin'), 'd'.repeat(5000));
+  return mainRoot;
+}
+
+const PLENTY_OF_DISK = { freeBytes: 1e12, totalBytes: 2e12 };
 
 test('recipe: the shipped template is valid and has no unknown fields', () => {
   const templateRecipe = readJson('templates/worktree-skill/recipe.json');
@@ -47,4 +92,89 @@ test('recipe: load merges defaults and warns about unknown and planned fields', 
   assert.equal(loadedRecipe.recipe.branch_prefix, 'wt/');
   assert.deepEqual(loadedRecipe.recipe.finish, { strategy: 'merge', allow_merge: true, dirty_base_paths_ok: [] });
   assert.equal(loadedRecipe.warnings.length, 2);
+});
+
+test('create full: everything is there, the port is written and the state recorded', () => {
+  const mainRoot = createRecipeRepo();
+  const created = createWorktree(mainRoot, 'feature-a', { mode: 'full' });
+  const worktreePath = join(mainRoot, '.claude', 'worktrees', 'feature-a');
+  assert.equal(created.path, worktreePath);
+  assert.equal(created.branch, 'wt/feature-a');
+  assert.equal(created.base, 'main');
+  assert.equal(created.mode, 'full');
+  assert.ok(existsSync(join(worktreePath, 'assets', 'video', 'clip.mp4')));
+  assert.ok(existsSync(join(worktreePath, 'node_modules', 'left-pad', 'index.js')));
+  assert.ok(lstatSync(join(worktreePath, 'data', 'models')).isDirectory());
+  assert.ok(created.port >= 12000 && created.port <= 12999);
+  assert.equal(readFileSync(join(worktreePath, '.env'), 'utf8'), `API_URL=http://localhost\nPORT=${created.port}\nVITE_PORT=${created.port}\n`);
+  assert.equal(readFileSync(join(mainRoot, '.env'), 'utf8'), 'API_URL=http://localhost\nPORT=3000\n', 'the main checkout keeps its env');
+  assert.deepEqual(created.commands_to_run, ['npm ci']);
+  assert.equal(readWorktreeState(join(mainRoot, '.git'), 'feature-a').port, created.port);
+  assert.equal(runGit(worktreePath, ['status', '--porcelain']), '');
+  assert.throws(() => createWorktree(mainRoot, 'feature-a', { mode: 'full' }), /already exists/);
+});
+
+test('create light: tracked heavy excluded, ignored heavy shared or left to regenerate, git status clean', () => {
+  const mainRoot = createRecipeRepo();
+  const created = createWorktree(mainRoot, 'feature-b', { mode: 'light' });
+  const worktreePath = created.path;
+  assert.equal(existsSync(join(worktreePath, 'assets', 'video')), false);
+  assert.ok(existsSync(join(worktreePath, 'assets', 'logo.svg')));
+  assert.ok(lstatSync(join(worktreePath, 'data', 'models')).isSymbolicLink());
+  assert.equal(readFileSync(join(worktreePath, 'data', 'models', 'model.bin'), 'utf8').length, 5000);
+  assert.equal(existsSync(join(worktreePath, 'node_modules')), false);
+  assert.deepEqual(created.commands_to_run, ['npm ci']);
+  assert.deepEqual(created.trimmed.map((trimmedEntry) => trimmedEntry.path).sort(), ['assets/video', 'data/models', 'node_modules']);
+  assert.equal(runGit(worktreePath, ['status', '--porcelain']), '');
+  assert.equal(runGit(mainRoot, ['status', '--porcelain']), '', 'sparse-checkout stays in the worktree');
+});
+
+test('create with an extra mode applies its excludes and skips setup', () => {
+  const mainRoot = createRecipeRepo();
+  const created = createWorktree(mainRoot, 'look', { mode: 'source-only' });
+  assert.equal(existsSync(join(created.path, 'assets')), false);
+  assert.ok(existsSync(join(created.path, 'src', 'app.js')));
+  assert.deepEqual(created.commands_to_run, ['npm ci'], 'regenerate still listed, setup skipped');
+});
+
+test('create auto: full when it fits, trims the largest space-saving path first when it does not', () => {
+  const mainRoot = createRecipeRepo();
+  const roomy = createWorktree(mainRoot, 'roomy', { mode: 'auto', diskSpace: PLENTY_OF_DISK, copyOnWrite: false });
+  assert.equal(roomy.mode, 'full');
+  const fullBytes = 3000 + 6 + 1000 + 5000;
+  const tight = createWorktree(mainRoot, 'tight', { mode: 'auto', copyOnWrite: false, diskSpace: { freeBytes: 150000 + fullBytes - 4000, totalBytes: 1000000 } });
+  assert.equal(tight.mode, 'light');
+  assert.deepEqual(tight.trimmed.map((trimmedEntry) => trimmedEntry.path), ['data/models'], 'one trim is enough; regenerate saves nothing');
+  assert.ok(existsSync(join(tight.path, 'assets', 'video', 'clip.mp4')));
+  const cow = createWorktree(mainRoot, 'cow', { mode: 'auto', copyOnWrite: true, diskSpace: { freeBytes: 0, totalBytes: 1000000 } });
+  assert.equal(cow.mode, 'full');
+});
+
+test('decideMode reports when even trimming everything may not fit', () => {
+  const heavyEntries = [{ path: 'big', effectiveStrategy: 'exclude', bytes: 10 }];
+  const decision = decideMode({ requestedMode: 'auto', recipe: { disk_margin_percent: 10 }, heavyEntries, neededFullBytes: 1000, diskSpace: { freeBytes: 500, totalBytes: 1000 }, copyOnWrite: false });
+  assert.equal(decision.mode, 'light');
+  assert.match(decision.reason, /may still not fit/);
+  assert.equal(decideMode({ requestedMode: 'auto', recipe: { disk_margin_percent: 10 }, heavyEntries, neededFullBytes: 1, diskSpace: null, copyOnWrite: false }).mode, 'light');
+});
+
+test('create refuses bad names, unknown modes and undoes a failed creation', () => {
+  const mainRoot = createRecipeRepo();
+  assert.throws(() => createWorktree(mainRoot, 'Bad Name'), /invalid worktree name/);
+  assert.throws(() => createWorktree(mainRoot, 'x', { mode: 'huge' }), /unknown mode/);
+  assert.throws(() => createWorktree(mainRoot, 'x', { base: 'no-such-branch' }));
+  assert.equal(runGit(mainRoot, ['branch', '--list', 'wt/x']), '');
+  assert.throws(() => createWorktree(createTemporaryProject(), 'x'), /not inside a git repository|no worktree recipe/);
+});
+
+test('ports are stable per name and skip taken ones; env files keep other lines', () => {
+  assert.equal(pickWorktreePort('feature-a', [12000, 12999]), pickWorktreePort('feature-a', [12000, 12999]));
+  const firstPort = pickWorktreePort('feature-a', [12000, 12999]);
+  assert.notEqual(pickWorktreePort('feature-a', [12000, 12999], new Set([firstPort])), firstPort);
+  assert.throws(() => pickWorktreePort('x', [12000, 12001], new Set([12000, 12001])), /no free port/);
+  assert.ok(listListeningPorts() instanceof Set);
+  const envPath = join(mkdtempSync(join(tmpdir(), 'jig-env-')), '.env');
+  writeFileSync(envPath, '# comment\nexport PORT=1\nOTHER=x\n');
+  writeEnvVariables(envPath, { PORT: '12345', NEW_VAR: 'y' });
+  assert.equal(readFileSync(envPath, 'utf8'), '# comment\nPORT=12345\nOTHER=x\nNEW_VAR=y\n');
 });
