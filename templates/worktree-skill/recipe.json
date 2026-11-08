@@ -1,0 +1,24 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Edvantage26/jig/main/schema/worktree-recipe.schema.json",
+  "version": 1,
+  "location": ".claude/worktrees",
+  "branch_prefix": "wt/",
+  "base": "current",
+  "default_mode": "auto",
+  "copy": [".env", ".env.local"],
+  "heavy": [
+    { "path": "node_modules", "strategy": "regenerate", "command": "npm ci" },
+    { "path": "data/fixtures-large", "strategy": "share" },
+    { "path": "assets/video", "strategy": "exclude" }
+  ],
+  "modes": {
+    "source-only": { "sparse_exclude": ["assets"], "skip_setup": true }
+  },
+  "disk_margin_percent": 15,
+  "port": { "env_file": ".env.local", "variables": ["PORT"], "range": [10000, 19999] },
+  "env": { "BUILD_DIR": "{{path}}/dist" },
+  "setup": ["npm ci"],
+  "commands": { "dev": "npm run dev -- --port {{port}}", "pre-finish": ["npm test"] },
+  "finish": { "strategy": "rebase", "allow_merge": true, "dirty_base_paths_ok": [".okf/"] },
+  "reminder_every": 5
+}

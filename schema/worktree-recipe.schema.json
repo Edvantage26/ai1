@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Edvantage26/jig/main/schema/worktree-recipe.schema.json",
+  "title": "jig worktree recipe (.claude/skills/worktree/recipe.json)",
+  "description": "How this project makes worktrees: where, which modes, what to copy, share, regenerate or exclude, ports, env, setup, named commands and how to close. Written by /jig:worktree after the person approves it.",
+  "type": "object",
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "const": 1 },
+    "location": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Folder for the worktrees, relative to the repo root or absolute. Default .claude/worktrees (where Claude Code's EnterWorktree works without an extra prompt)."
+    },
+    "branch_prefix": { "type": "string", "minLength": 1, "description": "Prefix of each worktree's branch. Default wt/." },
+    "base": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Branch a new worktree starts from: current (the main checkout's branch), trunk (jig.json trunk) or a branch name. Default current."
+    },
+    "default_mode": {
+      "type": "string",
+      "minLength": 1,
+      "description": "auto (full if it fits on the disk with the margin, else trim heavy paths largest first), full, light (every heavy strategy applied) or an extra mode name. Default auto."
+    },
+    "copy": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Glob patterns of gitignored files every worktree gets (e.g. .env). Patterns in .worktreeinclude are added."
+    },
+    "heavy": {
+      "type": "array",
+      "description": "Paths that can fill the disk, with what to do when they are trimmed.",
+      "items": {
+        "type": "object",
+        "required": ["path", "strategy"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "strategy": {
+            "enum": ["copy", "share", "regenerate", "exclude"],
+            "description": "copy: copy it (copy-on-write when the filesystem supports it). share: link to the main checkout's copy (use read-only). regenerate: run command in the worktree. exclude: leave it out (sparse-checkout for tracked paths)."
+          },
+          "command": { "type": "string", "minLength": 1, "description": "Required for regenerate." }
+        },
+        "if": { "properties": { "strategy": { "const": "regenerate" } } },
+        "then": { "required": ["command"] }
+      }
+    },
+    "modes": {
+      "type": "object",
+      "description": "Extra modes: light plus their own excludes. full, light and auto are built in.",
+      "propertyNames": { "not": { "enum": ["auto", "full", "light"] } },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "sparse_exclude": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+          "skip_setup": { "type": "boolean" }
+        }
+      }
+    },
+    "disk_margin_percent": {
+      "type": "number",
+      "minimum": 0,
+      "exclusiveMaximum": 100,
+      "description": "auto mode keeps at least this share of the volume free after creating the worktree. Default 15."
+    },
+    "port": {
+      "type": ["object", "null"],
+      "required": ["env_file", "variables"],
+      "properties": {
+        "env_file": { "type": "string", "minLength": 1, "description": "File in the worktree where the port variables are written (other lines are kept)." },
+        "variables": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "range": {
+          "type": "array",
+          "prefixItems": [{ "type": "integer", "minimum": 1024 }, { "type": "integer", "maximum": 65535 }],
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "Ports to pick from (stable per worktree name). Default [10000, 19999]."
+        }
+      }
+    },
+    "env": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Variables exported by `jig worktree run`. Placeholders: {{name}}, {{branch}}, {{path}}, {{repo_root}}, {{repo_parent}}, {{port}}."
+    },
+    "setup": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Commands the agent runs in a new worktree with `jig worktree run <name> setup`."
+    },
+    "commands": {
+      "type": "object",
+      "description": "Named project steps run with `jig worktree run <name> <command>`. pre-finish runs before finish integrates.",
+      "additionalProperties": {
+        "oneOf": [
+          { "type": "string", "minLength": 1 },
+          { "type": "array", "items": { "type": "string", "minLength": 1 } }
+        ]
+      }
+    },
+    "finish": {
+      "type": "object",
+      "properties": {
+        "strategy": { "enum": ["rebase", "merge"] },
+        "allow_merge": { "type": "boolean" },
+        "dirty_base_paths_ok": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Uncommitted paths in the base checkout that do not stop finish (e.g. .okf/ edited by another session)."
+        }
+      }
+    },
+    "reminder_every": { "type": "integer", "minimum": 0, "description": "Remind the active worktrees every N prompts (0: only when they change). Default 5." },
+    "caches": { "description": "Planned (phase 2): shared read-only caches per version." },
+    "slots": { "description": "Planned (phase 2): concurrency slots for heavy commands." }
+  },
+  "additionalProperties": true
+}
