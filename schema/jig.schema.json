@@ -129,6 +129,8 @@
                       "git-force-push",
                       "git-clean",
                       "git-discard-changes",
+                      "git-worktree-remove",
+                      "jig-worktree-drop",
                       "rm-recursive-force",
                       "sql-destructive",
                       "docker-destructive",

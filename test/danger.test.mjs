@@ -1,5 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, realpathSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { basename, join } from 'node:path';
 import dangerGuard, { findDangerousCommands, DANGER_RULES } from '../src/guards/danger.mjs';
 
 const EXPECTED_DECISIONS = [
@@ -36,6 +40,11 @@ const EXPECTED_DECISIONS = [
   ['cd repo && git fetch && git reset --hard', 'ask'],
   ['bash -c "git reset --hard"', 'ask'],
   ['sudo rm -rf /var/lib/app', 'ask'],
+  ['git worktree remove --force .claude/worktrees/feature', 'ask'],
+  ['git worktree remove -f ../feature', 'ask'],
+  ['jig worktree drop feature --confirm', 'ask'],
+  ['git worktree list', 'allow'],
+  ['jig worktree list', 'allow'],
   // Bypassing safety or wiping everything: refused.
   ['git commit --no-verify -m "wip"', 'deny'],
   ['git commit -nm "wip"', 'deny'],
@@ -63,6 +72,23 @@ test('every non-allow decision explains itself', () => {
 test('ignore_rules switches a rule off for the repo', () => {
   assert.equal(findDangerousCommands('rm -rf src', ['rm-recursive-force']).length, 0);
   assert.equal(findDangerousCommands('rm -rf src').length, 1);
+});
+
+test('plain git worktree remove asks only when the worktree holds ignored files', () => {
+  const mainRoot = realpathSync(mkdtempSync(join(tmpdir(), 'jig-danger-wt-')));
+  const runGit = (gitArguments) => execFileSync('git', ['-C', mainRoot, ...gitArguments], { stdio: 'ignore' });
+  writeFileSync(join(mainRoot, '.gitignore'), '.env\n');
+  runGit(['init', '-q']);
+  runGit(['add', '.']);
+  runGit(['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'init']);
+  runGit(['worktree', 'add', '-q', '-b', 'feature', join(mainRoot, '..', `${basename(mainRoot)}-feature`)]);
+  const removeCommand = `git worktree remove ../${basename(mainRoot)}-feature`;
+  const runGuard = () => dangerGuard.run({ hookInput: { cwd: mainRoot, tool_input: { command: removeCommand } }, moduleOptions: {} });
+  assert.equal(runGuard().kind, 'allow');
+  writeFileSync(join(mainRoot, '..', `${basename(mainRoot)}-feature`, '.env'), 'SECRET=1\n');
+  const askDecision = runGuard();
+  assert.equal(askDecision.kind, 'ask');
+  assert.match(askDecision.reason, /\.env/);
 });
 
 test('rule ids are unique', () => {

@@ -5,7 +5,9 @@
 //   ignore_rules: rule ids to switch off in this repo, e.g. ["rm-recursive-force"].
 
 import { askDecision, denyDecision, allowDecision } from '../core/hook-io.mjs';
+import { isAbsolute, resolve } from 'node:path';
 import { splitSimpleCommands, baseName, hasShortFlag, hasLongFlag } from '../core/shell-parse.mjs';
+import { listIgnoredPaths } from '../worktrees/worktree-git.mjs';
 
 const MODULE_ID = 'danger';
 
@@ -40,7 +42,14 @@ function isSafeRemovalTarget(removalTarget) {
   return REGENERABLE_DIRECTORY_NAMES.has(lastPathSegment);
 }
 
-// Each rule returns { action, why } when it matches a simple command, or null.
+function gitWorkingDirectory(gitCommand, workingDirectory) {
+  const directoryOptionIndex = gitCommand.globalOptions.indexOf('-C');
+  const directoryOption = directoryOptionIndex >= 0 ? gitCommand.globalOptions[directoryOptionIndex + 1] : null;
+  return directoryOption ? resolve(workingDirectory, directoryOption) : workingDirectory;
+}
+
+// Each rule returns { action, why } when it matches a simple command, or null. `ruleContext` carries
+// the hook's working directory for the few rules that look at the disk.
 export const DANGER_RULES = [
   {
     id: 'git-skip-hooks',
@@ -104,6 +113,32 @@ export const DANGER_RULES = [
     },
   },
   {
+    id: 'git-worktree-remove',
+    check(commandWords, commandText, ruleContext = {}) {
+      const gitCommand = parseGitCommand(commandWords);
+      if (gitCommand?.subcommand !== 'worktree' || gitCommand.subcommandArgs[0] !== 'remove') return null;
+      const removeArgs = gitCommand.subcommandArgs.slice(1);
+      if (hasLongFlag(removeArgs, '--force') || hasShortFlag(removeArgs, 'f')) {
+        return { action: 'ask', why: 'git worktree remove --force deletes the uncommitted and untracked files of that worktree for good. Commit or move them first.' };
+      }
+      const worktreeArgument = removeArgs.find((removeArg) => !removeArg.startsWith('-'));
+      if (!worktreeArgument || !ruleContext.workingDirectory) return null;
+      const baseDirectory = gitWorkingDirectory(gitCommand, ruleContext.workingDirectory);
+      const worktreePath = isAbsolute(worktreeArgument) ? worktreeArgument : resolve(baseDirectory, worktreeArgument);
+      const ignoredPaths = listIgnoredPaths(worktreePath);
+      if (!ignoredPaths?.length) return null;
+      const shownPaths = ignoredPaths.slice(0, 5).join(', ') + (ignoredPaths.length > 5 ? `, ... (${ignoredPaths.length} in total)` : '');
+      return { action: 'ask', why: `git worktree remove also deletes the worktree's ignored files without asking: ${shownPaths}. Move what must be kept first.` };
+    },
+  },
+  {
+    id: 'jig-worktree-drop',
+    check(commandWords) {
+      if (baseName(commandWords[0]) !== 'jig' || commandWords[1] !== 'worktree' || commandWords[2] !== 'drop') return null;
+      return { action: 'ask', why: 'jig worktree drop abandons the worktree and deletes its branch (its commits are kept in a bundle).' };
+    },
+  },
+  {
     id: 'rm-recursive-force',
     check(commandWords) {
       if (baseName(commandWords[0]) !== 'rm') return null;
@@ -150,12 +185,12 @@ export const DANGER_RULES = [
   },
 ];
 
-export function findDangerousCommands(commandLine, ignoredRuleIds = []) {
+export function findDangerousCommands(commandLine, ignoredRuleIds = [], ruleContext = {}) {
   const dangerFindings = [];
   for (const simpleCommand of splitSimpleCommands(commandLine)) {
     for (const dangerRule of DANGER_RULES) {
       if (ignoredRuleIds.includes(dangerRule.id)) continue;
-      const ruleMatch = dangerRule.check(simpleCommand.words, simpleCommand.text);
+      const ruleMatch = dangerRule.check(simpleCommand.words, simpleCommand.text, ruleContext);
       if (ruleMatch) dangerFindings.push({ ruleId: dangerRule.id, command: simpleCommand.text, ...ruleMatch });
     }
   }
@@ -168,10 +203,10 @@ export default {
   toolNames: ['Bash'],
   feature: 'danger',
   description: 'Confirms or refuses shell commands that destroy work, history or data with no undo.',
-  run({ hookInput, moduleOptions }) {
+  run({ hookInput, projectRoot, moduleOptions }) {
     const commandLine = hookInput.tool_input?.command;
     if (typeof commandLine !== 'string' || !commandLine.trim()) return allowDecision();
-    const dangerFindings = findDangerousCommands(commandLine, moduleOptions.ignore_rules ?? []);
+    const dangerFindings = findDangerousCommands(commandLine, moduleOptions.ignore_rules ?? [], { workingDirectory: hookInput.cwd || projectRoot });
     if (dangerFindings.length === 0) return allowDecision();
     const findingLines = dangerFindings.map((dangerFinding) => `[${dangerFinding.ruleId}] \`${dangerFinding.command}\`: ${dangerFinding.why}`);
     if (dangerFindings.some((dangerFinding) => dangerFinding.action === 'deny')) {
