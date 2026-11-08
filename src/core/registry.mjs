@@ -19,11 +19,14 @@ import designDetectCheck from '../design/design-detect.mjs';
 import verifyGate from '../verify/verify-gate.mjs';
 import worktreeBriefContext from '../worktrees/worktree-brief.mjs';
 import worktreeReminderContext from '../worktrees/worktree-reminder.mjs';
+import rfcBriefContext from '../rfc/rfc-brief.mjs';
+import rfcRecallContext from '../rfc/rfc-recall.mjs';
+import rfcUpkeepGate from '../rfc/rfc-upkeep.mjs';
 
 export const ALL_MODULES = [
   briefContext, okfIndexContext, okfRecallContext, dangerGuard, okfUpkeepGate, craftBriefContext,
   lanesBriefContext, lanesApprovalContext, lanesGate, lanesEscalateGuard, designBriefContext, designDetectCheck,
-  verifyGate, worktreeBriefContext, worktreeReminderContext,
+  verifyGate, worktreeBriefContext, worktreeReminderContext, rfcBriefContext, rfcRecallContext, rfcUpkeepGate,
 ];
 
 export const KNOWN_MODULE_IDS = ALL_MODULES.map((moduleDefinition) => moduleDefinition.id);

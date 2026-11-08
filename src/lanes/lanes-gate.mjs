@@ -1,5 +1,5 @@
 // lanes-gate (PreToolUse, feature `lanes`): while a deep-lane design of this session is not approved
-// by the person, refuses edits to project files outside `.jig/` and the knowledge bundle (Edit,
+// by the person, refuses edits to project files outside `.jig/`, the knowledge bundle and RFCs (Edit,
 // Write, MultiEdit, NotebookEdit, and shell commands that write files). Designing, asking and
 // reading stay free; building waits for the approval that lanes-approval records.
 
@@ -10,6 +10,8 @@ import {
   listActivePlans, readApprovals, isPlanApproved, UNAPPROVED_STATUSES, JIG_DIRECTORY,
 } from './lanes-work.mjs';
 import { projectRelativePath } from '../core/project-paths.mjs';
+import { isFeatureEnabled } from '../core/features.mjs';
+import { RFC_DIRECTORY } from '../rfc/rfc-documents.mjs';
 
 const MODULE_ID = 'lanes-gate';
 export const FILE_EDITING_TOOLS = ['Edit', 'Write', 'MultiEdit', 'NotebookEdit'];
@@ -43,8 +45,10 @@ export default {
   feature: 'lanes',
   description: 'Refuses code edits while a deep-lane design of this session waits for the person\'s approval.',
   run({ hookInput, config, projectRoot, sharedRoot = projectRoot, environment }) {
+    // Designing stays free: the work folder, the knowledge bundle and, with the rfc feature, RFCs.
+    const designDirectories = [JIG_DIRECTORY, config.knowledge, isFeatureEnabled('rfc', config) && RFC_DIRECTORY].filter(Boolean);
     const editedPaths = listEditedProjectPaths(hookInput, projectRoot)
-      .filter((relativePath) => !isPathInside(relativePath, JIG_DIRECTORY) && !(config.knowledge && isPathInside(relativePath, config.knowledge)));
+      .filter((relativePath) => !designDirectories.some((designDirectory) => isPathInside(relativePath, designDirectory)));
     if (editedPaths.length === 0) return allowDecision();
     const sessionBase = readSessionBase(hookInput, sharedRoot, environment);
     const unapprovedPlan = findUnapprovedPlan(sharedRoot, sessionBase?.sessionStartMilliseconds, readApprovals(sharedRoot, environment));

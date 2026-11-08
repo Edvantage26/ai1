@@ -77,10 +77,14 @@ Decisions: `allow`, `ask`, `deny`, `block` (Stop), `context` (SessionStart). Det
    verified in real Claude Code sessions.
 2. **Features, okf feature and `/jig:init`** (done 2026-10-31): per-repo features replace profiles;
    OKF toolkit vendored as `packs/okf`; okf-index/okf-upkeep; `jig` CLI. Verified in real sessions.
-3. **`prod` and `secrets` guards.**
-4. **`verify` Stop gate.**
-5. **`jig doctor`.**
-6. **Method skills + reviewers**: `ftd`, `verify`, `review`, finding verifier.
+3. **`prod` and `secrets` guards** (proposal: [RFC 0001](docs/rfc/0001-prod-and-secrets-guards.md)).
+4. **`verify` Stop gate** (done 2026-11-08).
+5. **`jig doctor`** (proposal: [RFC 0002](docs/rfc/0002-jig-doctor.md)).
+6. **Method skills + reviewers**: `ftd`, `verify`, `review`, finding verifier (proposal:
+   [RFC 0003](docs/rfc/0003-method-skills-and-reviewers.md)).
+
+Planned features are kept as RFCs in `docs/rfc/` (the `rfc` feature, on in this repo) until they are
+decided; see [docs/rfc/README.md](docs/rfc/README.md).
 
 After each increment the plugin is tried in real repos of different shapes (a document-processing
 backend, a web product, a small service). The contract is frozen once three of them run it. An

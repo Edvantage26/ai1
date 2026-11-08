@@ -37,19 +37,25 @@ export function normalizeKeywords(text) {
     .map((word) => word.slice(0, TOKEN_PREFIX_LENGTH)))];
 }
 
-export function buildConceptCatalog(bundleDirectory) {
-  return listBundleConcepts(bundleDirectory).map((bundleConcept) => ({
-    relativePath: bundleConcept.relativePath,
-    title: bundleConcept.title,
-    description: bundleConcept.description,
+// Keyword sets per field of each document ({ relativePath, title, description, tags, bodyText });
+// also used by rfc-recall for the RFC files.
+export function buildKeywordCatalog(documents) {
+  return documents.map((catalogDocument) => ({
+    relativePath: catalogDocument.relativePath,
+    title: catalogDocument.title,
+    description: catalogDocument.description,
     keywordsByField: {
-      title: new Set(normalizeKeywords(bundleConcept.title)),
-      tags: new Set(normalizeKeywords(bundleConcept.tags)),
-      description: new Set(normalizeKeywords(bundleConcept.description)),
-      path: new Set(normalizeKeywords(bundleConcept.relativePath.replace(/\.md$/, ''))),
-      body: new Set(normalizeKeywords(bundleConcept.bodyText)),
+      title: new Set(normalizeKeywords(catalogDocument.title)),
+      tags: new Set(normalizeKeywords(catalogDocument.tags)),
+      description: new Set(normalizeKeywords(catalogDocument.description)),
+      path: new Set(normalizeKeywords(catalogDocument.relativePath.replace(/\.md$/, ''))),
+      body: new Set(normalizeKeywords(catalogDocument.bodyText)),
     },
   }));
+}
+
+export function buildConceptCatalog(bundleDirectory) {
+  return buildKeywordCatalog(listBundleConcepts(bundleDirectory));
 }
 
 export function rankConceptsForPrompt(promptText, conceptCatalog) {

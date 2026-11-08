@@ -5,7 +5,7 @@ description: Work lanes by task size - quick, plan or deep - with a hook-enforce
 tags: [lanes, workflow, hooks, skills, approval]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T17:37:09Z'
+  at: '2026-11-08T18:23:08Z'
 sources:
   - id: lanes-work
     resource: src/lanes/lanes-work.mjs
@@ -45,7 +45,7 @@ gate is a hook block; plans live in a local ignored folder.
 - **plan**: read the code, present a short plan, start after a yes (conversation only).
 - **deep**: `/jig:deep` skill - look before asking, one question at a time, design in
   `.jig/work/<slug>/plan.md` (goal, constraints, approaches with the choice, steps with checks,
-  risks, rulings), one builder-check subagent, approval, then step by step; each step closed with `jig step-done`, which logs it in `progress.md` only when
+  risks, rulings), one builder-check subagent, approval, then step by step; a task that builds an accepted RFC carries `rfc: <number>` in the plan frontmatter; each step closed with `jig step-done`, which logs it in `progress.md` only when
   the [verify](verify.md) commands pass.
 
 # Modules (feature `lanes`)
@@ -54,7 +54,7 @@ gate is a hook block; plans live in a local ignored folder.
 |---|---|---|
 | `lanes-brief` | SessionStart | Injects the lane recipe (byte-stable, skipped on `resume`), lists unfinished plans, and after `compact` restores the active plans with the last 15 lines of `progress.md`. Records the session base HEAD and writes `.jig/.gitignore` (`*`). |
 | `lanes-approval` | UserPromptSubmit | When a plan has `status: ready` and the person sends a short plain yes (`aprobado`, `adelante`, `ok`, `go ahead`... with no `pero`/`but`/`no`, at most 120 chars), records the approval in jig's state dir (outside the repo) and sets `status: approved`. |
-| `lanes-gate` | PreToolUse (Edit, Write, MultiEdit, NotebookEdit, Bash) | While a plan touched in this session is `draft`/`ready`, or not approved by the person, refuses writes to project files outside `.jig/` and the knowledge bundle. Shell writes come from `src/core/shell-writes.mjs`. |
+| `lanes-gate` | PreToolUse (Edit, Write, MultiEdit, NotebookEdit, Bash) | While a plan touched in this session is `draft`/`ready`, or not approved by the person, refuses writes to project files outside `.jig/`, the knowledge bundle and, with the [rfc feature](rfc.md), `docs/rfc/`. Shell writes come from `src/core/shell-writes.mjs`. |
 | `lanes-escalate` | PreToolUse (same tools) | With no active plan, once per session, asks the person when the session's changes pass `max_files` (6) or `max_lines` (300), options under `modules.lanes-escalate`. |
 
 Plan statuses: `draft` -> `ready` (agent asks) -> `approved` (only via the person) -> `done` or

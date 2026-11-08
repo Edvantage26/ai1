@@ -15,7 +15,7 @@
     },
     "features": {
       "type": "object",
-      "description": "Features enabled in this repo. Omitted features use their default (okf, danger, craft and verify: on, lanes and design: off).",
+      "description": "Features enabled in this repo. Omitted features use their default (okf, danger, craft and verify: on, lanes, design and rfc: off).",
       "additionalProperties": false,
       "properties": {
         "okf": {
@@ -42,6 +42,11 @@
           "type": "boolean",
           "default": false,
           "description": "A worktree per significant change, made with the project recipe planned once with /jig:worktree (.claude/skills/worktree/); the agent keeps saying which worktree it works in."
+        },
+        "rfc": {
+          "type": "boolean",
+          "default": false,
+          "description": "RFCs: undecided proposals and future features in docs/rfc/, open ones listed at session start, related ones recalled per message, consistency and bundle citation checked at stop (/jig:rfc, jig rfc)."
         },
         "design": {
           "type": "boolean",
@@ -407,6 +412,54 @@
                   "description": "Globs of changed files that do not need verification, added to the defaults (*.md, .claude/**, .jig/**, the knowledge bundle)."
                 }
               }
+            }
+          ]
+        },
+        "rfc-brief": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "rfc-recall": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "rfc-upkeep": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
             }
           ]
         }

@@ -6,6 +6,7 @@
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
+import { writeFrontmatterField } from '../core/frontmatter.mjs';
 import { resolveStateDirectory, shortHash, readStateText, writeStateText } from '../core/session-state.mjs';
 
 export const JIG_DIRECTORY = '.jig';
@@ -26,16 +27,7 @@ export function readPlanTitle(planText, fallbackTitle) {
 }
 
 export function writePlanStatus(planPath, newStatus) {
-  const planText = readFileSync(planPath, 'utf8');
-  const frontmatterMatch = /^---\n([\s\S]*?)\n---/.exec(planText);
-  if (!frontmatterMatch) {
-    writeFileSync(planPath, `---\nstatus: ${newStatus}\n---\n\n${planText}`);
-    return;
-  }
-  const frontmatterText = /^status:/m.test(frontmatterMatch[1])
-    ? frontmatterMatch[1].replace(/^status:.*$/m, `status: ${newStatus}`)
-    : `${frontmatterMatch[1]}\nstatus: ${newStatus}`;
-  writeFileSync(planPath, `---\n${frontmatterText}\n---${planText.slice(frontmatterMatch[0].length)}`);
+  writeFileSync(planPath, writeFrontmatterField(readFileSync(planPath, 'utf8'), 'status', newStatus));
 }
 
 // Every plan in .jig/work, newest first: { slug, planPath, relativePath, status, title, modifiedMilliseconds }.
