@@ -5,7 +5,7 @@ description: One entry point per hook event that loads jig.json and runs the ena
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T16:47:44Z'
+  at: '2026-11-08T17:33:51Z'
 ---
 
 # Flow
@@ -48,6 +48,7 @@ decide. Garbage input makes the entry point exit 0 with no output.
 | `okf-recall` | UserPromptSubmit | okf |
 | `danger` | PreToolUse (Bash) | danger |
 | `okf-upkeep` | Stop | okf |
+| `craft-brief` | SessionStart | craft |
 | `lanes-brief` | SessionStart | lanes |
 | `lanes-approval` | UserPromptSubmit | lanes |
 | `lanes-gate`, `lanes-escalate` | PreToolUse (Edit, Write, MultiEdit, NotebookEdit, Bash) | lanes |
@@ -56,7 +57,7 @@ Shared helpers in `src/core/`: `shell-parse.mjs` (split commands), `shell-writes
 command writes; used by okf-upkeep and lanes-gate), `session-base.mjs` (HEAD at session start; used
 by okf and lanes), `session-state.mjs` (per-session state files).
 
-See [features](features.md), [okf feature](/features/okf.md), [lanes feature](/features/lanes.md), [danger guard](/guards/danger.md).
+See [features](features.md), [okf feature](/features/okf.md), [lanes feature](/features/lanes.md), [craft feature](/features/craft.md), [danger guard](/guards/danger.md).
 
 # Verified
 

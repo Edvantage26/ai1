@@ -76,6 +76,7 @@ runs the `jig` CLI, so the result is merged and validated, not improvised).
 |---|---|---|
 | `okf` | on | Project knowledge in an [OKF](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf) bundle: loads its index at session start, asks to update it when the session changed files or saved memories after its last update, and ships the OKF toolkit (`/jig:okf`, `/jig:validate`, `/jig:visualize`, `/jig:backfill`) |
 | `danger` | on | Confirms or refuses commands that destroy work or data |
+| `craft` | on | Gives the agent the rules for orderly code: the minimum change that solves the task, nothing outside it, reuse before writing, refactors proposed (not applied) when it sees duplication or dead code, self-explanatory names. Where things live (layout, how to add each kind of piece, reusable helpers) goes in the OKF bundle |
 | `lanes` | off | Sizes each task: quick ones are done directly, medium ones get a short plan, complex or risky ones get questions and a design (`/jig:deep`) that you approve before any code is edited. Restores progress after a compaction |
 
 With `lanes` on, a deep task goes: questions → design in `.jig/work/<slug>/plan.md` (git-ignored) →
@@ -92,6 +93,7 @@ once whether to stop for a plan (`modules.lanes-escalate.max_files` / `max_lines
 | `okf-recall`: on every message, points the agent to the OKF concepts related to it | okf | UserPromptSubmit | works |
 | `okf-upkeep`: asks to update the bundle after changes, new memories or a long run of investigation (findings, ways to validate, ways of working), and runs the OKF validator itself when the bundle changed, blocking only on errors | okf | Stop | works |
 | `danger`: confirms or refuses `git reset --hard`, force push, `rm -rf`, `--no-verify`, `DROP TABLE`... | danger | PreToolUse | works |
+| `craft-brief`: the code craft rules at session start | craft | SessionStart | works |
 | `lanes-brief`: the lane recipe at session start; restores deep-lane progress after compaction | lanes | SessionStart | works |
 | `lanes-approval`: records your approval of a deep-lane design marked ready | lanes | UserPromptSubmit | works |
 | `lanes-gate`: refuses code edits (tools and shell writes) while a deep design waits for approval | lanes | PreToolUse | works |

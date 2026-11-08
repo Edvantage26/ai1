@@ -15,7 +15,7 @@
     },
     "features": {
       "type": "object",
-      "description": "Features enabled in this repo. Omitted features use their default (okf and danger: on, lanes: off).",
+      "description": "Features enabled in this repo. Omitted features use their default (okf, danger and craft: on, lanes: off).",
       "additionalProperties": false,
       "properties": {
         "okf": {
@@ -27,6 +27,11 @@
           "type": "boolean",
           "default": true,
           "description": "Confirm or refuse destructive shell commands."
+        },
+        "craft": {
+          "type": "boolean",
+          "default": true,
+          "description": "Code craft rules at session start: simplicity, surgical changes, reuse before writing, proposed refactors, self-explanatory names."
         },
         "lanes": {
           "type": "boolean",
@@ -158,6 +163,22 @@
           ]
         },
         "okf-recall": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "craft-brief": {
           "oneOf": [
             {
               "type": "boolean"

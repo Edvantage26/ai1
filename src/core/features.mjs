@@ -16,6 +16,12 @@ export const FEATURES = [
     enabledByDefault: true,
   },
   {
+    id: 'craft',
+    title: 'Code craft rules',
+    description: 'Gives the agent the rules for orderly code at session start: the minimum change that solves the task, nothing outside it, reuse before writing, refactors proposed instead of applied, self-explanatory names.',
+    enabledByDefault: true,
+  },
+  {
     id: 'lanes',
     title: 'Work lanes by task size',
     description: 'The agent sizes each task: quick ones are done directly, medium ones get a short plan, complex or risky ones a design with questions that the person approves before any code is edited (skill /jig:deep). Restores progress after compaction.',

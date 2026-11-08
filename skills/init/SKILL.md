@@ -1,6 +1,6 @@
 ---
 name: init
-description: Set up jig in the current repository — ask which features to enable (OKF project knowledge and the destructive-command guard are on by default), then write .claude/jig.json and .claude/settings.json so jig runs for everyone who opens the repo. Use when the person says "set up jig here", "configure the harness", "enable/disable a jig feature", "activa jig en este repo", or when a session reports that jig is installed but inactive.
+description: Set up jig in the current repository — ask which features to enable (OKF project knowledge, the destructive-command guard and the code craft rules are on by default), then write .claude/jig.json and .claude/settings.json so jig runs for everyone who opens the repo. Use when the person says "set up jig here", "configure the harness", "enable/disable a jig feature", "activa jig en este repo", or when a session reports that jig is installed but inactive.
 ---
 
 # Set up jig in this repository

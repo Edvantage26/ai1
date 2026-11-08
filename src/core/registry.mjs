@@ -6,6 +6,7 @@
 
 import briefContext from '../context/brief.mjs';
 import dangerGuard from '../guards/danger.mjs';
+import craftBriefContext from '../craft/craft-brief.mjs';
 import okfIndexContext from '../okf/okf-index.mjs';
 import okfUpkeepGate from '../okf/okf-upkeep.mjs';
 import okfRecallContext from '../okf/okf-recall.mjs';
@@ -15,7 +16,7 @@ import lanesGate from '../lanes/lanes-gate.mjs';
 import lanesEscalateGuard from '../lanes/lanes-escalate.mjs';
 
 export const ALL_MODULES = [
-  briefContext, okfIndexContext, okfRecallContext, dangerGuard, okfUpkeepGate,
+  briefContext, okfIndexContext, okfRecallContext, dangerGuard, okfUpkeepGate, craftBriefContext,
   lanesBriefContext, lanesApprovalContext, lanesGate, lanesEscalateGuard,
 ];
 
