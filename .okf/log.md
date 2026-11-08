@@ -1,5 +1,8 @@
 # Update Log
 
+## 2026-11-08
+* **Verification**: [prior art](decisions/prior-art.md) — Superpowers re-reviewed in depth (v7.0.2) and community view on SDD recorded.
+
 ## 2026-10-31
 * **Supersession**: the per-repo file `.claude/harness.json` is now `.claude/jig.json` (schema `schema/jig.schema.json`), see [contract](architecture/harness-contract.md).
 * **Creation**: [features](architecture/features.md), [okf feature](features/okf.md), [/jig:init and the CLI](features/init.md), [OKF pack](packs/okf-pack.md).

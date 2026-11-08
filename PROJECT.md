@@ -16,7 +16,7 @@ Prior art reviewed (2026-10-30):
 
 - **Superpowers** (obra): 14 method skills + one SessionStart hook. Strong methodology and evals of
   skills, but enforcement is prompt-only.
-- **rsc-harness** (Eric Risco, MIT): memory/hands/trade/reflexes, three lanes (answer, FTD, SDD),
+- **rsc-harness** (Eric Risco, MIT): memory/hands/trade/reflexes, three lanes (answer, FTD, ASDD = Agent Spec-Driven Development),
   hooks in Claude Code, refuting reviewers. Too large to install as is (269 skills), auto-updates from
   npm each session and grants `git commit`/`git push` without asking.
 - **rsc-factory** (gregoryjp, unofficial): a PRD-to-product engine outside the agent. Out of scope;
