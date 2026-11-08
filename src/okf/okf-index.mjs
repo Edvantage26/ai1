@@ -2,34 +2,12 @@
 // the maintenance rules, and records the HEAD at session start so okf-upkeep can tell which files
 // this session changed.
 
-import { execFileSync } from 'node:child_process';
 import { contextDecision } from '../core/hook-io.mjs';
-import {
-  resolveStateDirectory, sessionStatePath, readStateText, writeStateText, removeExpiredStateFiles,
-} from '../core/session-state.mjs';
+import { recordSessionBaseHead } from '../core/session-base.mjs';
 import { resolveBundleDirectory, readBundleIndex, readBundleSpecVersion, buildMaintenanceRules } from './okf-bundle.mjs';
 
 const MODULE_ID = 'okf-index';
 const MAX_INDEX_CHARACTERS = 12000;
-
-export function readGitHead(projectRoot) {
-  try {
-    return execFileSync('git', ['-C', projectRoot, 'rev-parse', 'HEAD'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
-  } catch {
-    return null;
-  }
-}
-
-export function recordSessionBaseHead(hookInput, projectRoot, environment) {
-  const stateDirectory = resolveStateDirectory(environment);
-  removeExpiredStateFiles(stateDirectory);
-  const baseHeadPath = sessionStatePath(stateDirectory, hookInput.session_id, projectRoot, 'base');
-  // Keep the first HEAD of the session: resume/compact must not move the baseline.
-  if (readStateText(baseHeadPath) === null) {
-    const gitHead = readGitHead(projectRoot);
-    if (gitHead) writeStateText(baseHeadPath, gitHead);
-  }
-}
 
 export default {
   id: MODULE_ID,

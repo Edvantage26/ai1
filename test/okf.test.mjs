@@ -5,6 +5,7 @@ import { mkdirSync, mkdtempSync, writeFileSync, utimesSync, existsSync, readdirS
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runHookEvent } from '../src/core/dispatcher.mjs';
+import { shellCommandWritesBundle } from '../src/okf/okf-upkeep.mjs';
 import { createTemporaryProject } from './helpers.mjs';
 
 const V01_INDEX = "---\nokf_version: '0.1'\n---\n\n# Demo bundle\n\n* [Overview](overview.md)\n";
@@ -427,6 +428,42 @@ test('investigation: fewer steps, or a bundle edit after them, do not ask', () =
   const otherOptions = { ...options, environment: { CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'jig-data-')) } };
   startSession(projectRoot, otherOptions);
   assert.equal(stopSession(projectRoot, otherOptions, { transcript_path: editedTranscript }), null);
+});
+
+test('investigation: a bundle edit made from the shell resets the count', () => {
+  const projectRoot = createRepoWithBundle();
+  const options = hookOptions();
+  startSession(projectRoot, options);
+  const shellEdit = ['Bash', { command: "cat >> .okf/decisions/prior-art.md <<'EOF'\n# Findings\nEOF" }];
+  const transcriptPath = writeToolTranscript(options, [...TEN_INVESTIGATION_STEPS, shellEdit]);
+  assert.equal(stopSession(projectRoot, options, { transcript_path: transcriptPath }), null);
+});
+
+test('shellCommandWritesBundle: shell writes to the bundle count, reads do not', () => {
+  const bundleWrites = [
+    'cat >> .okf/log.md <<EOF\nx\nEOF',
+    'echo x > ./.okf/overview.md',
+    'echo x >/home/me/repo/.okf/overview.md',
+    "sed -i 's/a/b/' .okf/roadmap.md",
+    'printf x | tee -a .okf/log.md',
+    'mv /tmp/draft.md .okf/decisions/new.md',
+    'rm .okf/old.md',
+    "python3 - <<'EOF'\nopen('.okf/log.md','w').write('x')\nEOF",
+    "node -e \"require('fs').writeFileSync('.okf/x.md','x')\"",
+    'cd /repo && bash -c "echo x >> .okf/log.md"',
+  ];
+  for (const commandLine of bundleWrites) assert.equal(shellCommandWritesBundle(commandLine, '.okf'), true, commandLine);
+  const bundleReads = [
+    'python3 packs/okf/skills/validate/scripts/okf_validate.py .okf --strict',
+    'cat .okf/index.md',
+    'grep -rn verify .okf/',
+    'git diff --stat .okf',
+    'cp .okf/overview.md /tmp/overview.md',
+    'echo x > notes.md',
+    'npm test',
+  ];
+  for (const commandLine of bundleReads) assert.equal(shellCommandWritesBundle(commandLine, '.okf'), false, commandLine);
+  assert.equal(shellCommandWritesBundle('echo x >> docs/kb/log.md', 'docs/kb'), true);
 });
 
 test('investigation: never right after another hook stop', () => {

@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index at session start, upkeep
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-01T10:00:00Z'
+  at: '2026-11-08T16:28:03Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -44,6 +44,10 @@ sources:
   web) since the session last edited the bundle; at 10 or more, with no file/memory reminder due,
   the agent is asked to record findings, ways to validate and ways of working (or to say in one
   line that nothing is worth keeping). The count starts over after any reminder or bundle edit.
+  A bundle edit is a Write/Edit on a bundle path or a Bash command that writes there
+  (`shellCommandWritesBundle`: redirects, `tee`, `sed -i`, `mv`/`cp` into it, `rm`, inline
+  python/node scripts naming a bundle file); reading or validating the bundle does not count.
+  Before 2026-11-08 shell edits counted as investigation and caused false reminders.
   Field data (2026-11-01): a long investigation session ran 831 steps and 41 production queries
   without writing to the bundle.
 - **Validation gate (Stop, same module):** when the bundle was changed in the session, the hook

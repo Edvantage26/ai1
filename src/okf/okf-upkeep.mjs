@@ -12,13 +12,14 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { allowDecision, blockDecision } from '../core/hook-io.mjs';
+import { listShellWriteTargets } from '../core/shell-writes.mjs';
 import {
-  resolveStateDirectory, sessionStatePath, readStateText, writeStateText, stateModifiedMilliseconds, shortHash,
+  resolveStateDirectory, sessionStatePath, readStateText, writeStateText, shortHash,
 } from '../core/session-state.mjs';
 import {
   resolveBundleDirectory, readBundleIndex, readBundleSpecVersion, newestModificationMilliseconds, buildMaintenanceRules,
 } from './okf-bundle.mjs';
-import { readGitHead } from './okf-index.mjs';
+import { readSessionBase } from '../core/session-base.mjs';
 
 const MODULE_ID = 'okf-upkeep';
 const BUNDLED_VALIDATOR_SCRIPT = fileURLToPath(new URL('../../packs/okf/skills/validate/scripts/okf_validate.py', import.meta.url));
@@ -54,6 +55,26 @@ const TOOL_USE_MARKER = '"type":"tool_use"';
 
 function isInvestigationTool(toolName) {
   return INVESTIGATION_TOOLS.has(toolName) || String(toolName).startsWith('mcp__');
+}
+
+// True when a shell word names the bundle or a path inside it (relative or absolute).
+function namesBundlePath(shellWord, bundleName) {
+  const bundlePath = String(shellWord).replace(/^\.\//, '').replace(/\/+$/, '');
+  return bundlePath === bundleName || bundlePath.startsWith(`${bundleName}/`) || bundlePath.includes(`/${bundleName}/`)
+    || bundlePath.endsWith(`/${bundleName}`);
+}
+
+// Whether a Bash command writes to the bundle: an edit made with the shell (`cat >> .okf/x.md`,
+// `sed -i`, `tee`, `mv`, an inline python/node script naming a bundle file) counts as updating it,
+// just like Write/Edit. Reading the bundle (validator, cat, grep) never counts.
+export function shellCommandWritesBundle(commandLine, bundleRelativePath = '.okf') {
+  const bundleName = String(bundleRelativePath).replace(/^\.\//, '').replace(/\/+$/, '');
+  const commandText = String(commandLine || '');
+  if (!commandText.includes(bundleName)) return false;
+  const { targetPaths, runsInlineScript } = listShellWriteTargets(commandText);
+  if (targetPaths.some((targetPath) => namesBundlePath(targetPath, bundleName))) return true;
+  const namesBundleFile = new RegExp(`(^|[\\s'"=/(])${bundleName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/\\S`).test(commandText);
+  return runsInlineScript && namesBundleFile;
 }
 
 // One incremental pass over the session transcript (tens of MB in long sessions): `scanState`
@@ -97,6 +118,8 @@ export function scanSessionTranscript(transcriptPath, { memoryDirectories, bundl
         if (MEMORY_WRITING_TOOLS.has(contentBlock.name) && typeof toolPath === 'string') {
           if (memoryDirectories.some((memoryDirectory) => toolPath.startsWith(`${memoryDirectory}/`))) writtenMemoryPaths.add(toolPath);
           if (toolPath.includes(bundleMarker)) investigationCalls = 0;
+        } else if (contentBlock.name === 'Bash' && shellCommandWritesBundle(contentBlock?.input?.command, bundleRelativePath)) {
+          investigationCalls = 0;
         } else if (isInvestigationTool(contentBlock.name)) {
           investigationCalls += 1;
         }
@@ -244,15 +267,9 @@ export default {
     if (indexText === null) return allowDecision();
 
     const stateDirectory = resolveStateDirectory(environment);
-    const baseHeadPath = sessionStatePath(stateDirectory, hookInput.session_id, projectRoot, 'base');
-    let baseHead = readStateText(baseHeadPath);
-    if (!baseHead) {
-      // Session started outside this repo: from now on, the current HEAD is the baseline.
-      baseHead = readGitHead(projectRoot);
-      if (!baseHead) return allowDecision();
-      writeStateText(baseHeadPath, baseHead);
-    }
-    const sessionStartMilliseconds = stateModifiedMilliseconds(baseHeadPath);
+    const sessionBase = readSessionBase(hookInput, projectRoot, environment);
+    if (!sessionBase) return allowDecision();
+    const { baseHead, sessionStartMilliseconds } = sessionBase;
     const bundleUpdatedMilliseconds = newestModificationMilliseconds(bundleDirectory);
     const validityContext = { hookInput, projectRoot, stateDirectory, bundleDirectory, bundleRelativePath, environment };
     const bundleChangedInSession = bundleUpdatedMilliseconds >= sessionStartMilliseconds;
