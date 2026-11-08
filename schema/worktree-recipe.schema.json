@@ -91,7 +91,7 @@
     },
     "commands": {
       "type": "object",
-      "description": "Named project steps run with `jig worktree run <name> <command>`. pre-finish runs before finish integrates.",
+      "description": "Named project steps run with `jig worktree run <name> <command> [args...]` (args fill {{args}} or are appended). pre-finish runs before finish integrates.",
       "additionalProperties": {
         "oneOf": [
           { "type": "string", "minLength": 1 },

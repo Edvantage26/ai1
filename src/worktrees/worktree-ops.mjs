@@ -84,8 +84,19 @@ function defaultRunCommand(commandText, workingDirectory, commandEnvironment) {
   return spawnSync(commandText, { cwd: workingDirectory, env: commandEnvironment, shell: true, stdio: 'inherit' }).status ?? 1;
 }
 
+function quoteShellArgument(argumentText) {
+  return /^[\w@%+=:,./-]+$/.test(argumentText) ? argumentText : `'${argumentText.replace(/'/g, `'\\''`)}'`;
+}
+
+// Extra arguments go where the command says `{{args}}`, else at its end.
+export function applyCommandArguments(commandText, extraArguments) {
+  const argumentsText = extraArguments.map(quoteShellArgument).join(' ');
+  if (/\{\{\s*args\s*\}\}/.test(commandText)) return commandText.replace(/\{\{\s*args\s*\}\}/g, argumentsText);
+  return argumentsText ? `${commandText} ${argumentsText}` : commandText;
+}
+
 // { exitCode, failedCommand }; stops at the first failing command and records the run in the state.
-export function runWorktreeCommand(startDirectory, worktreeName, commandName, { runCommand = defaultRunCommand } = {}) {
+export function runWorktreeCommand(startDirectory, worktreeName, commandName, { runCommand = defaultRunCommand, extraArguments = [] } = {}) {
   const { mainRoot, commonDirectory } = findRepository(startDirectory);
   const worktreeState = readStateOrFail(commonDirectory, worktreeName);
   if (!existsSync(worktreeState.path)) throw new Error(`${worktreeState.path} is missing`);
@@ -93,7 +104,7 @@ export function runWorktreeCommand(startDirectory, worktreeName, commandName, { 
   const commandEnvironment = buildWorktreeEnvironment(recipe, worktreeState, mainRoot);
   let runResult = { exitCode: 0, failedCommand: null };
   for (const commandTemplate of resolveNamedCommands(recipe, worktreeState, commandName)) {
-    const commandText = renderTemplate(commandTemplate, worktreeState, mainRoot);
+    const commandText = applyCommandArguments(renderTemplate(commandTemplate, worktreeState, mainRoot), extraArguments);
     const exitCode = runCommand(commandText, worktreeState.path, commandEnvironment);
     if (exitCode !== 0) {
       runResult = { exitCode, failedCommand: commandText };

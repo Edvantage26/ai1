@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { validateRecipe, loadRecipe, listUnknownRecipeFields, DEFAULT_RECIPE, RECIPE_RELATIVE_PATH } from '../src/worktrees/worktree-recipe.mjs';
 import { createWorktree, decideMode } from '../src/worktrees/worktree-create.mjs';
 import { readWorktreeState } from '../src/worktrees/worktree-state.mjs';
-import { listWorktrees, runWorktreeCommand, dropWorktree } from '../src/worktrees/worktree-ops.mjs';
+import { listWorktrees, runWorktreeCommand, dropWorktree, applyCommandArguments } from '../src/worktrees/worktree-ops.mjs';
 import { finishWorktree } from '../src/worktrees/worktree-finish.mjs';
 import { runHookEvent } from '../src/core/dispatcher.mjs';
 import { pickWorktreePort, writeEnvVariables, listListeningPorts } from '../src/worktrees/worktree-ports.mjs';
@@ -205,6 +205,10 @@ test('run executes recipe commands in the worktree with env, port and placeholde
   runWorktreeCommand(mainRoot, 'runner', 'setup', { runCommand: recordCommand });
   assert.equal(executedCommands.at(-1).commandText, 'npm ci');
   assert.throws(() => runWorktreeCommand(mainRoot, 'runner', 'deploy', { runCommand: recordCommand }), /no command "deploy"/);
+  runWorktreeCommand(mainRoot, 'runner', 'dev', { runCommand: recordCommand, extraArguments: ['--host', 'my host'] });
+  assert.equal(executedCommands.at(-1).commandText, `serve --port ${created.port} --host 'my host'`);
+  assert.equal(applyCommandArguments('build {{args}} --release', ['App']), 'build App --release');
+  assert.equal(applyCommandArguments('build', []), 'build');
 });
 
 test('drop needs --confirm, refuses uncommitted work, bundles own commits and cleans everything', () => {

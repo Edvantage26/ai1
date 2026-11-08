@@ -1,7 +1,7 @@
 // `jig worktree <command>`: the engine behind the per-project worktree recipe.
 //   create <name> [--mode auto|full|light|<extra>] [--base <branch>]
 //   list [--size]
-//   run <name> <command>          setup, or a name from the recipe's `commands`
+//   run <name> <command> [args]   setup, or a name from the recipe's `commands` (args fill {{args}} or are appended)
 //   finish <name> [--merge] [--ack "<why no concept changes>"]
 //   drop <name> --confirm [--discard-uncommitted]
 // Every command takes --json. Runs from anywhere inside the repo or one of its worktrees.
@@ -11,7 +11,7 @@ import { listWorktrees, runWorktreeCommand, dropWorktree } from '../worktrees/wo
 import { finishWorktree } from '../worktrees/worktree-finish.mjs';
 import { formatBytes } from '../worktrees/worktree-disk.mjs';
 
-export const WORKTREE_USAGE = 'usage: jig worktree create <name> [--mode auto|full|light|<extra>] [--base <branch>] | list [--size] | run <name> <command> | finish <name> [--merge] [--ack "<reason>"] | drop <name> --confirm [--discard-uncommitted]  (all take --json)';
+export const WORKTREE_USAGE = 'usage: jig worktree create <name> [--mode auto|full|light|<extra>] [--base <branch>] | list [--size] | run <name> <command> [args...] | finish <name> [--merge] [--ack "<reason>"] | drop <name> --confirm [--discard-uncommitted]  (all take --json)';
 
 function describeCreated(created) {
   const trimmedText = created.trimmed.length
@@ -59,8 +59,10 @@ export function runWorktreeCli(workingDirectory, commandArguments) {
   if (subcommandName === 'list') return respond(listWorktrees(workingDirectory, { withSize: restArguments.includes('--size') }), describeListed);
   if (subcommandName === 'run') {
     const [worktreeName, commandName] = positionalArguments;
-    if (!worktreeName || !commandName) throw new Error('usage: jig worktree run <name> <command>');
-    const runResult = runWorktreeCommand(workingDirectory, worktreeName, commandName);
+    if (!worktreeName || !commandName) throw new Error('usage: jig worktree run <name> <command> [args...]');
+    const commandIndex = restArguments.indexOf(commandName, restArguments.indexOf(worktreeName) + 1);
+    const extraArguments = restArguments.slice(commandIndex + 1).filter((argumentText) => argumentText !== '--json');
+    const runResult = runWorktreeCommand(workingDirectory, worktreeName, commandName, { extraArguments });
     return {
       output: wantsJson ? JSON.stringify(runResult) : (runResult.exitCode === 0 ? `jig: ${commandName} passed in ${worktreeName}` : `jig: \`${runResult.failedCommand}\` failed (exit ${runResult.exitCode}) in ${worktreeName}`),
       exitCode: runResult.exitCode,
