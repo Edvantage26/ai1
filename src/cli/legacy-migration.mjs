@@ -5,7 +5,8 @@
 //   .claude/jig.json -> .ai1/config.json     .okf/ -> .ai1/okf/ (when it is the repo's bundle)
 //   docs/rfc/ -> .ai1/rfc/ (when the rfc feature was on)     .jig/work/ -> .ai1/work/
 // Links and repo paths inside the moved bundle and RFCs are rewritten; other files that still
-// mention old paths are listed for the person, not edited.
+// mention old paths are listed for the person, not edited: the docs an agent reads (markdown at the
+// root or one level down, and `.claude/`), not vendored or nested projects.
 
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
@@ -148,7 +149,8 @@ function listFilesMentioningOldPaths(repoRoot) {
     return [];
   }
   return trackedFiles.filter((trackedFile) => {
-    if (trackedFile.startsWith(`${AI1_DIRECTORY}/`) || !existsSync(join(repoRoot, trackedFile))) return false;
+    const isAgentDoc = trackedFile.startsWith('.claude/') || (trackedFile.endsWith('.md') && trackedFile.split('/').length <= 2);
+    if (!isAgentDoc || trackedFile.startsWith(`${AI1_DIRECTORY}/`) || !existsSync(join(repoRoot, trackedFile))) return false;
     try {
       return OLD_PATH_MENTION.test(readFileSync(join(repoRoot, trackedFile), 'utf8'));
     } catch {

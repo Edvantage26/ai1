@@ -25,7 +25,7 @@ export function buildHarnessBrief(config, enabledModules) {
       ? `Before saying a change is done, run: ${verifyList}, in full (no filters); the verify gate checks it when you stop.`
       : `Before saying a change is done, run: ${verifyList}.`);
   }
-  briefLines.push('When a ai1 hook asks or refuses, follow its reason; do not work around it.');
+  briefLines.push('When an ai1 hook asks or refuses, follow its reason; do not work around it.');
   return briefLines.join('\n');
 }
 

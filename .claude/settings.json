@@ -1,12 +1,12 @@
 {
   "enabledPlugins": {
-    "jig@jig": true
+    "ai1@ai1": true
   },
   "extraKnownMarketplaces": {
-    "jig": {
+    "ai1": {
       "source": {
         "source": "github",
-        "repo": "Edvantage26/jig"
+        "repo": "Edvantage26/ai1"
       }
     }
   }

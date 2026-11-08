@@ -1,10 +1,10 @@
-# PROJECT — jig
+# PROJECT — ai1
 
 ## Goal
 
 A public, generic harness for coding agents (Claude Code first), distributed as a Claude Code plugin
 that is also its own marketplace. It gives any repo guardrails, a verification gate and project
-memory, configured per repo through `.claude/jig.json`.
+memory, configured per repo through `.ai1/config.json`.
 
 ## Context and origin
 
@@ -22,35 +22,35 @@ Prior art reviewed (2026-10-30):
 - **rsc-factory** (gregoryjp, unofficial): a PRD-to-product engine outside the agent. Out of scope;
   useful later for a pipeline mode.
 
-Decision: take ideas, not code; keep `jig` small, readable and enforcement-first.
+Decision: take ideas, not code; keep `ai1` small, readable and enforcement-first.
 
 ## Architecture
 
 ```
-jig/
+ai1/
 ├── .claude-plugin/plugin.json        plugin manifest
 ├── .claude-plugin/marketplace.json   the repo is its own marketplace (source "./")
-├── hooks/hooks.json                  every event -> node bin/jig-hook.mjs <Event>
-├── bin/jig-hook.mjs                  single entry point (stdin JSON in, decision JSON out, exit 0)
+├── hooks/hooks.json                  every event -> node bin/ai1-hook.mjs <Event>
+├── bin/ai1-hook.mjs                  single entry point (stdin JSON in, decision JSON out, exit 0)
 ├── src/core/                         dispatcher, config, registry, hook-io, shell-parse
 ├── src/core/features.mjs             feature registry (okf, danger, core)
 ├── src/context/                      SessionStart modules (brief)
 ├── src/okf/                          okf feature: okf-index (SessionStart), okf-upkeep (Stop)
 ├── src/design/                       design feature: design-brief (SessionStart), design-detect (PostToolUse)
 ├── src/guards/                       PreToolUse modules (danger; planned: prod, secrets)
-├── src/cli/ + bin/jig                setup CLI (jig status / jig init)
-├── skills/init/                      /jig:init
+├── src/cli/ + bin/ai1                setup CLI (ai1 status / ai1 init)
+├── skills/core-setup-repo/                      /ai1:core-setup-repo
 ├── packs/okf/                        OKF toolkit, git subtree of Edvantage26/okf-skills
-├── schema/jig.schema.json        contract for editors
-├── templates/jig.json            contract example
+├── schema/ai1.schema.json        contract for editors
+├── templates/config.json            contract example
 └── test/                             node:test suite, run in CI on Node 18/20/22
 ```
 
 Module contract: `{ id, event, feature, description, toolNames?, run(context) -> decision }`.
 Decisions: `allow`, `ask`, `deny`, `block` (Stop), `context` (SessionStart). Detail in
-`.okf/architecture/hook-runtime.md`.
+`.ai1/okf/architecture/hook-runtime.md`.
 
-### Per-repo contract: `.claude/jig.json`
+### Per-repo contract: `.ai1/config.json`
 
 | Field | Meaning |
 |---|---|
@@ -58,7 +58,7 @@ Decisions: `allow`, `ask`, `deny`, `block` (Stop), `context` (SessionStart). Det
 | `features.<id>` | `true`/`false` per feature (`okf`, `danger`: on by default) |
 | `trunk` | Protected branch name |
 | `verify` | Commands that must pass before the agent calls a change done |
-| `knowledge` | Path of the OKF knowledge bundle (default `.okf`) |
+| `knowledge` | Path of the OKF knowledge bundle (default `.ai1/okf`) |
 | `modules.<id>` | `true`/`false`, or an options object for that module |
 
 ## Technical decisions
@@ -75,16 +75,16 @@ Decisions: `allow`, `ask`, `deny`, `block` (Stop), `context` (SessionStart). Det
 
 1. **Core + first guard** (done 2026-10-30): dispatcher, config, schema, `brief`, `danger`, tests, CI,
    verified in real Claude Code sessions.
-2. **Features, okf feature and `/jig:init`** (done 2026-10-31): per-repo features replace profiles;
-   OKF toolkit vendored as `packs/okf`; okf-index/okf-upkeep; `jig` CLI. Verified in real sessions.
-3. **`prod` and `secrets` guards** (proposal: [RFC 0001](docs/rfc/0001-prod-and-secrets-guards.md)).
+2. **Features, okf feature and `/ai1:core-setup-repo`** (done 2026-10-31): per-repo features replace profiles;
+   OKF toolkit vendored as `packs/okf`; okf-index/okf-upkeep; `ai1` CLI. Verified in real sessions.
+3. **`prod` and `secrets` guards** (proposal: [RFC 0001](.ai1/rfc/0001-prod-and-secrets-guards.md)).
 4. **`verify` Stop gate** (done 2026-11-08).
-5. **`jig doctor`** (proposal: [RFC 0002](docs/rfc/0002-jig-doctor.md)).
+5. **`ai1 doctor`** (proposal: [RFC 0002](.ai1/rfc/0002-ai1-doctor.md)).
 6. **Method skills + reviewers**: `ftd`, `verify`, `review`, finding verifier (proposal:
-   [RFC 0003](docs/rfc/0003-method-skills-and-reviewers.md)).
+   [RFC 0003](.ai1/rfc/0003-method-skills-and-reviewers.md)).
 
-Planned features are kept as RFCs in `docs/rfc/` (the `rfc` feature, on in this repo) until they are
-decided; see [docs/rfc/README.md](docs/rfc/README.md).
+Planned features are kept as RFCs in `.ai1/rfc/` (the `rfc` feature, on in this repo) until they are
+decided; see [.ai1/rfc/README.md](.ai1/rfc/README.md).
 
 After each increment the plugin is tried in real repos of different shapes (a document-processing
 backend, a web product, a small service). The contract is frozen once three of them run it. An

@@ -1,6 +1,6 @@
 ---
 name: core-setup-repo
-description: Core — Set up ai1 in the current repository — ask which features to enable (OKF project knowledge, the destructive-command guard and the code craft rules are on by default), then write .ai1/config.json and .claude/settings.json so ai1 runs for everyone who opens the repo. Use when the person says "set up ai1 here", "configure the harness", "enable/disable a ai1 feature", "activa ai1 en este repo", or when a session reports that ai1 is installed but inactive.
+description: Core — Set up ai1 in the current repository — ask which features to enable (OKF project knowledge, the destructive-command guard and the code craft rules are on by default), then write .ai1/config.json and .claude/settings.json so ai1 runs for everyone who opens the repo. Use when the person says "set up ai1 here", "configure the harness", "enable/disable an ai1 feature", "activa ai1 en este repo", or when a session reports that ai1 is installed but inactive.
 ---
 
 # Set up ai1 in this repository

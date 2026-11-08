@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Edvantage26/ai1/main/schema/ai1.schema.json",
+  "version": 1,
+  "features": {
+    "okf": true,
+    "danger": true,
+    "craft": true,
+    "lanes": true,
+    "worktrees": false,
+    "rfc": true,
+    "design": false,
+    "verify": true
+  },
+  "trunk": "main",
+  "verify": [
+    "npm test"
+  ],
+  "knowledge": ".ai1/okf"
+}
