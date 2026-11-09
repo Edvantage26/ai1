@@ -1,6 +1,6 @@
 // config-guard (PreToolUse, feature `danger`): changing the files that configure the harness -
-// .ai1/config.json, .claude/settings.json, .claude/settings.local.json, .claude/hooks/ - asks the
-// person first, so the agent cannot switch its own guards off unseen (`danger` reads `ignore_rules`
+// .ai1/config.json, .claude/settings.json, .claude/settings.local.json, .claude/hooks/, and the skill
+// overlays in .ai1/skills/ (they change how ai1's skills work) - asks the person first, so the agent cannot switch its own guards off unseen (`danger` reads `ignore_rules`
 // from .ai1/config.json). `ask`, not `deny`: setup and the person change these files on purpose.
 // Claude Code protects `.claude/` itself, but not in bypassPermissions mode, and never `.ai1/`.
 // Matched by path ending, so the copies in other worktrees (`.claude/worktrees/*/`) count too.
@@ -10,13 +10,13 @@ import { listToolCallChanges, pathSpellings } from '../core/tool-call-paths.mjs'
 
 const MODULE_ID = 'config-guard';
 const PROTECTED_FILE_ENDINGS = ['/.ai1/config.json', '/.claude/settings.json', '/.claude/settings.local.json'];
-const PROTECTED_DIRECTORY_SEGMENT = '/.claude/hooks/';
+const PROTECTED_DIRECTORY_SEGMENTS = ['/.claude/hooks/', '/.ai1/skills/'];
 // An inline script (`python3 - <<EOF`, `node -e`) may write anywhere: it counts when its text names one of these.
-const PROTECTED_PATH_MARKERS = ['.ai1/config.json', '.claude/settings', '.claude/hooks'];
+const PROTECTED_PATH_MARKERS = ['.ai1/config.json', '.claude/settings', '.claude/hooks', '.ai1/skills/'];
 
 export function isHarnessConfigPath(candidatePath, workingDirectory) {
   return pathSpellings(candidatePath, workingDirectory).some((pathSpelling) => PROTECTED_FILE_ENDINGS.some((protectedEnding) => pathSpelling.endsWith(protectedEnding))
-    || pathSpelling.includes(PROTECTED_DIRECTORY_SEGMENT));
+    || PROTECTED_DIRECTORY_SEGMENTS.some((protectedSegment) => pathSpelling.includes(protectedSegment)));
 }
 
 // The protected paths a tool call changes, as written in the call.
@@ -33,7 +33,7 @@ export default {
   event: 'PreToolUse',
   toolNames: ['Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'Bash'],
   feature: 'danger',
-  description: 'Asks the person before the agent changes the harness configuration (.ai1/config.json, .claude/settings*.json, .claude/hooks/).',
+  description: 'Asks the person before the agent changes the harness configuration (.ai1/config.json, .claude/settings*.json, .claude/hooks/, .ai1/skills/ overlays).',
   run({ hookInput, projectRoot }) {
     const changedConfigPaths = listHarnessConfigChanges(hookInput, hookInput.cwd || projectRoot);
     if (changedConfigPaths.length === 0) return allowDecision();

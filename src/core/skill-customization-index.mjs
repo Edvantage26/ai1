@@ -18,6 +18,7 @@ export const SKILL_CUSTOMIZATION_INDEX = {
   'okf-backfill-from-history': { customizable: false, reason: 'its subagents do not receive what is injected into the skill' },
   'core-report-issue': { customizable: false, reason: 'its privacy guarantee for a public issue lives only in the skill text' },
   'okf-validate-bundle': { customizable: false, reason: 'a deterministic checker; an overlay could only change how its errors are read' },
+  'core-customize-skill': { customizable: false, reason: 'it writes the customizations; customizing it would let an overlay change how overlays are approved' },
   'danger-write-rule': { customizable: false, reason: 'what a project customizes is already data (the rules it writes); an overlay must not weaken how they are approved' },
 };
 

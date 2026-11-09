@@ -152,7 +152,7 @@ test('every skill folder is in the customization index, and each SKILL.md matche
       assert.equal(lastLine, injectionLine, `${skillFolder}: the last line must be ${injectionLine}`);
     } else {
       assert.ok(!allowedToolsLine.includes('ai1 skill-context'), `${skillFolder}: not customizable, so no skill-context permission`);
-      assert.ok(!skillText.includes('ai1 skill-context'), `${skillFolder}: not customizable, so no skill-context injection`);
+      assert.ok(!skillText.includes('!`ai1 skill-context'), `${skillFolder}: not customizable, so no skill-context injection`);
       assert.ok(SKILL_CUSTOMIZATION_INDEX[skillFolder].reason, `${skillFolder}: an excluded skill says why`);
     }
   }
