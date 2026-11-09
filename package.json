@@ -1,6 +1,6 @@
 {
   "name": "@edvantage/ai1",
-  "version": "0.22.0",
+  "version": "0.23.0",
   "description": "ai1 (all in one) for your coding agent: guardrails, verification and project memory, configured per repo.",
   "type": "module",
   "private": true,
