@@ -168,6 +168,31 @@ export const DANGER_RULES = [
     },
   },
   {
+    id: 'find-delete',
+    check(commandWords) {
+      if (baseName(commandWords[0]) !== 'find' || !commandWords.includes('-delete')) return null;
+      // Search roots are the words before the first expression (`-name`, `(`, `!`).
+      const firstExpressionIndex = commandWords.findIndex((findWord, wordIndex) => wordIndex > 0 && /^[-(!]/.test(findWord));
+      const searchRoots = commandWords.slice(1, firstExpressionIndex);
+      if (searchRoots.length && searchRoots.every(isSafeRemovalTarget)) return null;
+      return { action: 'ask', why: `find -delete deletes every match under ${searchRoots.join(' ') || '.'} with no undo. Run it without -delete first to list them.` };
+    },
+  },
+  {
+    id: 'file-truncate',
+    check(commandWords) {
+      if (baseName(commandWords[0]) !== 'truncate') return null;
+      const truncateArgs = commandWords.slice(1);
+      const sizeIndex = truncateArgs.findIndex((truncateArg) => truncateArg === '-s' || truncateArg === '--size');
+      const newSize = sizeIndex >= 0
+        ? truncateArgs[sizeIndex + 1]
+        : truncateArgs.find((truncateArg) => /^(-s|--size=)/.test(truncateArg))?.replace(/^(-s|--size=)/, '');
+      // `+N` only grows the file; any other size can cut it.
+      if (newSize?.startsWith('+')) return null;
+      return { action: 'ask', why: 'truncate cuts the file and the data past the new size is lost. Copy the file first.' };
+    },
+  },
+  {
     id: 'sql-destructive',
     check(commandWords, commandText) {
       const dropsOrTruncates = /\b(drop\s+(table|database|schema|index|view)|truncate\s+(table\s+)?[a-z_"])/i.test(commandText);
