@@ -19,7 +19,7 @@ import {
 } from './worktree-ops.mjs';
 import { recordIntegration } from './worktree-integrations.mjs';
 import { verifyCommandsRunBy } from '../verify/verify-gate.mjs';
-import { stopStoryboardServer } from '../walkthrough/walkthrough-serve.mjs';
+import { closeStoryboard } from '../walkthrough/walkthrough-serve.mjs';
 
 const HARNESS_PATHS = new Set(['.claude/settings.json', '.claude/settings.local.json', '.ai1/config.json']);
 
@@ -151,8 +151,8 @@ export function finishWorktree(startDirectory, worktreeName, options = {}) {
   const isBranchInBase = isAncestor(mainRoot, worktreeState.branch, worktreeState.base);
   const isBranchDeleted = isBranchInBase && tryGit(mainRoot, ['branch', '-D', worktreeState.branch]) !== null;
   removeWorktreeState(commonDirectory, worktreeName);
-  const releasedStoryboardUrl = stopStoryboardServer(mainRoot, worktreeName);
-  if (releasedStoryboardUrl) steps.push(`storyboard server stopped (${releasedStoryboardUrl}); the storyboard stays in .ai1/work/${worktreeName}/walkthrough/`);
+  const storyboardClosing = closeStoryboard(mainRoot, worktreeName);
+  if (storyboardClosing) steps.push(storyboardClosing);
   steps.push(isBranchDeleted
     ? `worktree and branch ${worktreeState.branch} removed`
     : `worktree removed; branch ${worktreeState.branch} kept because git could not delete it (check it and delete it by hand)`);

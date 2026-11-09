@@ -194,16 +194,43 @@ test('serve gives a local URL; stop, worktree finish and drop release it; the st
   runGit(worktreePath, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qam', 'red']);
   const finishRun = runAi1(projectRoot, ['worktree', 'finish', 'flow']);
   assert.equal(finishRun.status, 0, finishRun.stderr);
-  assert.match(finishRun.stdout, /storyboard server stopped/);
+  assert.match(finishRun.stdout, /storyboard server stopped .*1 residual screenshot\(s\) deleted; the storyboard stays/);
+  assert.equal(existsSync(join(projectRoot, 'shot.png')), false, 'the screenshot the agent left in the repo is gone');
   assert.match(runAi1(projectRoot, ['walkthrough', 'list']).stdout, /^flow: 1 steps, built\n?$/m, 'archived, no URL');
   assert.ok(existsSync(join(storyboardDirectory(projectRoot, 'flow'), 'index.html')));
 
   runAi1(projectRoot, ['worktree', 'create', 'other']);
   const otherPath = join(projectRoot, '.claude', 'worktrees', 'other');
-  runAi1(otherPath, ['walkthrough', 'add', '--step', 'Home', '--image', join(projectRoot, 'shot.png')]);
+  runAi1(otherPath, ['walkthrough', 'add', '--step', 'Home', '--image', writeScreenshot(projectRoot, 'other.png')]);
   runAi1(otherPath, ['walkthrough', 'build']);
   const otherUrl = /at (http:\S+)/.exec(runAi1(otherPath, ['walkthrough', 'serve']).stdout)[1];
   const dropRun = runAi1(projectRoot, ['worktree', 'drop', 'other', '--confirm']);
   assert.match(dropRun.stdout, /storyboard server stopped/);
   assert.equal(await fetchStatus(otherUrl), 'down');
+});
+
+test('closing deletes the residual screenshots add copied from, only unchanged untracked images [walkthrough:S10]', () => {
+  const projectRoot = createUiRepo();
+  const storyboardPath = storyboardDirectory(projectRoot, 'close');
+  mkdirSync(join(projectRoot, '.playwright-mcp'), { recursive: true });
+  const residualShot = writeScreenshot(projectRoot, join('.playwright-mcp', 'page-1.png'));
+  const changedShot = writeScreenshot(projectRoot, 'changed.png');
+  const trackedShot = writeScreenshot(projectRoot, 'docs-shot.png');
+  runGit(projectRoot, ['add', 'docs-shot.png']);
+  runGit(projectRoot, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'tracked image']);
+  addCapture(storyboardPath, 'close', { caption: 'Home', imageFile: residualShot });
+  addCapture(storyboardPath, 'close', { caption: 'Menu', imageFile: changedShot });
+  addCapture(storyboardPath, 'close', { caption: 'Docs', imageFile: trackedShot });
+  writeFileSync(changedShot, Buffer.concat([TINY_PNG, Buffer.from('more')]));
+
+  const cleanRun = runAi1(projectRoot, ['walkthrough', 'clean', '--slug', 'close']);
+  assert.equal(cleanRun.status, 0, cleanRun.stderr);
+  assert.match(cleanRun.stdout, /deleted 1 residual screenshot/);
+  assert.match(cleanRun.stdout, /kept .*changed\.png \(changed since it was added\)/);
+  assert.match(cleanRun.stdout, /kept .*docs-shot\.png \(tracked by git\)/);
+  assert.equal(existsSync(residualShot), false);
+  assert.ok(existsSync(changedShot) && existsSync(trackedShot));
+  assert.ok(existsSync(join(storyboardPath, 'images', 'home-after-desktop.png')), 'the storyboard keeps its copy');
+  assert.equal(readStoryboard(storyboardPath).steps[0].captures[0].source, undefined, 'a deleted source is forgotten');
+  assert.match(runAi1(projectRoot, ['walkthrough', 'clean', '--slug', 'close']).stdout, /deleted 0/);
 });

@@ -2,8 +2,9 @@
 // `steps.json` (the contract every publisher reads) and the copied screenshots in `images/`.
 // The agent captures with whatever browser tool it has; ai1 only receives the image files.
 
-import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
-import { basename, extname, join } from 'node:path';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { basename, dirname, extname, join, resolve, sep } from 'node:path';
+import { tryGit } from '../core/git.mjs';
 import { WORK_DIRECTORY } from '../core/config.mjs';
 import { readGitDirectories } from '../core/project-roots.mjs';
 import { readJsonFileIfValid, writeJsonFile } from '../core/json-file.mjs';
@@ -87,11 +88,13 @@ export function addCapture(storyboardPath, slug, { caption, imageFile, variant =
   if (detail) storyboardStep.detail = detail;
 
   const imageRelativePath = `${IMAGES_FOLDER_NAME}/${resolvedStepId}-${variant}-${viewport}${imageExtension}`;
+  const sourcePath = resolve(imageFile);
+  const sourceStats = statSync(sourcePath);
   mkdirSync(join(storyboardPath, IMAGES_FOLDER_NAME), { recursive: true });
   copyFileSync(imageFile, join(storyboardPath, imageRelativePath));
   storyboardStep.captures = storyboardStep.captures
     .filter((existingCapture) => !(existingCapture.variant === variant && existingCapture.viewport === viewport))
-    .concat({ variant, viewport, image: imageRelativePath });
+    .concat({ variant, viewport, image: imageRelativePath, source: { path: sourcePath, size: sourceStats.size, mtime_ms: sourceStats.mtimeMs } });
   storyboard.updated_at = new Date().toISOString();
   writeJsonFile(join(storyboardPath, STEPS_FILE_NAME), storyboard);
   return { storyboard, step: storyboardStep, imagePath: imageRelativePath };
@@ -113,4 +116,42 @@ export function storyboardHasBefore(storyboard) {
 
 export function readImageBytes(storyboardPath, imageRelativePath) {
   return readFileSync(join(storyboardPath, imageRelativePath));
+}
+
+function isTrackedByGit(filePath) {
+  return tryGit(dirname(filePath), ['ls-files', '--error-unmatch', '--', basename(filePath)]) !== null;
+}
+
+// Deletes the screenshots `add` copied from, when they are still the same file (size and mtime), an
+// image, outside the storyboard and not tracked by git: the residue a closed change leaves around the
+// repo. The storyboard itself is kept. Returns { deleted, kept: [{ path, reason }] }.
+export function cleanResidualScreenshots(storyboardPath) {
+  const storyboard = readStoryboard(storyboardPath);
+  const cleanResult = { deleted: [], kept: [] };
+  if (!storyboard) return cleanResult;
+  const storyboardPrefix = resolve(storyboardPath) + sep;
+  for (const stepCapture of storyboard.steps.flatMap((storyboardStep) => storyboardStep.captures)) {
+    const recordedSource = stepCapture.source;
+    if (!recordedSource) continue;
+    const sourcePath = recordedSource.path;
+    const keepReason = !existsSync(sourcePath) ? null
+      : sourcePath.startsWith(storyboardPrefix) ? 'inside the storyboard'
+        : !IMAGE_EXTENSIONS.includes(extname(sourcePath).toLowerCase()) ? 'not an image'
+          : (() => {
+            const currentStats = statSync(sourcePath);
+            if (!currentStats.isFile() || currentStats.size !== recordedSource.size || currentStats.mtimeMs !== recordedSource.mtime_ms) return 'changed since it was added';
+            return isTrackedByGit(sourcePath) ? 'tracked by git' : null;
+          })();
+    if (keepReason) {
+      cleanResult.kept.push({ path: sourcePath, reason: keepReason });
+      continue;
+    }
+    if (existsSync(sourcePath)) {
+      rmSync(sourcePath, { force: true });
+      cleanResult.deleted.push(sourcePath);
+    }
+    delete stepCapture.source;
+  }
+  writeJsonFile(join(storyboardPath, STEPS_FILE_NAME), storyboard);
+  return cleanResult;
 }

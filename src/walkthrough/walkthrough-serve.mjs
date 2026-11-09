@@ -12,7 +12,7 @@ import { readJsonFileIfValid } from '../core/json-file.mjs';
 import { readGitDirectories } from '../core/project-roots.mjs';
 import { listListeningPorts, pickWorktreePort, DEFAULT_PORT_RANGE } from '../worktrees/worktree-ports.mjs';
 import { listWorktreeStates } from '../worktrees/worktree-state.mjs';
-import { readStoryboard, storyboardDirectory } from './walkthrough-storyboard.mjs';
+import { cleanResidualScreenshots, readStoryboard, storyboardDirectory } from './walkthrough-storyboard.mjs';
 import { HTML_FILE_NAME } from './walkthrough-build.mjs';
 
 export const SERVER_INFO_FILE_NAME = 'server.json';
@@ -84,6 +84,18 @@ export function stopStoryboardServer(mainRoot, slug) {
   }
   rmSync(join(storyboardPath, SERVER_INFO_FILE_NAME), { force: true });
   return serverInfo.url;
+}
+
+// What closing a change does to its storyboard: stops the server and deletes the residual screenshots.
+// Returns a line for the person, or null when there was nothing to do.
+export function closeStoryboard(mainRoot, slug) {
+  const releasedUrl = stopStoryboardServer(mainRoot, slug);
+  const { deleted } = cleanResidualScreenshots(storyboardDirectory(mainRoot, slug));
+  const closeParts = [
+    releasedUrl ? `storyboard server stopped (${releasedUrl})` : null,
+    deleted.length ? `${deleted.length} residual screenshot(s) deleted` : null,
+  ].filter(Boolean);
+  return closeParts.length ? `${closeParts.join(', ')}; the storyboard stays in ${WORK_DIRECTORY}/${slug}/walkthrough/` : null;
 }
 
 // Every storyboard in the repo: { slug, steps, built, url }.

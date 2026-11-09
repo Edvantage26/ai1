@@ -2,15 +2,16 @@
 //   add --step "<caption>" --image <file> [--variant before|after] [--viewport desktop|mobile] [--detail ...] [--id ...] [--title ...] [--base ...]
 //   build [--pdf]                index.html + SUMMARY.md (+ walkthrough.pdf)
 //   serve [--host <h>] [--port <n>] [--ttl <hours>] | stop | list
+//   clean                        delete the screenshots `add` copied from (worktree finish/drop do it too)
 // Every subcommand takes --slug <name>; without it the slug is the worktree or the only open plan.
 
 import { findMainCheckout } from '../core/project-roots.mjs';
-import { addCapture, resolveStoryboardSlug, storyboardDirectory } from '../walkthrough/walkthrough-storyboard.mjs';
+import { addCapture, cleanResidualScreenshots, resolveStoryboardSlug, storyboardDirectory } from '../walkthrough/walkthrough-storyboard.mjs';
 import { buildStoryboard } from '../walkthrough/walkthrough-build.mjs';
 import { printStoryboardPdf } from '../walkthrough/walkthrough-pdf.mjs';
 import { listStoryboards, serveStoryboard, stopStoryboardServer } from '../walkthrough/walkthrough-serve.mjs';
 
-export const WALKTHROUGH_USAGE = 'ai1 walkthrough add --step "<caption>" --image <file> [--variant before|after] [--viewport desktop|mobile] [--detail "..."] [--id <step-id>] [--title "..."] [--base <branch>] | build [--pdf] | serve [--host <host>] [--port <n>] [--ttl <hours>] | stop | list  (all take --slug <name>)';
+export const WALKTHROUGH_USAGE = 'ai1 walkthrough add --step "<caption>" --image <file> [--variant before|after] [--viewport desktop|mobile] [--detail "..."] [--id <step-id>] [--title "..."] [--base <branch>] | build [--pdf] | serve [--host <host>] [--port <n>] [--ttl <hours>] | stop | list | clean  (all take --slug <name>)';
 
 // Prints the result and returns the exit code.
 export function runWalkthroughCommand(treeRoot, commandArguments, { readOption }) {
@@ -54,6 +55,13 @@ export function runWalkthroughCommand(treeRoot, commandArguments, { readOption }
     const { slug } = resolveStoryboard();
     const releasedUrl = stopStoryboardServer(mainRoot, slug);
     console.log(releasedUrl ? `stopped ${releasedUrl}` : `no server running for ${slug}`);
+    return 0;
+  }
+  if (subcommandName === 'clean') {
+    const { storyboardPath } = resolveStoryboard();
+    const { deleted, kept } = cleanResidualScreenshots(storyboardPath);
+    console.log(`deleted ${deleted.length} residual screenshot(s)${deleted.length ? `:\n${deleted.map((deletedPath) => `  ${deletedPath}`).join('\n')}` : ''}`);
+    for (const keptSource of kept) console.log(`kept ${keptSource.path} (${keptSource.reason})`);
     return 0;
   }
   if (subcommandName === 'list') {
