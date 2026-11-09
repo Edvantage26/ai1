@@ -17,5 +17,13 @@
     "okf",
     "tdd",
     "sdd"
-  ]
+  ],
+  "userConfig": {
+    "fork_opener": {
+      "type": "string",
+      "title": "Fork opener",
+      "description": "Where /ai1:session-fork-conversation opens a new conversation: auto (detect this session's host), paseo, vscode, desktop or terminal.",
+      "default": "auto"
+    }
+  }
 }

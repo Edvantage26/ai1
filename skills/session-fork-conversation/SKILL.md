@@ -21,11 +21,17 @@ cheaper. A `full` fork runs one short turn over the whole context to create the 
 ## 1. Check the host
 
 ```bash
-ai1 fork host
+ai1 fork host --opener '${user_config.fork_opener}'
 ```
 
+The person chooses where forks open with the plugin option **Fork opener** (`/config` -> ai1:
+`auto`, `paseo`, `vscode`, `desktop`, `terminal`); pass `--opener '${user_config.fork_opener}'` exactly as written to every
+`ai1 fork` command (unset, it means auto). If they say where they want it, point them to that option.
+
 - `paseo`: the new conversation becomes a Paseo agent (same provider, model and mode as this one,
-  labelled `ai1=fork`, `fork_mode`, `forked_from`), independent from this agent.
+  labelled `ai1=fork`, `fork_mode`, `forked_from`), independent from this agent. Chosen from
+  another host, it starts as plain Claude with Paseo's defaults.
+- `desktop` (chosen, macOS and Windows): the Claude Desktop command or link comes first.
 - `vscode`: the extension is opened on it (`vscode://anthropic.claude-code/open?...`).
 - `terminal` (CLI, JetBrains, SDK and Claude Desktop, which has no signal): you get the commands
   to open it; you cannot start an interactive `claude` from a tool call.
@@ -38,7 +44,7 @@ conversation from here" on a message in VS Code.
 ## 2a. Full fork
 
 ```bash
-ai1 fork full [--title "<what the fork explores>"] [--task "<first instruction for the fork>"]
+ai1 fork full --opener '${user_config.fork_opener}' [--title "<what the fork explores>"] [--task "<first instruction for the fork>"]
 ```
 
 With `--task`, Paseo sends it to the new agent right away; elsewhere it is printed to paste. A fork
@@ -78,7 +84,7 @@ Code session id, on the web, or when the Paseo agent is not a Claude one (use `b
 3. Show the person the path and a two-line summary; launch after their yes:
 
    ```bash
-   ai1 fork brief --file <path> [--title "<title>"] [--cwd <dir>]
+   ai1 fork brief --opener '${user_config.fork_opener}' --file <path> [--title "<title>"] [--cwd <dir>]
    ```
 
    `--cwd` starts it in another directory (default: the repo root), e.g. when the task moves or

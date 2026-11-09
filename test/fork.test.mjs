@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { detectForkHost } from '../src/session/fork-host.mjs';
+import { applyForkOpener, detectForkHost } from '../src/session/fork-host.mjs';
 import { forkFullConversation, startBriefConversation, resolveHandoffPath } from '../src/session/fork-session.mjs';
 import { runForkCommand } from '../src/cli/fork-command.mjs';
 
@@ -165,4 +165,51 @@ test('ai1 fork CLI: host, brief-path and full with --json; unknown subcommand pr
   const usageLines = [];
   assert.equal(runForkCommand('/repo', ['nope'], { readOption: () => undefined, environment: {}, writeOutput: (outputText) => usageLines.push(outputText) }), 1);
   assert.match(usageLines[0], /usage: ai1 fork full/);
+});
+
+test('fork opener: unset, auto or invalid keep the detected host; web and Desktop on Linux ignore it; otherwise it wins', () => {
+  const terminalHost = detectForkHost({}, 'linux');
+  for (const unsetValue of [undefined, '', '${user_config.fork_opener}', 'auto']) {
+    assert.deepEqual(applyForkOpener(terminalHost, unsetValue), { host: terminalHost, notice: null });
+  }
+  assert.equal(applyForkOpener(terminalHost, 'slack').host, terminalHost);
+  assert.match(applyForkOpener(terminalHost, 'slack').notice, /unknown fork opener "slack"/);
+  assert.match(applyForkOpener(detectForkHost({ CLAUDE_CODE_REMOTE: 'true' }), 'paseo').notice, /runs on the web/);
+  assert.match(applyForkOpener(terminalHost, 'desktop').notice, /does not open sessions/);
+  const chosenPaseo = applyForkOpener(terminalHost, 'Paseo').host;
+  assert.equal(chosenPaseo.id, 'paseo');
+  assert.equal(chosenPaseo.detectedId, 'terminal');
+  assert.equal(applyForkOpener(detectForkHost({}, 'darwin'), 'desktop').host.id, 'desktop');
+});
+
+test('fork opener paseo outside Paseo: plain Claude agent credited to this session; desktop puts Desktop first', () => {
+  const fakeRunner = createFakeRunner();
+  const environment = { CLAUDE_CODE_SESSION_ID: SESSION_ID, PASEO_HOME: EMPTY_PASEO_HOME };
+  const { host } = applyForkOpener(detectForkHost(environment, 'linux'), 'paseo');
+  const briefResult = startBriefConversation({ environment, cwd: '/repo', host, briefPath: writeBrief(), runCommand: fakeRunner.runCommand });
+  assert.equal(fakeRunner.callsOf('paseo', 'inspect').length, 0, 'no current agent to inspect');
+  const runArguments = fakeRunner.callsOf('paseo', 'run')[0].programArguments;
+  assert.deepEqual(runArguments.slice(5, 7), ['--provider', 'claude']);
+  assert.ok(!runArguments.includes('--model') && !runArguments.includes('--mode'));
+  assert.ok(runArguments.includes(`forked_from=${SESSION_ID}`));
+  assert.equal(briefResult.agentId, 'agent-brief');
+  const fullResult = forkFullConversation({ environment, cwd: '/repo', host, runCommand: fakeRunner.runCommand });
+  assert.equal(fullResult.agentId, 'agent-full-fork');
+  assert.equal(fakeRunner.callsOf('paseo', 'import')[0].programArguments[3], 'claude');
+  const desktopHost = applyForkOpener(detectForkHost({}, 'darwin'), 'desktop').host;
+  const desktopResult = startBriefConversation({ environment: {}, cwd: '/repo', host: desktopHost, briefPath: writeBrief(), runCommand: createFakeRunner().runCommand });
+  assert.equal(desktopResult.openWith[0].label, 'Claude Desktop');
+  assert.equal(desktopResult.opened, null);
+});
+
+test('ai1 fork --opener reaches the host and an unknown value prints a note', () => {
+  const outputLines = [];
+  const commandArguments = ['host', '--opener', 'vscode'];
+  const readOption = (optionName) => { const optionIndex = commandArguments.indexOf(optionName); return optionIndex >= 0 ? commandArguments[optionIndex + 1] : undefined; };
+  runForkCommand('/repo', commandArguments, { readOption, environment: {}, runCommand: createFakeRunner().runCommand, platformName: 'linux', writeOutput: (outputText) => outputLines.push(outputText) });
+  assert.match(outputLines.join('\n'), /host: vscode \(fork opener "vscode" \(detected: terminal\)\)/);
+  const badArguments = ['host', '--opener', 'nope'];
+  const badLines = [];
+  runForkCommand('/repo', badArguments, { readOption: (optionName) => badArguments[badArguments.indexOf(optionName) + 1], environment: {}, runCommand: createFakeRunner().runCommand, platformName: 'linux', writeOutput: (outputText) => badLines.push(outputText) });
+  assert.match(badLines[0], /^note: unknown fork opener "nope"/);
 });

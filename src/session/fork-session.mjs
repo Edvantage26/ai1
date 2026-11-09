@@ -46,6 +46,13 @@ function readAgentId(agentJson) {
   return agentRecord?.id || agentRecord?.Id || agentRecord?.agentId || agentRecord?.agent?.id || null;
 }
 
+// The Paseo agent the fork copies: this session's when it runs in Paseo; else (the person chose Paseo
+// from another host) plain Claude with Paseo's defaults, credited to this session.
+function resolveForkPaseoAgent(runCommand, environment) {
+  if (environment.PASEO_AGENT_ID) return readCurrentPaseoAgent(runCommand, environment.PASEO_AGENT_ID);
+  return { id: environment.CLAUDE_CODE_SESSION_ID || 'session', name: '', provider: 'claude', model: null, mode: null };
+}
+
 // Provider, model and mode of the Paseo agent this session runs in.
 function readCurrentPaseoAgent(runCommand, agentId) {
   const agentJson = parseJsonOutput(runOrThrow(runCommand, 'paseo', ['inspect', agentId, '--json']), 'paseo inspect');
@@ -116,7 +123,7 @@ export function forkFullConversation({ environment = process.env, cwd, host, tit
   if (host.id === 'web') throw new Error('a full fork is not possible on the web (claude.ai/code): use brief mode, or /branch in the session');
   const originalSessionId = environment.CLAUDE_CODE_SESSION_ID;
   if (!originalSessionId) throw new Error('CLAUDE_CODE_SESSION_ID is not set: run this from a Claude Code session (or use brief mode)');
-  const paseoAgent = host.id === 'paseo' ? readCurrentPaseoAgent(runCommand, environment.PASEO_AGENT_ID) : null;
+  const paseoAgent = host.id === 'paseo' ? resolveForkPaseoAgent(runCommand, environment) : null;
   if (paseoAgent && paseoAgent.provider !== 'claude' && !paseoAgent.provider.startsWith('claude-')) {
     throw new Error(`this Paseo agent runs on "${paseoAgent.provider}"; a full fork needs a Claude Code session: use brief mode`);
   }
@@ -137,6 +144,7 @@ export function forkFullConversation({ environment = process.env, cwd, host, tit
     { label: 'VS Code (same folder)', command: vscodeUri },
     ...(host.canOpenInDesktop ? [{ label: 'Claude Desktop', command: `claude --desktop --resume ${forkSessionId}` }] : []),
   ];
+  if (host.id === 'desktop') openWith.unshift(openWith.pop());
   const forkResult = { mode: 'full', host, title: forkTitle, originalSessionId, sessionId: forkSessionId, openWith, task: task || null };
 
   if (paseoAgent) {
@@ -166,10 +174,11 @@ export function startBriefConversation({ environment = process.env, cwd, host, t
       { label: 'VS Code', command: vscodeUri },
       ...(host.canOpenInDesktop ? [{ label: 'Claude Desktop', command: `claude://code/new?q=${encodeURIComponent(briefText)}` }] : []),
     ];
+  if (host.id === 'desktop') openWith.unshift(openWith.pop());
   const briefResult = { mode: 'brief', host, title: conversationTitle, briefPath, openWith };
 
   if (host.id === 'paseo') {
-    const paseoAgent = readCurrentPaseoAgent(runCommand, environment.PASEO_AGENT_ID);
+    const paseoAgent = resolveForkPaseoAgent(runCommand, environment);
     const startedJson = parseJsonOutput(runOrThrow(runCommand, 'paseo', [
       'run', '-d', '--json', '--title', conversationTitle, '--provider', paseoAgent.provider,
       ...(paseoAgent.model ? ['--model', paseoAgent.model] : []),
