@@ -5,7 +5,7 @@ description: Fork the current conversation into a new one - full copy or a scope
 tags: [session, fork, paseo, vscode, desktop, handoff]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T11:59:45Z'
+  at: '2026-11-09T14:08:22Z'
 sources:
   - id: cli-sessions
     resource: https://code.claude.com/docs/en/sessions
@@ -32,6 +32,8 @@ in any repo while the plugin is enabled (ai1 is installed at user scope). Code i
   (task, needed context with sources, files, limits, done when, report back), in
   `.ai1/work/handoffs/<slug>.md` (`ai1 fork brief-path <slug>`) or the temp dir in repos without `.ai1/`;
   it writes `.ai1/work/.gitignore` first, so handoffs stay out of git even without the lanes feature.
+  `ai1 fork brief --cwd <dir>` starts the new conversation in another directory (default: the repo
+  root), for when the task moves or removes this repo's folder.
 
 # Hosts
 
