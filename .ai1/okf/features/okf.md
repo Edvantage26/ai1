@@ -183,7 +183,7 @@ sources:
   ordinary stop): changing a concept to answer the upkeep reminder must not chain a second block.
   While the validator reports errors, it waits for them to be fixed. Bundle files `ai1 worktree
   finish` brought in after its OKF checks, and untouched since (`knowledge_checked` in the
-  [worktrees](worktrees.md) integration record), are not this session's: until 2026-11-09 (v0.24.1)
+  [worktrees](worktrees.md) integration record), are not this session's: until 2026-11-09 (fixed after v0.25.0)
   every finish that brought concepts got this reminder, and its test passed only when the run took
   under a second (it moved the bundle's dates a second back; found by an intermittent full-suite failure).
 - **Rules given to the agent:** update the concept and `generated: { by: claude-code/<model>, at }`
