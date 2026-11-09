@@ -5,7 +5,7 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T09:13:31Z'
+  at: '2026-11-09T10:30:29Z'
 ---
 
 # Layout
@@ -90,6 +90,23 @@ Checked against the Claude Code docs (plugins reference, skills) on 2026-11-09:
 - `${CLAUDE_PLUGIN_DATA}` (`~/.claude/plugins/data/<id>/`) survives updates but is deleted on
   uninstall, so it does not suit user preferences.
 - Measured: starting `node bin/ai1` takes about 175 ms.
+- Tested on Claude Code 2.1.319 with a throwaway plugin (2026-11-09):
+  - `` !`…` `` in a plugin skill runs in the session's directory (the project); `${CLAUDE_PROJECT_DIR}`
+    and `${CLAUDE_SKILL_DIR}` are substituted in the body but are not environment variables of the
+    command. The plugin's `bin/` is on its PATH.
+  - Without bypass permissions, a plugin `bin/` command in `!` needs approval and the whole skill
+    fails to load ("requires approval"); `allowed-tools: Bash(<command> *)` in the skill frontmatter
+    pre-approves it. `pwd` and `cat` ran without it.
+  - `${user_config.KEY}` is substituted only when a value is saved; the manifest `default` is not
+    applied and the literal `${user_config.KEY}` stays. Saved values live at
+    `pluginConfigs["<plugin>@<marketplace>"].options.<key>` (the docs omit `.options`), read from user,
+    `--settings` or managed settings; a `--plugin-dir` plugin is `<plugin>@inline`.
+  - `CLAUDE_PLUGIN_OPTION_<KEY>` reaches hooks only, not commands run through the Bash tool.
+  - How to redo it: a plugin folder with `.claude-plugin/plugin.json` (a `userConfig` field) and one
+    skill whose body echoes `` !`pwd` ``, `${CLAUDE_PROJECT_DIR}`, `${user_config.KEY}` and a `bin/`
+    command; run `claude -p --plugin-dir <plugin> "/<plugin>:<skill>" < /dev/null` from a scratch
+    repo with `CLAUDE_CONFIG_DIR` pointing to a clean folder whose `settings.json` holds
+    `pluginConfigs` (authenticate with a token in the environment, since that folder has no login).
 
 So per-repo behaviour has to live in the repo (`.ai1/`, or a project skill as the worktree recipe
 does) and be read by the plugin skill or the CLI; per-person behaviour fits `userConfig`.
