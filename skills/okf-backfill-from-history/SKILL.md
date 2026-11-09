@@ -91,8 +91,10 @@ The replay is now structured in two phases to enforce semantic depth and anti-de
 
 #### Phase 1: Map (parallel analysis, per-event)
 
-Launch `okf:event-analyzer` agents for the live events (those without `skip` field), in waves of
-4 to 10 (see the cost note in §5), via Claude Code's Workflow `agentType` parameter. Each analyzer
+Launch `ai1:event-analyzer` agents for the live events (those without `skip` field), in waves of
+4 to 10 (see the cost note in §5), with the Agent tool (`subagent_type: ai1:event-analyzer`), or
+with the Workflow tool (`agentType`) only when the person asked for a workflow: Claude Code
+runs a Workflow only on the person's explicit opt-in. Each analyzer
 receives its event ids, the `events.jsonl` path, the repo path, the output directory and the
 emitter path, and:
 - Fetches its own event JSON with `jq` (the orchestrator dispatches ids, never content)
@@ -114,12 +116,12 @@ cross-event contamination.
 jq -c 'select(.skip==null) | {id, small: (.source=="session" or (([.files[]?|.add+.del]|add)//0) <= 60)}' events.jsonl
 ```
 
-**Host-agnostic fallback** (if no Workflow support): spawn generic subagents with the same
+**Host-agnostic fallback** (if the host has no `ai1:event-analyzer` agent): spawn generic subagents with the same
 system prompt as `agents/event-analyzer.md`, one per event, collecting analyses to scratchpad.
 
 #### Phase 2: Reduce (sequential folding, one agent)
 
-Run a single `okf:bundle-weaver` agent that:
+Run a single `ai1:bundle-weaver` agent that:
 - Reads all analyses in chronological order
 - Folds them into `.okf/`, updating or creating concepts
 - Enforces anti-degeneration rules (§4)
