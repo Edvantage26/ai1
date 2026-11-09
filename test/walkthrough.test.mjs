@@ -259,3 +259,18 @@ test('storyboards live in .ai1/walkthroughs/<slug>/, ignored by git, and work th
   assert.match(runAi1(projectRoot, ['walkthrough', 'list']).stdout, /linked: 1 steps, built, at http[\s\S]*local: 1 steps/);
   assert.match(runAi1(projectRoot, ['walkthrough', 'clean', '--slug', 'linked']).stdout, /deleted 1/);
 });
+
+test('publish destinations come from the customization, offered and published only after a yes [walkthrough:S4]', () => {
+  const skillText = readFileSync(fileURLToPath(new URL('../skills/walkthrough-record-flow/SKILL.md', import.meta.url)), 'utf8');
+  assert.match(skillText, /## 5\. Publish \(only if a customization asks for it\)[\s\S]*publish only after the person says yes[\s\S]*With no customization, there is nothing to publish/);
+  assert.match(skillText, /## Fixed rules\n\n- Never publish anywhere outside the repo without the person's yes/);
+
+  const projectRoot = createUiRepo();
+  const homeDirectory = join(projectRoot, 'home');
+  mkdirSync(join(homeDirectory, '.config', 'ai1', 'skills', 'walkthrough'), { recursive: true });
+  writeFileSync(join(homeDirectory, '.config', 'ai1', 'skills', 'walkthrough', 'overlay.md'), '- Publish: hand steps.json to my task tracker skill.\n');
+  const withOverlay = spawnSync(process.execPath, [AI1_CLI, 'skill-context', 'walkthrough-record-flow'], { cwd: projectRoot, encoding: 'utf8', env: { ...process.env, HOME: homeDirectory, XDG_CONFIG_HOME: '' } });
+  assert.match(withOverlay.stdout, /hand steps\.json to my task tracker skill/);
+  const withoutOverlay = spawnSync(process.execPath, [AI1_CLI, 'skill-context', 'walkthrough-record-flow'], { cwd: projectRoot, encoding: 'utf8', env: { ...process.env, HOME: join(projectRoot, 'nobody'), XDG_CONFIG_HOME: '' } });
+  assert.match(withoutOverlay.stdout, /None yet for this project \(\.ai1\/skills\/walkthrough\/overlay\.md\)/);
+});
