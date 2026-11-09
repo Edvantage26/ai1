@@ -10,5 +10,5 @@
 * [/ai1:core-setup-repo and the CLI](init.md) - per-repo setup.
 * [session fork](session-fork.md) - `/ai1:session-fork-conversation` and `ai1 fork`: full or brief fork of the conversation, opened natively per host.
 * [issue report](issue-report.md) - `/ai1:core-report-issue` and `ai1 issue`: a problem with ai1 filed on its public repo, cleaned of private data and approved by the person; offered by the `issue-offer` hook when ai1 itself fails.
-* [walkthrough](walkthrough.md) - storyboard of the user flow after a visual change (in progress); `ai1 walkthrough`.
+* [walkthrough](walkthrough.md) - storyboard of the user flow after a visual change (steps, screenshots, before/after, local URL, PDF) in `.ai1/walkthroughs/`; `/ai1:walkthrough-record-flow`, `ai1 walkthrough`.
 * [retro](retro.md) - `ai1-retro`, a project skill of the ai1 repo only: every repo's hook log on this machine, read for errors, false positives and cost.

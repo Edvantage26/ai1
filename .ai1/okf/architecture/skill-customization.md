@@ -72,7 +72,8 @@ Nothing is loaded before the skill runs.
 when a folder has no entry, an entry has no folder, a customizable skill lacks the permission, a
 `## Fixed rules` bullet or the injection as last line, or an excluded one has them. Customizable:
 worktrees-plan-recipe, session-fork-conversation, later-write, lanes-design-before-code,
-okf-maintain-knowledge, okf-tidy-claude-md, okf-visualize-bundle (project and person) and
+okf-maintain-knowledge, okf-tidy-claude-md, okf-visualize-bundle, verify-debug-systematically,
+walkthrough-record-flow (project and person) and
 core-setup-repo (person only). Excluded, with the reason in the index: okf-backfill-from-history,
 core-report-issue, okf-validate-bundle, danger-write-rule, core-customize-skill.
 

@@ -1,11 +1,11 @@
 ---
 type: Component
-title: walkthrough feature (in progress)
-description: Storyboard of the user flow after a visual change - numbered steps with desktop/mobile screenshots, before/after, HTML served locally and a PDF; residual screenshots deleted on close. Being built (plan .ai1/work/walkthrough/plan.md).
+title: walkthrough feature
+description: Storyboard of the user flow after a visual change - numbered steps with desktop/mobile screenshots, before/after, HTML served at a local URL and a PDF, kept in .ai1/walkthroughs/ (git-ignored); residual screenshots deleted on close; Stop reminder; publishing only through a skill customization.
 tags: [walkthrough, ui, screenshots, pdf, worktrees]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T15:30:21Z'
+  at: '2026-11-09T15:40:13Z'
 sources:
   - id: storyboard
     resource: src/walkthrough/walkthrough-storyboard.mjs
@@ -19,6 +19,12 @@ sources:
   - id: serve
     resource: src/walkthrough/walkthrough-serve.mjs
     title: local server, release on worktree finish/drop
+  - id: reminder
+    resource: src/walkthrough/walkthrough-reminder.mjs
+    title: Stop reminder
+  - id: skill
+    resource: skills/walkthrough-record-flow/SKILL.md
+    title: /ai1:walkthrough-record-flow
 ---
 
 # Why
@@ -28,18 +34,35 @@ flow without running the app. Prior art in [prior art](../decisions/prior-art.md
 ai1 never drives the browser: the agent captures with its own tool and hands the files to
 `ai1 walkthrough add`. Off by default; recommended with `design` (same frontend signal).
 
-# Built so far
+# How it works
 
-- `ai1 walkthrough add|build [--pdf]|serve|stop|list|clean` (src/cli/walkthrough-command.mjs).
-- `steps.json` contract: steps keyed by id (from the caption or `--id`), captures by variant
-  (before/after) and viewport (desktop/mobile), each with its `source` (path, size, mtime) until cleaned.
-- `index.html`: one file, images inlined, slides (arrow keys) or strip, before/after columns, steps
-  marked new/removed; print stylesheet A4 landscape, one step per page. `SUMMARY.md` for publishers.
-- `serve`: detached Node server on 127.0.0.1, port from `pickWorktreePort('walkthrough:'+slug)` avoiding
-  listening and worktree ports, TTL 8 h; `ai1 worktree finish|drop` stop it and delete residual
-  screenshots (only unchanged, untracked images that `add` copied).
-- Pending: storyboard folder moving to `.ai1/walkthroughs/<slug>/` (awaiting the person's approval of the
-  redesign), the skill, the Stop reminder, docs.
+- **Skill** `/ai1:walkthrough-record-flow` (customizable, project and person): the flow as 3-10 steps
+  in the user's words; desktop 1440x900 and mobile 375x812; `scripts/highlight.js` frames what is
+  clicked; the agent looks at every screenshot before adding it; base captured in a
+  `<name>-before` worktree (its captures land in `<name>`'s storyboard); build with `--pdf`, serve,
+  give URL + PDF + what to look at. Publishing exists only when a customization names a destination,
+  and only after the person's yes (fixed rule).
+- **Folder** `.ai1/walkthroughs/<slug>/` in the main checkout, ignored by its own `.gitignore` (`*`,
+  `ensureDirectoryIgnoredByItself`, shared with `.ai1/work/`). Works unchanged when the folder is a
+  symlink to a synced folder; where storyboards go outside the repo is the person's tooling, not ai1
+  (decided 2026-11-09, replacing a destination setting with mount checks). A symlinked folder must be
+  excluded by that tooling (`.git/info/exclude`): git sees a symlink as a file.
+- **Slug**: `--slug`, else the worktree name (a trailing `-before` stripped), else the only open plan.
+- **CLI** `ai1 walkthrough add|build [--pdf]|serve|stop|list|clean` (src/cli/walkthrough-command.mjs).
+- **`steps.json`** (contract for publishers, with `SUMMARY.md`): steps keyed by id (from the caption or
+  `--id`), captures by variant (before/after) and viewport (desktop/mobile), each with its `source`
+  (path, size, mtime) until cleaned. Same step+variant+viewport replaces the image.
+- **`index.html`**: one file, images inlined, slides (arrow keys) or strip, before/after columns, steps
+  marked new/removed; print stylesheet A4 landscape, one step per page, used for the PDF.
+- **`serve`**: detached Node server on 127.0.0.1 (`--host`), port from `pickWorktreePort('walkthrough:'+slug)`
+  avoiding listening and worktree ports, TTL 8 h, `server.json` record (stale ones removed).
+- **Close**: `ai1 worktree finish|drop` (or `ai1 walkthrough stop` + `clean`) stop the server and delete
+  the screenshots `add` copied from - only unchanged, untracked images outside the storyboard. The
+  storyboard stays.
+- **`walkthrough-reminder`** (Stop): UI files (design-detect's classification) changed in the session
+  and no `index.html` in `.ai1/walkthroughs/` newer than them -> one block per set of files, at most 2
+  per session. `modules.walkthrough-reminder.ignore`: globs.
+- Recommended by `/ai1:core-setup-repo` with `design` (same frontend signal).
 
 # Findings
 

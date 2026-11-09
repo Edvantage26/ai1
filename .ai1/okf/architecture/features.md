@@ -27,6 +27,7 @@ repo switches the single module off with `modules.<id>: false`.
 | `worktrees` | off | `worktree-brief` (SessionStart), `worktree-reminder` (UserPromptSubmit) | `/ai1:worktrees-plan-recipe`, `ai1 worktree`, see [worktrees feature](/features/worktrees.md) |
 | `later` | off | `later-brief` (SessionStart), `later-recall` (UserPromptSubmit), `later-upkeep` (Stop) | `/ai1:later-write`, `ai1 later`, see [later feature](/features/later.md) (called `rfc` until v0.17 and `proposals` until v0.24) |
 | `design` | off | `design-brief` (SessionStart), `design-detect` (PostToolUse Edit/Write/MultiEdit) | see [design feature](/features/design.md) |
+| `walkthrough` | off | `walkthrough-reminder` (Stop) | `/ai1:walkthrough-record-flow`, `ai1 walkthrough`, see [walkthrough feature](/features/walkthrough.md) |
 | `core` | always on | `brief` (SessionStart), `issue-offer` (UserPromptSubmit) | `/ai1:core-report-issue`, see [issue report](/features/issue-report.md) |
 
 Feature choice is per repo because plugin options (`userConfig`) are stored per user only in

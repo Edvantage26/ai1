@@ -26,7 +26,8 @@ schema/  templates/config.json    the per-repo contract
 
 Every skill is `/ai1:<module>-<what it does>` so its owner and purpose read from the name:
 `core-setup-repo`, `core-report-issue` ([issue report](../features/issue-report.md)), `lanes-design-before-code`, `later-write`, `worktrees-plan-recipe`,
-`session-fork-conversation` ([session fork](../features/session-fork.md)), `core-customize-skill`
+`session-fork-conversation` ([session fork](../features/session-fork.md)), `walkthrough-record-flow`
+([walkthrough](../features/walkthrough.md)), `core-customize-skill`
 ([skill customization](skill-customization.md)), and
 from the OKF pack `okf-maintain-knowledge`, `okf-validate-bundle`, `okf-visualize-bundle`,
 `okf-backfill-from-history` (see [OKF toolkit](../packs/okf-pack.md)), plus `okf-tidy-claude-md`
