@@ -5,7 +5,7 @@ description: Sets up ai1 in a repo - asks the features, writes .ai1/config.json 
 tags: [init, cli, setup]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T04:45:09Z'
+  at: '2026-11-09T08:18:21Z'
 sources:
   - id: setup-repo
     resource: src/cli/setup-repo.mjs
@@ -34,5 +34,6 @@ sources:
     `.claude/settings.local.json` is added to `.gitignore` if git does not ignore it yet. Local
     settings win over project and user settings.
 - **Skill `/ai1:core-setup-repo`**: runs `ai1 status`, asks the features with a multi-select, runs
-  `ai1 init`, offers `/ai1:okf-maintain-knowledge` when there is no bundle, and tells the person to commit and restart.
+  `ai1 init`, offers `/ai1:okf-maintain-knowledge` when there is no bundle, or `/ai1:okf-tidy-claude-md`
+  when there is one and `ai1 claude-md` reports findings, and tells the person to commit and restart.
   It never commits.

@@ -120,6 +120,9 @@ is given. Then extend it:
    index). A new bundle gets a dated **Creation** entry in `log.md`. Extending
    an existing one does not.
 6. Validate (see below). Fix every error before finishing.
+7. A new bundle, where the `ai1` CLI is on the PATH: run `ai1 claude-md`. If it reports findings,
+   offer `/ai1:okf-tidy-claude-md` in one line (CLAUDE.md now repeats or should move into the
+   bundle); do not tidy without a yes.
 
 ### maintain — keep a bundle in sync with reality
 1. Identify which concepts the change affects (search by `resource`, path, or

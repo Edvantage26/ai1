@@ -5,7 +5,7 @@ description: Work lanes by task size - quick, plan or deep - with a hook-enforce
 tags: [lanes, workflow, hooks, skills, approval]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T06:17:09Z'
+  at: '2026-11-09T08:07:24Z'
 sources:
   - id: lanes-work
     resource: src/lanes/lanes-work.mjs
@@ -69,6 +69,11 @@ they are listed at startup.
 - The "plan" lane has no file and no gate; it relies on the conversation.
 - The approval store is outside the repo but not tamper-proof against a determined agent; the brief
   tells the agent not to work around hooks.
+- A plan counts as "this session's" when it was modified after the session started
+  (`findUnapprovedPlan` in `src/lanes/lanes-gate.mjs`), not when this session wrote it. Seen
+  2026-11-09: a long session was refused every code edit by another session's new draft
+  (`prod-guard`); the suggested way out, marking the plan `abandoned`, would break the other session.
+  Fix pending: attribute plans by the session's own writes (transcript, as `session-writes.mjs` does).
 
 # Verified
 

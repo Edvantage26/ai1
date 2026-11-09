@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index at session start, CLAUDE
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T08:00:33Z'
+  at: '2026-11-09T08:18:21Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -73,6 +73,13 @@ sources:
   their concepts (contradictions included, checked against the code), proposes a CLAUDE.md under ~40
   lines (what the repo is, rules for every task, commands, pointer to the bundle) and, per moved
   section, the concept edit; applies after a yes, then validates.
+  The best moment to offer it is when the bundle is created, since it is usually written from
+  CLAUDE.md and the overlap is largest then, while the hint would only come at the next session start.
+  So the three skills that set up OKF end by running `ai1 claude-md` and offering the skill in one
+  line when there are findings: `/ai1:okf-maintain-knowledge` (produce, new bundle),
+  `/ai1:okf-backfill-from-history` (Finalize) and `/ai1:core-setup-repo` (joined with its offer to fix
+  old paths after a migration). If the person declines, the hint repeats once at the next session
+  start (the CLI does not write the hint's fingerprint: its state folder may differ from the hook's).
   Measured (2026-11-09) on five real repos with 46-842-line CLAUDE.md files: check 30-140 ms. A
   scratch copy of one of them: the SessionStart entry point told the hint once and nothing on the
   second start; a subagent following the skill produced a 38-line CLAUDE.md and a destination per
