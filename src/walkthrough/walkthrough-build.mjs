@@ -28,6 +28,12 @@ function renderCaptureCell(storyboardPath, stepCapture, cellLabel, missingText =
   return `<figure class="shot shot-${stepCapture.viewport}"><figcaption>${escapeHtml(cellLabel)}</figcaption><img alt="${escapeHtml(cellLabel)}" src="data:${mimeType};base64,${imageData}"></figure>`;
 }
 
+// The base's own wording of the step, shown when it differs from the new one.
+function beforeCaptionLine(storyboardStep) {
+  const beforeCaption = storyboardStep.before_caption;
+  return beforeCaption && beforeCaption !== storyboardStep.caption ? `<p class="before-caption">Before: ${escapeHtml(beforeCaption)}</p>` : '';
+}
+
 function renderStep(storyboardPath, storyboardStep, stepNumber, stepCount, hasBefore) {
   const change = stepChange(storyboardStep, hasBefore);
   const shownVariants = hasBefore ? ['before', 'after'] : ['after'];
@@ -39,7 +45,7 @@ function renderStep(storyboardPath, storyboardStep, stepNumber, stepCount, hasBe
     return `<div class="row row-${viewport} cols-${shownVariants.length}">${rowCells.join('')}</div>`;
   }).join('');
   return `<section class="step${change ? ` step-${change}` : ''}" id="step-${stepNumber}">
-<header class="step-head"><span class="step-number">${stepNumber}<small>/${stepCount}</small></span><div><h2>${escapeHtml(storyboardStep.caption)}</h2>${storyboardStep.detail ? `<p>${escapeHtml(storyboardStep.detail)}</p>` : ''}</div>${change ? `<span class="badge badge-${change}">${CHANGE_LABELS[change]}</span>` : ''}</header>
+<header class="step-head"><span class="step-number">${stepNumber}<small>/${stepCount}</small></span><div><h2>${escapeHtml(storyboardStep.caption)}</h2>${beforeCaptionLine(storyboardStep)}${storyboardStep.detail ? `<p>${escapeHtml(storyboardStep.detail)}</p>` : ''}</div>${change ? `<span class="badge badge-${change}">${CHANGE_LABELS[change]}</span>` : ''}</header>
 ${viewportRows}
 </section>`;
 }
@@ -60,12 +66,14 @@ main{max-width:1400px;margin:0 auto;padding:24px}
 .row{display:grid;gap:16px;margin-top:12px}.cols-2{grid-template-columns:1fr 1fr}.cols-1{grid-template-columns:1fr}
 .row-mobile.cols-1{grid-template-columns:minmax(0,420px)}.row-mobile.cols-2{grid-template-columns:repeat(2,minmax(0,420px))}
 .shot{margin:0}.shot figcaption{font-size:12px;text-transform:capitalize;color:var(--muted);margin-bottom:6px}
-.shot img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:6px}
+.shot img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:6px;cursor:zoom-in}
+.step-head .before-caption{color:var(--muted);font-style:italic}
+.zoom{position:fixed;inset:0;z-index:5;display:grid;place-items:center;background:rgba(20,22,24,.88);cursor:zoom-out;padding:24px}.zoom img{max-width:100%;max-height:100%;border-radius:6px}
 .missing{display:grid;place-items:center;min-height:120px;border:1px dashed var(--line);border-radius:6px;color:var(--muted);font-size:13px}
 body.slides .step{display:none;min-height:calc(100vh - 110px)}body.slides .step.current{display:block}
 .pager{display:none;gap:8px;align-items:center}body.slides .pager{display:flex}
 @page{size:A4 landscape;margin:10mm}
-@media print{.top{position:static;background:none;color:var(--ink);border-bottom:2px solid var(--ink)}.top button,.pager{display:none!important}
+@media print{.zoom{display:none}.top{position:static;background:none;color:var(--ink);border-bottom:2px solid var(--ink)}.top button,.pager{display:none!important}
 body{background:#fff}main{padding:0;max-width:none}body.slides .step,.step{display:block!important;min-height:0;border:0;padding:0;break-after:page;page-break-after:always}
 .step:last-child{break-after:auto;page-break-after:auto}.step-head{margin-bottom:6px}.row{break-inside:avoid;margin-top:6px}
 .shot img{max-height:34vh;width:auto;max-width:100%}.missing{min-height:60px}}
@@ -77,7 +85,8 @@ function show(next){if(!steps.length)return;index=Math.max(0,Math.min(steps.leng
 function mode(slides){document.body.classList.toggle('slides',slides);document.getElementById('mode-slides').setAttribute('aria-pressed',slides);document.getElementById('mode-strip').setAttribute('aria-pressed',!slides);if(slides)show(index);}
 document.getElementById('mode-slides').onclick=function(){mode(true)};document.getElementById('mode-strip').onclick=function(){mode(false)};
 document.getElementById('prev').onclick=function(){show(index-1)};document.getElementById('next').onclick=function(){show(index+1)};
-document.addEventListener('keydown',function(event){if(!document.body.classList.contains('slides'))return;if(event.key==='ArrowRight'||event.key===' ')show(index+1);if(event.key==='ArrowLeft')show(index-1);});
+document.querySelectorAll('.shot img').forEach(function(image){image.onclick=function(){var zoom=document.createElement('div');zoom.className='zoom';zoom.innerHTML='<img alt="">';zoom.firstChild.src=image.src;zoom.onclick=function(){zoom.remove()};document.body.appendChild(zoom);};});
+document.addEventListener('keydown',function(event){if(event.key==='Escape'){var openZoom=document.querySelector('.zoom');if(openZoom)openZoom.remove();}if(!document.body.classList.contains('slides'))return;if(event.key==='ArrowRight'||event.key===' ')show(index+1);if(event.key==='ArrowLeft')show(index-1);});
 mode(true);})();
 `;
 
@@ -101,6 +110,7 @@ export function renderStoryboardSummary(storyboard) {
   storyboard.steps.forEach((storyboardStep, stepIndex) => {
     const change = stepChange(storyboardStep, hasBefore);
     summaryLines.push(`## ${stepIndex + 1}. ${storyboardStep.caption}${change ? ` (${CHANGE_LABELS[change].toLowerCase()})` : ''}`, '');
+    if (storyboardStep.before_caption && storyboardStep.before_caption !== storyboardStep.caption) summaryLines.push(`Before: ${storyboardStep.before_caption}`, '');
     if (storyboardStep.detail) summaryLines.push(storyboardStep.detail, '');
     for (const stepCapture of storyboardStep.captures) summaryLines.push(`![${stepCapture.variant} ${stepCapture.viewport}](${stepCapture.image})`);
     summaryLines.push('');

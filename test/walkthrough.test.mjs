@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { addCapture, readStoryboard, resolveStoryboardSlug, stepIdFromCaption, storyboardDirectory } from '../src/walkthrough/walkthrough-storyboard.mjs';
 import { buildStoryboard, renderStoryboardSummary } from '../src/walkthrough/walkthrough-build.mjs';
-import { findChromeBinary, printStoryboardPdf } from '../src/walkthrough/walkthrough-pdf.mjs';
+import { findChromeBinaries, printStoryboardPdf } from '../src/walkthrough/walkthrough-pdf.mjs';
 import { stopStoryboardServer } from '../src/walkthrough/walkthrough-serve.mjs';
 import { runHookEvent } from '../src/core/dispatcher.mjs';
 import { createTemporaryProject } from './helpers.mjs';
@@ -109,7 +109,8 @@ test('before and after side by side; steps only after are new, only before remov
   buildStoryboard(storyboardPath);
   const storyboardHtml = readFileSync(join(storyboardPath, 'index.html'), 'utf8');
   const cartSection = /<section class="step" id="step-1">[\s\S]*?<\/section>/.exec(storyboardHtml)[0];
-  assert.match(cartSection, /Cart with totals/, 'the after caption wins');
+  assert.match(cartSection, /<h2>Cart with totals<\/h2><p class="before-caption">Before: Cart<\/p>/, 'the after caption leads, the base wording stays');
+  assert.match(storyboardHtml, /zoom-in/, 'a screenshot opens full size');
   assert.match(cartSection, /cols-2[\s\S]*before · desktop[\s\S]*after · desktop/);
   assert.match(storyboardHtml, /step-removed" id="step-2"[\s\S]*Removed step/);
   assert.match(storyboardHtml, /step-new" id="step-3"[\s\S]*New step/);
@@ -133,15 +134,17 @@ test('build --pdf finds Chrome in Playwright\'s cache, prints one PDF, and fails
   writeFileSync(join(fakeCache, 'chromium-1200', 'chrome-linux64', 'chrome'), '');
   writeFileSync(join(fakeCache, 'chromium-999', 'chrome-linux', 'chrome'), '');
   if (process.platform === 'linux') {
-    assert.equal(findChromeBinary({ PATH: '', PLAYWRIGHT_BROWSERS_PATH: fakeCache }), join(fakeCache, 'chromium-1200', 'chrome-linux64', 'chrome'), 'newest build first');
+    assert.deepEqual(findChromeBinaries({ PATH: '', PLAYWRIGHT_BROWSERS_PATH: fakeCache }), [
+      join(fakeCache, 'chromium-1200', 'chrome-linux64', 'chrome'), join(fakeCache, 'chromium-999', 'chrome-linux', 'chrome'),
+    ], 'newest build first');
   }
-  assert.equal(findChromeBinary({ PATH: '', PLAYWRIGHT_BROWSERS_PATH: join(projectRoot, 'none') }), null);
+  assert.deepEqual(findChromeBinaries({ PATH: '', PLAYWRIGHT_BROWSERS_PATH: join(projectRoot, 'none') }), []);
 
   const storyboardPath = storyboardDirectory(projectRoot, 'pdf');
   addCapture(storyboardPath, 'pdf', { caption: 'Home', imageFile: writeScreenshot(projectRoot, 'shot.png') });
   const { htmlPath } = buildStoryboard(storyboardPath);
-  assert.match(printStoryboardPdf(storyboardPath, htmlPath, { chromeBinary: null }).error, /no Chrome or Chromium/);
-  assert.match(printStoryboardPdf(storyboardPath, htmlPath, { chromeBinary: join(projectRoot, 'not-a-browser') }).error, /could not print/);
+  assert.match(printStoryboardPdf(storyboardPath, htmlPath, { chromeBinaries: [] }).error, /no Chrome or Chromium/);
+  assert.match(printStoryboardPdf(storyboardPath, htmlPath, { chromeBinaries: [join(projectRoot, 'not-a-browser')] }).error, /could not print/);
 
   const failOpenRun = spawnSync(process.execPath, [AI1_CLI, 'walkthrough', 'build', '--slug', 'pdf', '--pdf'], {
     cwd: projectRoot, encoding: 'utf8', env: { ...process.env, PATH: '', PLAYWRIGHT_BROWSERS_PATH: join(projectRoot, 'none') },
@@ -149,10 +152,10 @@ test('build --pdf finds Chrome in Playwright\'s cache, prints one PDF, and fails
   assert.equal(failOpenRun.status, 0, 'a missing browser never fails the build');
   assert.match(failOpenRun.stdout, /pdf not written: no Chrome[\s\S]*with your browser tool/);
 
-  const realChrome = findChromeBinary();
-  if (realChrome) {
-    const printResult = printStoryboardPdf(storyboardPath, htmlPath, { chromeBinary: realChrome });
-    if (printResult.pdfPath) assert.equal(readFileSync(printResult.pdfPath).subarray(0, 5).toString(), '%PDF-');
+  const realChromes = findChromeBinaries();
+  if (realChromes.length) {
+    const printResult = printStoryboardPdf(storyboardPath, htmlPath, { chromeBinaries: [join(projectRoot, 'not-a-browser'), ...realChromes] });
+    if (printResult.pdfPath) assert.equal(readFileSync(printResult.pdfPath).subarray(0, 5).toString(), '%PDF-', 'a failing browser falls through to the next one');
   }
 });
 

@@ -5,7 +5,7 @@ description: Storyboard of the user flow after a visual change - numbered steps 
 tags: [walkthrough, ui, screenshots, pdf, worktrees]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T15:40:13Z'
+  at: '2026-11-09T15:52:59Z'
 sources:
   - id: storyboard
     resource: src/walkthrough/walkthrough-storyboard.mjs
@@ -53,7 +53,8 @@ ai1 never drives the browser: the agent captures with its own tool and hands the
   `--id`), captures by variant (before/after) and viewport (desktop/mobile), each with its `source`
   (path, size, mtime) until cleaned. Same step+variant+viewport replaces the image.
 - **`index.html`**: one file, images inlined, slides (arrow keys) or strip, before/after columns, steps
-  marked new/removed; print stylesheet A4 landscape, one step per page, used for the PDF.
+  marked new/removed, the base's wording under the new caption when it differs, click a screenshot to
+  see it full size; print stylesheet A4 landscape, one step per page, used for the PDF.
 - **`serve`**: detached Node server on 127.0.0.1 (`--host`), port from `pickWorktreePort('walkthrough:'+slug)`
   avoiding listening and worktree ports, TTL 8 h, `server.json` record (stale ones removed).
 - **Close**: `ai1 worktree finish|drop` (or `ai1 walkthrough stop` + `clean`) stop the server and delete
@@ -69,7 +70,13 @@ ai1 never drives the browser: the agent captures with its own tool and hands the
 - Google Drive does not render HTML; it previews PDF and images. Hence the PDF.
 - Headless PDF: Playwright's Chromium crashes at start inside sandboxed agent shells unless
   `--no-sandbox`; snap `chromium-browser` cannot read `/tmp` (snap private tmp) but reads the repo.
-  Content is ai1's own file, so `--no-sandbox` is passed always.
+  Content is ai1's own file, so `--no-sandbox` is passed always, and every browser found is tried in
+  turn until one prints (the snap one on PATH failed first in the end-to-end run).
+- End-to-end run (2026-11-09, scratch repo with a base and a changed booking page, `playwright-rec`
+  MCP): browser MCPs save screenshots relative to their own working directory - they landed in the
+  root of the session's repo, exactly the residue `clean` removes (7 deleted on `worktree finish`).
+  The plugin Playwright MCP failed there (no `/opt/google/chrome`). The highlight label sits above the
+  element and can cover its neighbours: acceptable, the frame is what matters.
 - Validate the look by building a demo storyboard from two headless screenshots
   (`chrome --headless --no-sandbox --window-size=1440,900 --screenshot=...`), screenshotting
   `index.html` and reading the PDF page by page.

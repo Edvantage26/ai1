@@ -25,38 +25,47 @@ function playwrightCacheDirectory(environment) {
   return join(environment.HOME || homedir(), '.cache', 'ms-playwright');
 }
 
-// The first Chrome/Chromium on PATH, else the newest one in Playwright's cache; null when none.
-export function findChromeBinary(environment = process.env) {
+// Every Chrome/Chromium found: those on PATH first, then Playwright's cache, newest build first.
+export function findChromeBinaries(environment = process.env) {
+  const chromeBinaries = [];
   for (const pathDirectory of (environment.PATH || '').split(delimiter).filter(Boolean)) {
     for (const browserName of PATH_BROWSER_NAMES) {
       const candidatePath = join(pathDirectory, process.platform === 'win32' ? `${browserName}.exe` : browserName);
-      if (existsSync(candidatePath)) return candidatePath;
+      if (existsSync(candidatePath)) chromeBinaries.push(candidatePath);
     }
   }
   const cacheDirectory = playwrightCacheDirectory(environment);
-  if (!existsSync(cacheDirectory)) return null;
+  if (!existsSync(cacheDirectory)) return chromeBinaries;
   const chromiumBuilds = readdirSync(cacheDirectory)
     .filter((folderName) => /^chromium-\d+$/.test(folderName))
     .sort((firstBuild, secondBuild) => Number(secondBuild.split('-')[1]) - Number(firstBuild.split('-')[1]));
   for (const chromiumBuild of chromiumBuilds) {
-    for (const browserPath of PLAYWRIGHT_BROWSER_PATHS) {
-      const candidatePath = join(cacheDirectory, chromiumBuild, ...browserPath);
-      if (existsSync(candidatePath)) return candidatePath;
-    }
+    const browserPath = PLAYWRIGHT_BROWSER_PATHS.map((relativeParts) => join(cacheDirectory, chromiumBuild, ...relativeParts)).find((candidatePath) => existsSync(candidatePath));
+    if (browserPath) chromeBinaries.push(browserPath);
   }
-  return null;
+  return chromeBinaries;
 }
 
-// { pdfPath } or { error }. `--no-sandbox`: the page is the storyboard ai1 just wrote (no remote
-// content), and Chrome's sandbox fails to start inside sandboxed agent shells.
-export function printStoryboardPdf(storyboardPath, htmlPath, { environment = process.env, chromeBinary = findChromeBinary(environment) } = {}) {
-  if (!chromeBinary) return { error: 'no Chrome or Chromium found (PATH or Playwright cache)' };
-  const pdfPath = join(storyboardPath, PDF_FILE_NAME);
+function printWithChrome(chromeBinary, pdfPath, htmlPath) {
   rmSync(pdfPath, { force: true });
   const printRun = spawnSync(chromeBinary, [
     '--headless', '--no-sandbox', '--disable-gpu', '--no-pdf-header-footer', `--print-to-pdf=${pdfPath}`, pathToFileURL(htmlPath).href,
   ], { encoding: 'utf8', timeout: PDF_TIMEOUT_MILLISECONDS });
-  if (existsSync(pdfPath) && statSync(pdfPath).size > 0) return { pdfPath, chromeBinary };
-  const failureReason = printRun.error?.code === 'ETIMEDOUT' ? `timed out after ${PDF_TIMEOUT_MILLISECONDS / 1000} s` : `exit ${printRun.status ?? printRun.error?.code}`;
-  return { error: `${chromeBinary} could not print the PDF (${failureReason})` };
+  if (existsSync(pdfPath) && statSync(pdfPath).size > 0) return null;
+  return printRun.error?.code === 'ETIMEDOUT' ? `timed out after ${PDF_TIMEOUT_MILLISECONDS / 1000} s` : `exit ${printRun.status ?? printRun.error?.code}`;
+}
+
+// { pdfPath, chromeBinary } or { error }, trying each browser found until one prints (a snap Chromium
+// cannot read /tmp, for instance). `--no-sandbox`: the page is the storyboard ai1 just wrote (no
+// remote content), and Chrome's sandbox fails to start inside sandboxed agent shells.
+export function printStoryboardPdf(storyboardPath, htmlPath, { environment = process.env, chromeBinaries = findChromeBinaries(environment) } = {}) {
+  if (!chromeBinaries.length) return { error: 'no Chrome or Chromium found (PATH or Playwright cache)' };
+  const pdfPath = join(storyboardPath, PDF_FILE_NAME);
+  const failures = [];
+  for (const chromeBinary of chromeBinaries) {
+    const failureReason = printWithChrome(chromeBinary, pdfPath, htmlPath);
+    if (!failureReason) return { pdfPath, chromeBinary };
+    failures.push(`${chromeBinary} (${failureReason})`);
+  }
+  return { error: `could not print the PDF with ${failures.join(', ')}` };
 }

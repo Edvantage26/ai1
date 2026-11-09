@@ -85,6 +85,7 @@ export function addCapture(storyboardPath, slug, { caption, imageFile, variant =
   } else if (variant === 'after') {
     storyboardStep.caption = caption.trim();
   }
+  if (variant === 'before') storyboardStep.before_caption = caption.trim();
   if (detail) storyboardStep.detail = detail;
 
   const imageRelativePath = `${IMAGES_FOLDER_NAME}/${resolvedStepId}-${variant}-${viewport}${imageExtension}`;
