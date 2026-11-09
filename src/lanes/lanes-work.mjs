@@ -7,10 +7,9 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { splitFrontmatter, writeFrontmatterField } from '../core/frontmatter.mjs';
-import { AI1_DIRECTORY } from '../core/config.mjs';
+import { WORK_DIRECTORY } from '../core/config.mjs';
 import { resolveStateDirectory, shortHash, readStateJson, writeStateText } from '../core/session-state.mjs';
 
-export const WORK_DIRECTORY = join(AI1_DIRECTORY, 'work');
 export const UNAPPROVED_STATUSES = new Set(['draft', 'ready']);
 const FINISHED_STATUSES = new Set(['done', 'abandoned']);
 

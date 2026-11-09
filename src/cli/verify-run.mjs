@@ -8,7 +8,7 @@ import { appendFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { loadHarnessConfig } from '../core/config.mjs';
 import { KNOWN_MODULE_IDS } from '../core/registry.mjs';
-import { WORK_DIRECTORY } from '../lanes/lanes-work.mjs';
+import { WORK_DIRECTORY } from '../core/config.mjs';
 
 export function readVerifyCommands(repoRoot) {
   const loadedConfig = loadHarnessConfig(repoRoot, KNOWN_MODULE_IDS);

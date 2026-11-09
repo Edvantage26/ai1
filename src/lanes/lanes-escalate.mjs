@@ -9,8 +9,8 @@ import { allowDecision, askDecision } from '../core/hook-io.mjs';
 import { readSessionBase } from '../core/session-base.mjs';
 import { resolveStateDirectory, sessionStatePath, readStateText, writeStateText } from '../core/session-state.mjs';
 import { FILE_EDITING_TOOLS, listEditedProjectPaths } from './lanes-gate.mjs';
-import { listActivePlans, WORK_DIRECTORY } from './lanes-work.mjs';
-import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
+import { listActivePlans } from './lanes-work.mjs';
+import { KNOWLEDGE_BUNDLE_PATH, WORK_DIRECTORY } from '../core/config.mjs';
 
 const MODULE_ID = 'lanes-escalate';
 export const DEFAULT_MAX_FILES = 6;
@@ -59,7 +59,7 @@ export default {
     if (readStateText(escalatedPath) !== null) return allowDecision();
     const sharedSessionBase = sharedRoot === projectRoot ? sessionBase : readSessionBase(hookInput, sharedRoot, environment);
     if (listActivePlans(sharedRoot, sharedSessionBase?.sessionStartMilliseconds).length > 0) return allowDecision();
-    const excludedDirectories = [WORK_DIRECTORY, KNOWLEDGE_BUNDLE_PATH].map((directoryPath) => directoryPath.replace(/^\.\//, '').replace(/\/+$/, ''));
+    const excludedDirectories = [WORK_DIRECTORY, KNOWLEDGE_BUNDLE_PATH];
     const { changedFileCount, changedLines } = measureSessionChanges(projectRoot, sessionBase.baseHead, excludedDirectories);
     const maxFiles = moduleOptions.max_files ?? DEFAULT_MAX_FILES;
     const maxLines = moduleOptions.max_lines ?? DEFAULT_MAX_LINES;

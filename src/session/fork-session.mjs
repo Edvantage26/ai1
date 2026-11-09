@@ -12,7 +12,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { homedir, tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { AI1_DIRECTORY } from '../core/config.mjs';
-import { WORK_DIRECTORY } from '../lanes/lanes-work.mjs';
+import { WORK_DIRECTORY } from '../core/config.mjs';
 
 const SEED_TIMEOUT_MILLISECONDS = 180_000;
 const VSCODE_URI_PREFIX = 'vscode://anthropic.claude-code/open';

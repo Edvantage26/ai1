@@ -7,12 +7,12 @@ import { allowDecision, denyDecision } from '../core/hook-io.mjs';
 import { readSessionBase } from '../core/session-base.mjs';
 import { listShellWriteTargets } from '../core/shell-writes.mjs';
 import {
-  listActivePlans, readApprovals, isPlanApproved, UNAPPROVED_STATUSES, WORK_DIRECTORY,
+  listActivePlans, readApprovals, isPlanApproved, UNAPPROVED_STATUSES,
 } from './lanes-work.mjs';
 import { projectRelativePath } from '../core/project-paths.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
 import { RFC_DIRECTORY } from '../rfc/rfc-documents.mjs';
-import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
+import { KNOWLEDGE_BUNDLE_PATH, WORK_DIRECTORY } from '../core/config.mjs';
 
 const MODULE_ID = 'lanes-gate';
 export const FILE_EDITING_TOOLS = ['Edit', 'Write', 'MultiEdit', 'NotebookEdit'];

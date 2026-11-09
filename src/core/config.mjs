@@ -12,6 +12,8 @@ export const AI1_DIRECTORY = '.ai1';
 export const CONFIG_RELATIVE_PATH = join(AI1_DIRECTORY, 'config.json');
 // The OKF knowledge bundle always lives here (a fixed path since v0.16.0; `knowledge` is retired).
 export const KNOWLEDGE_BUNDLE_PATH = `${AI1_DIRECTORY}/okf`;
+// Work plans and handoffs; ignores itself, never reaches git.
+export const WORK_DIRECTORY = `${AI1_DIRECTORY}/work`;
 export const AI1_PLUGIN_ID = 'ai1@ai1';
 export const SCHEMA_URL = 'https://raw.githubusercontent.com/Edvantage26/ai1/main/schema/ai1.schema.json';
 export const SUPPORTED_CONFIG_VERSION = 1;

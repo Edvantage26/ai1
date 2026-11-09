@@ -14,7 +14,8 @@ import { validateHarnessConfig, listUnknownConfigEntries, SUPPORTED_CONFIG_VERSI
 import { KNOWN_MODULE_IDS } from '../core/registry.mjs';
 import { findMainCheckout } from '../core/project-roots.mjs';
 import { loadRecipe } from '../worktrees/worktree-recipe.mjs';
-import { planLegacyMigration, migrateLegacyLayout, readLegacyConfig } from './legacy-migration.mjs';
+import { migrateLegacyLayout } from './legacy-migration.mjs';
+import { planLegacyMigration, readLegacyConfig } from '../core/legacy-layout.mjs';
 
 export const AI1_MARKETPLACE = { source: { source: 'github', repo: 'Edvantage26/ai1' } };
 

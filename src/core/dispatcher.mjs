@@ -5,7 +5,7 @@ import { combineDecisions, buildHookOutput, contextDecision } from './hook-io.mj
 import { loadHarnessConfig, isModuleEnabled, getModuleOptions, CONFIG_RELATIVE_PATH } from './config.mjs';
 import { resolveProjectRoots } from './project-roots.mjs';
 import { ALL_MODULES, KNOWN_MODULE_IDS, modulesForEvent } from './registry.mjs';
-import { hasLegacyLayout } from '../cli/legacy-migration.mjs';
+import { hasLegacyLayout } from './legacy-layout.mjs';
 
 export function runHookEvent(eventName, hookInput, { environment = process.env, homeDirectory, availableModules = ALL_MODULES, reportInternalError = defaultErrorReporter } = {}) {
   const { projectRoot, sharedRoot } = resolveProjectRoots(hookInput, environment);

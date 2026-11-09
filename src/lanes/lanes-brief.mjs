@@ -10,8 +10,9 @@ import { allowDecision, contextDecision } from '../core/hook-io.mjs';
 import { recordSessionBaseHead, readSessionBase } from '../core/session-base.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
 import {
-  listWorkPlans, isPlanFinished, readApprovals, isPlanApproved, ensureWorkDirectoryIgnored, WORK_DIRECTORY,
+  listWorkPlans, isPlanFinished, readApprovals, isPlanApproved, ensureWorkDirectoryIgnored,
 } from './lanes-work.mjs';
+import { WORK_DIRECTORY } from '../core/config.mjs';
 
 const MODULE_ID = 'lanes-brief';
 const PROGRESS_TAIL_LINES = 15;

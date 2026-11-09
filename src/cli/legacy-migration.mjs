@@ -16,15 +16,11 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, s
 import { dirname, join, posix, relative } from 'node:path';
 import { CONFIG_RELATIVE_PATH, KNOWLEDGE_BUNDLE_PATH, AI1_DIRECTORY, AI1_PLUGIN_ID, SCHEMA_URL } from '../core/config.mjs';
 import { ensureWorkDirectoryIgnored } from '../lanes/lanes-work.mjs';
+import {
+  LEGACY_CONFIG_PATH, LEGACY_RFC_PATH, LEGACY_DIRECTORY, LEGACY_WORK_PATH, LEGACY_PLUGIN_ID, LEGACY_MARKETPLACE_KEY,
+  normalizeRelativePath, planLegacyMigration,
+} from '../core/legacy-layout.mjs';
 
-const LEGACY_CONFIG_PATH = join('.claude', 'jig.json');
-const LEGACY_BUNDLE_PATH = '.okf';
-const LEGACY_RFC_PATH = 'docs/rfc';
-const LEGACY_DIRECTORY = '.jig';
-const LEGACY_WORK_PATH = join(LEGACY_DIRECTORY, 'work');
-const LEGACY_PLUGIN_ID = 'jig@jig';
-const LEGACY_MARKETPLACE_KEY = 'jig';
-const SETTINGS_PATHS = [join('.claude', 'settings.json'), join('.claude', 'settings.local.json')];
 const OLD_PATH_MENTION = /(^|[^\w./-])(\.okf\/|docs\/rfc\/|\.claude\/jig\.json|\/jig:)/;
 
 function isTrackedByGit(repoRoot, relativePath) {
@@ -33,44 +29,6 @@ function isTrackedByGit(repoRoot, relativePath) {
   } catch {
     return false;
   }
-}
-
-function normalizeRelativePath(pathText) {
-  return String(pathText).replace(/^\.\//, '').replace(/\/+$/, '');
-}
-
-function settingsMentionLegacyPlugin(settingsJson) {
-  return Boolean(settingsJson && (settingsJson.enabledPlugins?.[LEGACY_PLUGIN_ID] !== undefined || settingsJson.extraKnownMarketplaces?.[LEGACY_MARKETPLACE_KEY]));
-}
-
-// { moves: [{ from, to }], conflicts: [path], settingsFiles: [path] }: what migrateLegacyLayout would do.
-export function planLegacyMigration(repoRoot) {
-  const legacyConfig = readJsonFileIfValid(join(repoRoot, LEGACY_CONFIG_PATH));
-  const currentConfig = readJsonFileIfValid(join(repoRoot, CONFIG_RELATIVE_PATH));
-  // The repo's bundle: the path the retired `knowledge` setting named (null = none), else `.okf/`.
-  const knowledgeSetting = (legacyConfig || currentConfig)?.knowledge;
-  const configuredBundlePath = typeof knowledgeSetting === 'string' ? normalizeRelativePath(knowledgeSetting)
-    : knowledgeSetting === null ? null : LEGACY_BUNDLE_PATH;
-  const moves = [];
-  if (existsSync(join(repoRoot, LEGACY_CONFIG_PATH))) moves.push({ from: LEGACY_CONFIG_PATH, to: CONFIG_RELATIVE_PATH });
-  if (configuredBundlePath && configuredBundlePath !== KNOWLEDGE_BUNDLE_PATH && existsSync(join(repoRoot, configuredBundlePath))) {
-    moves.push({ from: configuredBundlePath, to: KNOWLEDGE_BUNDLE_PATH });
-  }
-  if (legacyConfig?.features?.rfc === true && existsSync(join(repoRoot, LEGACY_RFC_PATH))) moves.push({ from: LEGACY_RFC_PATH, to: join(AI1_DIRECTORY, 'rfc') });
-  if (existsSync(join(repoRoot, LEGACY_WORK_PATH))) moves.push({ from: LEGACY_WORK_PATH, to: join(AI1_DIRECTORY, 'work') });
-  const conflicts = moves.filter((plannedMove) => existsSync(join(repoRoot, plannedMove.to))).map((plannedMove) => plannedMove.to);
-  const settingsFiles = SETTINGS_PATHS.filter((settingsPath) => settingsMentionLegacyPlugin(readJsonFileIfValid(join(repoRoot, settingsPath))));
-  return { moves, conflicts, settingsFiles };
-}
-
-// The old `.claude/jig.json`, so `ai1 status` can show the features the repo had before migrating.
-export function readLegacyConfig(repoRoot) {
-  return readJsonFileIfValid(join(repoRoot, LEGACY_CONFIG_PATH));
-}
-
-export function hasLegacyLayout(repoRoot) {
-  const legacyPlan = planLegacyMigration(repoRoot);
-  return legacyPlan.moves.length > 0 || legacyPlan.settingsFiles.length > 0;
 }
 
 function movePath(repoRoot, fromPath, toPath) {
