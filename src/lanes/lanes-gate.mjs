@@ -1,9 +1,10 @@
 // lanes-gate (PreToolUse, feature `lanes`): while a deep-lane design of this session is not approved
 // by the person, refuses edits to project files outside `.ai1/`, the knowledge bundle and proposals (Edit,
-// Write, MultiEdit, NotebookEdit, and shell commands that write files). Designing, asking and
+// Write, MultiEdit, NotebookEdit, and shell commands that write files) and asks before inline
+// interpreter scripts, whose writes cannot be told from the command line. Designing, asking and
 // reading stay free; building waits for the approval that lanes-approval records.
 
-import { allowDecision, denyDecision } from '../core/hook-io.mjs';
+import { allowDecision, askDecision, denyDecision } from '../core/hook-io.mjs';
 import { readSessionBase } from '../core/session-base.mjs';
 import { listShellWriteTargets } from '../core/shell-writes.mjs';
 import {
@@ -50,10 +51,15 @@ export default {
     const designDirectories = [WORK_DIRECTORY, KNOWLEDGE_BUNDLE_PATH, isFeatureEnabled('proposals', config) && PROPOSALS_DIRECTORY].filter(Boolean);
     const editedPaths = listEditedProjectPaths(hookInput, projectRoot)
       .filter((relativePath) => !designDirectories.some((designDirectory) => isPathInside(relativePath, designDirectory)));
-    if (editedPaths.length === 0) return allowDecision();
+    // An inline script (`python3 - <<EOF`, `node -e`) may write any file, and may only read.
+    const runsInlineScript = hookInput.tool_name === 'Bash' && listShellWriteTargets(hookInput.tool_input?.command).runsInlineScript;
+    if (editedPaths.length === 0 && !runsInlineScript) return allowDecision();
     const sessionBase = readSessionBase(hookInput, sharedRoot, environment);
     const unapprovedPlan = findUnapprovedPlan(sharedRoot, sessionBase?.sessionStartMilliseconds, readApprovals(sharedRoot, environment));
     if (!unapprovedPlan) return allowDecision();
+    if (editedPaths.length === 0) {
+      return askDecision(MODULE_ID, `Deep lane: the design \`${unapprovedPlan.relativePath}\` is not approved yet and this inline script may write project files. Confirm only if it just reads; edits wait for the approval.`);
+    }
     return denyDecision(MODULE_ID, [
       `Deep lane: the design \`${unapprovedPlan.relativePath}\` (status: ${unapprovedPlan.status}) is not approved by the person yet, so \`${editedPaths[0]}\` cannot be edited.`,
       unapprovedPlan.status === 'ready'

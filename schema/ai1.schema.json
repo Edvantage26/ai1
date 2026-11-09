@@ -145,6 +145,8 @@
                       "ai1-worktree-finish",
                       "ai1-proposals-new",
                       "rm-recursive-force",
+                      "find-delete",
+                      "file-truncate",
                       "sql-destructive",
                       "docker-destructive",
                       "disk-destroy"
