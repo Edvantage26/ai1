@@ -1,15 +1,15 @@
 ---
 name: worktrees-plan-recipe
-description: Worktrees — Plan, follow or revise how this repository makes git worktrees, one per significant change. Use when the person wants changes done in worktrees ("trabaja en un worktree", "un worktree por desarrollo", "work in a worktree"), when a session says the worktrees feature has no recipe yet, before starting a significant change in a repo with the worktrees feature, or to revise the recipe ("revisa la receta de worktrees", "/ai1:worktrees-plan-recipe revisar").
+description: Worktrees — Plan, follow or revise how this repository makes git worktrees, one per change. Use when the person wants changes done in worktrees ("trabaja en un worktree", "un worktree por desarrollo", "work in a worktree"), when a session says the worktrees feature has no recipe yet, before the first change to files in a repo with the worktrees feature, or to revise the recipe ("revisa la receta de worktrees", "/ai1:worktrees-plan-recipe revisar").
 ---
 
 # Worktrees made the way this project needs
 
-Each significant change gets its own worktree. **How** to make one is project-specific (heavy
+Every change to the repo's files gets its own worktree (the project skill may relax this). **How** to make one is project-specific (heavy
 folders, ports, env files, build outputs, closing rules), so it is planned once with the person
 and saved as the **project skill** `.claude/skills/worktree/` (committed):
 
-- `SKILL.md`: the project's rules in prose (when to propose a worktree, modes, traps, commands).
+- `SKILL.md`: the project's rules in prose (which changes need a worktree, modes, traps, commands).
 - `recipe.json`: the data the engine reads (schema: `schema/worktree-recipe.schema.json` of ai1).
 - `scripts/`: only when a project step needs more than a one-line command.
 
@@ -65,7 +65,7 @@ Practical first: trim only what would really fill the disk; `auto` mode decides 
 
 Show the person, in one message: the recipe as JSON (start from ai1's
 `templates/worktree-skill/recipe.json`, drop what does not apply) and a summary of the project
-`SKILL.md` (from `templates/worktree-skill/SKILL.md`): when to propose a worktree, the modes and
+`SKILL.md` (from `templates/worktree-skill/SKILL.md`): which changes need a worktree, the modes and
 what each trims, the commands, the traps you found. Iterate until they approve.
 
 ## 5. Write and switch on

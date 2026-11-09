@@ -141,6 +141,7 @@ test('handoff path: .ai1/work/handoffs/ in an ai1 repo, the temp dir otherwise; 
   mkdirSync(join(ai1Repo, '.ai1'));
   assert.equal(resolveHandoffPath(ai1Repo, 'login-timeout'), join(ai1Repo, '.ai1', 'work', 'handoffs', 'login-timeout.md'));
   assert.ok(existsSync(join(ai1Repo, '.ai1', 'work', 'handoffs')));
+  assert.equal(readFileSync(join(ai1Repo, '.ai1', 'work', '.gitignore'), 'utf8'), '*\n', 'handoffs stay out of git without the lanes feature');
   const plainRepo = mkdtempSync(join(tmpdir(), 'ai1-fork-plain-'));
   assert.equal(resolveHandoffPath(plainRepo, 'x').startsWith(join(tmpdir(), 'ai1-handoffs')), true);
   assert.throws(() => resolveHandoffPath(ai1Repo, '../escape'), /invalid handoff slug/);

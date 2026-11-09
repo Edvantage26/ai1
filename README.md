@@ -19,7 +19,7 @@ Skills are named `/ai1:<module>-<what it does>`, e.g. `/ai1:okf-validate-bundle`
 A repo set up with the old name (`jig`: `.claude/jig.json`, `.okf/`, `docs/rfc/`, `.jig/work/`) is
 moved to `.ai1/` by `/ai1:core-setup-repo`, with `git mv` so history follows.
 
-> **Status: early (v0.18.0).** Per-repo features, the `okf` feature (project knowledge) and the
+> **Status: early (v0.18.1).** Per-repo features, the `okf` feature (project knowledge) and the
 > `danger` guard work, are tested and verified in real sessions. The `lanes`, `design`, `verify`,
 > `proposals` and `worktrees` features are new and tested, not yet tried in live sessions. Everything marked *planned* does not exist yet.
 
@@ -100,7 +100,7 @@ With `proposals` on, an idea goes: `ai1 proposals new <slug> --idea` (next numbe
 a full proposal when it is about to be decided → `ai1 proposals set <n> accepted` and its decisions become OKF
 concepts that cite it → built (with `lanes`, a deep plan with `proposal: <n>`) → `ai1 proposals set <n> implemented`.
 
-| `worktrees` | off | Each significant change is done in its own git worktree, made the way your project needs. The first time, `/ai1:worktrees-plan-recipe` studies the repo (heavy folders, env files, ports, where builds write, existing worktree tools), proposes a recipe, and once you approve it saves it as the project skill `.claude/skills/worktree/` (`SKILL.md` + `recipe.json`, committed). Modes: `full`, `light` (heavy folders shared, regenerated or left out) and `auto`, which picks full when it fits on that machine's disk. Each worktree gets its env files and its own port; the agent keeps telling you which worktree it is working in. `ai1 worktree create\|list\|run\|finish\|drop` |
+| `worktrees` | off | Every change to the repo files is done in its own worktree, which the agent creates before the first edit, made the way your project needs. The first time, `/ai1:worktrees-plan-recipe` studies the repo (heavy folders, env files, ports, where builds write, existing worktree tools), proposes a recipe, and once you approve it saves it as the project skill `.claude/skills/worktree/` (`SKILL.md` + `recipe.json`, committed). Modes: `full`, `light` (heavy folders shared, regenerated or left out) and `auto`, which picks full when it fits on that machine's disk. Each worktree gets its env files and its own port; the agent keeps telling you which worktree it is working in. `ai1 worktree create\|list\|run\|finish\|drop` |
 
 With `worktrees` on: `ai1 worktree create feat-x` → the agent enters it (EnterWorktree) and runs the
 setup it prints → works and commits there, starting each progress report with the worktree's name →

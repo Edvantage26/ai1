@@ -1,11 +1,11 @@
 ---
 type: Component
 title: worktrees feature
-description: A worktree per significant change, made with a per-project recipe planned once with the person and saved as the project skill .claude/skills/worktree/; engine ai1 worktree, session brief and active-worktree reminder.
+description: A worktree per change (any edit to the repo files, created before the first edit), made with a per-project recipe planned once with the person and saved as the project skill .claude/skills/worktree/; engine ai1 worktree, session brief and active-worktree reminder.
 tags: [worktrees, git, skills, cli, hooks]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T22:15:28Z'
+  at: '2026-11-09T07:25:04Z'
 sources:
   - id: worktree-create
     resource: src/worktrees/worktree-create.mjs
@@ -29,8 +29,14 @@ sources:
 
 # Why
 
-The person wants every significant change in its own worktree, and the agent to keep saying which
-one it works in. How to make a worktree is project-specific (heavy folders, ports, env files, build
+The person wants every change in its own worktree, and the agent to keep saying which one it works
+in. Until 2026-11-09 the rule was "each significant change, proposed once, the person decides"; the
+person changed it to **any change to the repo's files**, created by the agent before the first edit
+without asking (questions and research without edits need none), after two sessions committing and
+releasing on the same `main` of this repo stepped on each other. A project skill may relax it. This
+repo has the feature on since that day (recipe `.claude/skills/worktree/`: base `main`, nothing heavy,
+`pre-finish` runs `npm test` and the OKF validator, rebase, releases only after `finish` from the main
+checkout by one session). How to make a worktree is project-specific (heavy folders, ports, env files, build
 outputs, closing rules); a hand-written per-project skill (a private reference of ~1,500 lines of
 Python) showed the level needed. Claude Code's native worktrees and the community tools (Worktrunk,
 git-worktree-runner, Superpowers) each cover part of it; none plans a recipe with the person and

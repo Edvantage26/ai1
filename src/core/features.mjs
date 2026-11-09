@@ -29,8 +29,8 @@ export const FEATURES = [
   },
   {
     id: 'worktrees',
-    title: 'A worktree per significant change',
-    description: 'Each significant change is done in its own worktree, made the way this project needs (modes full/light/auto by disk, copied env, shared or regenerated heavy folders, a port per worktree, named commands, checked integration). The recipe is planned once with the person (/ai1:worktrees-plan-recipe) and saved as the project skill .claude/skills/worktree/. The agent keeps saying which worktree it works in. Adds `ai1 worktree`.',
+    title: 'A worktree per change',
+    description: 'Every change to the repo files is done in a worktree (created before the first edit), made the way this project needs (modes full/light/auto by disk, copied env, shared or regenerated heavy folders, a port per worktree, named commands, checked integration). The recipe is planned once with the person (/ai1:worktrees-plan-recipe) and saved as the project skill .claude/skills/worktree/. The agent keeps saying which worktree it works in. Adds `ai1 worktree`.',
     enabledByDefault: false,
   },
   {
