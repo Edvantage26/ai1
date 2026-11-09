@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Edvantage26/ai1/main/schema/worktree-recipe.schema.json",
+  "version": 1,
+  "location": ".claude/worktrees",
+  "branch_prefix": "wt/",
+  "base": "trunk",
+  "default_mode": "auto",
+  "copy": [".claude/settings.local.json"],
+  "heavy": [],
+  "setup": [],
+  "commands": {
+    "test": "npm test",
+    "okf": "python3 skills/okf-validate-bundle/scripts/okf_validate.py .ai1/okf --strict",
+    "validate": "claude plugin validate .",
+    "pre-finish": ["npm test", "python3 skills/okf-validate-bundle/scripts/okf_validate.py .ai1/okf --strict"]
+  },
+  "finish": { "strategy": "rebase", "allow_merge": false, "dirty_base_paths_ok": [".ai1/okf/"] },
+  "reminder_every": 5
+}

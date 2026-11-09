@@ -6,7 +6,7 @@
     "danger": true,
     "craft": true,
     "lanes": true,
-    "worktrees": false,
+    "worktrees": true,
     "proposals": true,
     "design": false,
     "verify": true
