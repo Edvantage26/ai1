@@ -16,8 +16,10 @@ OKF validator in `--strict` mode (`python3 skills/okf-validate-bundle/scripts/ok
 
 - **Public repo**: never commit secrets, internal hostnames, client names or Edvantage-specific
   infrastructure. Those belong in a private pack, not here.
-- **Hooks**: plain Node or POSIX shell, zero dependencies, no network calls. Fail open on internal
-  errors; fail closed only on matched production writes.
+- **Hooks**: plain Node or POSIX shell, no npm dependencies, no network calls. A system tool (`git`,
+  `python3`) only when optional, with a timeout, failing open when missing. Per-tool-call hooks stay
+  in milliseconds; heavy work goes to the CLI. Fail open on internal errors; fail closed only on
+  matched production writes. See `.ai1/okf/decisions/principles.md`.
 - **Never grant the agent git permissions** (commit/push) from the plugin.
 - Every module ships with tests; run `npm test` and `claude plugin validate .` before committing.
 - Adding a module: one file (with its `feature`), one line in `src/core/module-index.mjs`, its entry in the schema.

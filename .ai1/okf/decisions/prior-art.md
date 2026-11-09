@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T22:15:28Z'
+  at: '2026-11-09T07:11:26Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -17,6 +17,7 @@ First review on 2026-10-30 by reading the repositories.
 | [andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills) | One CLAUDE.md with four rules against common LLM coding mistakes: think before coding, simplicity first, surgical changes, goal-driven execution | Simplicity first and surgical changes, in the [craft feature](/features/craft.md) | Think before coding and goal-driven execution: already covered by lanes and the verify gate |
 | [Impeccable](https://github.com/pbakaus/impeccable) (Apache 2.0, Paul Bakaus; reviewed 2026-11-08) | Design skill for coding agents: one `/impeccable` skill with ~24 commands (critique, audit, polish...), `PRODUCT.md`/`DESIGN.md` context, and a deterministic anti-pattern detector (62 rules, Rust) run as a hook, CLI and browser extension | The detector-as-hook idea and rule ids, re-implemented for source text, and the product/design context (as OKF concepts) in the [design feature](/features/design.md) | The command set and its reference texts: install Impeccable for those; ai1 points to it when present |
 | [rsc-factory](https://github.com/gregoryjp/rsc-factory) (unofficial) | PRD-to-product engine outside the agent | Risk classifier idea (auto vs human PR) for a future pipeline mode | Whole engine: out of scope |
+| [graphify](https://github.com/gmh5225/graphify) (reviewed 2026-11-09 from its docs and third-party reviews, not its code) | `/graphify` skill: tree-sitter code graph + LLM pass over docs/PDFs/images into `graphify-out/` (`graph.json`, `GRAPH_REPORT.md`, `graph.html`), Leiden clusters, EXTRACTED/INFERRED/AMBIGUOUS edges, PreToolUse nudge on Grep/Glob, MCP server, git hooks | Nothing yet; see [graphify review](#graphify-review-2026-11-09) | The LLM semantic pass (the OKF bundle covers it, curated), Python + native deps, git hooks, a committed `graph.json` |
 
 No code is copied at this stage; if any is, it keeps its license notice and attribution.
 
@@ -126,3 +127,27 @@ before integrating, bundle on drop, never force. ai1's own: a recipe planned wit
 as a project skill, mode chosen by free disk on each machine, a tree root and a shared root in hooks.
 Measured on the way: `git worktree remove` without `--force` deletes ignored files silently; a
 symlink over a tracked path shows it as deleted and `commit -a` removes it.
+
+# graphify review (2026-11-09)
+
+Popular on GitHub, little independent evaluation (HN submission: 3 points, no comments). Findings:
+
+- **Solid part:** the deterministic tree-sitter extraction (~23 languages, no LLM).
+- **Weak parts:** the LLM pass is not reproducible and overwrites AST nodes on id collision; inferred
+  edges let an agent describe code paths that do not exist; the graph goes stale between rebuilds; the
+  native tree-sitter binding broke the whole tool on Apple Silicon; Leiden needs Python < 3.13 and falls
+  back to Louvain silently; no reproducible test suite, untagged fast-moving releases.
+- **Token claims are the vendor's:** 71.5x comes from one curated 52-file corpus against "read every
+  file" and excludes build cost; third-party estimates: little gain under ~100 files, 6-15x at 100-500,
+  30x+ above 500.
+- **Overlap with ai1:** `graph.html` ≈ [/ai1:okf-visualize-bundle](../features/okf.md), the nudge ≈
+  `okf-recall`/`okf-file-context`, file → node ≈ `okf-file-map`, confidence tags ≈ OKF v0.2 trust and
+  provenance.
+- **Ruled out for ai1:** embedding graphify or its LLM pass; a function-level call graph built in
+  ai1 (an LSP resolves it exactly); git hooks to rebuild.
+- **Still open:** a zero-dependency module (import) graph in Node, as a cache like `okf-file-map`, not
+  as bundle concepts. Not decided.
+
+Sources: [Pantheon analysis](https://pantheon-org.github.io/agentic-context/analysis/graphify/),
+[explainx.ai](https://explainx.ai/blog/graphify-codebase-knowledge-graph-skill-claude-code-cursor-codex-trending-2026),
+[RoboRhythms](https://www.roborhythms.com/graphify-review/).
