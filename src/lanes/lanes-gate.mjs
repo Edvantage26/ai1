@@ -4,7 +4,8 @@
 // interpreter scripts, whose writes cannot be told from the command line. Designing, asking and
 // reading stay free; building waits for the approval that lanes-approval records.
 
-import { join } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { basename, dirname, join } from 'node:path';
 import { allowDecision, askDecision, denyDecision } from '../core/hook-io.mjs';
 import { readSessionBase } from '../core/session-base.mjs';
 import { listShellWriteTargets } from '../core/shell-writes.mjs';
@@ -12,6 +13,7 @@ import {
   listActivePlans, readApprovals, isPlanApproved, readSessionPlanSlugs, UNAPPROVED_STATUSES,
 } from './lanes-work.mjs';
 import { projectRelativePath } from '../core/project-paths.mjs';
+import { findPlanScenarioViolation } from './lanes-scenarios.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
 import { LATER_DIRECTORY } from '../later/later-documents.mjs';
 import { KNOWLEDGE_BUNDLE_PATH, WORK_DIRECTORY } from '../core/config.mjs';
@@ -41,6 +43,30 @@ export function findUnapprovedPlan(projectRoot, sessionStartMilliseconds, approv
     .find((workPlan) => UNAPPROVED_STATUSES.has(workPlan.status) || !isPlanApproved(workPlan, approvals));
 }
 
+// The text a Write, Edit or MultiEdit leaves in a file whose current text is `diskText`.
+function applyFileEdit(toolName, toolInput, diskText) {
+  if (toolName === 'Write') return String(toolInput.content ?? '');
+  const fileEdits = toolName === 'MultiEdit' ? toolInput.edits || [] : [toolInput];
+  return fileEdits.reduce((editedText, fileEdit) => {
+    const oldString = String(fileEdit?.old_string ?? '');
+    const newString = String(fileEdit?.new_string ?? '');
+    if (!oldString) return editedText;
+    return fileEdit.replace_all ? editedText.split(oldString).join(newString) : editedText.replace(oldString, () => newString);
+  }, diskText);
+}
+
+// A write to a plan with behaviour scenarios that sets `status: done` by hand or drops an approved
+// scenario: the reason to refuse it, or null. Milliseconds: reads only that plan.md.
+function findPlanWriteViolation(hookInput, sharedRoot) {
+  if (!['Write', 'Edit', 'MultiEdit'].includes(hookInput.tool_name)) return null;
+  const relativePath = listEditedProjectPaths(hookInput, sharedRoot)[0];
+  if (!relativePath || basename(relativePath) !== 'plan.md' || dirname(dirname(relativePath)) !== WORK_DIRECTORY) return null;
+  const planPath = join(sharedRoot, relativePath);
+  if (!existsSync(planPath)) return null;
+  const diskText = readFileSync(planPath, 'utf8');
+  return findPlanScenarioViolation(basename(dirname(relativePath)), diskText, applyFileEdit(hookInput.tool_name, hookInput.tool_input || {}, diskText));
+}
+
 export default {
   id: MODULE_ID,
   event: 'PreToolUse',
@@ -55,6 +81,8 @@ export default {
     if (misplacedPlanPath) {
       return denyDecision(MODULE_ID, `Work plans live in the main checkout, not in a worktree: write \`${join(sharedRoot, misplacedPlanPath)}\` instead of \`${misplacedPlanPath}\` here. The design gate, the approval and \`ai1 step-done\` only read it there.`);
     }
+    const planWriteViolation = findPlanWriteViolation(hookInput, sharedRoot);
+    if (planWriteViolation) return denyDecision(MODULE_ID, `Deep lane: ${planWriteViolation}`);
     // Designing stays free: the work folder, the knowledge bundle and, with the later feature, later entries.
     const designDirectories = [WORK_DIRECTORY, KNOWLEDGE_BUNDLE_PATH, isFeatureEnabled('later', config) && LATER_DIRECTORY].filter(Boolean);
     const editedPaths = listEditedProjectPaths(hookInput, projectRoot)

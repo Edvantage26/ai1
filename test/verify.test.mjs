@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runHookEvent } from '../src/core/dispatcher.mjs';
 import { verifyCommandsRunBy, didRunFail } from '../src/verify/verify-gate.mjs';
-import { runVerifyCommands, recordStepDone } from '../src/cli/verify-run.mjs';
+import { runVerifyCommands, recordStepDone, closePlan, describeScenarioCoverage } from '../src/cli/verify-run.mjs';
 import { globToRegExp } from '../src/core/path-glob.mjs';
 import { createTemporaryProject } from './helpers.mjs';
 
@@ -185,6 +185,7 @@ test('verifyCommandsRunBy: the full command, with redirects and pipes, in compou
   assert.deepEqual(verifyCommandsRunBy('npm run lint && npm test', ['npm test', 'npm run lint && npm test', 'pytest']), [0, 1]);
   assert.deepEqual(verifyCommandsRunBy('npm test && npm run lint', ['npm run lint && npm test']), [], 'order matters');
   assert.deepEqual(verifyCommandsRunBy('ai1 step-done billing "step 1"', ['npm test', 'pytest']), [0, 1]);
+  assert.deepEqual(verifyCommandsRunBy('ai1 plan-done billing', ['npm test']), [0]);
 });
 
 test('didRunFail: exit code first, then common failure summaries', () => {
@@ -214,4 +215,66 @@ test('globToRegExp: ** for directories, * within a name, bare names at any depth
   assert.equal(globToRegExp('.claude/**').test('.claude/settings.json'), true);
   assert.equal(globToRegExp('src/**/*.gen.js').test('src/api.gen.js'), true);
   assert.equal(globToRegExp('src/*.js').test('src/a/b.js'), false);
+});
+
+function writeScenarioPlan(projectRoot, planSlug, planStatus, behaviourText) {
+  mkdirSync(join(projectRoot, '.ai1', 'work', planSlug), { recursive: true });
+  const planPath = join(projectRoot, '.ai1', 'work', planSlug, 'plan.md');
+  writeFileSync(planPath, `---\ntitle: Login lock\nstatus: ${planStatus}\n---\n\n# Goal\nLock.\n${behaviourText}`);
+  return planPath;
+}
+
+const TWO_SCENARIOS = '\n# Behaviour\n- S1: Given 3 failures, when the 4th fails, then it locks.\n- S2: Given a lock, when 15 min pass, then it unlocks.\n';
+const passingRun = () => 0;
+
+test('plan-done: an approved plan with every scenario tagged and verify green is closed, with the locations logged', () => {
+  const projectRoot = createTemporaryProject();
+  const planPath = writeScenarioPlan(projectRoot, 'login-lock', 'approved', TWO_SCENARIOS);
+  const repoFiles = ['test/login.test.js'];
+  mkdirSync(join(projectRoot, 'test'));
+  writeFileSync(join(projectRoot, 'test', 'login.test.js'), "test('locks [login-lock:S1]');\ntest('unlocks [login-lock:S2]');\n");
+  const closeResult = closePlan(projectRoot, projectRoot, 'login-lock', ['npm test'], { runCommand: passingRun, repoFiles, recordedAt: '2026-11-09T00:00:00.000Z' });
+  assert.equal(closeResult.closed, true);
+  assert.match(readFileSync(planPath, 'utf8'), /^status: done$/m);
+  assert.equal(readFileSync(join(projectRoot, '.ai1', 'work', 'login-lock', 'progress.md'), 'utf8'),
+    '- 2026-11-09T00:00:00.000Z plan done - scenarios 2/2 covered: S1 test/login.test.js:1, S2 test/login.test.js:2 - verify green: npm test\n');
+});
+
+test('plan-done: a missing tag, a red verify, duplicates or a plan not approved leave the plan open', () => {
+  const projectRoot = createTemporaryProject();
+  const planPath = writeScenarioPlan(projectRoot, 'login-lock', 'approved', TWO_SCENARIOS);
+  writeFileSync(join(projectRoot, 'login.test.js'), '// [login-lock:S1]\n');
+  const commandsRun = [];
+  const recordingRun = (verifyCommand) => { commandsRun.push(verifyCommand); return 0; };
+  const missingResult = closePlan(projectRoot, projectRoot, 'login-lock', ['npm test'], { runCommand: recordingRun, repoFiles: ['login.test.js'] });
+  assert.equal(missingResult.closed, false);
+  assert.match(missingResult.message, /\[login-lock:S2\]/);
+  assert.deepEqual(commandsRun, [], 'no suite run while a scenario has no test');
+  writeFileSync(join(projectRoot, 'login.test.js'), '// [login-lock:S1] [login-lock:S2]\n');
+  const redResult = closePlan(projectRoot, projectRoot, 'login-lock', ['npm test'], { runCommand: () => 1, repoFiles: ['login.test.js'] });
+  assert.deepEqual(redResult, { closed: false, message: '`npm test` failed (exit 1)' });
+  assert.match(readFileSync(planPath, 'utf8'), /^status: approved$/m);
+  assert.equal(existsSync(join(projectRoot, '.ai1', 'work', 'login-lock', 'progress.md')), false);
+  writeScenarioPlan(projectRoot, 'login-lock', 'approved', `${TWO_SCENARIOS}- S1: again\n`);
+  assert.match(closePlan(projectRoot, projectRoot, 'login-lock', ['npm test'], { runCommand: passingRun, repoFiles: [] }).message, /duplicate scenario ids.*S1/);
+  writeScenarioPlan(projectRoot, 'login-lock', 'ready', TWO_SCENARIOS);
+  assert.match(closePlan(projectRoot, projectRoot, 'login-lock', ['npm test'], { runCommand: passingRun, repoFiles: [] }).message, /the plan is ready, not approved/);
+  assert.throws(() => closePlan(projectRoot, projectRoot, 'missing', ['npm test']), /no plan/);
+});
+
+test('plan-done: a plan without scenarios, or with None, closes after a green verify', () => {
+  const projectRoot = createTemporaryProject();
+  const planPath = writeScenarioPlan(projectRoot, 'refactor', 'approved', '\n# Behaviour\nNone - internal refactor\n');
+  const closeResult = closePlan(projectRoot, projectRoot, 'refactor', ['npm test'], { runCommand: passingRun, repoFiles: [] });
+  assert.deepEqual(closeResult, { closed: true, message: 'plan refactor done (no scenarios; verify green)' });
+  assert.match(readFileSync(planPath, 'utf8'), /^status: done$/m);
+});
+
+test('describeScenarioCoverage: covered so far for step-done, nothing for a plan without scenarios', () => {
+  const projectRoot = createTemporaryProject();
+  writeScenarioPlan(projectRoot, 'login-lock', 'approved', TWO_SCENARIOS);
+  writeFileSync(join(projectRoot, 'login.test.js'), '// [login-lock:S2]\n');
+  assert.equal(describeScenarioCoverage(projectRoot, projectRoot, 'login-lock', ['login.test.js']), 'scenarios covered so far: 1/2 (missing S1)');
+  writeScenarioPlan(projectRoot, 'plain', 'approved', '');
+  assert.equal(describeScenarioCoverage(projectRoot, projectRoot, 'plain', []), null);
 });

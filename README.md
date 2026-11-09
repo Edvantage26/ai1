@@ -97,7 +97,7 @@ bundle, the design context.
 | `danger` | on | Confirms or refuses commands that destroy work or data; asks you before the agent changes ai1's or Claude Code's configuration (so it cannot switch its own guards off); applies your repo's own rules (`rules` in `.ai1/config.json`, written with `/ai1:danger-write-rule`: "use pnpm", "never edit `generated/`") |
 | `craft` | on | Gives the agent the rules for orderly code: the minimum change that solves the task, nothing outside it, reuse before writing, refactors proposed (not applied) when it sees duplication or dead code, self-explanatory names. Where things live (layout, how to add each kind of piece, reusable helpers) goes in the OKF bundle |
 | `design` | off | For repos with a frontend. At session start: read the product and design-system context (OKF concepts of type `Product` / `DesignSystem`, or Impeccable's `PRODUCT.md` / `DESIGN.md`), avoid the generic AI look, keep a quality floor. After every edit to a UI file, 26 deterministic rules (overused fonts, purple gradients, glows, gradient text, low contrast, skipped headings, tiny text, placeholder images...) report what that edit introduced. Points to [Impeccable](https://github.com/pbakaus/impeccable) commands when it is installed |
-| `verify` | on | You cannot get a "done" while code changed after the last passing run of the `verify` commands (run in full: a filtered run does not count). Docs and harness config are exempt. Skipping, emptying, weakening or deleting tests asks you first (`test-guard`); after 3 failed fix attempts in a row the agent is told to stop and find the root cause (`fix-loop`, `/ai1:verify-debug-systematically`). `ai1 verify` runs them; `ai1 step-done` logs a deep-lane step only when they pass |
+| `verify` | on | You cannot get a "done" while code changed after the last passing run of the `verify` commands (run in full: a filtered run does not count). Docs and harness config are exempt. Skipping, emptying, weakening or deleting tests asks you first (`test-guard`); after 3 failed fix attempts in a row the agent is told to stop and find the root cause (`fix-loop`, `/ai1:verify-debug-systematically`). `ai1 verify` runs them; `ai1 step-done` logs a deep-lane step only when they pass; `ai1 plan-done` closes a deep plan |
 | `lanes` | off | Sizes each task: quick ones are done directly, medium ones get a short plan, complex or risky ones get questions and a design (`/ai1:lanes-design-before-code`) that you approve before any code is edited. Restores progress after a compaction |
 | `later` | off | Large changes and future features, not decided yet, noted down for later in `.ai1/later/NNNN-<slug>.md` (versioned, apart from the knowledge bundle because they are not the system), each called by its number ("later 0003"). The agent notes one down only when you ask ("apúntalo para luego", "note it down for later"). When a clearly different subject comes up mid-task, it offers in one line to do it here, fork it into a new conversation, or note it down for later, and acts on what you pick. "Propuesta"/"proposal" in the conversation always means the agent's own proposal, never this feature. Two sizes: a one-page *idea* and a *full* entry (criteria before options, "do nothing" always an option, assumptions, phases, how to resume). Open entries listed at session start and related ones recalled on each message; when one is accepted, a hook asks for its decisions to be recorded in the OKF bundle. `/ai1:later-write`, `ai1 later new\|set\|index\|check`. Called `rfc` until v0.17 and `proposals` until v0.24: `ai1 init` migrates `.ai1/rfc/`, `.ai1/proposals/` and the old feature ids |
 
@@ -114,7 +114,11 @@ the base and removes the worktree (the `danger` guard asks you first). Shared re
 caches, build slots and a `WorktreeCreate` hook for very large repos are *planned*.
 
 With `lanes` on, a deep task goes: questions → design in `.ai1/work/<slug>/plan.md` (git-ignored) →
-you approve it with a plain "ok"/"aprobado" → step-by-step build with a progress log. Until you
+you approve it with a plain "ok"/"aprobado" → step-by-step build with a progress log → `ai1 plan-done`.
+The design carries 2-5 behaviour scenarios (`- S1: Given ..., when ..., then ...`, or `None - <why>`);
+the test that covers one is tagged `[<slug>:S1]`, and `ai1 plan-done` closes the plan only when every
+scenario has its tagged test and the verify commands pass. It checks that the test exists and the
+suite is green, not that the test proves the scenario: that is your review. Until you
 approve, a hook refuses code edits; if a "quick" task grows past 6 files or 300 lines, it asks you
 once whether to stop for a plan (`modules.lanes-escalate.max_files` / `max_lines`).
 
@@ -157,7 +161,7 @@ others or are deterministic (`core-report-issue`, `okf-validate-bundle`, `danger
 | `craft-brief`: the code craft rules at session start | craft | SessionStart | works |
 | `lanes-brief`: the lane recipe at session start; restores deep-lane progress after compaction | lanes | SessionStart | works |
 | `lanes-approval`: records your approval of a deep-lane design marked ready | lanes | UserPromptSubmit | works |
-| `lanes-gate`: refuses code edits (tools and shell writes) while a deep design waits for approval | lanes | PreToolUse | works |
+| `lanes-gate`: refuses code edits (tools and shell writes) while a deep design waits for approval, and closing by hand or dropping approved scenarios of a plan with behaviour scenarios | lanes | PreToolUse | works |
 | `lanes-escalate`: asks once when a task without a plan outgrows a quick change | lanes | PreToolUse | works |
 | `/ai1:lanes-design-before-code`: questions, design, builder check, approval, step-by-step build | lanes | — | works |
 | `design-brief`: UI rules and the design context files at session start | design | SessionStart | works |
@@ -170,7 +174,7 @@ others or are deterministic (`core-report-issue`, `okf-validate-bundle`, `danger
 | `worktree-reminder`: the active worktrees when they change and every few prompts, marking this session's | worktrees | UserPromptSubmit | works |
 | `/ai1:worktrees-plan-recipe` + `ai1 worktree` (`create`, `list`, `run`, `finish`, `drop`) | worktrees | — | works |
 | Shared read-only caches per dependency version, `writable`, build slots, `WorktreeCreate` hook for heavy repos | worktrees | — | planned |
-| `/ai1:core-setup-repo` + `ai1` CLI (`ai1 status`, `ai1 init`, `ai1 verify`, `ai1 step-done`, `ai1 later`, `ai1 worktree`, `ai1 fork`, `ai1 issue`, `ai1 claude-md`, `ai1 log`, `ai1 skill-context`) | — | — | works |
+| `/ai1:core-setup-repo` + `ai1` CLI (`ai1 status`, `ai1 init`, `ai1 verify`, `ai1 step-done`, `ai1 plan-done`, `ai1 later`, `ai1 worktree`, `ai1 fork`, `ai1 issue`, `ai1 claude-md`, `ai1 log`, `ai1 skill-context`) | — | — | works |
 | Skill customization: project (`.ai1/skills/<feature>/overlay.md`) and personal (`~/.config/ai1/...`) overlays injected when a skill loads, Fixed rules that win, `/ai1:core-customize-skill`, `ai1 skill-context --list`; every skill is customizable or excluded with a reason (a test checks it) | — | — | works |
 | `/ai1:session-fork-conversation` + `ai1 fork`: a new conversation from this one, `full` (a copy of the whole conversation) or `brief` (only a written handoff), opened natively in Paseo (an agent), VS Code (the extension URI), a terminal or Claude Desktop (the commands to open it); the **Fork opener** option in `/config` chooses where instead of detecting it. Needs no feature: works in any repo while the plugin is enabled | — | — | works |
 | `/ai1:core-report-issue` + `ai1 issue`: report a problem with ai1 as an issue on this repo; gathers versions and features (`ai1 issue env`), writes a minimal reproduction without private paths, hosts, names or code, checks duplicates and creates it with `gh` (or a prefilled link, `ai1 issue url`) only after you approve the text. Needs no feature | — | — | works |

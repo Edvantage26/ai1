@@ -310,3 +310,41 @@ test('lanes-gate: from a worktree, a plan written in the worktree\'s .ai1/work/ 
   assert.ok(misplacedOutput.hookSpecificOutput.permissionDecisionReason.includes(join(mainRoot, '.ai1', 'work', 'feature', 'plan.md')));
   assert.equal(writePlan(join(mainRoot, '.ai1', 'work', 'feature', 'plan.md')), null, 'the main checkout path is free');
 });
+
+function writeScenarioPlan(projectRoot, slug, status) {
+  const planPath = writePlan(projectRoot, slug, status);
+  writeFileSync(planPath, `${readFileSync(planPath, 'utf8')}\n# Behaviour\n- S1: Given a, when b, then c.\n- S2: Given d, when e, then f.\n`);
+  return planPath;
+}
+
+test('lanes-gate: a plan with scenarios is not closed by hand - Edit, Write and MultiEdit point to ai1 plan-done', () => {
+  const projectRoot = createLanesRepo();
+  const options = hookOptions();
+  const planPath = writeScenarioPlan(projectRoot, 'login-lock', 'approved');
+  const planText = readFileSync(planPath, 'utf8');
+  const toolInputs = {
+    Edit: { file_path: planPath, old_string: 'status: approved', new_string: 'status: done' },
+    Write: { file_path: planPath, content: planText.replace('status: approved', 'status: done') },
+    MultiEdit: { file_path: planPath, edits: [{ old_string: 'Export invoices.', new_string: 'Export.' }, { old_string: 'status: approved', new_string: "status: 'done'" }] },
+  };
+  for (const [toolName, toolInput] of Object.entries(toolInputs)) {
+    const gateOutput = useTool(projectRoot, options, toolName, toolInput);
+    assert.equal(gateOutput?.hookSpecificOutput.permissionDecision, 'deny', toolName);
+    assert.match(gateOutput.hookSpecificOutput.permissionDecisionReason, /ai1 plan-done login-lock/);
+  }
+});
+
+test('lanes-gate: approved scenarios cannot be dropped unless the plan goes back to ready; rewording and plans without scenarios are free', () => {
+  const projectRoot = createLanesRepo();
+  const options = hookOptions();
+  const planPath = writeScenarioPlan(projectRoot, 'login-lock', 'approved');
+  const dropScenario = { file_path: planPath, old_string: '- S2: Given d, when e, then f.\n', new_string: '' };
+  assert.match(useTool(projectRoot, options, 'Edit', dropScenario).hookSpecificOutput.permissionDecisionReason, /drops approved behaviour scenarios \(S2\)/);
+  const toNone = { file_path: planPath, content: readFileSync(planPath, 'utf8').replace(/# Behaviour[\s\S]*$/, '# Behaviour\nNone - changed my mind\n') };
+  assert.equal(useTool(projectRoot, options, 'Write', toNone).hookSpecificOutput.permissionDecision, 'deny');
+  assert.equal(useTool(projectRoot, options, 'Write', { ...toNone, content: toNone.content.replace('status: approved', 'status: ready') }), null);
+  assert.equal(useTool(projectRoot, options, 'Edit', { file_path: planPath, old_string: 'then c.', new_string: 'then the account locks.' }), null);
+  assert.equal(useTool(projectRoot, options, 'Edit', { file_path: planPath, old_string: '- S2:', new_string: '- S3: Given g, when h, then i.\n- S2:' }), null);
+  const plainPlanPath = writePlan(projectRoot, 'billing', 'approved');
+  assert.equal(useTool(projectRoot, options, 'Edit', { file_path: plainPlanPath, old_string: 'status: approved', new_string: 'status: done' }), null);
+});

@@ -2,7 +2,7 @@
 // this session is newer than the last run of each `verify` command, or while that last run failed.
 // "Done" means a command showed it, not that the agent said so.
 // - Runs are read from the transcript: a Bash call whose simple commands include the full verify
-//   command (redirects allowed, extra arguments or filters not), or `ai1 verify` / `ai1 step-done`.
+//   command (redirects allowed, extra arguments or filters not), or `ai1 verify` / `ai1 step-done` / `ai1 plan-done`.
 //   Exit code from the tool result (`is_error`), plus common failure summaries for piped output.
 // - Changes are judged by file modification time against the end of the run, so edits made by
 //   subagents or shell commands count too. A session whose transcript shows no call that may write
@@ -31,7 +31,7 @@ const FAILURE_SUMMARIES = [
   /^FAILED\b/m, // pytest, go
   /^FAIL\b/m, // jest, go
 ];
-const AI1_VERIFYING_SUBCOMMANDS = new Set(['verify', 'step-done']);
+const AI1_VERIFYING_SUBCOMMANDS = new Set(['verify', 'step-done', 'plan-done']);
 
 // Indexes of the verify commands a shell command line runs in full.
 export function verifyCommandsRunBy(commandLine, verifyCommands) {

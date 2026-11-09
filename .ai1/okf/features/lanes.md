@@ -5,11 +5,17 @@ description: Work lanes by task size - quick, plan or deep - with a hook-enforce
 tags: [lanes, workflow, hooks, skills, approval]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T13:29:00Z'
+  at: '2026-11-09T13:41:04Z'
 sources:
   - id: lanes-work
     resource: src/lanes/lanes-work.mjs
     title: Plans, statuses and approvals
+  - id: lanes-scenarios
+    resource: src/lanes/lanes-scenarios.mjs
+    title: Behaviour scenarios, tag scan and plan-write check
+  - id: plan-done
+    resource: src/cli/verify-run.mjs
+    title: ai1 plan-done
   - id: lanes-brief
     resource: src/lanes/lanes-brief.mjs
     title: SessionStart recipe and progress restore
@@ -46,7 +52,29 @@ gate is a hook block; plans live in a local ignored folder.
 - **deep**: `/ai1:lanes-design-before-code` skill - look before asking, one question at a time, design in
   `.ai1/work/<slug>/plan.md` (goal, constraints, approaches with the choice, steps with checks,
   risks, rulings), one builder-check subagent, approval, then step by step; a task that builds an accepted [later](later.md) entry carries `later: <number>` in the plan frontmatter; each step closed with `ai1 step-done`, which logs it in `progress.md` only when
-  the [verify](verify.md) commands pass.
+  the [verify](verify.md) commands pass; the plan closed with `ai1 plan-done` (below).
+
+# Behaviour scenarios (since 2026-11-09)
+
+A deep plan carries a `# Behaviour` section: 2-5 scenarios the person approves with the design,
+`- S1: Given <state>, when <action>, then <observable result>`, or `None - <why>` for refactors and
+internals. The test that covers a scenario carries `[<slug>:S<n>]` in its name or a comment. Light
+BDD: the valuable part (concrete examples agreed before the code, a shared language) without
+Gherkin/Cucumber glue. Decided with the person on 2026-11-09; goal: the agent cannot call a design
+done while an agreed behaviour has no test - the verify gate alone only knows the suite is green.
+
+- `ai1 plan-done <slug>` (`src/cli/verify-run.mjs`) is the one way to close a deep plan: the plan
+  (main checkout) must be `approved`, no duplicate ids, every scenario's tag found in the current
+  checkout (the worktree, where the tests live before merge), then the verify commands green; only
+  then `status: done` and a progress line with each scenario's test location. A plan without
+  scenarios closes after a green verify. Without git it fails closed.
+- Tag scan (`src/lanes/lanes-scenarios.mjs`): `git ls-files -co --exclude-standard`, exact
+  case-sensitive `[<slug>:S<n>]`, skipping `.ai1/`, `*.md`, binaries and files over 1 MB, so a tag
+  quoted in docs or the plan is not coverage. Headings inside code fences do not count.
+- `ai1 step-done` prints how many scenarios are covered so far (informative only).
+- `lanes-gate` refuses a Write/Edit/MultiEdit that sets `status: done` by hand on a plan with
+  scenarios, or drops an approved scenario (or the section) unless the same write sets the plan back
+  to `ready`/`draft`. Adding and rewording scenarios are free.
 
 # Modules (feature `lanes`)
 
@@ -54,11 +82,11 @@ gate is a hook block; plans live in a local ignored folder.
 |---|---|---|
 | `lanes-brief` | SessionStart | Injects the lane recipe (byte-stable, skipped on `resume`), lists unfinished plans, and after `compact` restores the active plans with the last 15 lines of `progress.md`. Records the session base HEAD and writes `.ai1/work/.gitignore` (`*`). |
 | `lanes-approval` | UserPromptSubmit | When a plan of this session has `status: ready` and the person sends a short plain yes (`aprobado`, `adelante`, `ok`, `acepto`, `go ahead`, `accept`... with no `pero`/`but`/`no`, at most 120 chars, no `?`; `si` counts only as the first word, since inside a sentence it is the conditional "if" - on 2026-11-09 "o que si hay un error..., eso cuadraría?" approved a design), records the approval in ai1's state dir (outside the repo) and sets `status: approved`. |
-| `lanes-gate` | PreToolUse (Edit, Write, MultiEdit, NotebookEdit, Bash) | While a plan of this session is `draft`/`ready`, or not approved by the person, refuses writes to project files outside `.ai1/work/`, the knowledge bundle and, with the [later feature](later.md), `.ai1/later/`. Shell writes come from `src/core/shell-writes.mjs`; an inline interpreter script (`python3 - <<EOF`, `node -e`), whose writes it cannot tell, asks the person instead. |
+| `lanes-gate` | PreToolUse (Edit, Write, MultiEdit, NotebookEdit, Bash) | While a plan of this session is `draft`/`ready`, or not approved by the person, refuses writes to project files outside `.ai1/work/`, the knowledge bundle and, with the [later feature](later.md), `.ai1/later/`. Shell writes come from `src/core/shell-writes.mjs`; an inline interpreter script (`python3 - <<EOF`, `node -e`), whose writes it cannot tell, asks the person instead. Always (any plan, approved or not): refuses closing a plan with behaviour scenarios by hand or dropping its approved scenarios (see above). |
 | `lanes-escalate` | PreToolUse (same tools) | With no active plan, once per session, asks the person when the session's changes pass `max_files` (6) or `max_lines` (300), options under `modules.lanes-escalate`. |
 
-Plan statuses: `draft` -> `ready` (agent asks) -> `approved` (only via the person) -> `done` or
-`abandoned`. Setting `ready` again requires a new approval. Plans from earlier sessions never block;
+Plan statuses: `draft` -> `ready` (agent asks) -> `approved` (only via the person) -> `done` (via
+`ai1 plan-done`) or `abandoned`. Setting `ready` again requires a new approval. Plans from earlier sessions never block;
 they are listed at startup.
 
 **Whose plan it is (since v0.20.2):** plans live in the main checkout's `.ai1/work/`, shared by every
@@ -83,6 +111,10 @@ could also have approved the other session's `ready` plan.
   a design waits the gate asks before any of them, even one that only reads. A script saved to a
   file and then run (`python3 tool.py`) is not seen.
 - The "plan" lane has no file and no gate; it relies on the conversation.
+- Behaviour scenarios prove a tagged test exists and the suite is green, not that the test proves the
+  scenario (the person's review, and [test-guard](../guards/test-guard.md) against weakened tests). A
+  tag in a file the verify commands never run still counts. Tags outlive the plan (`.ai1/work/` is
+  git-ignored). A shell write of `status: done` (`sed -i`) is not seen by the gate.
 - The approval store is outside the repo but not tamper-proof against a determined agent; the brief
   tells the agent not to work around hooks.
 - A subagent's own edits to a plan are not in the parent transcript; a plan written only by a
@@ -94,4 +126,8 @@ could also have approved the other session's `ready` plan.
   shell writes, approval and re-approval, approval wording, escalation by files and lines).
 - Entry point fed real hook JSON on a scratch repo: deny with a ready plan, `aprobado` unlocks, the
   edit passes, `git status` clean.
+- Behaviour scenarios (2026-11-09): 6 tests in `test/lanes-scenarios.test.mjs` (parsing, fences,
+  tag scan exclusions, exact match, no git), 4 in `test/verify.test.mjs` (plan-done closes, stays
+  open, no scenarios, coverage line), 2 in `test/lanes.test.mjs` (gate on Edit/Write/MultiEdit,
+  dropped scenarios). Not yet tried on a real plan with scenarios.
 - Not yet tried in a live Claude Code session.

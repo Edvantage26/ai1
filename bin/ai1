@@ -4,6 +4,7 @@
 //   ai1 init --features okf,danger [--verify "npm test" ...] [--disable-plugins a@x,b@y] [--deny-credentials] [--report-errors ask|auto|off] [--json]
 //   ai1 verify                                  run the repo's verify commands, stop at the first failure
 //   ai1 step-done <slug> "<step>"               ai1 verify, then log the step in .ai1/work/<slug>/progress.md
+//   ai1 plan-done <slug>                        close a deep plan: every behaviour scenario has its tagged test, then ai1 verify
 //   ai1 later new <slug> [--idea] [--title "..."] create .ai1/later/NNNN-<slug>.md with the next number
 //   ai1 later set <number> <status> [--by <n>]    change a later entry's status (dates, History line, index)
 //   ai1 later index | ai1 later check            regenerate .ai1/later/README.md | report what is inconsistent
@@ -18,7 +19,7 @@
 import { findRepoRoot, describeRepo, setupRepo } from '../src/cli/setup-repo.mjs';
 import { findMainCheckout } from '../src/core/project-roots.mjs';
 import { runWorktreeCli, WORKTREE_USAGE } from '../src/cli/worktree-cli.mjs';
-import { readVerifyCommands, runVerifyCommands, recordStepDone } from '../src/cli/verify-run.mjs';
+import { readVerifyCommands, runVerifyCommands, recordStepDone, describeScenarioCoverage, closePlan } from '../src/cli/verify-run.mjs';
 import { runLaterCommand, LATER_USAGE } from '../src/cli/later-command.mjs';
 import { runForkCommand, FORK_USAGE } from '../src/cli/fork-command.mjs';
 import { runIssueCommand, ISSUE_USAGE } from '../src/cli/issue-command.mjs';
@@ -122,9 +123,21 @@ try {
       process.exitCode = verifyResult.exitCode || 1;
     } else if (commandName === 'step-done') {
       console.log(`ai1: verify green; step recorded in ${recordStepDone(findMainCheckout(repoRoot), planSlug, stepText, verifyCommands)}`);
+      try {
+        const coverageLine = describeScenarioCoverage(findMainCheckout(repoRoot), repoRoot, planSlug);
+        if (coverageLine) console.log(`ai1: ${coverageLine}`);
+      } catch (scanError) {
+        console.log(`ai1: scenario coverage not checked (${scanError.message.split('\n')[0]})`);
+      }
     } else {
       console.log(`ai1: verify green (${verifyCommands.join(', ')})`);
     }
+  } else if (commandName === 'plan-done') {
+    const [planSlug] = commandArguments;
+    if (!planSlug) throw new Error('usage: ai1 plan-done <slug>');
+    const closeResult = closePlan(findMainCheckout(repoRoot), repoRoot, planSlug, readVerifyCommands(repoRoot));
+    if (closeResult.closed) console.log(`ai1: ${closeResult.message}`);
+    else { console.error(`ai1: plan not closed - ${closeResult.message}`); process.exitCode = 1; }
   } else if (commandName === 'claude-md') {
     const bundleDirectory = resolveBundleDirectory(repoRoot);
     if (readBundleIndex(bundleDirectory) === null) throw new Error(`no OKF bundle at ${KNOWLEDGE_BUNDLE_PATH}/: nothing to compare CLAUDE.md with`);
@@ -140,7 +153,7 @@ try {
   } else if (commandName === 'later') {
     process.exitCode = runLaterCommand(repoRoot, commandArguments, { readOption });
   } else {
-    console.log(`usage: ai1 status [--json] | ai1 init --features okf,danger [--verify "<command>" ...] [--disable-plugins a@x,b@y] [--deny-credentials] [--report-errors ask|auto|off] [--json] | ai1 verify | ai1 step-done <slug> "<step>" | ai1 claude-md [--json] | ai1 log [--session <id>] [--since <hours>] [--all] [--json] | ${LATER_USAGE}`);
+    console.log(`usage: ai1 status [--json] | ai1 init --features okf,danger [--verify "<command>" ...] [--disable-plugins a@x,b@y] [--deny-credentials] [--report-errors ask|auto|off] [--json] | ai1 verify | ai1 step-done <slug> "<step>" | ai1 plan-done <slug> | ai1 claude-md [--json] | ai1 log [--session <id>] [--since <hours>] [--all] [--json] | ${LATER_USAGE}`);
     console.log(WORKTREE_USAGE);
     console.log(FORK_USAGE);
     console.log(ISSUE_USAGE);
