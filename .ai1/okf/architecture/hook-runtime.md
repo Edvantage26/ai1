@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T14:03:22Z'
+  at: '2026-11-09T21:12:24Z'
 ---
 
 # Flow
@@ -30,7 +30,7 @@ generated:
    (`src/core/registry.mjs`), for tests and in-process callers.
 4. `src/core/hook-io.mjs` combines decisions (deny/block > ask > context > allow) and prints the
    JSON each event expects (PreToolUse `permissionDecision`, Stop `decision: block`,
-   SessionStart, UserPromptSubmit and PostToolUse `additionalContext`). A `notice` never competes:
+   SessionStart, UserPromptSubmit, PreToolUse and PostToolUse `additionalContext`). A `notice` never competes:
    it is added as `systemMessage` (shown to the person, not the agent) to whatever was decided.
    In the `bypassPermissions`, `auto` and `dontAsk` permission modes (`permission_mode` of the hook
    input), an `ask` from any module other than `danger` and `repo-rules` becomes `allow`
@@ -74,6 +74,7 @@ logged with an error signature and offered to the person as an issue ([issue rep
 | `verify-gate` | Stop | verify |
 | `test-guard` | PreToolUse (Edit, Write, MultiEdit, Bash) | verify |
 | `fix-loop` | PostToolUse (Edit, Write, MultiEdit) | verify |
+| `tool-loop` | PreToolUse (Bash, Edit, Write, MultiEdit, NotebookEdit) | verify |
 | `lanes-brief` | SessionStart | lanes |
 | `lanes-approval` | UserPromptSubmit | lanes |
 | `lanes-gate`, `lanes-escalate` | PreToolUse (Edit, Write, MultiEdit, NotebookEdit, Bash) | lanes |

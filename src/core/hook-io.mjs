@@ -82,7 +82,7 @@ function buildDecisionOutput(eventName, combinedDecision) {
   if (['Stop', 'SubagentStop', 'PostToolUse'].includes(eventName) && ['block', 'deny'].includes(combinedDecision.kind)) {
     return { decision: 'block', reason: combinedDecision.reason };
   }
-  if (['SessionStart', 'UserPromptSubmit', 'PostToolUse'].includes(eventName) && combinedDecision.kind === 'context') {
+  if (['SessionStart', 'UserPromptSubmit', 'PreToolUse', 'PostToolUse'].includes(eventName) && combinedDecision.kind === 'context') {
     return { hookSpecificOutput: { hookEventName: eventName, additionalContext: combinedDecision.text } };
   }
   return null;

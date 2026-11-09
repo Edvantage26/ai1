@@ -5,7 +5,7 @@ description: Stop gate - the agent cannot finish while code it changed is newer 
 tags: [verify, hooks, evidence, cli]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T13:53:57Z'
+  at: '2026-11-09T21:12:24Z'
 sources:
   - id: verify-gate
     resource: src/verify/verify-gate.mjs
@@ -19,6 +19,9 @@ sources:
   - id: fix-loop
     resource: src/verify/fix-loop.mjs
     title: Failed fix attempts counter
+  - id: tool-loop
+    resource: src/verify/tool-loop.mjs
+    title: Repeated tool call nudge
   - id: debug-skill
     resource: skills/verify-debug-systematically/SKILL.md
     title: /ai1:verify-debug-systematically
@@ -35,7 +38,22 @@ it does nothing in a repo without `verify` commands in `.ai1/config.json`.
 # test-guard (PreToolUse)
 
 The gate trusts a passing suite, so [test-guard](../guards/test-guard.md) asks the person before an
-edit or shell command skips, empties, weakens or deletes tests (since 2026-11-09).
+edit or shell command skips, empties, weakens or deletes tests (since 2026-11-09), or changes the
+configuration of a check (lint, format, types, test runner): agents relax the check instead of fixing
+the code (seen in [Everything Claude Code](../decisions/prior-art.md#ecc-review-2026-11-09)).
+
+# tool-loop (PreToolUse)
+
+Built 2026-11-09 from the ECC review. When the last `repeat_threshold` tool calls (default 5) are the
+same tool with the same input (a Bash `description` does not count), the agent gets one line of
+context: wait in the background instead of polling by hand, or stop retrying and look for the cause.
+- Sees every tool: it reads the transcript incrementally (state `<session>-<hash>.tool-loop`) plus the
+  call about to run, deduplicated by tool use id, so a Read or Grep in between breaks the streak.
+  Runs on the PreToolUse tools ai1 already wires (Bash, Edit, Write, MultiEdit, NotebookEdit): no new
+  hook process per call; a run of identical Reads is seen at the next wired call.
+- 5, not 3: ECC fired false warnings on legitimate retries and polling with 3 among 5.
+- Told once per repeated call; a different call resets it. Never blocks. Needs PreToolUse
+  `additionalContext` (documented by Claude Code; enabled in `hook-io` on 2026-11-09).
 
 # fix-loop (PostToolUse) and /ai1:verify-debug-systematically
 

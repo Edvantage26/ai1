@@ -54,7 +54,7 @@ export const FEATURES = [
   {
     id: 'verify',
     title: 'Verification gate',
-    description: 'The agent cannot finish while code it changed is newer than the last passing run of the verify commands in .ai1/config.json (run in full, no filters). Adds `ai1 verify` and `ai1 step-done`. Also asks before tests are skipped, emptied, weakened or deleted, and after 3 failed fix attempts in a row tells the agent to stop and go back to the root cause (/ai1:verify-debug-systematically).',
+    description: 'The agent cannot finish while code it changed is newer than the last passing run of the verify commands in .ai1/config.json (run in full, no filters). Adds `ai1 verify` and `ai1 step-done`. Also asks before tests are skipped, emptied, weakened or deleted or the config of a check (lint, format, types) is changed, tells the agent when it repeats the same tool call 5 times in a row, and after 3 failed fix attempts in a row tells the agent to stop and go back to the root cause (/ai1:verify-debug-systematically).',
     enabledByDefault: true,
   },
   {

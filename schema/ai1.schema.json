@@ -550,6 +550,14 @@
                   },
                   "description": "Globs of test files, replacing the defaults (*.test.*, *.spec.*, test_*.py, *_test.py, *_test.go, **/test/**, **/tests/**, **/__tests__/**)."
                 },
+                "check_config_paths": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": "Globs of dedicated check config files (lint, format, types, test runner), replacing the defaults (.eslintrc*, eslint.config.*, .prettierrc*, tsconfig*.json, ruff.toml, mypy.ini, pytest.ini, .golangci.yml...). The checkers' sections of pyproject.toml, setup.cfg, tox.ini and package.json are always checked."
+                },
                 "ignore_rules": {
                   "type": "array",
                   "items": {
@@ -558,9 +566,32 @@
                       "test-assertions-removed",
                       "test-file-emptied",
                       "test-file-removed",
-                      "test-shell-edit"
+                      "test-shell-edit",
+                      "check-config-changed"
                     ]
                   }
+                }
+              }
+            }
+          ]
+        },
+        "tool-loop": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "repeat_threshold": {
+                  "type": "integer",
+                  "minimum": 2,
+                  "default": 5,
+                  "description": "Identical tool calls in a row (same tool, same input) before the agent is told it is going round in circles."
                 }
               }
             }

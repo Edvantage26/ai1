@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T20:05:21Z'
+  at: '2026-11-09T21:12:24Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -19,7 +19,7 @@ First review on 2026-10-30 by reading the repositories.
 | [rsc-factory](https://github.com/gregoryjp/rsc-factory) (unofficial) | PRD-to-product engine outside the agent | Risk classifier idea (auto vs human PR) for a future pipeline mode | Whole engine: out of scope |
 | [graphify](https://github.com/gmh5225/graphify) (reviewed 2026-11-09 from its docs and third-party reviews, not its code) | `/graphify` skill: tree-sitter code graph + LLM pass over docs/PDFs/images into `graphify-out/` (`graph.json`, `GRAPH_REPORT.md`, `graph.html`), Leiden clusters, EXTRACTED/INFERRED/AMBIGUOUS edges, PreToolUse nudge on Grep/Glob, MCP server, git hooks | Nothing yet; see [graphify review](#graphify-review-2026-11-09) | The LLM semantic pass (the OKF bundle covers it, curated), Python + native deps, git hooks, a committed `graph.json` |
 | [gentle-ai](https://github.com/Gentleman-Programming/gentle-ai) (MIT; reviewed 2026-11-09 from its docs and `odd/tasks/`) | Go installer that configures many agents: persistent memory (Engram), ODD (Organic-Driven Development) as its only workflow after retiring SDD/OpenSpec, risk-tiered review (RDD), skills, personas | Sizing by "resumable from the request + `git diff`" and its fuller risk list, the request word for word in the plan, handoffs by reference, in [lanes](/features/lanes.md); see [gentle-ai review](#gentle-ai-review-2026-11-09) | Engram, test-first by default, mandatory delegation, ~400-line work units and chained PRs, RDD consent, ~40 KB of routing prompt |
-| [Everything Claude Code (ECC)](https://github.com/affaan-m/ECC) (MIT, Affaan Mustafa, Anthropic x Forum Ventures hackathon winner; reviewed 2026-11-09 from its hooks and `docs/gateguard/`) | Multi-harness kit: ~1,068 skills, ~70 agents, ~27 hook entries (GateGuard fact-forcing gate, config protection, context monitor, strategic compact, Hookify rules, instinct learning), hosted Pro tier | Nothing yet; candidates in [ECC review](#ecc-review-2026-11-09) | Instinct learning (Haiku in the background), LLM summary in `PreCompact`, tmux/dev-server/format hooks, per-language skill and agent volume, multi-harness shims |
+| [Everything Claude Code (ECC)](https://github.com/affaan-m/ECC) (MIT, Affaan Mustafa, Anthropic x Forum Ventures hackathon winner; reviewed 2026-11-09 from its hooks and `docs/gateguard/`) | Multi-harness kit: ~1,068 skills, ~70 agents, ~27 hook entries (GateGuard fact-forcing gate, config protection, context monitor, strategic compact, Hookify rules, instinct learning), hosted Pro tier | Check config protection (in [test-guard](../guards/test-guard.md)) and the repeated tool call nudge (`tool-loop`, [verify](../features/verify.md)); see [ECC review](#ecc-review-2026-11-09) | Instinct learning (Haiku in the background), LLM summary in `PreCompact`, tmux/dev-server/format hooks, per-language skill and agent volume, multi-harness shims |
 
 No code is copied at this stage; if any is, it keeps its license notice and attribution.
 
@@ -300,9 +300,10 @@ in `scripts/hooks/` and the evaluation in `docs/gateguard/`.
   (a deny repeats work already done); replayed against the working tree and against a git ref, with
   bypasses, redundant denials, denial tokens and fresh-process latency as metrics. Plus the A/B pilot
   with a placebo arm and a pre-registered threshold before paying for a full run.
-- **Candidates, not decided:** ask before edits to lint/format/type-check config (agents relax the
-  check instead of fixing code; ai1 `test-guard` does not cover it); a compaction hint from the real
-  context size (last `usage` in the transcript, not a tool-call count); a tool-loop warning when the
-  last 5 calls are identical (3 gave false positives on retries and polling); treating
+- **Taken (2026-11-09):** asking before edits to lint/format/type-check config, in
+  [test-guard](../guards/test-guard.md); a nudge when the last 5 tool calls are identical (3 gave false
+  positives on retries and polling), `tool-loop` in [verify](../features/verify.md).
+- **Left as candidates, not decided:** a compaction hint from the real context size (last `usage` in
+  the transcript, not a tool-call count); treating
   [repo rules](../guards/repo-rules.md) reason text as untrusted data, since ECC disables git-tracked
   rules by default ("opening a repo must not activate repo-authored instructions").

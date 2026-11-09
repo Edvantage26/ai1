@@ -14,6 +14,10 @@ const EXISTING_TEST = "import assert from 'node:assert/strict';\ntest('adds', ()
 writeFileSync(join(projectRoot, 'test', 'math.test.mjs'), EXISTING_TEST);
 writeFileSync(join(projectRoot, 'test', 'fixtures', 'data.json'), '{}');
 writeFileSync(join(projectRoot, 'src', 'math.mjs'), 'export const add = (a, b) => a + b;\n');
+writeFileSync(join(projectRoot, '.eslintrc.json'), '{ "rules": { "no-unused-vars": "error" } }\n');
+const PYPROJECT = '[project]\nname = "demo"\nversion = "1.0"\n\n[tool.ruff.lint]\nselect = ["E", "F"]\nignore = []\n';
+writeFileSync(join(projectRoot, 'pyproject.toml'), PYPROJECT);
+writeFileSync(join(projectRoot, 'package.json'), '{ "name": "demo", "dependencies": {}, "jest": { "coverageThreshold": { "global": { "lines": 80 } } } }\n');
 
 function ruleIdsFor(toolName, toolInput, moduleOptions = {}) {
   return findTestGuardFindings({ cwd: projectRoot, tool_name: toolName, tool_input: toolInput }, projectRoot, moduleOptions).map((testFinding) => testFinding.ruleId);
@@ -37,6 +41,17 @@ const EXPECTED_FINDINGS = [
   ['multi-edit summed', 'MultiEdit', { file_path: testFile, edits: [{ old_string: '  assert.equal(add(0, 0), 0);\n', new_string: '' }, { old_string: "test('adds'", new_string: "test('adds'); assert.equal(add(0, 0), 0" }] }, []],
   ['file emptied', 'Write', { file_path: testFile, content: "test('adds', () => {});\n" }, ['test-file-emptied']],
   ['go skip', 'Edit', { file_path: join(projectRoot, 'math_test.go'), old_string: 'func TestAdd(t *testing.T) {', new_string: 'func TestAdd(t *testing.T) {\n\tt.Skip("later")' }, ['test-skip-added']],
+  // Check configuration.
+  ['dedicated lint config edited', 'Edit', { file_path: join(projectRoot, '.eslintrc.json'), old_string: '"error"', new_string: '"off"' }, ['check-config-changed']],
+  ['new lint config created', 'Write', { file_path: join(projectRoot, 'packages', 'web', 'eslint.config.mjs'), content: 'export default [];' }, []],
+  ['new prettier config created', 'Write', { file_path: join(projectRoot, '.prettierrc'), content: '{}' }, []],
+  ['pyproject checker section edited', 'Edit', { file_path: join(projectRoot, 'pyproject.toml'), old_string: 'ignore = []', new_string: 'ignore = ["F401"]' }, ['check-config-changed']],
+  ['pyproject other section edited', 'Edit', { file_path: join(projectRoot, 'pyproject.toml'), old_string: 'version = "1.0"', new_string: 'version = "1.1"' }, []],
+  ['pyproject rewritten without the checker section', 'Write', { file_path: join(projectRoot, 'pyproject.toml'), content: '[project]\nname = "demo"\n' }, ['check-config-changed']],
+  ['package.json dependency added', 'Edit', { file_path: join(projectRoot, 'package.json'), old_string: '"dependencies": {}', new_string: '"dependencies": { "zod": "^3.0.0" }' }, []],
+  ['package.json jest threshold lowered', 'Edit', { file_path: join(projectRoot, 'package.json'), old_string: '"lines": 80', new_string: '"lines": 10' }, ['check-config-changed']],
+  ['rm of a lint config', 'Bash', { command: 'rm .eslintrc.json' }, ['check-config-changed']],
+  ['sed -i on a lint config', 'Bash', { command: "sed -i 's/error/off/' .eslintrc.json" }, ['check-config-changed']],
   // Shell.
   ['rm of a test', 'Bash', { command: 'rm test/math.test.mjs' }, ['test-file-removed']],
   ['git rm of a test', 'Bash', { command: 'git rm -q test/math.test.mjs' }, ['test-file-removed']],
@@ -62,11 +77,17 @@ test('test-guard: test_paths replaces the defaults and ignore_rules switches a r
   assert.deepEqual(ruleIdsFor('Edit', skipEdit, { ignore_rules: ['test-skip-added'] }), []);
 });
 
+test('test-guard: check_config_paths replaces the default check config files', () => {
+  const lintEdit = { file_path: join(projectRoot, '.eslintrc.json'), old_string: '"error"', new_string: '"off"' };
+  assert.deepEqual(ruleIdsFor('Edit', lintEdit, { check_config_paths: ['lint/*.json'] }), []);
+  assert.deepEqual(ruleIdsFor('Edit', lintEdit, { ignore_rules: ['check-config-changed'] }), []);
+});
+
 test('test-guard: the reason names the file and says to fix the code', () => {
   const moduleDecision = testGuard.run({ hookInput: { cwd: projectRoot, tool_name: 'Bash', tool_input: { command: 'rm test/math.test.mjs' } }, projectRoot, moduleOptions: {} });
   assert.equal(moduleDecision.kind, 'ask');
   assert.match(moduleDecision.reason, /\[test-file-removed\] removes `test\/math\.test\.mjs`/);
-  assert.match(moduleDecision.reason, /fix the code, not the test/);
+  assert.match(moduleDecision.reason, /fix the code, not the test or the check/);
 });
 
 test('test-guard runs through the dispatcher with verify on by default', () => {
