@@ -13,9 +13,16 @@ export function buildHarnessBrief(config, enabledModules) {
   const briefLines = [
     `ai1 harness is active in this repo (protected branch: ${config.trunk}).`,
   ];
+  // A feature with its own session-start text explains itself there: here only its title.
+  const featuresWithOwnBrief = new Set(enabledModules
+    .filter((moduleDefinition) => moduleDefinition.event === 'SessionStart' && moduleDefinition.id !== MODULE_ID)
+    .map((moduleDefinition) => moduleDefinition.feature));
   if (activeFeatures.length) {
     briefLines.push('Features enabled in .ai1/config.json:');
-    for (const featureDefinition of activeFeatures) briefLines.push(`- ${featureDefinition.id}: ${featureDefinition.description}`);
+    for (const featureDefinition of activeFeatures) {
+      const featureSummary = featuresWithOwnBrief.has(featureDefinition.id) ? featureDefinition.title : featureDefinition.description;
+      briefLines.push(`- ${featureDefinition.id}: ${featureSummary}`);
+    }
   }
   const hookModules = enabledModules.filter((moduleDefinition) => moduleDefinition.id !== MODULE_ID);
   if (hookModules.length) briefLines.push(`Hooks enforcing them: ${hookModules.map((moduleDefinition) => moduleDefinition.id).join(', ')}.`);

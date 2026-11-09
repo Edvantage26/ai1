@@ -55,6 +55,14 @@ test('session brief describes features, hooks and verify', () => {
   assert.match(briefText, /`npm test`/);
 });
 
+test('session brief: a feature with its own session-start text gets only its title', () => {
+  const projectRoot = createTemporaryProject({ features: { okf: false, craft: true, danger: true } });
+  const briefText = runHookEvent('SessionStart', { cwd: projectRoot }, quietOptions).hookSpecificOutput.additionalContext;
+  assert.match(briefText, /^- craft: Code craft rules$/m, 'craft explains itself in craft-brief');
+  assert.match(briefText, /^- danger: Confirms or refuses shell commands/m, 'danger has no brief of its own');
+  assert.match(briefText, /Craft: keep the code growing in order/, 'the craft brief still comes');
+});
+
 test('an unwritable state directory does not cost the session its brief', () => {
   const projectRoot = createTemporaryProject({ verify: ['npm test'], features: { okf: true } });
   mkdirSync(join(projectRoot, '.ai1', 'okf'));
