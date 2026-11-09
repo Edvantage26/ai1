@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T06:17:09Z'
+  at: '2026-11-09T06:42:10Z'
 ---
 
 # Flow
@@ -74,7 +74,9 @@ decide. Garbage input makes the entry point exit 0 with no output.
 Shared helpers in `src/core/`: `shell-parse.mjs` (split commands), `shell-writes.mjs` (files a shell
 command writes; used by okf-upkeep and lanes-gate), `session-base.mjs` (HEAD at session start, recorded
 by `brief`, okf-index and lanes-brief, never throws; used by okf, lanes and verify), `transcript-scan.mjs`
-(incremental transcript reader; okf-upkeep, verify-gate), `path-glob.mjs` (globs for .ai1/config.json
+(incremental transcript reader; okf-upkeep, verify-gate), `session-writes.mjs` (whether a tool call
+may change files: edits, subagents and shell commands not known to be read-only; okf-upkeep and
+verify-gate skip a session that only read), `path-glob.mjs` (globs for .ai1/config.json
 paths), `session-state.mjs` (per-session state files, `readStateJson`, and `claimStopBlock`: the Stop
 loop guard - the same findings block once, at most N blocks per session - of okf-upkeep and
 proposals-upkeep), `project-paths.mjs` (tool paths relative to the project root; used by lanes and design),

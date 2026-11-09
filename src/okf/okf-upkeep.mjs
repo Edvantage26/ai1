@@ -124,7 +124,17 @@ export default {
     // just edited is still validated.
     if (hookInput.stop_hook_active) return bundleChangedInSession ? checkBundleValidity(validityContext) : allowDecision();
 
-    const pendingFiles = listSessionChangedFiles(projectRoot, baseHead, bundleRelativePath, isFeatureEnabled('proposals', config) ? [PROPOSALS_DIRECTORY] : [])
+    const memoryDirectories = memoryDirectoriesFor([hookInput.cwd, projectRoot], homeDirectory);
+    const scanStatePath = sessionStatePath(stateDirectory, hookInput.session_id, projectRoot, 'memory-scan');
+    const scanState = loadScanState(scanStatePath);
+    const transcriptScan = scanSessionTranscript(hookInput.transcript_path, { memoryDirectories, bundleRelativePath, verifyCommands: config.verify || [] }, scanState);
+    if (transcriptScan) writeStateText(scanStatePath, JSON.stringify(scanState));
+
+    // Only files changed after the session started, and only when the transcript shows the session
+    // may have written: uncommitted changes from before it, or another session's in the same folder,
+    // are not this session's knowledge. Without a transcript the dates alone decide.
+    const sessionMayHaveWritten = !transcriptScan || transcriptScan.sessionMayHaveWritten;
+    const pendingFiles = (sessionMayHaveWritten ? listSessionChangedFiles(projectRoot, baseHead, bundleRelativePath, isFeatureEnabled('proposals', config) ? [PROPOSALS_DIRECTORY] : []) : [])
       .map((changedPath) => {
         const absolutePath = join(projectRoot, changedPath);
         // A deleted file has no mtime: it is pending, with a fixed signature so it is asked only once.
@@ -132,17 +142,13 @@ export default {
         const modifiedMilliseconds = statSync(absolutePath).mtimeMs;
         return { path: changedPath, isDeleted: false, modifiedMilliseconds, signature: `${changedPath}:${Math.floor(modifiedMilliseconds)}` };
       })
-      .filter((pendingFile) => pendingFile.isDeleted || pendingFile.modifiedMilliseconds > bundleUpdatedMilliseconds);
+      .filter((pendingFile) => pendingFile.isDeleted
+        || (pendingFile.modifiedMilliseconds >= sessionStartMilliseconds && pendingFile.modifiedMilliseconds > bundleUpdatedMilliseconds));
     // A deletion has no date to compare with the bundle, so it would stay pending forever and ride
     // along every later reminder: it is mentioned once per session and then dropped.
     const deletionsRemindedPath = sessionStatePath(stateDirectory, hookInput.session_id, projectRoot, 'deletions');
     const deletionsAlreadyReminded = new Set((readStateText(deletionsRemindedPath) || '').split('\n').filter(Boolean));
     const pendingFilesToRemind = pendingFiles.filter((pendingFile) => !(pendingFile.isDeleted && deletionsAlreadyReminded.has(pendingFile.path)));
-    const memoryDirectories = memoryDirectoriesFor([hookInput.cwd, projectRoot], homeDirectory);
-    const scanStatePath = sessionStatePath(stateDirectory, hookInput.session_id, projectRoot, 'memory-scan');
-    const scanState = loadScanState(scanStatePath);
-    const transcriptScan = scanSessionTranscript(hookInput.transcript_path, { memoryDirectories, bundleRelativePath }, scanState);
-    if (transcriptScan) writeStateText(scanStatePath, JSON.stringify(scanState));
     const pendingMemories = listRecentMemories(
       memoryDirectories,
       sessionStartMilliseconds,

@@ -36,7 +36,7 @@ function hookOptions() {
 }
 
 // A session: starts now; `changeFile` writes a file at a given offset from the start, and
-// `transcript` holds Bash runs ending at given offsets.
+// `transcript` holds an edit by the session followed by Bash runs ending at given offsets.
 function startSession(projectRoot, options) {
   runHookEvent('SessionStart', { session_id: 'session-1', cwd: projectRoot, source: 'startup' }, options);
   return Date.now();
@@ -48,12 +48,16 @@ function changeFile(projectRoot, relativePath, modifiedMilliseconds) {
   utimesSync(filePath, modifiedMilliseconds / SECOND, modifiedMilliseconds / SECOND);
 }
 
-function writeTranscript(options, bashRuns) {
+function writeTranscript(options, bashRuns, { sessionEdits = true } = {}) {
   const transcriptPath = join(options.homeDirectory, 'transcript.jsonl');
-  const transcriptLines = bashRuns.flatMap(({ command, endMilliseconds, isError = false, output = 'ok' }, runIndex) => [
+  const editEvents = sessionEdits
+    ? [{ type: 'assistant', message: { content: [{ type: 'tool_use', id: 'tool-edit', name: 'Edit', input: { file_path: 'src/app.js' } }] } }]
+    : [];
+  const runEvents = bashRuns.flatMap(({ command, endMilliseconds, isError = false, output = 'ok' }, runIndex) => [
     { type: 'assistant', timestamp: new Date(endMilliseconds - SECOND).toISOString(), message: { content: [{ type: 'tool_use', id: `tool-${runIndex}`, name: 'Bash', input: { command } }] } },
     { type: 'user', timestamp: new Date(endMilliseconds).toISOString(), message: { content: [{ type: 'tool_result', tool_use_id: `tool-${runIndex}`, is_error: isError, content: output }] } },
-  ].map((transcriptEvent) => JSON.stringify(transcriptEvent)));
+  ]);
+  const transcriptLines = [...editEvents, ...runEvents].map((transcriptEvent) => JSON.stringify(transcriptEvent));
   writeFileSync(transcriptPath, `${transcriptLines.join('\n')}\n`);
   return transcriptPath;
 }
@@ -145,6 +149,25 @@ test('verify-gate: changes from before the session, or no verify command, do not
   const sessionStart = startSession(unconfiguredRepo, otherOptions);
   changeFile(unconfiguredRepo, 'src/app.js', sessionStart + 10 * SECOND);
   assert.equal(stopSession(unconfiguredRepo, otherOptions, writeTranscript(otherOptions, [])), null);
+});
+
+test('verify-gate: a session that only read and ran the verify command is not asked about changes it did not make', () => {
+  const projectRoot = createVerifyRepo();
+  const options = hookOptions();
+  const sessionStart = startSession(projectRoot, options);
+  changeFile(projectRoot, 'src/app.js', sessionStart + 10 * SECOND);
+  const readOnlyRuns = [
+    { command: 'cd /repo && git status --short && grep -rn foo src | head', endMilliseconds: sessionStart + 5 * SECOND },
+    { command: 'npm test 2>&1 | tail -3', endMilliseconds: sessionStart + 6 * SECOND, isError: true, output: '# fail 1' },
+  ];
+  assert.equal(stopSession(projectRoot, options, writeTranscript(options, readOnlyRuns, { sessionEdits: false })), null);
+  const writingRepo = createVerifyRepo();
+  const writingOptions = hookOptions();
+  const writingSessionStart = startSession(writingRepo, writingOptions);
+  changeFile(writingRepo, 'src/app.js', writingSessionStart + 10 * SECOND);
+  const writingRun = { command: 'npx prettier --write src', endMilliseconds: writingSessionStart + 7 * SECOND };
+  const writingTranscript = writeTranscript(writingOptions, [writingRun], { sessionEdits: false });
+  assert.equal(stopSession(writingRepo, writingOptions, writingTranscript)?.decision, 'block', 'a command that may write counts');
 });
 
 test('verify-gate: switched off with the verify feature', () => {

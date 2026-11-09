@@ -5,7 +5,7 @@ description: Proposals - large changes and future features not decided yet - in 
 tags: [proposals, roadmap, hooks, cli, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T06:16:07Z'
+  at: '2026-11-09T06:44:40Z'
 sources:
   - id: proposals-documents
     resource: src/proposals/proposals-documents.mjs
@@ -55,8 +55,10 @@ The lifecycle it fills:
 # Creation: only on request or acceptance
 
 The agent never creates a proposal on its own initiative: it creates one when the person asks for
-it, or offers it in one line ("¿lo guardo como propuesta?") and creates it only after a yes. Said in
-the brief and in the skill. Decision (2026-11-09): **text only, no hook**, because friction must be
+it. It offers one only when, while working on one subject, a clearly different one comes up (a new
+feature or change unrelated to the task at hand): one line ("¿lo guardo como propuesta y seguimos con
+lo de ahora?"), created only after a yes. Never for details, steps or follow-ups of the current
+subject (decided by the person on 2026-11-09). Said in the brief and in the skill. Decision (2026-11-09): **text only, no hook**, because friction must be
 proportional to risk and a proposal is a versioned markdown file that is cheap to delete; a consent
 hook (detect the request or the yes, gate `ai1 proposals new`) was designed and dropped. It comes
 back only if the agent breaks the rule in practice.

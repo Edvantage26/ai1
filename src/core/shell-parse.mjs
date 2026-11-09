@@ -9,6 +9,7 @@ const WRAPPER_COMMANDS = new Set(['sudo', 'doas', 'nohup', 'time', 'nice', 'exec
 const SHELL_COMMANDS = new Set(['bash', 'sh', 'zsh', 'dash']);
 const ENV_ASSIGNMENT = /^[A-Za-z_][A-Za-z0-9_]*=/;
 const MAX_UNWRAP_DEPTH = 3;
+const REDIRECT_WORD = /^(?:\d|&)?(?:>>?|<<?)/;
 
 // Tokenizes respecting single quotes, double quotes and backslash escapes.
 // Separators become their own tokens; quoted text never does.
@@ -122,4 +123,15 @@ export function hasShortFlag(commandWords, flagLetter) {
 
 export function hasLongFlag(commandWords, flagName) {
   return commandWords.some((commandWord) => commandWord === flagName || commandWord.startsWith(`${flagName}=`));
+}
+
+// The words of a simple command without its redirects, e.g. `npm test 2>&1` -> `npm test`.
+export function commandWordsWithoutRedirects(commandWords) {
+  const keptWords = [];
+  for (let wordIndex = 0; wordIndex < commandWords.length; wordIndex += 1) {
+    const redirectMatch = commandWords[wordIndex].match(REDIRECT_WORD);
+    if (!redirectMatch) keptWords.push(commandWords[wordIndex]);
+    else if (commandWords[wordIndex].length === redirectMatch[0].length) wordIndex += 1;
+  }
+  return keptWords.join(' ');
 }

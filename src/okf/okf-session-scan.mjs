@@ -1,6 +1,6 @@
 // What a session did, for okf-upkeep: memory files it wrote, its investigation calls since the
-// last bundle edit (one incremental pass over the transcript), and whether a shell command edited
-// the bundle.
+// last bundle edit, whether it may have written any file (one incremental pass over the
+// transcript), and whether a shell command edited the bundle.
 
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -10,6 +10,7 @@ import { splitFrontmatter } from '../core/frontmatter.mjs';
 import { readStateJson } from '../core/session-state.mjs';
 import { listShellWriteTargets } from '../core/shell-writes.mjs';
 import { readNewTranscriptEvents, eventContentBlocks } from '../core/transcript-scan.mjs';
+import { toolUseMayWriteFiles } from '../core/session-writes.mjs';
 
 // Claude Code stores auto-memory under ~/.claude/projects/<path with / and . as ->/memory.
 export function memoryDirectoriesFor(directoryPaths, homeDirectory = homedir()) {
@@ -47,16 +48,21 @@ export function shellCommandWritesBundle(commandLine, bundleRelativePath = KNOWL
 // One incremental pass over the session transcript (see core/transcript-scan.mjs). It collects
 //   - `paths`: memory files this session wrote (Write/Edit), and
 //   - `investigationCalls`: investigation tool calls (shell, MCP, web) since the session last
-//     edited the bundle, reset to 0 by any bundle edit.
+//     edited the bundle, reset to 0 by any bundle edit, and
+//   - `sessionMayHaveWritten`: some call may have changed files (core/session-writes; the repo's
+//     verify commands count as read-only).
 // Returns null when the transcript is not available.
-export function scanSessionTranscript(transcriptPath, { memoryDirectories, bundleRelativePath }, scanState = { offset: 0, paths: [], investigationCalls: 0 }) {
+export function scanSessionTranscript(transcriptPath, { memoryDirectories, bundleRelativePath, verifyCommands = [] }, scanState = { offset: 0, paths: [], investigationCalls: 0 }) {
   const newTranscript = readNewTranscriptEvents(transcriptPath, scanState);
   if (!newTranscript) return null;
   const writtenMemoryPaths = new Set(newTranscript.restarted ? [] : scanState.paths || []);
   let investigationCalls = newTranscript.restarted ? 0 : scanState.investigationCalls || 0;
+  // State saved by a version without this flag: earlier writes are unknown, so assume them.
+  let sessionMayHaveWritten = newTranscript.restarted ? false : scanState.sessionMayHaveWritten ?? true;
   const bundleMarker = `/${String(bundleRelativePath || KNOWLEDGE_BUNDLE_PATH).replace(/^\.\//, '').replace(/\/+$/, '')}/`;
   for (const transcriptEvent of newTranscript.events) {
     for (const contentBlock of eventContentBlocks(transcriptEvent, 'tool_use')) {
+      if (toolUseMayWriteFiles(contentBlock, verifyCommands)) sessionMayHaveWritten = true;
       const toolPath = contentBlock?.input?.file_path;
       if (MEMORY_WRITING_TOOLS.has(contentBlock.name) && typeof toolPath === 'string') {
         if (memoryDirectories.some((memoryDirectory) => toolPath.startsWith(`${memoryDirectory}/`))) writtenMemoryPaths.add(toolPath);
@@ -70,7 +76,8 @@ export function scanSessionTranscript(transcriptPath, { memoryDirectories, bundl
   }
   scanState.paths = [...writtenMemoryPaths];
   scanState.investigationCalls = investigationCalls;
-  return { memoryPaths: writtenMemoryPaths, investigationCalls };
+  scanState.sessionMayHaveWritten = sessionMayHaveWritten;
+  return { memoryPaths: writtenMemoryPaths, investigationCalls, sessionMayHaveWritten };
 }
 
 // Kept for callers that only need the memory files.

@@ -5,7 +5,8 @@
 //   command (redirects allowed, extra arguments or filters not), or `ai1 verify` / `ai1 step-done`.
 //   Exit code from the tool result (`is_error`), plus common failure summaries for piped output.
 // - Changes are judged by file modification time against the end of the run, so edits made by
-//   subagents or shell commands count too.
+//   subagents or shell commands count too. A session whose transcript shows no call that may write
+//   (core/session-writes) is not asked: the changes belong to another session or predate it.
 // - Asked at most twice for the same situation, then it lets the agent stop (fail open).
 
 import { existsSync, statSync } from 'node:fs';
@@ -14,15 +15,15 @@ import { allowDecision, blockDecision } from '../core/hook-io.mjs';
 import { matchesAnyGlob } from '../core/path-glob.mjs';
 import { readSessionBase, listFilesChangedSinceBase } from '../core/session-base.mjs';
 import { resolveStateDirectory, sessionStatePath, writeStateText, shortHash, readStateJson } from '../core/session-state.mjs';
-import { baseName, splitSimpleCommands } from '../core/shell-parse.mjs';
+import { baseName, commandWordsWithoutRedirects, splitSimpleCommands } from '../core/shell-parse.mjs';
 import { readNewTranscriptEvents, eventContentBlocks, TOOL_USE_MARKER, TOOL_RESULT_MARKER } from '../core/transcript-scan.mjs';
+import { toolUseMayWriteFiles } from '../core/session-writes.mjs';
 import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
 
 const MODULE_ID = 'verify-gate';
 const MAX_BLOCKS_PER_SITUATION = 2;
 const MAX_LISTED_FILES = 10;
 export const DEFAULT_IGNORED_PATHS = ['*.md', '.claude/**', '.ai1/**'];
-const REDIRECT_WORD = /^(?:\d|&)?(?:>>?|<<?)/;
 const FAILURE_SUMMARIES = [
   /^# fail [1-9]/m, // node:test, TAP
   /\b[1-9]\d* (?:failed|failing)\b/i, // jest, mocha, pytest, vitest
@@ -30,17 +31,6 @@ const FAILURE_SUMMARIES = [
   /^FAIL\b/m, // jest, go
 ];
 const AI1_VERIFYING_SUBCOMMANDS = new Set(['verify', 'step-done']);
-
-// The words of a simple command without its redirects, e.g. `npm test 2>&1` -> `npm test`.
-function commandWordsWithoutRedirects(commandWords) {
-  const keptWords = [];
-  for (let wordIndex = 0; wordIndex < commandWords.length; wordIndex += 1) {
-    const redirectMatch = commandWords[wordIndex].match(REDIRECT_WORD);
-    if (!redirectMatch) keptWords.push(commandWords[wordIndex]);
-    else if (commandWords[wordIndex].length === redirectMatch[0].length) wordIndex += 1;
-  }
-  return keptWords.join(' ');
-}
 
 // Indexes of the verify commands a shell command line runs in full.
 export function verifyCommandsRunBy(commandLine, verifyCommands) {
@@ -75,19 +65,24 @@ export function didRunFail(contentBlock) {
   return FAILURE_SUMMARIES.some((failurePattern) => failurePattern.test(outputText));
 }
 
-// Updates `scanState.lastRuns[verifyIndex] = { endMilliseconds, passed, toolUseId }` from the new
-// part of the transcript. Returns false when the transcript is not available.
+// Updates `scanState.lastRuns[verifyIndex] = { endMilliseconds, passed, toolUseId }` and
+// `scanState.sessionMayHaveWritten` from the new part of the transcript. Returns false when the
+// transcript is not available.
 export function scanVerifyRuns(transcriptPath, verifyCommands, scanState) {
   const newTranscript = readNewTranscriptEvents(transcriptPath, scanState, [TOOL_USE_MARKER, TOOL_RESULT_MARKER]);
   if (!newTranscript) return false;
   if (newTranscript.restarted) {
     scanState.pendingRuns = {};
     scanState.lastRuns = {};
+    scanState.sessionMayHaveWritten = false;
   }
+  // State saved by a version without this flag: earlier writes are unknown, so assume them.
+  scanState.sessionMayHaveWritten ??= true;
   scanState.pendingRuns ||= {};
   scanState.lastRuns ||= {};
   for (const transcriptEvent of newTranscript.events) {
     for (const toolUse of eventContentBlocks(transcriptEvent, 'tool_use')) {
+      if (toolUseMayWriteFiles(toolUse, verifyCommands)) scanState.sessionMayHaveWritten = true;
       if (toolUse.name !== 'Bash') continue;
       const verifyIndexes = verifyCommandsRunBy(toolUse.input?.command, verifyCommands);
       if (verifyIndexes.length) scanState.pendingRuns[toolUse.id] = verifyIndexes;
@@ -162,6 +157,7 @@ export default {
     // Without a transcript there is no way to know what ran: let the agent stop.
     if (!scanVerifyRuns(hookInput.transcript_path, verifyCommands, scanState)) return allowDecision();
     writeStateText(scanStatePath, JSON.stringify(scanState));
+    if (!scanState.sessionMayHaveWritten) return allowDecision();
 
     const unverifiedChange = findUnverifiedChange(changedFiles, verifyCommands, scanState.lastRuns);
     if (!unverifiedChange) return allowDecision();

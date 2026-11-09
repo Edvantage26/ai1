@@ -180,11 +180,44 @@ test('okf-upkeep: a v0.1 bundle reminder keeps the no-migration rule', () => {
   assert.match(stopSession(projectRoot, options).reason, /Do NOT migrate the bundle on your own/);
 });
 
-test('okf-upkeep: a session that never ran SessionStart uses the current HEAD', () => {
+test('okf-upkeep: a session that never ran SessionStart starts counting at its first stop', () => {
   const projectRoot = createRepoWithBundle();
   const options = hookOptions();
+  assert.equal(stopSession(projectRoot, options), null);
   writeFileSync(join(projectRoot, 'src', 'app.py'), 'print(2)\n');
   assert.equal(stopSession(projectRoot, options).decision, 'block');
+});
+
+test('okf-upkeep: uncommitted changes from before the session are not asked about', () => {
+  const projectRoot = createRepoWithBundle();
+  writeFileSync(join(projectRoot, 'src', 'app.py'), 'print(2)\n');
+  setModifiedSeconds(join(projectRoot, 'src', 'app.py'), Date.now() / 1000 - 3600);
+  const options = hookOptions();
+  startSession(projectRoot, options);
+  assert.equal(stopSession(projectRoot, options), null);
+});
+
+function writeSessionTranscript(options, toolUses) {
+  const transcriptPath = join(options.homeDirectory, 'transcript.jsonl');
+  const transcriptLines = toolUses.map((toolUse, toolIndex) => JSON.stringify({ type: 'assistant', message: { content: [{ type: 'tool_use', id: `tool-${toolIndex}`, ...toolUse }] } }));
+  writeFileSync(transcriptPath, `${transcriptLines.join('\n')}\n`);
+  return transcriptPath;
+}
+
+test('okf-upkeep: changes made by another session are not asked about when this one only read', () => {
+  const projectRoot = createRepoWithBundle();
+  const readingOptions = hookOptions();
+  const editingOptions = hookOptions();
+  startSession(projectRoot, readingOptions, 'reading-session');
+  startSession(projectRoot, editingOptions, 'editing-session');
+  writeFileSync(join(projectRoot, 'src', 'app.py'), 'print(2)\n');
+  const readOnlyTranscript = writeSessionTranscript(readingOptions, [
+    { name: 'Read', input: { file_path: join(projectRoot, 'src', 'app.py') } },
+    { name: 'Bash', input: { command: 'git diff --stat && cat src/app.py' } },
+  ]);
+  assert.equal(stopSession(projectRoot, readingOptions, { transcript_path: readOnlyTranscript }, 'reading-session'), null);
+  const editingTranscript = writeSessionTranscript(editingOptions, [{ name: 'Edit', input: { file_path: join(projectRoot, 'src', 'app.py') } }]);
+  assert.equal(stopSession(projectRoot, editingOptions, { transcript_path: editingTranscript }, 'editing-session').decision, 'block');
 });
 
 test('okf-upkeep: outside a git repo it fails open', () => {

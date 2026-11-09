@@ -7,11 +7,15 @@ description: Proposals — Write and manage proposals - large changes and future
 
 ## Only on request or acceptance
 
-Never create a proposal on your own initiative. Create one when the person asks for it. When an idea
-in the conversation seems worth keeping for later, offer it in one line ("¿lo guardo como
-propuesta?" / "Save this as a proposal?") and create it only after a yes; if the answer is no or
-there is none, drop it. Updating, accepting or rejecting an existing proposal follows the person's
-request too.
+Never create a proposal on your own initiative. Create one when the person asks for it.
+
+Offer one only in this situation: the conversation is about one subject and a clearly different one
+comes up (a new feature or change unrelated to the task at hand). Then offer in one line to save it
+as a proposal, so the current work goes on ("¿lo guardo como propuesta y seguimos con lo de
+ahora?" / "Save this as a proposal and carry on?"), and create it only after a yes; if the answer is
+no or there is none, drop it. Do not offer for details, steps, follow-ups or improvements of the
+subject being worked on: those belong to the current task. Updating, accepting or rejecting an
+existing proposal follows the person's request too.
 
 ## What a proposal is
 
