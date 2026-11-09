@@ -129,6 +129,7 @@ function recommendLater(repoRoot) {
 export function recommendFeatures(repoRoot, { hasKnowledgeBundle }) {
   const trackedFiles = listTrackedFiles(repoRoot);
   const verifyCommands = detectVerifyCommands(repoRoot);
+  const designRecommendation = recommendDesign(repoRoot, trackedFiles);
   return {
     verifyCommands,
     recommendations: {
@@ -138,7 +139,10 @@ export function recommendFeatures(repoRoot, { hasKnowledgeBundle }) {
       lanes: recommendLanes(repoRoot, trackedFiles),
       worktrees: recommendWorktrees(repoRoot),
       later: recommendLater(repoRoot),
-      design: recommendDesign(repoRoot, trackedFiles),
+      design: designRecommendation,
+      walkthrough: designRecommendation.recommended
+        ? { ...designRecommendation, reason: 'the repo has a frontend whose user flow can be reviewed as a storyboard' }
+        : designRecommendation,
       verify: verifyCommands.length
         ? { recommended: true, reason: 'the repo has tests to run before a change is done', evidence: verifyCommands }
         : { recommended: false, reason: 'no test command found; enable it once the repo has one', evidence: [] },

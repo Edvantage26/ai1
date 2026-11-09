@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T13:25:52Z'
+  at: '2026-11-09T14:59:15Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -240,3 +240,18 @@ Read from source or READMEs by subagents; popularity from the GitHub API.
 - **claude-code-hooks-mastery** (~4k stars, no license): demo of all 13 hook events in `uv` Python.
   Ideas: an opt-in local JSONL log of hook decisions (module, decision, ms) for misfires and
   `/ai1:core-report-issue`; a PermissionRequest handler allowing commands already classified safe.
+
+# Visual walkthroughs of UI changes (2026-11-09)
+
+Reviewed from docs and posts (not code) for the planned walkthrough feature (`.ai1/work/walkthrough/plan.md`):
+- **[ProofShot](https://github.com/belinwu/proofshot)**: CLI that records an agent's browser session and
+  bundles screenshots, errors and video into `SUMMARY.md` + an HTML viewer for a human. Closest idea;
+  aimed at proof of work, not at the user's view of a flow, and has no before/after.
+- **Playwright HTML report / trace viewer**: static and shareable, but a debugging tool (actions, DOM,
+  network), not a storyboard. Playwright's screencast is pitched as "agentic video receipts".
+- **[Argos](https://argos-ci.com/blog/playwright-mcp-visual-testing)**: pixel diffs against baselines in
+  CI; Playwright MCP itself has no baselines or diffing.
+- Caveat (VISTA paper, cited by Argos): visual fidelity and functional correctness diverge, so a
+  storyboard validates the flow as seen, not that it works.
+- **Google Drive does not render HTML** (it downloads it or shows the source); it previews PDF and
+  images, also on mobile. Anything for a file-sync destination should be a PDF.

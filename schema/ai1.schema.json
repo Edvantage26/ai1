@@ -15,7 +15,7 @@
     },
     "features": {
       "type": "object",
-      "description": "Features enabled in this repo. Omitted features use their default (okf, danger, craft and verify: on, lanes, worktrees, design and later: off).",
+      "description": "Features enabled in this repo. Omitted features use their default (okf, danger, craft and verify: on, lanes, worktrees, design, walkthrough and later: off).",
       "additionalProperties": false,
       "properties": {
         "okf": {
@@ -47,6 +47,11 @@
           "type": "boolean",
           "default": false,
           "description": "UI design rules at session start and deterministic design checks on every edited UI file (design-detect)."
+        },
+        "walkthrough": {
+          "type": "boolean",
+          "default": false,
+          "description": "Visual walkthrough of the user flow after UI changes: storyboard (HTML, PDF) with before/after, served locally and saved to the person's chosen folder; reminder at stop (/ai1:walkthrough-record-flow, ai1 walkthrough)."
         },
         "verify": {
           "type": "boolean",

@@ -46,6 +46,12 @@ export const FEATURES = [
     enabledByDefault: false,
   },
   {
+    id: 'walkthrough',
+    title: 'Visual walkthrough of the user flow',
+    description: 'For repos with a frontend. After a visual change, the agent records the user flow as numbered steps (what the user does, desktop and mobile screenshots, before and after) and builds a storyboard the person reviews without running the app: an HTML served at a local URL, a PDF, and a copy to the folder the person chose (local by default, or a synced cloud folder). Reminds once at stop when UI files changed without a storyboard. Skill /ai1:walkthrough-record-flow; `ai1 walkthrough`.',
+    enabledByDefault: false,
+  },
+  {
     id: 'verify',
     title: 'Verification gate',
     description: 'The agent cannot finish while code it changed is newer than the last passing run of the verify commands in .ai1/config.json (run in full, no filters). Adds `ai1 verify` and `ai1 step-done`. Also asks before tests are skipped, emptied, weakened or deleted, and after 3 failed fix attempts in a row tells the agent to stop and go back to the root cause (/ai1:verify-debug-systematically).',
