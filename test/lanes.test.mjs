@@ -202,7 +202,7 @@ test('lanes-gate: finished plans and plans from earlier sessions do not block', 
   assert.equal(useTool(projectRoot, options, 'Edit', editCode(projectRoot)), null);
 });
 
-test('lanes-escalate: past the size of a quick change it asks once', () => {
+test('lanes-escalate: past the size of a quick change it tells the person once, without stopping the agent', () => {
   const projectRoot = createLanesRepo({ modules: { 'lanes-escalate': { max_files: 3, max_lines: 1000 } } });
   const options = hookOptions();
   startSession(projectRoot, options);
@@ -210,10 +210,10 @@ test('lanes-escalate: past the size of a quick change it asks once', () => {
   writeFileSync(join(projectRoot, 'src', 'b.js'), 'b\n');
   assert.equal(useTool(projectRoot, options, 'Edit', editCode(projectRoot)), null, '2 files: still quick');
   writeFileSync(join(projectRoot, 'src', 'c.js'), 'c\n');
-  const askOutput = useTool(projectRoot, options, 'Edit', editCode(projectRoot));
-  assert.equal(askOutput.hookSpecificOutput.permissionDecision, 'ask');
-  assert.match(askOutput.hookSpecificOutput.permissionDecisionReason, /changed 3 files .* without a plan/);
-  assert.equal(useTool(projectRoot, options, 'Edit', editCode(projectRoot)), null, 'asked once per session');
+  const noticeOutput = useTool(projectRoot, options, 'Edit', editCode(projectRoot));
+  assert.equal(noticeOutput.hookSpecificOutput, undefined, 'no permission prompt');
+  assert.match(noticeOutput.systemMessage, /changed 3 files .* without a plan/);
+  assert.equal(useTool(projectRoot, options, 'Edit', editCode(projectRoot)), null, 'shown once per session');
 });
 
 test('lanes-escalate: lines count too, and an active plan means no question', () => {
@@ -228,7 +228,7 @@ test('lanes-escalate: lines count too, and an active plan means no question', ()
   const otherOptions = hookOptions();
   startSession(otherProject, otherOptions);
   writeFileSync(join(otherProject, 'src', 'big.js'), 'line\n'.repeat(20));
-  assert.equal(useTool(otherProject, otherOptions, 'Edit', editCode(otherProject)).hookSpecificOutput.permissionDecision, 'ask');
+  assert.match(useTool(otherProject, otherOptions, 'Edit', editCode(otherProject)).systemMessage, /without a plan/);
 });
 
 test('listShellWriteTargets: redirects, tee, in-place edits, copies and inline scripts', () => {

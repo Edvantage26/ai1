@@ -5,7 +5,7 @@ description: Later - large changes and future features not decided yet, noted do
 tags: [later, proposals, roadmap, hooks, cli, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T13:24:58Z'
+  at: '2026-11-09T14:03:22Z'
 sources:
   - id: later-documents
     resource: src/later/later-documents.mjs
@@ -72,20 +72,20 @@ The lifecycle it fills:
 
 The agent never notes one down on its own initiative: it does when the person asks ("apúntalo para
 luego", "déjalo para más adelante", "apárcalo"). When, while working on one subject, a clearly
-different one comes up (a new feature or change unrelated to the task at hand), it offers in one line
-three ways and the person picks: do it here, in this conversation; fork it into a new one
-([session fork](session-fork.md)); or note it down for later ("Esto es otro tema: ¿lo hacemos aquí, lo
-abro en un fork o lo apunto para luego?" - wording chosen by the person on 2026-11-09). Never for
+different and large one comes up (a new feature unrelated to the task at hand), it mentions it in one
+line at the end of its report with the way it recommends (do it here, fork it into a new one with
+[session fork](session-fork.md), or note it down for later) and does not stop to ask; a yes means the
+recommended way, and a small fix found on the way is done here. Until 2026-11-09 it asked "¿lo hacemos
+aquí, lo abro en un fork o lo apunto para luego?" and waited: in the transcripts of that week it was
+asked 69 times, so the person dropped it the same day. Never for
 details, steps or follow-ups of the current subject (decided by the person on 2026-11-09; the three
 ways the same day). Once created, the agent confirms in one line ("Apuntado para luego como later
 0007: «...»"). Said in the brief and in the skill; the offer lives in this feature, so with it off the
 agent does not make it. Accepting, rejecting or resuming one is done only for an entry the person names
 (by number or title).
-`ai1 later new` also asks the person through the [danger guard](../guards/danger.md) (rule
-`ai1-later-new`, an `ask` in the permission prompt), so an entry is never created on the agent's
-reading of an answer. Decided by the person on 2026-11-09: an agent read an "ok, go ahead" to a
-question that bundled a code change and a proposal as a yes to both. Only creation asks; `set`,
-`index` and `check` do not. Writing an entry file with Write/Edit is not gated (the skill forbids
+`ai1 later new` does not ask in the permission prompt: the `ai1-later-new` danger rule (added on
+2026-11-09 after an agent read a bundled "ok" as a yes to a proposal) was removed the same day, since
+noting something down loses nothing. Decided by the person on 2026-11-09: ai1 asks only for what is truly delicate (losing work or data for good, publishing, production, a deep design); the rest the agent does and reports. Writing an entry file with Write/Edit is not gated (the skill forbids
 numbering by hand).
 
 # Files

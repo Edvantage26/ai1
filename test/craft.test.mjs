@@ -20,7 +20,7 @@ function startSessionContext(projectRoot, source = 'startup') {
 
 test('craft-brief: on by default, with the five rules', () => {
   const contextText = startSessionContext(createTemporaryProject({ features: { okf: false } }));
-  for (const rulePattern of [/Craft:/, /Simplicity:/, /Surgical changes:/, /Reuse before writing: .*look in the code for one/, /Refactors: .*wait for a yes/, /Names: /]) {
+  for (const rulePattern of [/Craft:/, /Simplicity:/, /Surgical changes:/, /Reuse before writing: .*look in the code for one/, /Refactors: .*without stopping to ask/, /Names: /]) {
     assert.match(contextText, rulePattern);
   }
 });

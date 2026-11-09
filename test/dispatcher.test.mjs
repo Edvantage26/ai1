@@ -166,3 +166,14 @@ test('a notice reaches the person as systemMessage and rides along a block', () 
   const withBlock = buildHookOutput('Stop', combineDecisions([noticeDecision('okf-upkeep', 'no Python'), blockDecision('verify-gate', 'run npm test')]));
   assert.deepEqual(withBlock, { decision: 'block', reason: 'ai1/verify-gate: run npm test', systemMessage: 'ai1/okf-upkeep: no Python' });
 });
+
+test('in bypass or auto mode only the asks that guard against losing data (danger) and the repo rules reach the person', () => {
+  const projectRoot = createTemporaryProject({ version: 1, features: { danger: true } });
+  const askedDecision = (permissionMode, commandLine) => runHookEvent('PreToolUse', { ...bashPayload(projectRoot, commandLine), permission_mode: permissionMode }, quietOptions)?.hookSpecificOutput?.permissionDecision ?? 'allow';
+  const configEdit = `echo '{}' > ${join(projectRoot, '.ai1', 'config.json')}`;
+  assert.equal(askedDecision('default', configEdit), 'ask', 'config-guard asks in the default mode');
+  assert.equal(askedDecision('bypassPermissions', configEdit), 'allow');
+  assert.equal(askedDecision('auto', configEdit), 'allow');
+  assert.equal(askedDecision('bypassPermissions', 'git push --force'), 'ask', 'danger still asks');
+  assert.equal(askedDecision('auto', 'git reset --hard'), 'ask');
+});

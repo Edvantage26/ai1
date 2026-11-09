@@ -148,8 +148,8 @@ test('later-brief: the recipe and the open entries; silent on resume; off by def
   assert.match(contextText, /Later: large changes .* noted down for later in `\.ai1\/later\/`/);
   assert.match(contextText, /"acepto la propuesta" in the conversation mean your own proposal in this conversation \(answer it, or build it by its lane\), never this feature/);
   assert.match(contextText, /Never note one down on your own\. Do it when the person asks \("apúntalo para luego"/);
-  assert.match(contextText, /three ways .* do it here, in this conversation; fork it into a new conversation \(\/ai1:session-fork-conversation\); or note it down for later \("Esto es otro tema: ¿lo hacemos aquí, lo abro en un fork o lo apunto para luego\?"\)/);
-  assert.match(contextText, /Act only on the way the person picks; a yes to a question that bundles several things is not a pick\. Never offer for details/);
+  assert.match(contextText, /mention it in one line at the end of your report with the way you recommend: do it here, fork it into a new conversation \(\/ai1:session-fork-conversation\) or note it down for later/);
+  assert.match(contextText, /do not stop to ask, and a yes means the way you recommended\. A small fix you found on the way is done here without asking\. Never offer for details/);
   assert.match(contextText, /accept, reject or resume one the person names by number, load \/ai1:later-write/);
   assert.match(contextText, /0001 "Guard writes to production" \(idea, draft\)/);
   assert.doesNotMatch(contextText, /Old idea/, 'rejected entries are not open');

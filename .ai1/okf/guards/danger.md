@@ -5,7 +5,7 @@ description: PreToolUse guard that confirms or refuses shell commands that destr
 tags: [guard, hooks, bash]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T13:24:58Z'
+  at: '2026-11-09T14:03:22Z'
 ---
 
 Source: `src/guards/danger.mjs`. Runs on `Bash` tool calls when the `danger` feature is on (on by default).
@@ -22,14 +22,23 @@ and each simple command is checked against the rules.
 | `git-clean` | ask | `git clean -f` (not `-n`) |
 | `git-discard-changes` | ask | `checkout -- / .`, `restore` (not `--staged`), `stash drop/clear`, `branch -D` |
 | `git-worktree-remove` | ask | `git worktree remove --force`, or a worktree with ignored files |
-| `ai1-worktree-drop` | ask | `ai1 worktree drop` |
-| `ai1-worktree-finish` | ask | `ai1 worktree finish`: the person decides when a branch is integrated |
-| `ai1-later-new` | ask | `ai1 later new`: only the person decides that something is noted down for later ([later](../features/later.md)) |
+| `ai1-worktree-drop` | ask | `ai1 worktree drop --discard-uncommitted` (without it drop refuses uncommitted changes and keeps the commits in a bundle) |
 | `rm-recursive-force` | ask / deny | `rm -r` outside regenerable dirs (`node_modules`, `dist`, `/tmp/...`); deny on `/`, `~`, `$HOME` |
 | `find-delete` | ask | `find ... -delete` unless every search root is a regenerable dir |
 | `file-truncate` | ask | `truncate` to a size that can cut the file (not `-s +N`) |
 | `sql-destructive` | ask | `DROP`, `TRUNCATE`, `DELETE FROM x` without `WHERE` |
 | `docker-destructive` | ask | `system prune`, `volume rm/prune`, `compose down -v` |
+
+Removed on 2026-11-09: `ai1-worktree-finish` (integrating locally loses nothing) and `ai1-later-new`
+(noting down loses nothing); `ai1-worktree-drop` now asks only when uncommitted changes would be lost.
+Decided by the person on 2026-11-09: ai1 asks only for what is truly delicate (losing work or data for good, publishing, production, a deep design); the rest the agent does and reports. These rules are the asks that still reach the person in bypass and auto
+permission modes (see [hook runtime](../architecture/hook-runtime.md)).
+
+Here-document bodies that are only data (a script for `python3 -`, a file written with
+`cat > f <<EOF`) are not read as commands (`stripHeredocBodies` in `src/core/shell-parse.mjs`);
+until 2026-11-09 a script that only mentioned `ai1 worktree drop ... --discard-uncommitted` in a
+string was asked about. Bodies a command on the same line runs (`bash`, `sh`, `ssh`, `psql`, `mysql`,
+`sqlite3`, `| sh`...) are still checked.
 | `disk-destroy` | deny | `mkfs*`, `dd of=/dev/...` |
 
 Option: `modules.danger.ignore_rules` (list of rule ids). The schema enum must list every rule id.

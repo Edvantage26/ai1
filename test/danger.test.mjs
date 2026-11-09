@@ -56,9 +56,18 @@ const EXPECTED_DECISIONS = [
   ['sudo rm -rf /var/lib/app', 'ask'],
   ['git worktree remove --force .claude/worktrees/feature', 'ask'],
   ['git worktree remove -f ../feature', 'ask'],
-  ['ai1 worktree drop feature --confirm', 'ask'],
-  ['ai1 worktree finish feature', 'ask'],
-  ['ai1 later new prod-guard --idea --title "Guard production writes"', 'ask'],
+  ['ai1 worktree drop feature --confirm --discard-uncommitted', 'ask'],
+  // Kept in a bundle, integrated locally or only noted down: nothing is lost, no question.
+  ['ai1 worktree drop feature --confirm', 'allow'],
+  ['ai1 worktree finish feature', 'allow'],
+  ['ai1 later new prod-guard --idea --title "Guard production writes"', 'allow'],
+  // A here-document that is only data is not run: its lines are not commands.
+  ["python3 - <<'EOF'\nprint('git push --force')\nEOF", 'allow'],
+  ["cat > /tmp/notes.md <<EOF\nrm -rf src\nEOF", 'allow'],
+  // One that a shell or a database client runs still is.
+  ['bash <<EOF\ngit push --force\nEOF', 'ask'],
+  ['psql <<EOF\nDROP TABLE users;\nEOF', 'ask'],
+  ['cat <<EOF | sh\nrm -rf src\nEOF', 'ask'],
   ['ai1 later set 1 accepted', 'allow'],
   ['git worktree list', 'allow'],
   ['ai1 worktree list', 'allow'],

@@ -135,21 +135,9 @@ export const DANGER_RULES = [
     id: 'ai1-worktree-drop',
     check(commandWords) {
       if (baseName(commandWords[0]) !== 'ai1' || commandWords[1] !== 'worktree' || commandWords[2] !== 'drop') return null;
-      return { action: 'ask', why: 'ai1 worktree drop abandons the worktree and deletes its branch (its commits are kept in a bundle).' };
-    },
-  },
-  {
-    id: 'ai1-worktree-finish',
-    check(commandWords) {
-      if (baseName(commandWords[0]) !== 'ai1' || commandWords[1] !== 'worktree' || commandWords[2] !== 'finish') return null;
-      return { action: 'ask', why: 'ai1 worktree finish integrates the branch into its base and removes the worktree: the person decides when.' };
-    },
-  },
-  {
-    id: 'ai1-later-new',
-    check(commandWords) {
-      if (baseName(commandWords[0]) !== 'ai1' || commandWords[1] !== 'later' || commandWords[2] !== 'new') return null;
-      return { action: 'ask', why: 'ai1 later new notes a change down for later: only the person decides that something is noted down.' };
+      // Without it drop refuses uncommitted changes and keeps the commits in a bundle: nothing is lost.
+      if (!commandWords.includes('--discard-uncommitted')) return null;
+      return { action: 'ask', why: 'ai1 worktree drop --discard-uncommitted loses the uncommitted changes of that worktree for good.' };
     },
   },
   {

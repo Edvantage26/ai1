@@ -5,7 +5,7 @@ description: A worktree per change (any edit to the repo files, created before t
 tags: [worktrees, git, skills, cli, hooks]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T09:25:46Z'
+  at: '2026-11-09T14:03:22Z'
 sources:
   - id: worktree-create
     resource: src/worktrees/worktree-create.mjs
@@ -52,7 +52,7 @@ keeps it in the repo. See [prior art](/decisions/prior-art.md#worktrees-2026-11-
 | Engine | `ai1 worktree create\|list\|run\|finish\|drop` (`src/worktrees/`, `src/cli/worktree-cli.mjs`) | Deterministic operations driven by `recipe.json` (schema `schema/worktree-recipe.schema.json`). |
 | `worktree-brief` | SessionStart | No recipe: points to `/ai1:worktrees-plan-recipe`. Recipe: the worktree rules; inside a worktree, names it. Byte-stable. |
 | `worktree-reminder` | UserPromptSubmit | Active worktrees when they change and every `reminder_every` prompts, marking this session's. |
-| `danger` rules | PreToolUse | `git worktree remove --force` asks; plain remove asks when it would delete ignored files; `ai1 worktree finish` and `drop` ask (integration and abandoning are the person's call). |
+| `danger` rules | PreToolUse | `git worktree remove --force` asks; plain remove asks when it would delete ignored files; `ai1 worktree drop --discard-uncommitted` asks; `finish` and a plain `drop` do not (since 2026-11-09: the agent commits in the branch and finishes once the work is verified, nothing is pushed, and drop keeps the commits in a bundle). |
 
 # Modes and the auto decision
 

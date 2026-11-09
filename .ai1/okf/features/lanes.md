@@ -5,7 +5,7 @@ description: Work lanes by task size - quick, plan or deep - with a hook-enforce
 tags: [lanes, workflow, hooks, skills, approval]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T13:41:04Z'
+  at: '2026-11-09T14:03:22Z'
 sources:
   - id: lanes-work
     resource: src/lanes/lanes-work.mjs
@@ -48,7 +48,9 @@ The agent sizes each task and names the lane in one line; the person can force o
 gate is a hook block; plans live in a local ignored folder.
 
 - **quick**: do it, run `verify`, report.
-- **plan**: read the code, present a short plan, start after a yes (conversation only).
+- **plan**: read the code, say the plan in a few lines and start without waiting for a yes (conversation
+  only; until 2026-11-09 it waited, and approving plans and their adjustments was 38 of the questions
+  counted that week).
 - **deep**: `/ai1:lanes-design-before-code` skill - look before asking, one question at a time, design in
   `.ai1/work/<slug>/plan.md` (goal, constraints, approaches with the choice, steps with checks,
   risks, rulings), one builder-check subagent, approval, then step by step; a task that builds an accepted [later](later.md) entry carries `later: <number>` in the plan frontmatter; each step closed with `ai1 step-done`, which logs it in `progress.md` only when
@@ -83,7 +85,7 @@ done while an agreed behaviour has no test - the verify gate alone only knows th
 | `lanes-brief` | SessionStart | Injects the lane recipe (byte-stable, skipped on `resume`), lists unfinished plans, and after `compact` restores the active plans with the last 15 lines of `progress.md`. Records the session base HEAD and writes `.ai1/work/.gitignore` (`*`). |
 | `lanes-approval` | UserPromptSubmit | When a plan of this session has `status: ready` and the person sends a short plain yes (`aprobado`, `adelante`, `ok`, `acepto`, `go ahead`, `accept`... with no `pero`/`but`/`no`, at most 120 chars, no `?`; `si` counts only as the first word, since inside a sentence it is the conditional "if" - on 2026-11-09 "o que si hay un error..., eso cuadraría?" approved a design), records the approval in ai1's state dir (outside the repo) and sets `status: approved`. |
 | `lanes-gate` | PreToolUse (Edit, Write, MultiEdit, NotebookEdit, Bash) | While a plan of this session is `draft`/`ready`, or not approved by the person, refuses writes to project files outside `.ai1/work/`, the knowledge bundle and, with the [later feature](later.md), `.ai1/later/`. Shell writes come from `src/core/shell-writes.mjs`; an inline interpreter script (`python3 - <<EOF`, `node -e`), whose writes it cannot tell, asks the person instead. Always (any plan, approved or not): refuses closing a plan with behaviour scenarios by hand or dropping its approved scenarios (see above). |
-| `lanes-escalate` | PreToolUse (same tools) | With no active plan, once per session, asks the person when the session's changes pass `max_files` (6) or `max_lines` (300), options under `modules.lanes-escalate`. |
+| `lanes-escalate` | PreToolUse (same tools) | With no active plan, once per session, tells the person (a notice, not a permission prompt; it asked until 2026-11-09) when the session's changes pass `max_files` (6) or `max_lines` (300), options under `modules.lanes-escalate`. |
 
 Plan statuses: `draft` -> `ready` (agent asks) -> `approved` (only via the person) -> `done` (via
 `ai1 plan-done`) or `abandoned`. Setting `ready` again requires a new approval. Plans from earlier sessions never block;

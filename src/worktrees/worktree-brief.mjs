@@ -34,7 +34,7 @@ export function buildWorktreeRules() {
     '- Create: `ai1 worktree create <name>` (mode auto by default), then enter it with EnterWorktree and the printed path; run what it lists under "next" (`ai1 worktree run <name> setup`).',
     '- Work only inside the worktree; run project steps with `ai1 worktree run <name> <command>` (env and port applied).',
     '- Start every progress report with one line naming the worktree you work in.',
-    '- Close: when the person approves, `ai1 worktree finish <name>` (integrates into the base after its checks; it asks the person) or `ai1 worktree drop <name> --confirm` to abandon. `ai1 worktree list` shows them all.',
+    '- Close: commit in the worktree branch and run `ai1 worktree finish <name>` yourself once the work is done and verified (it integrates into the local base after its checks; nothing is pushed), without asking; `ai1 worktree drop <name> --confirm` to abandon (its commits are kept in a bundle). `ai1 worktree list` shows them all.',
   ].join('\n');
 }
 

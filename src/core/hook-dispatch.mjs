@@ -3,13 +3,24 @@
 // Decides with module metadata (MODULE_INDEX) and runs only the modules the caller loaded, so the
 // hook entry point can import just the modules of its event.
 
-import { combineDecisions, buildHookOutput, contextDecision } from './hook-io.mjs';
+import { combineDecisions, buildHookOutput, contextDecision, allowDecision } from './hook-io.mjs';
 import { loadHarnessConfig, isModuleEnabled, getModuleOptions, CONFIG_RELATIVE_PATH } from './config.mjs';
 import { resolveProjectRoots } from './project-roots.mjs';
 import { MODULE_INDEX, KNOWN_MODULE_IDS, modulesForEvent } from './module-index.mjs';
 import { hasLegacyLayout } from './legacy-layout.mjs';
 import { appendDecisionLog, decisionCharacters, errorSignature } from './decision-log.mjs';
 import { recordPendingErrors } from './pending-errors.mjs';
+
+// Permission modes where the person chose not to be asked (bypass, auto): only the asks that guard
+// against losing work or data for good (danger) and the repo's own rules (repo-rules) still reach
+// them; the other modules' asks (config-guard, test-guard, lanes-gate scripts) let the call through.
+const UNATTENDED_PERMISSION_MODES = new Set(['bypassPermissions', 'auto', 'dontAsk']);
+const ASKS_KEPT_UNATTENDED = new Set(['danger', 'repo-rules']);
+
+export function relaxAskForPermissionMode(moduleId, moduleDecision, permissionMode) {
+  if (moduleDecision?.kind !== 'ask' || !UNATTENDED_PERMISSION_MODES.has(permissionMode) || ASKS_KEPT_UNATTENDED.has(moduleId)) return moduleDecision;
+  return { ...allowDecision(), relaxedAsk: true };
+}
 
 // moduleDefinitions: metadata of every module (what `enabledModules` lists); runnableModules: the
 // loaded modules of this event (an enabled module that was not loaded is skipped).
@@ -53,6 +64,7 @@ export function dispatchHookEvent(eventName, hookInput, { environment = process.
         enabledModules,
         moduleOptions: getModuleOptions(moduleDefinition.id, config),
       });
+      moduleDecision = relaxAskForPermissionMode(moduleDefinition.id, moduleDecision, hookInput.permission_mode);
       moduleDecisions.push(moduleDecision);
     } catch (moduleError) {
       moduleDecision = { kind: 'error', error: errorSignature(moduleError) };
@@ -70,6 +82,7 @@ export function dispatchHookEvent(eventName, hookInput, { environment = process.
       ...(hookInput.tool_use_id ? { toolUse: hookInput.tool_use_id } : {}),
       ...(moduleDecision?.ruleIds ? { rules: moduleDecision.ruleIds } : {}),
       ...(moduleDecision?.error ? { error: moduleDecision.error } : {}),
+      ...(moduleDecision?.relaxedAsk ? { relaxedAsk: hookInput.permission_mode } : {}),
     });
   }
   appendDecisionLog(logEntries, sharedRoot, environment);

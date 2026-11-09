@@ -37,6 +37,7 @@ export function buildHarnessBrief(config, enabledModules, enabledPluginIds = [])
       : `Before saying a change is done, run: ${verifyList}.`);
   }
   briefLines.push('When an ai1 hook asks or refuses, follow its reason; do not work around it.');
+  briefLines.push('Ask the person only for what is truly delicate: a deep-lane design, publishing (push, tag, release), production, or what an ai1 guard flags. Everything else (creating, committing in and finishing a worktree, a plan, a step you recommend) you do, then report in one line; the person can stop you. Do not end a reply with a question you could answer yourself, do not re-ask a pending question, and a yes covers what you recommended.');
   const pluginsToDisable = findOverlappingPlugins(enabledPluginIds, activeFeatures.map((featureDefinition) => featureDefinition.id))
     .filter((overlappingPlugin) => overlappingPlugin.action === 'disable');
   if (pluginsToDisable.length) {

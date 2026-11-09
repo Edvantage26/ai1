@@ -18,6 +18,36 @@ const ENV_ASSIGNMENT = /^[A-Za-z_][A-Za-z0-9_]*=/;
 const MAX_UNWRAP_DEPTH = 3;
 const REDIRECT_WORD = /^(?:\d|&)?(?:>>?|<<?)/;
 
+// Commands that run a here-document as commands or SQL: its body must still be checked.
+const HEREDOC_RUNNING_COMMANDS = new Set([
+  'bash', 'sh', 'zsh', 'dash', 'ssh', 'eval', 'psql', 'mysql', 'mariadb', 'sqlite3', 'clickhouse-client', 'mongosh', 'mongo', 'redis-cli',
+]);
+const HEREDOC_OPERATOR = /<<(-?)\s*(['"]?)([A-Za-z_][A-Za-z0-9_]*)\2/g;
+
+// Drops here-document bodies that are only data (a script for `python3 -`, a file written with
+// `cat > f <<EOF`): their lines are not commands. Kept when a command on the same line runs them
+// (`bash <<EOF`, `psql <<EOF`, `cat <<EOF | sh`).
+export function stripHeredocBodies(commandLine) {
+  const commandLines = String(commandLine || '').split('\n');
+  const keptLines = [];
+  let pendingDelimiters = [];
+  let keepsBody = false;
+  for (const commandLineText of commandLines) {
+    if (pendingDelimiters.length) {
+      const { delimiter, allowsTabs } = pendingDelimiters[0];
+      const isDelimiterLine = (allowsTabs ? commandLineText.replace(/^\t+/, '') : commandLineText).trim() === delimiter;
+      if (keepsBody || isDelimiterLine) keptLines.push(commandLineText);
+      if (isDelimiterLine) pendingDelimiters.shift();
+      continue;
+    }
+    keptLines.push(commandLineText);
+    pendingDelimiters = [...commandLineText.matchAll(HEREDOC_OPERATOR)].map((operatorMatch) => ({ delimiter: operatorMatch[3], allowsTabs: operatorMatch[1] === '-' }));
+    keepsBody = pendingDelimiters.length > 0
+      && commandLineText.split(/[\s|;&()]+/).some((lineWord) => HEREDOC_RUNNING_COMMANDS.has(baseName(lineWord)));
+  }
+  return keptLines.join('\n');
+}
+
 // Tokenizes respecting single quotes, double quotes and backslash escapes.
 // Separators become their own tokens; quoted text never does.
 export function tokenizeShell(commandLine) {
@@ -135,7 +165,7 @@ export function splitSimpleCommands(commandLine, unwrapDepth = 0) {
       }
     }
   };
-  for (const shellToken of tokenizeShell(commandLine)) {
+  for (const shellToken of tokenizeShell(unwrapDepth === 0 ? stripHeredocBodies(commandLine) : commandLine)) {
     if (COMMAND_SEPARATORS.has(shellToken)) closeCommand();
     else commandWords.push(shellToken);
   }

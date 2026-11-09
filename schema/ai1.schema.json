@@ -163,8 +163,6 @@
                       "git-discard-changes",
                       "git-worktree-remove",
                       "ai1-worktree-drop",
-                      "ai1-worktree-finish",
-                      "ai1-later-new",
                       "rm-recursive-force",
                       "find-delete",
                       "file-truncate",

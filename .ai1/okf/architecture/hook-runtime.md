@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T13:53:57Z'
+  at: '2026-11-09T14:03:22Z'
 ---
 
 # Flow
@@ -32,6 +32,10 @@ generated:
    JSON each event expects (PreToolUse `permissionDecision`, Stop `decision: block`,
    SessionStart, UserPromptSubmit and PostToolUse `additionalContext`). A `notice` never competes:
    it is added as `systemMessage` (shown to the person, not the agent) to whatever was decided.
+   In the `bypassPermissions`, `auto` and `dontAsk` permission modes (`permission_mode` of the hook
+   input), an `ask` from any module other than `danger` and `repo-rules` becomes `allow`
+   (`relaxAskForPermissionMode`, logged as `relaxedAsk`): the person chose not to be asked, so only
+   losing work or data for good and the repo's own rules still reach them. Since 2026-11-09.
 
 # Module contract
 

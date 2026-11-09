@@ -5,7 +5,7 @@ description: Code craft rules injected at session start so the code grows in ord
 tags: [craft, clean-code, hooks, context]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T22:15:28Z'
+  at: '2026-11-09T14:03:22Z'
 sources:
   - id: craft-brief
     resource: src/craft/craft-brief.mjs
@@ -29,7 +29,8 @@ unused). Their other two rules are already covered: think before coding by
 
 Added on top: **reuse before writing** (look in the code and, with `okf` on, the bundle),
 **refactors are proposed, not applied** (duplication, dead code, missing or needless abstraction:
-one line, wait for a yes), and **self-explanatory names** in the casing of the language.
+one line at the end of the report, without stopping to ask; trivial ones are done; until 2026-11-09
+the agent waited for a yes), and **self-explanatory names** in the casing of the language.
 
 The surgical rule and the refactor rule meet like this: notice and propose, do not fix inside an
 unrelated change.

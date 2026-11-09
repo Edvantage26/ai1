@@ -13,7 +13,7 @@ sources:
     title: Later 0002
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T13:24:58Z'
+  at: '2026-11-09T14:03:22Z'
 ---
 
 Feature `danger` (on by default); switch it off alone with `modules.config-guard: false`. Built
@@ -25,7 +25,9 @@ Every guard trusts its configuration, and the agent could edit it: `danger` read
 from `.ai1/config.json`, the [repo rules](repo-rules.md) live there, and `verify-gate` ignores
 `.claude/**` and `.ai1/**` on purpose. Claude Code protects `.claude/` writes itself, but allows them
 in bypassPermissions mode and never protects `.ai1/` (permission docs, 2026-11-09). A hook `ask`
-still prompts in bypass mode.
+still prompts in bypass mode, so since 2026-11-09 ai1 lets this guard's asks through in the
+`bypassPermissions`, `auto` and `dontAsk` modes (the person chose not to be asked; see
+[hook runtime](../architecture/hook-runtime.md)); it asks in the other modes.
 
 # What it does
 

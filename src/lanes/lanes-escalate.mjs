@@ -1,11 +1,12 @@
 // lanes-escalate (PreToolUse, feature `lanes`): a task the agent sized as quick may grow. When the
 // session's changes pass a size threshold (files or lines since the session started) and there is
-// no deep-lane plan, the next edit asks the person once whether to go on or stop for a plan.
+// no deep-lane plan, the next edit tells the person once (a notice, it does not stop the agent): they
+// can step in and ask for a plan.
 
 import { runGit } from '../core/git.mjs';
 import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { allowDecision, askDecision } from '../core/hook-io.mjs';
+import { allowDecision, noticeDecision } from '../core/hook-io.mjs';
 import { readSessionBase } from '../core/session-base.mjs';
 import { resolveStateDirectory, sessionStatePath, readStateText, writeStateText } from '../core/session-state.mjs';
 import { FILE_EDITING_TOOLS, listEditedProjectPaths } from './lanes-gate.mjs';
@@ -50,7 +51,7 @@ export default {
   event: 'PreToolUse',
   toolNames: [...FILE_EDITING_TOOLS, 'Bash'],
   feature: 'lanes',
-  description: 'Asks the person once when a task without a plan grows past the size of a quick change.',
+  description: 'Tells the person once when a task without a plan grows past the size of a quick change.',
   run({ hookInput, config, projectRoot, sharedRoot = projectRoot, environment, moduleOptions }) {
     if (listEditedProjectPaths(hookInput, projectRoot).length === 0) return allowDecision();
     const sessionBase = readSessionBase(hookInput, projectRoot, environment);
@@ -65,6 +66,6 @@ export default {
     const maxLines = moduleOptions.max_lines ?? DEFAULT_MAX_LINES;
     if (changedFileCount < maxFiles && changedLines < maxLines) return allowDecision();
     writeStateText(escalatedPath, `${changedFileCount}:${changedLines}`);
-    return askDecision(MODULE_ID, `This session has changed ${changedFileCount} files and ${changedLines} lines without a plan, more than a quick change (${maxFiles} files or ${maxLines} lines). Allow to continue as is; deny to have the agent stop and present a plan first. Asked once per session.`);
+    return noticeDecision(MODULE_ID, `This session has changed ${changedFileCount} files and ${changedLines} lines without a plan, more than a quick change (${maxFiles} files or ${maxLines} lines). The agent goes on; ask it for a plan if you want one. Shown once per session.`);
   },
 };

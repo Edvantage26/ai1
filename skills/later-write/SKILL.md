@@ -20,23 +20,20 @@ Never note one down on your own initiative. Do it when the person asks for it ("
 "déjalo para más adelante", "apárcalo").
 
 Offer it only in this situation: the conversation is about one subject and a clearly different one
-comes up (a new feature or change unrelated to the task at hand). Then offer in one line three ways
-and let the person choose ("Esto es otro tema: ¿lo hacemos aquí, lo abro en un fork o lo apunto para
-luego?" / "This is a different subject: do it here, fork it, or note it down for later?"):
+comes up (a large new feature unrelated to the task at hand). Then mention it in one line at the end
+of your report with the way you recommend, without stopping to ask ("Otro tema: X. Recomiendo
+apuntarlo para luego." / "Different subject: X. I recommend noting it down for later."):
 
 - **here**: it is done in this conversation (after the current task, unless the person says now);
 - **fork**: a new conversation takes it, with /ai1:session-fork-conversation (brief mode, usually,
   so it starts with only the context it needs);
 - **later**: it is noted down with this skill.
 
-Act only on the way the person picks; if there is no answer, carry on with the current task and drop
-it. Do not offer for details, steps, follow-ups or improvements of the subject being worked on: those
+A yes means the way you recommended; if there is no answer, carry on with the current task and drop
+it. A small fix found on the way is done here without asking. Do not offer for details, steps, follow-ups or improvements of the subject being worked on: those
 belong to the current task. Updating, accepting or rejecting an existing entry follows the person's
 request too, and only for an entry they name (by number or title).
 
-A yes to a question that bundles several things is not a pick: ask about it on its own.
-`ai1 later new` also asks the person in the permission prompt (danger rule `ai1-later-new`); if they
-refuse, do not create the file another way.
 
 When it is created, confirm in one line: "Apuntado para luego como later 0007: «<title>»."
 
