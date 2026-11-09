@@ -5,7 +5,7 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T07:54:49Z'
+  at: '2026-11-09T09:13:31Z'
 ---
 
 # Layout
@@ -68,6 +68,31 @@ OKF validator; commit, annotated tag `vX.Y.Z`, push `main` and the tag. Then
 `claude plugin marketplace update ai1` and `claude plugin update ai1@ai1 --scope user` (and
 `--scope project` per repo that installs it), and restart Claude Code: a running session keeps the
 hooks it started with.
+
+# What a project can change in a plugin skill
+
+Checked against the Claude Code docs (plugins reference, skills) on 2026-11-09:
+
+- A plugin skill runs from the user's cache (`~/.claude/plugins/cache/ai1/ai1/<version>/`, one
+  folder per version, replaced on update; `installed_plugins.json` records which version each scope
+  uses). Edits there are lost, and nothing in it is per repo.
+- A project cannot replace or extend a plugin skill: a project skill with the same name loads beside
+  it (the plugin one is namespaced), and `skillOverrides` in settings only changes visibility
+  (`off`, `name-only`, `user-invocable-only`).
+- `userConfig` values are per user (`pluginConfigs` in settings, sensitive ones in the keychain).
+  They reach skill and agent bodies as `${user_config.KEY}` (non-sensitive only), exec-form hook
+  `args`, MCP and LSP config, and every hook as `CLAUDE_PLUGIN_OPTION_<KEY>`; a `string` with
+  `options` shows as a picker in `/config`.
+- A skill body can inject a command's output at load time with `` !`command` `` (or a ```` ```! ````
+  block), run once; `disableSkillShellExecution` turns it off. `${CLAUDE_PROJECT_DIR}`,
+  `${CLAUDE_SKILL_DIR}`, `${CLAUDE_PLUGIN_ROOT}` and `${CLAUDE_PLUGIN_DATA}` are substituted in the
+  body; none of them reaches subagents a skill dispatches.
+- `${CLAUDE_PLUGIN_DATA}` (`~/.claude/plugins/data/<id>/`) survives updates but is deleted on
+  uninstall, so it does not suit user preferences.
+- Measured: starting `node bin/ai1` takes about 175 ms.
+
+So per-repo behaviour has to live in the repo (`.ai1/`, or a project skill as the worktree recipe
+does) and be read by the plugin skill or the CLI; per-person behaviour fits `userConfig`.
 
 # Dogfooding
 
