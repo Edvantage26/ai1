@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T21:12:24Z'
+  at: '2026-11-09T21:20:46Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -20,6 +20,7 @@ First review on 2026-10-30 by reading the repositories.
 | [graphify](https://github.com/gmh5225/graphify) (reviewed 2026-11-09 from its docs and third-party reviews, not its code) | `/graphify` skill: tree-sitter code graph + LLM pass over docs/PDFs/images into `graphify-out/` (`graph.json`, `GRAPH_REPORT.md`, `graph.html`), Leiden clusters, EXTRACTED/INFERRED/AMBIGUOUS edges, PreToolUse nudge on Grep/Glob, MCP server, git hooks | Nothing yet; see [graphify review](#graphify-review-2026-11-09) | The LLM semantic pass (the OKF bundle covers it, curated), Python + native deps, git hooks, a committed `graph.json` |
 | [gentle-ai](https://github.com/Gentleman-Programming/gentle-ai) (MIT; reviewed 2026-11-09 from its docs and `odd/tasks/`) | Go installer that configures many agents: persistent memory (Engram), ODD (Organic-Driven Development) as its only workflow after retiring SDD/OpenSpec, risk-tiered review (RDD), skills, personas | Sizing by "resumable from the request + `git diff`" and its fuller risk list, the request word for word in the plan, handoffs by reference, in [lanes](/features/lanes.md); see [gentle-ai review](#gentle-ai-review-2026-11-09) | Engram, test-first by default, mandatory delegation, ~400-line work units and chained PRs, RDD consent, ~40 KB of routing prompt |
 | [Everything Claude Code (ECC)](https://github.com/affaan-m/ECC) (MIT, Affaan Mustafa, Anthropic x Forum Ventures hackathon winner; reviewed 2026-11-09 from its hooks and `docs/gateguard/`) | Multi-harness kit: ~1,068 skills, ~70 agents, ~27 hook entries (GateGuard fact-forcing gate, config protection, context monitor, strategic compact, Hookify rules, instinct learning), hosted Pro tier | Check config protection (in [test-guard](../guards/test-guard.md)) and the repeated tool call nudge (`tool-loop`, [verify](../features/verify.md)); see [ECC review](#ecc-review-2026-11-09) | Instinct learning (Haiku in the background), LLM summary in `PreCompact`, tmux/dev-server/format hooks, per-language skill and agent volume, multi-harness shims |
+| [Cloudflare security-audit-skill](https://github.com/cloudflare/security-audit-skill) (MIT; reviewed 2026-11-09 from its `SKILL.md` and file list) | One domain skill: guidance mode by default, a 6-phase full audit only on explicit request (recon, hunter waves from a coverage ledger, fresh verifiers per candidate, `findings.json`, independent re-verification, report); every finding needs a crossed trust boundary and a concrete result; target code runs only in an OS-enforced sandbox; budget counted in agent calls with critics and verifiers reserved first; two deterministic Node validators (~1,600 lines) check findings and the ledger | The pattern "loading a skill does not authorize the heavy workflow" and deterministic validators over agent output, as ideas | The skill itself: a third-party domain skill, installed per repo or user from its source, not vendored |
 
 No code is copied at this stage; if any is, it keeps its license notice and attribution.
 
