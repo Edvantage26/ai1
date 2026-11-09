@@ -21,10 +21,11 @@ the knowledge bundle path (always `.ai1/okf`) and whether a bundle exists, and e
 If `legacyMigration.moves` or `legacyMigration.settingsFiles` is not empty, the repo has the old
 layout (ai1 was called jig, and OKF bundles live in `.okf/` by convention). `ai1 init` moves it to
 `.ai1/` before writing the configuration: `.claude/jig.json` -> `.ai1/config.json`, `.okf/` ->
-`.ai1/okf/`, `docs/rfc/` -> `.ai1/rfc/` (only when the rfc feature was on), `.jig/work/` ->
+`.ai1/okf/`, `docs/rfc/` -> `.ai1/proposals/` (only when the rfc feature was on), `.jig/work/` ->
 `.ai1/work/`, a bundle at a custom path from the retired `knowledge` setting -> `.ai1/okf/`, and
 `jig@jig` -> `ai1@ai1` in the settings. Tracked paths move with `git mv`; links
-inside the moved bundle and RFCs are rewritten. Show the person the list and ask before step 3.
+inside the moved bundle and proposals are rewritten. A repo that used the `rfc` feature of ai1
+before v0.18.0 (`.ai1/rfc/`, `features.rfc`) gets it renamed to `proposals` the same way. Show the person the list and ask before step 3.
 If `legacyMigration.conflicts` is not empty, the targets already exist: stop and tell the person.
 
 ## 2. Ask which features to enable

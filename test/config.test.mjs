@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
-import { validateHarnessConfig, listUnknownConfigEntries, loadHarnessConfig, isModuleEnabled } from '../src/core/config.mjs';
+import { mkdirSync, readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
+import { validateHarnessConfig, listUnknownConfigEntries, loadHarnessConfig, isModuleEnabled, renameRetiredIds } from '../src/core/config.mjs';
 import { runHookEvent } from '../src/core/dispatcher.mjs';
 import { KNOWN_MODULE_IDS } from '../src/core/registry.mjs';
 import { DANGER_RULES } from '../src/guards/danger.mjs';
@@ -80,8 +81,23 @@ test('modules follow their feature; a single module can still be switched off', 
 test('schema lists every module, every user-facing feature and every danger rule', () => {
   const harnessSchema = readJson('schema/ai1.schema.json');
   const selectableFeatureIds = FEATURES.filter((featureDefinition) => !featureDefinition.alwaysOn).map((featureDefinition) => featureDefinition.id);
-  assert.deepEqual(Object.keys(harnessSchema.properties.features.properties).sort(), selectableFeatureIds.sort());
-  assert.deepEqual(Object.keys(harnessSchema.properties.modules.properties).sort(), [...KNOWN_MODULE_IDS].sort());
+  // Retired names stay in the schema as `deprecated`, so editors do not flag a config before migration.
+  const currentKeys = (schemaProperties) => Object.keys(schemaProperties).filter((propertyName) => !schemaProperties[propertyName].deprecated);
+  assert.deepEqual(currentKeys(harnessSchema.properties.features.properties).sort(), selectableFeatureIds.sort());
+  assert.deepEqual(currentKeys(harnessSchema.properties.modules.properties).sort(), [...KNOWN_MODULE_IDS].sort());
   const schemaRuleIds = harnessSchema.properties.modules.properties.danger.oneOf[1].properties.ignore_rules.items.enum;
   assert.deepEqual([...schemaRuleIds].sort(), DANGER_RULES.map((dangerRule) => dangerRule.id).sort());
+});
+
+test('retired rfc names: ignored with one notice, never unknown nor an error; renameRetiredIds lets the new name win', () => {
+  const oldNamesRepo = createTemporaryProject({ features: { rfc: true }, modules: { 'rfc-recall': false } });
+  mkdirSync(join(oldNamesRepo, '.ai1', 'rfc'));
+  const loadedConfig = loadHarnessConfig(oldNamesRepo, KNOWN_MODULE_IDS);
+  assert.equal(loadedConfig.status, 'ok');
+  assert.deepEqual(loadedConfig.unknownEntries, []);
+  assert.match(loadedConfig.notices[0], /old name rfc \(features\.rfc, modules\.rfc-recall, \.ai1\/rfc\/\).*renamed it to proposals.*\/ai1:core-setup-repo/);
+  assert.equal(isModuleEnabled({ id: 'proposals-brief', feature: 'proposals' }, loadedConfig.config), false, 'not aliased');
+  assert.deepEqual(loadHarnessConfig(createTemporaryProject({ features: { proposals: true } }), KNOWN_MODULE_IDS).notices, []);
+  assert.deepEqual(renameRetiredIds({ features: { rfc: true, okf: false }, modules: { 'rfc-upkeep': false } }), { features: { okf: false, proposals: true }, modules: { 'proposals-upkeep': false } });
+  assert.deepEqual(renameRetiredIds({ features: { rfc: true, proposals: false } }).features, { proposals: false }, 'both set: the new name wins');
 });

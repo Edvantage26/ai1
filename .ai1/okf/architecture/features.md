@@ -5,7 +5,7 @@ description: What a repo chooses in .ai1/config.json; each hook module belongs t
 tags: [features, config]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T04:33:27Z'
+  at: '2026-11-09T06:17:09Z'
 sources:
   - id: features-source
     resource: src/core/features.mjs
@@ -25,7 +25,7 @@ repo switches the single module off with `modules.<id>: false`.
 | `verify` | on | `verify-gate` (Stop) | `ai1 verify`, `ai1 step-done`, see [verify feature](/features/verify.md) |
 | `lanes` | off | `lanes-brief` (SessionStart), `lanes-approval` (UserPromptSubmit), `lanes-gate` and `lanes-escalate` (PreToolUse Edit/Write/Bash) | `/ai1:lanes-design-before-code`, see [lanes feature](/features/lanes.md) |
 | `worktrees` | off | `worktree-brief` (SessionStart), `worktree-reminder` (UserPromptSubmit) | `/ai1:worktrees-plan-recipe`, `ai1 worktree`, see [worktrees feature](/features/worktrees.md) |
-| `rfc` | off | `rfc-brief` (SessionStart), `rfc-recall` (UserPromptSubmit), `rfc-upkeep` (Stop) | `/ai1:rfc-write-proposal`, `ai1 rfc`, see [rfc feature](/features/rfc.md) |
+| `proposals` | off | `proposals-brief` (SessionStart), `proposals-recall` (UserPromptSubmit), `proposals-upkeep` (Stop) | `/ai1:proposals-write`, `ai1 proposals`, see [proposals feature](/features/proposals.md) (called `rfc` until v0.17) |
 | `design` | off | `design-brief` (SessionStart), `design-detect` (PostToolUse Edit/Write/MultiEdit) | see [design feature](/features/design.md) |
 | `core` | always on | `brief` (SessionStart) | — |
 

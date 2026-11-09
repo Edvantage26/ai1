@@ -39,7 +39,7 @@ export function normalizeKeywords(text) {
 }
 
 // Keyword sets per field of each document ({ relativePath, title, description, tags, bodyText });
-// also used by rfc-recall for the RFC files.
+// also used by proposals-recall for the proposal files.
 export function buildKeywordCatalog(documents) {
   return documents.map((catalogDocument) => ({
     relativePath: catalogDocument.relativePath,

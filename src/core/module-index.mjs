@@ -23,9 +23,9 @@ export const MODULE_INDEX = [
   { id: 'verify-gate', event: 'Stop', feature: 'verify', modulePath: '../verify/verify-gate.mjs' },
   { id: 'worktree-brief', event: 'SessionStart', feature: 'worktrees', modulePath: '../worktrees/worktree-brief.mjs' },
   { id: 'worktree-reminder', event: 'UserPromptSubmit', feature: 'worktrees', modulePath: '../worktrees/worktree-reminder.mjs' },
-  { id: 'rfc-brief', event: 'SessionStart', feature: 'rfc', modulePath: '../rfc/rfc-brief.mjs' },
-  { id: 'rfc-recall', event: 'UserPromptSubmit', feature: 'rfc', modulePath: '../rfc/rfc-recall.mjs' },
-  { id: 'rfc-upkeep', event: 'Stop', feature: 'rfc', modulePath: '../rfc/rfc-upkeep.mjs' },
+  { id: 'proposals-brief', event: 'SessionStart', feature: 'proposals', modulePath: '../proposals/proposals-brief.mjs' },
+  { id: 'proposals-recall', event: 'UserPromptSubmit', feature: 'proposals', modulePath: '../proposals/proposals-recall.mjs' },
+  { id: 'proposals-upkeep', event: 'Stop', feature: 'proposals', modulePath: '../proposals/proposals-upkeep.mjs' },
 ];
 
 export const KNOWN_MODULE_IDS = MODULE_INDEX.map((moduleEntry) => moduleEntry.id);

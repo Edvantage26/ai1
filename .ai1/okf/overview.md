@@ -5,7 +5,7 @@ description: What ai1 is, the four pieces of a harness, and what exists today.
 tags: [overview, harness]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T05:15:34Z'
+  at: '2026-11-09T06:17:09Z'
 ---
 
 # What it is
@@ -13,7 +13,7 @@ generated:
 `ai1` (*all in one*, called `jig` until v0.12.0) is one harness for coding agents (Claude Code
 first) instead of loose skills and hooks: guardrails that hold even when the agent
 forgets a rule, a verification gate before the agent calls work done, and project memory that lives
-in the repo. Everything it writes in a repo lives under `.ai1/` (config, `okf/` bundle, `rfc/`,
+in the repo. Everything it writes in a repo lives under `.ai1/` (config, `okf/` bundle, `proposals/`,
 git-ignored `work/`); see [plugin layout](architecture/plugin-layout.md).
 
 # The four pieces
@@ -42,7 +42,7 @@ v0.17.0 (2026-11-09). Per-repo [features](architecture/features.md) chosen with
 [/ai1:core-setup-repo](features/init.md). On by default: the [okf feature](features/okf.md) (index,
 recall, upkeep and the [OKF toolkit](packs/okf-pack.md)), the [danger guard](guards/danger.md), the
 [craft rules](features/craft.md) and the [verify gate](features/verify.md). Opt-in:
-[lanes](features/lanes.md), [rfc](features/rfc.md), [design](features/design.md) and
+[lanes](features/lanes.md), [proposals](features/proposals.md), [design](features/design.md) and
 [worktrees](features/worktrees.md). Plus the [session fork](features/session-fork.md) skill and CLI.
 Next steps in the [roadmap](roadmap.md).
 
@@ -50,10 +50,10 @@ Next steps in the [roadmap](roadmap.md).
 
 - `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`: see [plugin layout](architecture/plugin-layout.md).
 - `bin/ai1-hook.mjs`, `src/core/`: hook runtime (see [hook runtime](architecture/hook-runtime.md)).
-- `src/<feature>/`: one folder per feature (`okf`, `guards`, `craft`, `verify`, `lanes`, `rfc`,
+- `src/<feature>/`: one folder per feature (`okf`, `guards`, `craft`, `verify`, `lanes`, `proposals`,
   `design`, `worktrees`, `session`, `context` for the brief).
 - `bin/ai1`, `src/cli/`, `skills/core-setup-repo/`: the CLI (`status`, `init`, `verify`, `step-done`,
-  `rfc`, `worktree`, `fork`) and `/ai1:core-setup-repo`.
+  `proposals`, `worktree`, `fork`) and `/ai1:core-setup-repo`.
 - `skills/okf-*/`, `agents/`, `vendor/`: OKF toolkit, owned by ai1 (see [OKF toolkit](packs/okf-pack.md)).
 - `schema/ai1.schema.json`, `templates/config.json`: the per-repo contract.
 - `test/`: `npm test` (node:test suite, plus the Python tests of the OKF toolkit in `test/okf-toolkit/`).

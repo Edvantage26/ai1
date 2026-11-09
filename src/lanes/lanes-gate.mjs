@@ -1,5 +1,5 @@
 // lanes-gate (PreToolUse, feature `lanes`): while a deep-lane design of this session is not approved
-// by the person, refuses edits to project files outside `.ai1/`, the knowledge bundle and RFCs (Edit,
+// by the person, refuses edits to project files outside `.ai1/`, the knowledge bundle and proposals (Edit,
 // Write, MultiEdit, NotebookEdit, and shell commands that write files). Designing, asking and
 // reading stay free; building waits for the approval that lanes-approval records.
 
@@ -11,7 +11,7 @@ import {
 } from './lanes-work.mjs';
 import { projectRelativePath } from '../core/project-paths.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
-import { RFC_DIRECTORY } from '../rfc/rfc-documents.mjs';
+import { PROPOSALS_DIRECTORY } from '../proposals/proposals-documents.mjs';
 import { KNOWLEDGE_BUNDLE_PATH, WORK_DIRECTORY } from '../core/config.mjs';
 
 const MODULE_ID = 'lanes-gate';
@@ -46,8 +46,8 @@ export default {
   feature: 'lanes',
   description: 'Refuses code edits while a deep-lane design of this session waits for the person\'s approval.',
   run({ hookInput, config, projectRoot, sharedRoot = projectRoot, environment }) {
-    // Designing stays free: the work folder, the knowledge bundle and, with the rfc feature, RFCs.
-    const designDirectories = [WORK_DIRECTORY, KNOWLEDGE_BUNDLE_PATH, isFeatureEnabled('rfc', config) && RFC_DIRECTORY].filter(Boolean);
+    // Designing stays free: the work folder, the knowledge bundle and, with the proposals feature, proposals.
+    const designDirectories = [WORK_DIRECTORY, KNOWLEDGE_BUNDLE_PATH, isFeatureEnabled('proposals', config) && PROPOSALS_DIRECTORY].filter(Boolean);
     const editedPaths = listEditedProjectPaths(hookInput, projectRoot)
       .filter((relativePath) => !designDirectories.some((designDirectory) => isPathInside(relativePath, designDirectory)));
     if (editedPaths.length === 0) return allowDecision();

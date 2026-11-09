@@ -24,8 +24,8 @@ status: draft
 
 Read the code, the knowledge bundle and recent history that the task touches. Never ask what
 they already answer. Note in the plan what you learned that shapes the design.
-If the task builds an accepted RFC from `.ai1/rfc/`, read it first, reuse its decisions instead of
-reopening them, and add `rfc: <number>` to the plan frontmatter.
+If the task builds an accepted proposal from `.ai1/proposals/`, read it first, reuse its decisions
+instead of reopening them, and add `proposal: <number>` to the plan frontmatter.
 
 ## 3. Ask what only the person knows
 

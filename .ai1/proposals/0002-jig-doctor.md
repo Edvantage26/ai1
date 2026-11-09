@@ -1,5 +1,5 @@
 ---
-rfc: 2
+proposal: 2
 title: "ai1 doctor: audit a repo against its features"
 size: idea
 status: draft
@@ -7,14 +7,14 @@ created: 2026-11-08
 updated: 2026-11-08
 ---
 
-# RFC 0002: ai1 doctor: audit a repo against its features
+# Proposal 0002: ai1 doctor: audit a repo against its features
 
 ## Problem
 
 Whether a repo really runs ai1 as configured is only visible when something goes wrong: a stale
 plugin version that does not know a feature (it happened in this repo on 2026-11-08: plugin 0.5.0
 with `lanes` enabled), a bundle that fails validation, `verify` commands that no longer exist, an
-RFC folder out of sync. Each module checks its own corner at its own event; nothing gives the whole
+proposals folder out of sync. Each module checks its own corner at its own event; nothing gives the whole
 picture on demand.
 
 ## Idea
@@ -24,7 +24,7 @@ to fix it, exit 1 when something is wrong:
 
 - installed plugin version vs. the features and modules `.ai1/config.json` names;
 - `.ai1/config.json` valid against the schema; `.claude/settings.json` enables ai1;
-- the OKF bundle validates; `ai1 rfc check` passes;
+- the OKF bundle validates; `ai1 proposals check` passes;
 - each `verify` command resolves (binary on the PATH, script in package.json);
 - leftovers: unfinished deep plans older than N days.
 
@@ -45,7 +45,7 @@ those repos are checked without reading every file by hand.
 
 ## How to resume
 
-- Existing pieces to reuse: `ai1 status` (`src/cli/setup-repo.mjs`), the OKF validator, `ai1 rfc check`.
+- Existing pieces to reuse: `ai1 status` (`src/cli/setup-repo.mjs`), the OKF validator, `ai1 proposals check`.
 
 ## Outcome
 

@@ -18,7 +18,7 @@ import { memoryDirectoriesFor, scanSessionTranscript, loadScanState, listRecentM
 import { runBundleValidator, buildValidationReminder } from './okf-validator.mjs';
 import { readSessionBase, listFilesChangedSinceBase } from '../core/session-base.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
-import { RFC_DIRECTORY } from '../rfc/rfc-documents.mjs';
+import { PROPOSALS_DIRECTORY } from '../proposals/proposals-documents.mjs';
 import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
 
 const MODULE_ID = 'okf-upkeep';
@@ -29,8 +29,8 @@ const MAX_LISTED_AFFECTED_CONCEPTS = 5;
 const IGNORED_PATHS = new Set(['.claude/settings.json', '.claude/settings.local.json', '.ai1/config.json']);
 const INVESTIGATION_CALLS_BEFORE_REMINDER = 10;
 
-// `ignoredDirectories`: folders whose changes are not system knowledge (RFC drafts, when the rfc
-// feature is on: rfc-upkeep handles them, and a proposal must not be written into the bundle).
+// `ignoredDirectories`: folders whose changes are not system knowledge (proposal drafts, when the proposals
+// feature is on: proposals-upkeep handles them, and a proposal must not be written into the bundle).
 export function listSessionChangedFiles(projectRoot, baseHead, bundleRelativePath, ignoredDirectories = []) {
   const ignoredPrefixes = [bundleRelativePath, ...ignoredDirectories].map((directoryPath) => `${directoryPath.replace(/\/+$/, '')}/`);
   return listFilesChangedSinceBase(projectRoot, baseHead)
@@ -124,7 +124,7 @@ export default {
     // just edited is still validated.
     if (hookInput.stop_hook_active) return bundleChangedInSession ? checkBundleValidity(validityContext) : allowDecision();
 
-    const pendingFiles = listSessionChangedFiles(projectRoot, baseHead, bundleRelativePath, isFeatureEnabled('rfc', config) ? [RFC_DIRECTORY] : [])
+    const pendingFiles = listSessionChangedFiles(projectRoot, baseHead, bundleRelativePath, isFeatureEnabled('proposals', config) ? [PROPOSALS_DIRECTORY] : [])
       .map((changedPath) => {
         const absolutePath = join(projectRoot, changedPath);
         // A deleted file has no mtime: it is pending, with a fixed signature so it is asked only once.

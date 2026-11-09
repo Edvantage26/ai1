@@ -1,5 +1,8 @@
 # Update Log
 
+## 2026-11-09
+* **Supersession**: the `rfc` feature is now [proposals](features/proposals.md) (`features/rfc.md` renamed): folder `.ai1/proposals/`, `/ai1:proposals-write`, `ai1 proposals`, modules `proposals-*`; created only on request or acceptance; `ai1 init` migrates the old names. Older entries keep the names of their time.
+
 ## 2026-11-08
 * **Creation**: [session fork](features/session-fork.md) — `/ai1:session-fork-conversation` and `ai1 fork` (full or brief), opened natively per host.
 * **Supersession**: the OKF pack (git subtree of the `Edvantage26/okf-skills` fork in `packs/okf/`) is replaced by the [OKF toolkit](packs/okf-pack.md) owned by ai1 (`skills/okf-*`, `agents/`, `vendor/`); the fork is retired.

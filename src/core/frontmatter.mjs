@@ -1,6 +1,6 @@
 // YAML frontmatter of markdown files, read and written with plain regexes (no YAML parser: ai1 has
 // zero dependencies). Enough for the flat fields ai1 uses: scalars, inline lists and block lists.
-// Shared by okf (bundle concepts), lanes (work plans) and rfc (proposals).
+// Shared by okf (bundle concepts), lanes (work plans) and proposals.
 // Files may have CRLF line endings (a Windows checkout with autocrlf).
 
 const FRONTMATTER_PATTERN = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n)?([\s\S]*)$/;

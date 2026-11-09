@@ -1,5 +1,5 @@
 ---
-rfc: {{number}}
+proposal: {{number}}
 title: {{title}}
 size: idea
 status: draft
@@ -7,10 +7,10 @@ created: {{date}}
 updated: {{date}}
 ---
 
-# RFC {{padded_number}}: {{title}}
+# Proposal {{padded_number}}: {{title}}
 
-<!-- An idea is a one-page RFC: enough for someone, months from now, to understand what was proposed and
-why. Replace every comment. When it is about to be decided, grow it to a full RFC: set `size: full`
+<!-- An idea is a one-page proposal: enough for someone, months from now, to understand what was proposed and
+why. Replace every comment. When it is about to be decided, grow it to a full proposal: set `size: full`
 and add the missing sections from the full template. -->
 
 ## Problem

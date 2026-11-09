@@ -5,7 +5,7 @@ description: Work lanes by task size - quick, plan or deep - with a hook-enforce
 tags: [lanes, workflow, hooks, skills, approval]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T22:15:28Z'
+  at: '2026-11-09T06:17:09Z'
 sources:
   - id: lanes-work
     resource: src/lanes/lanes-work.mjs
@@ -45,7 +45,7 @@ gate is a hook block; plans live in a local ignored folder.
 - **plan**: read the code, present a short plan, start after a yes (conversation only).
 - **deep**: `/ai1:lanes-design-before-code` skill - look before asking, one question at a time, design in
   `.ai1/work/<slug>/plan.md` (goal, constraints, approaches with the choice, steps with checks,
-  risks, rulings), one builder-check subagent, approval, then step by step; a task that builds an accepted RFC carries `rfc: <number>` in the plan frontmatter; each step closed with `ai1 step-done`, which logs it in `progress.md` only when
+  risks, rulings), one builder-check subagent, approval, then step by step; a task that builds an accepted proposal carries `proposal: <number>` in the plan frontmatter; each step closed with `ai1 step-done`, which logs it in `progress.md` only when
   the [verify](verify.md) commands pass.
 
 # Modules (feature `lanes`)
@@ -54,7 +54,7 @@ gate is a hook block; plans live in a local ignored folder.
 |---|---|---|
 | `lanes-brief` | SessionStart | Injects the lane recipe (byte-stable, skipped on `resume`), lists unfinished plans, and after `compact` restores the active plans with the last 15 lines of `progress.md`. Records the session base HEAD and writes `.ai1/work/.gitignore` (`*`). |
 | `lanes-approval` | UserPromptSubmit | When a plan has `status: ready` and the person sends a short plain yes (`aprobado`, `adelante`, `ok`, `go ahead`... with no `pero`/`but`/`no`, at most 120 chars), records the approval in ai1's state dir (outside the repo) and sets `status: approved`. |
-| `lanes-gate` | PreToolUse (Edit, Write, MultiEdit, NotebookEdit, Bash) | While a plan touched in this session is `draft`/`ready`, or not approved by the person, refuses writes to project files outside `.ai1/work/`, the knowledge bundle and, with the [rfc feature](rfc.md), `.ai1/rfc/`. Shell writes come from `src/core/shell-writes.mjs`. |
+| `lanes-gate` | PreToolUse (Edit, Write, MultiEdit, NotebookEdit, Bash) | While a plan touched in this session is `draft`/`ready`, or not approved by the person, refuses writes to project files outside `.ai1/work/`, the knowledge bundle and, with the [proposals feature](proposals.md), `.ai1/proposals/`. Shell writes come from `src/core/shell-writes.mjs`. |
 | `lanes-escalate` | PreToolUse (same tools) | With no active plan, once per session, asks the person when the session's changes pass `max_files` (6) or `max_lines` (300), options under `modules.lanes-escalate`. |
 
 Plan statuses: `draft` -> `ready` (agent asks) -> `approved` (only via the person) -> `done` or

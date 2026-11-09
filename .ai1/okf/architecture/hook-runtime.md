@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T05:04:46Z'
+  at: '2026-11-09T06:17:09Z'
 ---
 
 # Flow
@@ -67,9 +67,9 @@ decide. Garbage input makes the entry point exit 0 with no output.
 | `design-detect` | PostToolUse (Edit, Write, MultiEdit) | design |
 | `worktree-brief` | SessionStart | worktrees |
 | `worktree-reminder` | UserPromptSubmit | worktrees |
-| `rfc-brief` | SessionStart | rfc |
-| `rfc-recall` | UserPromptSubmit | rfc |
-| `rfc-upkeep` | Stop | rfc |
+| `proposals-brief` | SessionStart | proposals |
+| `proposals-recall` | UserPromptSubmit | proposals |
+| `proposals-upkeep` | Stop | proposals |
 
 Shared helpers in `src/core/`: `shell-parse.mjs` (split commands), `shell-writes.mjs` (files a shell
 command writes; used by okf-upkeep and lanes-gate), `session-base.mjs` (HEAD at session start, recorded
@@ -77,8 +77,8 @@ by `brief`, okf-index and lanes-brief, never throws; used by okf, lanes and veri
 (incremental transcript reader; okf-upkeep, verify-gate), `path-glob.mjs` (globs for .ai1/config.json
 paths), `session-state.mjs` (per-session state files, `readStateJson`, and `claimStopBlock`: the Stop
 loop guard - the same findings block once, at most N blocks per session - of okf-upkeep and
-rfc-upkeep), `project-paths.mjs` (tool paths relative to the project root; used by lanes and design),
-`frontmatter.mjs` (read and write flat YAML frontmatter; okf, lanes and rfc), `git.mjs` (`runGit`,
+proposals-upkeep), `project-paths.mjs` (tool paths relative to the project root; used by lanes and design),
+`frontmatter.mjs` (read and write flat YAML frontmatter; okf, lanes and proposals), `git.mjs` (`runGit`,
 `tryGit`, `listIgnoredPaths`; every module and the CLI), `json-file.mjs` (`readJsonFile` throws on
 invalid JSON for files about to be rewritten, `readJsonFileIfValid`, `writeJsonFile`),
 `markdown-files.mjs` (recursive markdown listing), `legacy-layout.mjs` (detection of the old `jig`
@@ -89,9 +89,9 @@ okf-upkeep is split: `okf-session-scan.mjs` (transcript, memories, shell edits o
 The bundle reader `listBundleConcepts` (`src/okf/okf-bundle.mjs`) is shared by okf-recall, design-brief
 and the file map; the file map (`src/okf/okf-file-map.mjs`, which concepts describe a file) by
 okf-file-context and okf-upkeep;
-the keyword scoring of okf-recall (`buildKeywordCatalog`, `rankConceptsForPrompt`) by rfc-recall.
+the keyword scoring of okf-recall (`buildKeywordCatalog`, `rankConceptsForPrompt`) by proposals-recall.
 
-See [features](features.md), [okf feature](/features/okf.md), [lanes feature](/features/lanes.md), [craft feature](/features/craft.md), [design feature](/features/design.md), [verify feature](/features/verify.md), [rfc feature](/features/rfc.md), [worktrees feature](/features/worktrees.md), [danger guard](/guards/danger.md).
+See [features](features.md), [okf feature](/features/okf.md), [lanes feature](/features/lanes.md), [craft feature](/features/craft.md), [design feature](/features/design.md), [verify feature](/features/verify.md), [proposals feature](/features/proposals.md), [worktrees feature](/features/worktrees.md), [danger guard](/guards/danger.md).
 
 # Cost
 
@@ -100,7 +100,7 @@ module was imported on every event, about 122 ms since v0.17.0 with only the eve
 alone takes about 74 ms; a module of a feature the repo turned off is still imported for its event,
 the config is read after loading). Context at SessionStart: the `brief` gives a feature with its own
 session-start text only its title (about 1.1 KB less here); `okf-index` grows with the bundle index,
-capped at 12,000 characters; 0 to about 1 KB per message (`okf-recall`, `rfc-recall`, when they match).
+capped at 12,000 characters; 0 to about 1 KB per message (`okf-recall`, `proposals-recall`, when they match).
 
 # Verified
 

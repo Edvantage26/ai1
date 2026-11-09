@@ -5,7 +5,7 @@ description: The per-repo file that makes generic hooks behave correctly in each
 tags: [config, contract, hooks]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T04:45:09Z'
+  at: '2026-11-09T06:17:09Z'
 ---
 
 Each repo commits `.ai1/config.json` (template in `templates/config.json`).
@@ -31,6 +31,13 @@ a notice at session start, never an error, so the guards keep working; `ai1 init
 bundle to `.ai1/okf/` with `git mv` (the same migration as the old `jig` layout) and removes the
 setting; `--knowledge` is refused. The schema keeps the field as `deprecated`, so editors flag it
 without an error on configs that still carry `.ai1/okf`.
+
+# Retired: the `rfc` feature and modules (v0.18.0)
+
+Renamed to `proposals` (see the [proposals feature](/features/proposals.md)). Not aliased:
+`features.rfc`, `modules.rfc-*` and a `.ai1/rfc/` folder give one notice at session start and are
+ignored; `ai1 init` renames them (`renameRetiredIds` in `src/core/config.mjs`, the folder move in the
+legacy migration). The schema keeps them as `deprecated`.
 
 Schema: `schema/ai1.schema.json` (for editors). Validation at runtime is hand-written in
 `src/core/config.mjs`. Wrong types or an unsupported `version` make the file invalid and ai1

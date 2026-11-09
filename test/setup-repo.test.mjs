@@ -29,7 +29,7 @@ function writeUserSettings(enabledPlugins) {
 test('setup writes a valid .ai1/config.json and enables ai1 for the project', () => {
   const repoRoot = createGitRepo();
   const setupResult = setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'danger'], userSettingsPath: writeUserSettings({}) });
-  assert.deepEqual(setupResult.features, { okf: true, danger: true, craft: false, lanes: false, worktrees: false, rfc: false, design: false, verify: false });
+  assert.deepEqual(setupResult.features, { okf: true, danger: true, craft: false, lanes: false, worktrees: false, proposals: false, design: false, verify: false });
   const loadedConfig = loadHarnessConfig(repoRoot);
   assert.equal(loadedConfig.status, 'ok');
   assert.equal(loadedConfig.config.trunk, 'main');
@@ -52,7 +52,7 @@ test('setup keeps existing settings and harness fields', () => {
   assert.equal(ai1Config.trunk, 'develop');
   assert.deepEqual(ai1Config.verify, ['make test']);
   assert.deepEqual(ai1Config.modules, { danger: { ignore_rules: ['git-clean'] } });
-  assert.deepEqual(ai1Config.features, { okf: false, danger: true, craft: false, lanes: false, worktrees: false, rfc: false, design: false, verify: false });
+  assert.deepEqual(ai1Config.features, { okf: false, danger: true, craft: false, lanes: false, worktrees: false, proposals: false, design: false, verify: false });
 });
 
 test('with okf on, a standalone okf plugin is switched off in the personal settings only', () => {
@@ -90,10 +90,10 @@ test('status reports defaults before setup and choices after it', () => {
   const repoRoot = createGitRepo();
   const beforeSetup = describeRepo(repoRoot);
   assert.equal(beforeSetup.hasAi1Config, false);
-  assert.deepEqual(beforeSetup.features.map((featureStatus) => [featureStatus.id, featureStatus.enabled]), [['okf', true], ['danger', true], ['craft', true], ['lanes', false], ['worktrees', false], ['rfc', false], ['design', false], ['verify', true]]);
+  assert.deepEqual(beforeSetup.features.map((featureStatus) => [featureStatus.id, featureStatus.enabled]), [['okf', true], ['danger', true], ['craft', true], ['lanes', false], ['worktrees', false], ['proposals', false], ['design', false], ['verify', true]]);
   setupRepo(repoRoot, { enabledFeatureIds: ['okf'], userSettingsPath: writeUserSettings({}) });
   const afterSetup = describeRepo(repoRoot);
-  assert.deepEqual(afterSetup.features.map((featureStatus) => [featureStatus.id, featureStatus.enabled]), [['okf', true], ['danger', false], ['craft', false], ['lanes', false], ['worktrees', false], ['rfc', false], ['design', false], ['verify', false]]);
+  assert.deepEqual(afterSetup.features.map((featureStatus) => [featureStatus.id, featureStatus.enabled]), [['okf', true], ['danger', false], ['craft', false], ['lanes', false], ['worktrees', false], ['proposals', false], ['design', false], ['verify', false]]);
 });
 
 test('the ai1 CLI runs init and status from a subdirectory', () => {
@@ -109,4 +109,9 @@ test('the ai1 CLI runs init and status from a subdirectory', () => {
   const badRun = spawnSync(process.execPath, [AI1_CLI, 'init', '--features', 'nope'], { cwd: repoRoot, encoding: 'utf8', env: environment });
   assert.equal(badRun.status, 1);
   assert.match(badRun.stderr, /unknown features: nope/);
+});
+
+test('init refuses the retired rfc feature id with the new name', () => {
+  const repoRoot = mkdtempSync(join(tmpdir(), 'ai1-setup-'));
+  assert.throws(() => setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'rfc'] }), /called proposals since v0\.18\.0/);
 });

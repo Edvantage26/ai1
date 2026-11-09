@@ -10,7 +10,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { FEATURES, KNOWN_FEATURE_IDS, isFeatureEnabled } from '../core/features.mjs';
-import { validateHarnessConfig, listUnknownConfigEntries, SUPPORTED_CONFIG_VERSION, SCHEMA_URL, AI1_DIRECTORY, AI1_PLUGIN_ID, CONFIG_RELATIVE_PATH, KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
+import { validateHarnessConfig, listUnknownConfigEntries, SUPPORTED_CONFIG_VERSION, SCHEMA_URL, AI1_DIRECTORY, AI1_PLUGIN_ID, CONFIG_RELATIVE_PATH, KNOWLEDGE_BUNDLE_PATH, renameRetiredIds } from '../core/config.mjs';
 import { KNOWN_MODULE_IDS } from '../core/module-index.mjs';
 import { findMainCheckout } from '../core/project-roots.mjs';
 import { loadRecipe } from '../worktrees/worktree-recipe.mjs';
@@ -64,7 +64,7 @@ function describeWorktreeRecipe(repoRoot) {
 export function describeRepo(repoRoot) {
   const ai1Config = readJsonFile(join(repoRoot, CONFIG_RELATIVE_PATH));
   // Before a migration, the features and trunk the repo had under the old name.
-  const featureSourceConfig = ai1Config ?? readLegacyConfig(repoRoot);
+  const featureSourceConfig = renameRetiredIds(ai1Config ?? readLegacyConfig(repoRoot));
   return {
     repoRoot,
     hasAi1Config: ai1Config !== null,
@@ -84,6 +84,7 @@ export function describeRepo(repoRoot) {
 }
 
 export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, userSettingsPath = join(homedir(), '.claude', 'settings.json') }) {
+  if (enabledFeatureIds.includes('rfc')) throw new Error('the rfc feature is called proposals since v0.18.0: use --features ...,proposals');
   const unknownFeatureIds = enabledFeatureIds.filter((featureId) => !KNOWN_FEATURE_IDS.includes(featureId));
   if (unknownFeatureIds.length) throw new Error(`unknown features: ${unknownFeatureIds.join(', ')}`);
   const legacyMigration = migrateLegacyLayout(repoRoot);
@@ -93,7 +94,8 @@ export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, userSet
   mkdirSync(join(repoRoot, AI1_DIRECTORY), { recursive: true });
   const ai1ConfigPath = join(repoRoot, CONFIG_RELATIVE_PATH);
   // `knowledge` is retired: the bundle was moved to .ai1/okf above, so the setting goes away.
-  const { knowledge: retiredKnowledgeSetting, ...existingAi1Config } = readJsonFile(ai1ConfigPath) || {};
+  // Retired names go away: `knowledge` (its bundle was moved above), rfc ids renamed to proposals.
+  const { knowledge: retiredKnowledgeSetting, ...existingAi1Config } = renameRetiredIds(readJsonFile(ai1ConfigPath) || {});
   const selectableFeatureIds = FEATURES.filter((featureDefinition) => !featureDefinition.alwaysOn).map((featureDefinition) => featureDefinition.id);
   const chosenFeatures = Object.fromEntries(selectableFeatureIds.map((featureId) => [featureId, enabledFeatureIds.includes(featureId)]));
   const ai1Config = {

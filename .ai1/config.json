@@ -7,7 +7,7 @@
     "craft": true,
     "lanes": true,
     "worktrees": false,
-    "rfc": true,
+    "proposals": true,
     "design": false,
     "verify": true
   },

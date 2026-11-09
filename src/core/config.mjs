@@ -7,13 +7,15 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { KNOWN_FEATURE_IDS, isFeatureEnabled } from './features.mjs';
 
-// Everything ai1 writes in a repo lives under `.ai1/`: config, knowledge bundle, RFCs, work plans.
+// Everything ai1 writes in a repo lives under `.ai1/`: config, knowledge bundle, proposals, work plans.
 export const AI1_DIRECTORY = '.ai1';
 export const CONFIG_RELATIVE_PATH = join(AI1_DIRECTORY, 'config.json');
 // The OKF knowledge bundle always lives here (a fixed path since v0.16.0; `knowledge` is retired).
 export const KNOWLEDGE_BUNDLE_PATH = `${AI1_DIRECTORY}/okf`;
 // Work plans and handoffs; ignores itself, never reaches git.
 export const WORK_DIRECTORY = `${AI1_DIRECTORY}/work`;
+// Proposals (feature `proposals`): undecided changes, one file each, versioned.
+export const PROPOSALS_DIRECTORY = `${AI1_DIRECTORY}/proposals`;
 export const AI1_PLUGIN_ID = 'ai1@ai1';
 export const SCHEMA_URL = 'https://raw.githubusercontent.com/Edvantage26/ai1/main/schema/ai1.schema.json';
 export const SUPPORTED_CONFIG_VERSION = 1;
@@ -29,6 +31,39 @@ const DEFAULT_CONFIG = {
   modules: {},
 };
 
+// Names retired by a rename (v0.18.0: rfc -> proposals). Not aliased: they are ignored with a notice
+// until `ai1 init` rewrites them (renameRetiredIds).
+const RENAMED_FEATURE_IDS = { rfc: 'proposals' };
+const RENAMED_MODULE_IDS = { 'rfc-brief': 'proposals-brief', 'rfc-recall': 'proposals-recall', 'rfc-upkeep': 'proposals-upkeep' };
+export const RETIRED_PROPOSALS_DIRECTORY = `${AI1_DIRECTORY}/rfc`;
+
+// The config with retired feature and module ids renamed (when both names are set, the new one wins).
+export function renameRetiredIds(rawConfig) {
+  if (!rawConfig || typeof rawConfig !== 'object') return rawConfig;
+  const renameKeys = (settings, renamedIds) => {
+    if (!settings || typeof settings !== 'object' || Array.isArray(settings)) return settings;
+    const renamedSettings = {};
+    for (const [settingId, settingValue] of Object.entries(settings)) {
+      const newId = renamedIds[settingId];
+      if (!newId) renamedSettings[settingId] = settingValue;
+      else if (!Object.hasOwn(settings, newId)) renamedSettings[newId] = settingValue;
+    }
+    return renamedSettings;
+  };
+  return { ...rawConfig, features: renameKeys(rawConfig.features, RENAMED_FEATURE_IDS), modules: renameKeys(rawConfig.modules, RENAMED_MODULE_IDS) };
+}
+
+// What still uses a retired name: config keys, or the old proposals folder on disk.
+function readRenamedNamesNotice(rawConfig, projectRoot) {
+  const retiredNames = [
+    ...Object.keys(rawConfig.features || {}).filter((featureId) => RENAMED_FEATURE_IDS[featureId]).map((featureId) => `features.${featureId}`),
+    ...Object.keys(rawConfig.modules || {}).filter((moduleId) => RENAMED_MODULE_IDS[moduleId]).map((moduleId) => `modules.${moduleId}`),
+    ...(existsSync(join(projectRoot, RETIRED_PROPOSALS_DIRECTORY)) ? [`${RETIRED_PROPOSALS_DIRECTORY}/`] : []),
+  ];
+  if (!retiredNames.length) return null;
+  return `This repo still uses the old name rfc (${retiredNames.join(', ')}): ai1 renamed it to proposals in v0.18.0 and ignores the old names. Tell the person; /ai1:core-setup-repo (ai1 init) migrates it to .ai1/proposals/ and features.proposals.`;
+}
+
 // Names this ai1 version does not know (fields, features, modules), e.g. from a repo set up with a
 // newer ai1. They are warnings, not errors: the rest of the harness keeps working and the unknown
 // entries are ignored, so an older plugin never switches off a repo's guards.
@@ -36,10 +71,10 @@ export function listUnknownConfigEntries(rawConfig, knownModuleIds = []) {
   if (rawConfig === null || typeof rawConfig !== 'object' || Array.isArray(rawConfig)) return [];
   const unknownEntries = Object.keys(rawConfig).filter((fieldName) => !KNOWN_TOP_LEVEL_FIELDS.has(fieldName)).map((fieldName) => `field "${fieldName}"`);
   if (rawConfig.features && typeof rawConfig.features === 'object' && !Array.isArray(rawConfig.features)) {
-    unknownEntries.push(...Object.keys(rawConfig.features).filter((featureId) => !KNOWN_FEATURE_IDS.includes(featureId)).map((featureId) => `feature "${featureId}"`));
+    unknownEntries.push(...Object.keys(rawConfig.features).filter((featureId) => !KNOWN_FEATURE_IDS.includes(featureId) && !RENAMED_FEATURE_IDS[featureId]).map((featureId) => `feature "${featureId}"`));
   }
   if (knownModuleIds.length && rawConfig.modules && typeof rawConfig.modules === 'object' && !Array.isArray(rawConfig.modules)) {
-    unknownEntries.push(...Object.keys(rawConfig.modules).filter((moduleId) => !knownModuleIds.includes(moduleId)).map((moduleId) => `module "${moduleId}"`));
+    unknownEntries.push(...Object.keys(rawConfig.modules).filter((moduleId) => !knownModuleIds.includes(moduleId) && !RENAMED_MODULE_IDS[moduleId]).map((moduleId) => `module "${moduleId}"`));
   }
   return unknownEntries;
 }
@@ -117,12 +152,12 @@ export function loadHarnessConfig(projectRoot, knownModuleIds = []) {
   const validationErrors = validateHarnessConfig(rawConfig);
   if (validationErrors.length) return { status: 'invalid', configPath, errors: validationErrors };
   const { knowledge: retiredKnowledgeSetting, ...supportedConfig } = rawConfig;
-  const retiredKnowledgeNotice = readRetiredKnowledgeNotice(rawConfig);
+  const configNotices = [readRetiredKnowledgeNotice(rawConfig), readRenamedNamesNotice(rawConfig, projectRoot)].filter(Boolean);
   return {
     status: 'ok',
     configPath,
     unknownEntries: listUnknownConfigEntries(rawConfig, knownModuleIds),
-    notices: retiredKnowledgeNotice ? [retiredKnowledgeNotice] : [],
+    notices: configNotices,
     config: { ...DEFAULT_CONFIG, ...supportedConfig, features: { ...rawConfig.features }, modules: { ...rawConfig.modules } },
   };
 }

@@ -1,5 +1,5 @@
 ---
-rfc: 3
+proposal: 3
 title: Method skills and refuting reviewers
 size: idea
 status: draft
@@ -7,7 +7,7 @@ created: 2026-11-08
 updated: 2026-11-08
 ---
 
-# RFC 0003: Method skills and refuting reviewers
+# Proposal 0003: Method skills and refuting reviewers
 
 ## Problem
 

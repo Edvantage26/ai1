@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index at session start, relate
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T05:04:46Z'
+  at: '2026-11-09T06:17:09Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -82,7 +82,7 @@ sources:
   concepts the file map says describe the pending files ("probably affected", deleted files
   included, concepts already edited in the session left out, at most 5). Asks once per set of pending changes (fingerprint in the
   session state). `.claude/settings.json`, `settings.local.json` and `.ai1/config.json` never count, nor
-  `.ai1/rfc/` when the [rfc feature](rfc.md) is on (a proposal must not be written into the bundle).
+  `.ai1/proposals/` when the [proposals feature](proposals.md) is on (a proposal must not be written into the bundle).
 - **Investigation reminder (Stop, same module):** knowledge found by querying or running commands
   leaves no file behind, so the same transcript scan counts investigation steps (Bash, MCP calls,
   web) since the session last edited the bundle; at 10 or more, with no file/memory reminder due,

@@ -34,9 +34,9 @@ export const FEATURES = [
     enabledByDefault: false,
   },
   {
-    id: 'rfc',
-    title: 'RFCs for undecided proposals',
-    description: 'Proposals for large changes and future features live in .ai1/rfc/ (one versioned file each, idea or full size), apart from the knowledge bundle because they are not the system. Lists the open ones at session start, points to the related ones on each message, and when the session touched them checks they are consistent and that accepted ones are recorded in the bundle. Skill /ai1:rfc-write-proposal; `ai1 rfc new|set|index|check`.',
+    id: 'proposals',
+    title: 'Proposals for undecided changes',
+    description: 'Proposals for large changes and future features live in .ai1/proposals/ (one versioned file each, idea or full size), apart from the knowledge bundle because they are not the system. Created only when the person asks for one or says yes to a one-line offer from the agent. Lists the open ones at session start, points to the related ones on each message, and when the session touched them checks they are consistent and that accepted ones are recorded in the bundle. Skill /ai1:proposals-write; `ai1 proposals new|set|index|check`.',
     enabledByDefault: false,
   },
   {

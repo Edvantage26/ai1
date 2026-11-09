@@ -1,5 +1,5 @@
 ---
-rfc: 1
+proposal: 1
 title: Guards for production writes and committed secrets
 size: idea
 status: draft
@@ -7,7 +7,7 @@ created: 2026-11-08
 updated: 2026-11-08
 ---
 
-# RFC 0001: Guards for production writes and committed secrets
+# Proposal 0001: Guards for production writes and committed secrets
 
 ## Problem
 

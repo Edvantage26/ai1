@@ -11,7 +11,7 @@ Everything it writes in a repo lives in one folder, `.ai1/`:
 .ai1/
 ├── config.json   features and contract of the repo (committed)
 ├── okf/          project knowledge, an OKF bundle (committed)
-├── rfc/          proposals not decided yet (committed)
+├── proposals/    proposals not decided yet (committed)
 └── work/         deep-lane plans and progress (ignored by git)
 ```
 
@@ -21,7 +21,7 @@ moved to `.ai1/` by `/ai1:core-setup-repo`, with `git mv` so history follows.
 
 > **Status: early (v0.17.0).** Per-repo features, the `okf` feature (project knowledge) and the
 > `danger` guard work, are tested and verified in real sessions. The `lanes`, `design`, `verify`,
-> `rfc` and `worktrees` features are new and tested, not yet tried in live sessions. Everything marked *planned* does not exist yet.
+> `proposals` and `worktrees` features are new and tested, not yet tried in live sessions. Everything marked *planned* does not exist yet.
 
 ## Why
 
@@ -94,11 +94,11 @@ runs the `ai1` CLI, so the result is merged and validated, not improvised).
 | `design` | off | For repos with a frontend. At session start: read the product and design-system context (OKF concepts of type `Product` / `DesignSystem`, or Impeccable's `PRODUCT.md` / `DESIGN.md`), avoid the generic AI look, keep a quality floor. After every edit to a UI file, 26 deterministic rules (overused fonts, purple gradients, glows, gradient text, low contrast, skipped headings, tiny text, placeholder images...) report what that edit introduced. Points to [Impeccable](https://github.com/pbakaus/impeccable) commands when it is installed |
 | `verify` | on | You cannot get a "done" while code changed after the last passing run of the `verify` commands (run in full: a filtered run does not count). Docs and harness config are exempt. `ai1 verify` runs them; `ai1 step-done` logs a deep-lane step only when they pass |
 | `lanes` | off | Sizes each task: quick ones are done directly, medium ones get a short plan, complex or risky ones get questions and a design (`/ai1:lanes-design-before-code`) that you approve before any code is edited. Restores progress after a compaction |
-| `rfc` | off | Proposals for large changes and future features, not decided yet, in `.ai1/rfc/NNNN-<slug>.md` (versioned, apart from the knowledge bundle because a proposal is not the system). Two sizes: a one-page *idea* and a *full* RFC (criteria before options, "do nothing" always an option, assumptions, phases, how to resume). Open RFCs listed at session start and related ones recalled on each message; when an RFC is accepted, a hook asks for its decisions to be recorded in the OKF bundle. `/ai1:rfc-write-proposal`, `ai1 rfc new\|set\|index\|check` |
+| `proposals` | off | Large changes and future features, not decided yet, in `.ai1/proposals/NNNN-<slug>.md` (versioned, apart from the knowledge bundle because a proposal is not the system). The agent creates one only when you ask for it, or after you say yes to its one-line offer. Two sizes: a one-page *idea* and a *full* proposal (criteria before options, "do nothing" always an option, assumptions, phases, how to resume). Open proposals listed at session start and related ones recalled on each message; when a proposal is accepted, a hook asks for its decisions to be recorded in the OKF bundle. `/ai1:proposals-write`, `ai1 proposals new\|set\|index\|check`. Called `rfc` until v0.17: `ai1 init` migrates `.ai1/rfc/` and `features.rfc` |
 
-With `rfc` on, an idea goes: `ai1 rfc new <slug> --idea` (next number, index updated) → it grows into
-a full RFC when it is about to be decided → `ai1 rfc set <n> accepted` and its decisions become OKF
-concepts that cite it → built (with `lanes`, a deep plan with `rfc: <n>`) → `ai1 rfc set <n> implemented`.
+With `proposals` on, an idea goes: `ai1 proposals new <slug> --idea` (next number, index updated) → it grows into
+a full proposal when it is about to be decided → `ai1 proposals set <n> accepted` and its decisions become OKF
+concepts that cite it → built (with `lanes`, a deep plan with `proposal: <n>`) → `ai1 proposals set <n> implemented`.
 
 | `worktrees` | off | Each significant change is done in its own git worktree, made the way your project needs. The first time, `/ai1:worktrees-plan-recipe` studies the repo (heavy folders, env files, ports, where builds write, existing worktree tools), proposes a recipe, and once you approve it saves it as the project skill `.claude/skills/worktree/` (`SKILL.md` + `recipe.json`, committed). Modes: `full`, `light` (heavy folders shared, regenerated or left out) and `auto`, which picks full when it fits on that machine's disk. Each worktree gets its env files and its own port; the agent keeps telling you which worktree it is working in. `ai1 worktree create\|list\|run\|finish\|drop` |
 
@@ -131,15 +131,15 @@ once whether to stop for a plan (`modules.lanes-escalate.max_files` / `max_lines
 | `/ai1:lanes-design-before-code`: questions, design, builder check, approval, step-by-step build | lanes | — | works |
 | `design-brief`: UI rules and the design context files at session start | design | SessionStart | works |
 | `design-detect`: design rules on every edited UI file, findings of that edit only, once per session (`modules.design-detect.ignore_rules`) | design | PostToolUse | works |
-| `rfc-brief`: where RFCs live, that they are not the system, and the open ones | rfc | SessionStart | works |
-| `rfc-recall`: on every message, points the agent to the related RFCs, labelled with their status | rfc | UserPromptSubmit | works |
-| `rfc-upkeep`: when the session touched `.ai1/rfc/`, checks numbering, statuses, the index and that accepted RFCs are cited by the bundle; asks to mark an RFC implemented when its deep plan is done | rfc | Stop | works |
-| `/ai1:rfc-write-proposal`: write, resume, accept or reject an RFC and carry its decisions to the bundle | rfc | — | works |
+| `proposals-brief`: where proposals live, that they are not the system, when to create one, and the open ones | proposals | SessionStart | works |
+| `proposals-recall`: on every message, points the agent to the related proposals, labelled with their status | proposals | UserPromptSubmit | works |
+| `proposals-upkeep`: when the session touched `.ai1/proposals/`, checks numbering, statuses, the index and that accepted proposals are cited by the bundle; asks to mark a proposal implemented when its deep plan is done | proposals | Stop | works |
+| `/ai1:proposals-write`: write, resume, accept or reject a proposal and carry its decisions to the bundle | proposals | — | works |
 | `worktree-brief`: worktree rules at session start, or a pointer to `/ai1:worktrees-plan-recipe` when the repo has no recipe; names the worktree the session is in | worktrees | SessionStart | works |
 | `worktree-reminder`: the active worktrees when they change and every few prompts, marking this session's | worktrees | UserPromptSubmit | works |
 | `/ai1:worktrees-plan-recipe` + `ai1 worktree` (`create`, `list`, `run`, `finish`, `drop`) | worktrees | — | works |
 | Shared read-only caches per dependency version, `writable`, build slots, `WorktreeCreate` hook for heavy repos | worktrees | — | planned |
-| `/ai1:core-setup-repo` + `ai1` CLI (`ai1 status`, `ai1 init`, `ai1 verify`, `ai1 step-done`, `ai1 rfc`, `ai1 worktree`, `ai1 fork`) | — | — | works |
+| `/ai1:core-setup-repo` + `ai1` CLI (`ai1 status`, `ai1 init`, `ai1 verify`, `ai1 step-done`, `ai1 proposals`, `ai1 worktree`, `ai1 fork`) | — | — | works |
 | `/ai1:session-fork-conversation` + `ai1 fork`: a new conversation from this one, `full` (a copy of the whole conversation) or `brief` (only a written handoff), opened natively in Paseo (an agent), VS Code (the extension URI), a terminal or Claude Desktop (the commands to open it). Needs no feature: works in any repo while the plugin is enabled | — | — | works |
 | OKF toolkit skills and agents (`skills/okf-*`, `agents/`) | okf | — | works |
 | `prod`: blocks writes to production resources declared in `.ai1/config.json` | prod | PreToolUse | planned |
