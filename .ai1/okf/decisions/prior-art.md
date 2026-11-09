@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T18:40:29Z'
+  at: '2026-11-09T20:05:21Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -19,6 +19,7 @@ First review on 2026-10-30 by reading the repositories.
 | [rsc-factory](https://github.com/gregoryjp/rsc-factory) (unofficial) | PRD-to-product engine outside the agent | Risk classifier idea (auto vs human PR) for a future pipeline mode | Whole engine: out of scope |
 | [graphify](https://github.com/gmh5225/graphify) (reviewed 2026-11-09 from its docs and third-party reviews, not its code) | `/graphify` skill: tree-sitter code graph + LLM pass over docs/PDFs/images into `graphify-out/` (`graph.json`, `GRAPH_REPORT.md`, `graph.html`), Leiden clusters, EXTRACTED/INFERRED/AMBIGUOUS edges, PreToolUse nudge on Grep/Glob, MCP server, git hooks | Nothing yet; see [graphify review](#graphify-review-2026-11-09) | The LLM semantic pass (the OKF bundle covers it, curated), Python + native deps, git hooks, a committed `graph.json` |
 | [gentle-ai](https://github.com/Gentleman-Programming/gentle-ai) (MIT; reviewed 2026-11-09 from its docs and `odd/tasks/`) | Go installer that configures many agents: persistent memory (Engram), ODD (Organic-Driven Development) as its only workflow after retiring SDD/OpenSpec, risk-tiered review (RDD), skills, personas | Sizing by "resumable from the request + `git diff`" and its fuller risk list, the request word for word in the plan, handoffs by reference, in [lanes](/features/lanes.md); see [gentle-ai review](#gentle-ai-review-2026-11-09) | Engram, test-first by default, mandatory delegation, ~400-line work units and chained PRs, RDD consent, ~40 KB of routing prompt |
+| [Everything Claude Code (ECC)](https://github.com/affaan-m/ECC) (MIT, Affaan Mustafa, Anthropic x Forum Ventures hackathon winner; reviewed 2026-11-09 from its hooks and `docs/gateguard/`) | Multi-harness kit: ~1,068 skills, ~70 agents, ~27 hook entries (GateGuard fact-forcing gate, config protection, context monitor, strategic compact, Hookify rules, instinct learning), hosted Pro tier | Nothing yet; candidates in [ECC review](#ecc-review-2026-11-09) | Instinct learning (Haiku in the background), LLM summary in `PreCompact`, tmux/dev-server/format hooks, per-language skill and agent volume, multi-harness shims |
 
 No code is copied at this stage; if any is, it keeps its license notice and attribution.
 
@@ -283,3 +284,25 @@ task with test-first and ~400-line work-unit commits → RDD review gated by ass
   a change, to pin unasked-for differences as regressions.
 - Left out: everything is prompt (one ~40 KB routing file rendered for 12 agents), so it shares the
   compaction weakness ai1 closes with hooks; its task logs are long and token-heavy.
+
+# ECC review (2026-11-09)
+
+Everything Claude Code, read at commit of 2026-11-06. Most of it is content volume; the mechanisms are
+in `scripts/hooks/` and the evaluation in `docs/gateguard/`.
+
+- **Measured: a fact-forcing gate changed no outcome.** GateGuard denies the first edit of a file until
+  the agent answers questions (importers, callers, data schema). Their pilot (72 sessions, Sonnet,
+  4 arms: off, gate, gate minus the target question, placebo) passed 18/18 in every arm; the gate cost
+  ~45% more turns and ~28% more tokens. They call it no measurement (traps too easy), not a refutation.
+  Backs [principles](principles.md): no such gate in ai1.
+- **Evaluation method worth copying for ai1 guards:** a scenario corpus (20 scenarios, 184 hook calls)
+  where each step is labelled `expect` allow/deny, `mustDeny` (any allow is a bypass) and `redundant`
+  (a deny repeats work already done); replayed against the working tree and against a git ref, with
+  bypasses, redundant denials, denial tokens and fresh-process latency as metrics. Plus the A/B pilot
+  with a placebo arm and a pre-registered threshold before paying for a full run.
+- **Candidates, not decided:** ask before edits to lint/format/type-check config (agents relax the
+  check instead of fixing code; ai1 `test-guard` does not cover it); a compaction hint from the real
+  context size (last `usage` in the transcript, not a tool-call count); a tool-loop warning when the
+  last 5 calls are identical (3 gave false positives on retries and polling); treating
+  [repo rules](../guards/repo-rules.md) reason text as untrusted data, since ECC disables git-tracked
+  rules by default ("opening a repo must not activate repo-authored instructions").
