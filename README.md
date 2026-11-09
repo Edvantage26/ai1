@@ -151,7 +151,8 @@ others or are deterministic (`core-report-issue`, `okf-validate-bundle`, `danger
 | `config-guard`: asks you before the agent changes `.ai1/config.json`, `.claude/settings*.json`, `.claude/hooks/` or the skill overlays in `.ai1/skills/` (file tools or shell), in any worktree | danger | PreToolUse | works |
 | `repo-rules` + `/ai1:danger-write-rule`: your repo's own ask/deny rules for shell commands and edits, from `rules` in `.ai1/config.json` | danger | PreToolUse | works |
 | `test-guard`: asks you before tests are skipped, emptied, weakened or deleted (`modules.test-guard.test_paths` / `ignore_rules`) | verify | PreToolUse | works |
-| Decision log + `ai1 log`: every module run logged locally (module, decision, ms, characters added; no commands or paths), off with `AI1_DECISION_LOG=0` | — | all | works |
+| Decision log + `ai1 log`: every module run logged locally (module, decision, ms, characters added, rules, error signatures; no commands or paths), off with `AI1_DECISION_LOG=0`; `ai1 log --all` for every repo on the machine | — | all | works |
+| `issue-offer`: when ai1 itself fails in a repo (a module throws, the hook crashes), the agent offers once to report it with `/ai1:core-report-issue`; nothing is filed without your yes to the text | core | UserPromptSubmit | works |
 | `craft-brief`: the code craft rules at session start | craft | SessionStart | works |
 | `lanes-brief`: the lane recipe at session start; restores deep-lane progress after compaction | lanes | SessionStart | works |
 | `lanes-approval`: records your approval of a deep-lane design marked ready | lanes | UserPromptSubmit | works |

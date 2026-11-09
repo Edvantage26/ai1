@@ -49,8 +49,8 @@ export default {
     if (matchedRules.length === 0) return allowDecision();
     const ruleLines = matchedRules.map((repoRule) => `[${repoRule.id}] ${repoRule.message}`).join(' ');
     if (matchedRules.some((repoRule) => repoRule.action === 'deny')) {
-      return denyDecision(MODULE_ID, `${ruleLines} (a rule of this repo). Do not reach the same result another way; if it seems wrong, tell the person.`);
+      return denyDecision(MODULE_ID, `${ruleLines} (a rule of this repo). Do not reach the same result another way; if it seems wrong, tell the person.`, matchedRules.map((repoRule) => repoRule.id));
     }
-    return askDecision(MODULE_ID, `${ruleLines} (a rule of this repo). The person confirms.`);
+    return askDecision(MODULE_ID, `${ruleLines} (a rule of this repo). The person confirms.`, matchedRules.map((repoRule) => repoRule.id));
   },
 };

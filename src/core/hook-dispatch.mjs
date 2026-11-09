@@ -8,7 +8,8 @@ import { loadHarnessConfig, isModuleEnabled, getModuleOptions, CONFIG_RELATIVE_P
 import { resolveProjectRoots } from './project-roots.mjs';
 import { MODULE_INDEX, KNOWN_MODULE_IDS, modulesForEvent } from './module-index.mjs';
 import { hasLegacyLayout } from './legacy-layout.mjs';
-import { appendDecisionLog, decisionCharacters } from './decision-log.mjs';
+import { appendDecisionLog, decisionCharacters, errorSignature } from './decision-log.mjs';
+import { recordPendingErrors } from './pending-errors.mjs';
 
 // moduleDefinitions: metadata of every module (what `enabledModules` lists); runnableModules: the
 // loaded modules of this event (an enabled module that was not loaded is skipped).
@@ -54,7 +55,7 @@ export function dispatchHookEvent(eventName, hookInput, { environment = process.
       });
       moduleDecisions.push(moduleDecision);
     } catch (moduleError) {
-      moduleDecision = { kind: 'error' };
+      moduleDecision = { kind: 'error', error: errorSignature(moduleError) };
       reportInternalError(`module ${moduleDefinition.id} failed: ${moduleError.stack || moduleError}`);
     }
     logEntries.push({
@@ -66,9 +67,13 @@ export function dispatchHookEvent(eventName, hookInput, { environment = process.
       decision: moduleDecision?.kind || 'allow',
       ms: Math.round((performance.now() - startedAt) * 100) / 100,
       chars: decisionCharacters(moduleDecision),
+      ...(hookInput.tool_use_id ? { toolUse: hookInput.tool_use_id } : {}),
+      ...(moduleDecision?.ruleIds ? { rules: moduleDecision.ruleIds } : {}),
+      ...(moduleDecision?.error ? { error: moduleDecision.error } : {}),
     });
   }
   appendDecisionLog(logEntries, sharedRoot, environment);
+  recordPendingErrors(logEntries.filter((logEntry) => logEntry.decision === 'error'), sharedRoot, environment);
   for (const configNotice of loadedConfig.notices) {
     reportInternalError(configNotice);
     if (eventName === 'SessionStart') moduleDecisions.push(contextDecision('setup', configNotice));

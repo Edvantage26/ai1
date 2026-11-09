@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-11-09
+* **Creation**: [retro](features/retro.md) — `ai1-retro`, project skill of the ai1 repo reading every repo's decision log (`ai1 log --all`); the `issue-offer` hook offers ai1's own errors as issues ([issue report](features/issue-report.md)).
 * **Creation**: [config-guard](guards/config-guard.md), [test-guard](guards/test-guard.md), [repo-rules](guards/repo-rules.md), [decision log](architecture/decision-log.md) and the decision [harness guards](decisions/harness-guards.md) — proposals 0002-0006 built in v0.21.0 (plus credential deny rules in [ai1 init](features/init.md)).
 * **Creation**: [issue report](features/issue-report.md) — `/ai1:core-report-issue` and `ai1 issue` (env, url): a problem with ai1 filed on its public repo after the person approves the text.
 * **Supersession**: the `rfc` feature is now [proposals](features/proposals.md) (`features/rfc.md` renamed): folder `.ai1/proposals/`, `/ai1:proposals-write`, `ai1 proposals`, modules `proposals-*`; created only on request or acceptance; `ai1 init` migrates the old names. Older entries keep the names of their time.

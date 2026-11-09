@@ -120,6 +120,6 @@ export default {
     const testFindings = findTestGuardFindings(hookInput, projectRoot, moduleOptions);
     if (testFindings.length === 0) return allowDecision();
     const findingLines = testFindings.map((testFinding) => `[${testFinding.ruleId}] ${SHAPE_DESCRIPTIONS[testFinding.ruleId]} \`${testFinding.path}\`.`);
-    return askDecision(MODULE_ID, `${findingLines.join(' ')} A passing suite is what the verify gate trusts: fix the code, not the test. If the person asked for this change, they confirm.`);
+    return askDecision(MODULE_ID, `${findingLines.join(' ')} A passing suite is what the verify gate trusts: fix the code, not the test. If the person asked for this change, they confirm.`, [...new Set(testFindings.map((testFinding) => testFinding.ruleId))]);
   },
 };

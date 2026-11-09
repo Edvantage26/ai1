@@ -5,12 +5,25 @@ description: Report a problem with ai1 as an issue on the public Edvantage26/ai1
 tags: [core, issues, feedback, github]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T06:53:04Z'
+  at: '2026-11-09T12:10:02Z'
 ---
 
-Module `core`: a skill and a CLI command, no hooks and no entry in `.ai1/config.json`, so any person
-using ai1 can report a problem from whatever repo they are in. Code in `src/cli/issue-command.mjs`;
-tests in `test/issue.test.mjs`.
+Module `core`: a skill, a CLI command and the `issue-offer` hook, no entry needed in `.ai1/config.json`,
+so any person using ai1 can report a problem from whatever repo they are in. Code in
+`src/cli/issue-command.mjs` and `src/core/issue-offer.mjs`; tests in `test/issue.test.mjs` and
+`test/issue-offer.test.mjs`.
+
+# Offered when ai1 itself fails (since 2026-11-09)
+
+When a module throws or the hook entry point crashes, the [decision log](../architecture/decision-log.md)
+records an error signature (error class + first plugin file:line, nothing private) and
+`src/core/pending-errors.mjs` keeps it in `errors-<hash>.json` (count, first, last). On the next
+message the `issue-offer` hook (UserPromptSubmit, feature `core`, `modules.issue-offer: false` to
+silence it) asks the agent to offer, in one line, a report with this skill - once per error and
+plugin version (`offeredVersion`), so a crash an update did not fix comes back once. In the ai1 repo
+itself it offers to fix it here instead. Only real errors: judgement calls (asks the person keeps
+approving, slow modules) are never shown in other repos; they go to the [retro](retro.md) of the ai1 repo.
+`ai1 issue env` lists the pending errors ("ai1 errors in this repo") for the reproduction.
 
 # Flow
 
@@ -30,4 +43,4 @@ tests in `test/issue.test.mjs`.
 
 - The agent never publishes without approval of the exact text, and the skill only reports ai1's own
   problems, not the person's code or Claude Code.
-- Hooks do not suggest the skill when they fail open (possible later).
+- Hooks suggest the skill only for ai1's own errors, never for misfires (those need judgement).

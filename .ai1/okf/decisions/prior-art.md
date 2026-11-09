@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T09:20:51Z'
+  at: '2026-11-09T12:10:02Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -197,6 +197,20 @@ Checked against the code (2026-11-09; hooks.json has no PreToolUse matcher for R
 | subagent cap | no | Agent/Task only mark "may write" in `session-writes` |
 | instructions-audit | partial | `okf-claude-md-check` is the scanner to extend; no invisible-Unicode or `curl\|sh` checks |
 | dead-rules-audit | no | `transcript-scan` could feed it, in `ai1 doctor --session` |
+
+# Method skills survey (2026-11-09)
+
+Read from READMEs. [Compound Engineering](https://github.com/EveryInc/compound-engineering-plugin) (Every,
+MIT): plan -> work -> review -> **compound**, learnings in `docs/solutions/` found by later plans - the same
+loop as the OKF bundle with upkeep and recall. [Matt Pocock's skills](https://github.com/mattpocock/skills)
+(MIT): `diagnosing-bugs`, `grill-with-docs` (glossary + ADRs), `handoff`, `tdd`, two-axis `code-review`,
+and `retro` (environment fixes after sessions) - taken as the [retro](../features/retro.md) of the ai1 repo.
+HumanLayer RPI: `research_codebase` -> `create_plan` -> `implement_plan` -> `validate_plan` (check the
+implementation against the plan's criteria). Trail of Bits `differential-review` and `fp-check` (security
+domain; `fp-check` is the "finding verifier" idea). Candidates, not decided: a debugging method skill with
+a fix-attempt counter hook (three sources converge on the same loop), and checking a deep plan against
+`progress.md` and the diff before `status: done`. Left out: strict TDD (3-8.5x tokens, no measured gain),
+autonomous commit/push pipelines (`lfg`).
 
 # Harness and memory projects (2026-11-09)
 

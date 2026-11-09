@@ -249,8 +249,8 @@ export default {
     if (dangerFindings.length === 0) return allowDecision();
     const findingLines = dangerFindings.map((dangerFinding) => `[${dangerFinding.ruleId}] \`${dangerFinding.command}\`: ${dangerFinding.why}`);
     if (dangerFindings.some((dangerFinding) => dangerFinding.action === 'deny')) {
-      return denyDecision(MODULE_ID, `${findingLines.join(' ')} Do not reach the same result another way; explain the risk and let the person decide.`);
+      return denyDecision(MODULE_ID, `${findingLines.join(' ')} Do not reach the same result another way; explain the risk and let the person decide.`, dangerFindings.map((dangerFinding) => dangerFinding.ruleId));
     }
-    return askDecision(MODULE_ID, findingLines.join(' '));
+    return askDecision(MODULE_ID, findingLines.join(' '), dangerFindings.map((dangerFinding) => dangerFinding.ruleId));
   },
 };

@@ -12,12 +12,13 @@ export function allowDecision() {
   return { kind: 'allow' };
 }
 
-export function askDecision(moduleId, reason) {
-  return { kind: 'ask', moduleId, reason };
+// `ruleIds`: the rules behind the decision, recorded in the decision log (not shown to anyone).
+export function askDecision(moduleId, reason, ruleIds) {
+  return { kind: 'ask', moduleId, reason, ...(ruleIds?.length ? { ruleIds } : {}) };
 }
 
-export function denyDecision(moduleId, reason) {
-  return { kind: 'deny', moduleId, reason };
+export function denyDecision(moduleId, reason, ruleIds) {
+  return { kind: 'deny', moduleId, reason, ...(ruleIds?.length ? { ruleIds } : {}) };
 }
 
 // Stop / SubagentStop only: keeps the agent working until the reason is resolved.

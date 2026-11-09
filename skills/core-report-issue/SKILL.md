@@ -25,6 +25,11 @@ From the conversation, take what went wrong: which hook, skill or command (the `
 prefix of a hook message names it), the exact message, what the agent or person was doing, and
 what was expected. Ask the person only for what is missing; one question at a time.
 
+When ai1 itself failed (a module threw, the hook crashed), `ai1 issue env` lists those errors under
+"ai1 errors in this repo": module, error class and the plugin file and line, how often and when.
+Quote them in the reproduction; they hold nothing private. This is also how the agent is told to offer
+a report (the `issue-offer` hook), once per error and version.
+
 For a hook that misfires or is slow, `ai1 log --since 2` shows what each module decided and how
 long it took (metadata only: module, event, decision, ms, characters added; no commands or paths).
 Quote the lines of the module at fault.

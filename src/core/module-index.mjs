@@ -8,6 +8,7 @@
 
 export const MODULE_INDEX = [
   { id: 'brief', event: 'SessionStart', feature: 'core', modulePath: '../context/brief.mjs' },
+  { id: 'issue-offer', event: 'UserPromptSubmit', feature: 'core', modulePath: './issue-offer.mjs' },
   { id: 'okf-index', event: 'SessionStart', feature: 'okf', modulePath: '../okf/okf-index.mjs' },
   { id: 'okf-claude-md', event: 'SessionStart', feature: 'okf', modulePath: '../okf/okf-claude-md.mjs' },
   { id: 'okf-recall', event: 'UserPromptSubmit', feature: 'okf', modulePath: '../okf/okf-recall.mjs' },

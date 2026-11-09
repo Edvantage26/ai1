@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T09:20:51Z'
+  at: '2026-11-09T12:10:02Z'
 ---
 
 # Flow
@@ -50,13 +50,15 @@ A module that throws is reported on stderr (visible in verbose mode) and skipped
 decide. Garbage input makes the entry point exit 0 with no output.
 
 Every module run is timed and logged locally, metadata only: see [decision log](decision-log.md)
-(`ai1 log`, off with `AI1_DECISION_LOG=0`).
+(`ai1 log`, off with `AI1_DECISION_LOG=0`). A thrown module and a crash of the entry point are
+logged with an error signature and offered to the person as an issue ([issue report](../features/issue-report.md)).
 
 # Current modules
 
 | Module | Event | Feature |
 |---|---|---|
 | `brief` | SessionStart | core (always on) |
+| `issue-offer` | UserPromptSubmit | core (always on): offers a report when ai1 itself failed, see [issue report](../features/issue-report.md) |
 | `okf-index` | SessionStart | okf |
 | `okf-claude-md` | SessionStart | okf |
 | `okf-recall` | UserPromptSubmit | okf |
@@ -92,7 +94,7 @@ proposals-upkeep), `project-paths.mjs` (tool paths relative to the project root;
 invalid JSON for files about to be rewritten, `readJsonFileIfValid`, `writeJsonFile`),
 `markdown-files.mjs` (recursive markdown listing), `tool-call-paths.mjs` (the files a tool call may
 change, sorted as edit / shell-write / remove / move / move-target; config-guard and test-guard),
-`repo-rules-config.mjs` (validation of `rules`), `decision-log.mjs`, `legacy-layout.mjs` (detection of the old `jig`
+`repo-rules-config.mjs` (validation of `rules`), `decision-log.mjs` (plus `errorSignature`), `pending-errors.mjs` (ai1's own errors waiting to be offered), `legacy-layout.mjs` (detection of the old `jig`
 layout, so core never imports `src/cli/`). Paths under `.ai1/` (`KNOWLEDGE_BUNDLE_PATH`,
 `WORK_DIRECTORY`) are constants in `config.mjs`.
 okf-upkeep is split: `okf-session-scan.mjs` (transcript, memories, shell edits of the bundle) and

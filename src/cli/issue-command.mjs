@@ -10,13 +10,16 @@ import { KNOWN_MODULE_IDS } from '../core/module-index.mjs';
 import { detectForkHost } from '../session/fork-host.mjs';
 import { runExternalCommand } from '../session/fork-session.mjs';
 import { describeRepo, AI1_MARKETPLACE } from './setup-repo.mjs';
+import { listStateDirectoriesToRead } from '../core/decision-log.mjs';
+import { readPendingErrorsFrom } from '../core/pending-errors.mjs';
+import { findMainCheckout } from '../core/project-roots.mjs';
 
 export const ISSUE_USAGE = 'usage: ai1 issue env [--json] | url --title "<t>" --body-file <body.md>';
 export const ISSUE_REPOSITORY = AI1_MARKETPLACE.source.repo;
 // GitHub rejects longer "new issue" URLs; past it the link carries only the title.
 const MAX_ISSUE_URL_LENGTH = 8000;
 
-export function collectIssueEnvironment(repoRoot, { environment = process.env, runCommand = runExternalCommand, platformName = process.platform, architectureName = process.arch, nodeVersion = process.version } = {}) {
+export function collectIssueEnvironment(repoRoot, { environment = process.env, runCommand = runExternalCommand, platformName = process.platform, architectureName = process.arch, nodeVersion = process.version, homeDirectory } = {}) {
   const pluginManifest = JSON.parse(readFileSync(new URL('../../.claude-plugin/plugin.json', import.meta.url), 'utf8'));
   const claudeVersionResult = runCommand('claude', ['--version'], { timeoutMilliseconds: 10_000 });
   const repoDescription = describeRepo(repoRoot);
@@ -29,6 +32,9 @@ export function collectIssueEnvironment(repoRoot, { environment = process.env, r
     repoHasAi1Config: repoDescription.hasAi1Config,
     enabledFeatures: repoDescription.features.filter((featureStatus) => featureStatus.enabled).map((featureStatus) => featureStatus.id),
     unknownConfigEntries: listUnknownConfigEntries(readJsonFileIfValid(join(repoRoot, CONFIG_RELATIVE_PATH)), KNOWN_MODULE_IDS),
+    // ai1's own failures in this repo: module and plugin-relative signature only, never a repo path.
+    pendingErrors: readPendingErrorsFrom(listStateDirectoriesToRead(environment, homeDirectory), findMainCheckout(repoRoot))
+      .map(({ module: moduleId, error, count, first, last }) => ({ module: moduleId, error, count, first, last })),
   };
 }
 
@@ -43,6 +49,9 @@ export function formatIssueEnvironment(issueEnvironment) {
     `- OS: ${issueEnvironment.operatingSystem}`,
     `- Host: ${issueEnvironment.host}`,
     `- Repo: ${repoLine}`,
+    ...(issueEnvironment.pendingErrors?.length
+      ? ['- ai1 errors in this repo:', ...issueEnvironment.pendingErrors.map((pendingError) => `  - \`${pendingError.module}\`: ${pendingError.error} (${pendingError.count}x, ${pendingError.first.slice(0, 10)} to ${pendingError.last.slice(0, 10)})`)]
+      : []),
   ].join('\n');
 }
 

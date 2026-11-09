@@ -37,6 +37,6 @@ export default {
   run({ hookInput, projectRoot }) {
     const changedConfigPaths = listHarnessConfigChanges(hookInput, hookInput.cwd || projectRoot);
     if (changedConfigPaths.length === 0) return allowDecision();
-    return askDecision(MODULE_ID, `changes ${changedConfigPaths.map((configPath) => `\`${configPath}\``).join(', ')}: the harness configuration that ai1's guards and Claude Code's permissions read. The person confirms; if they did not ask for this change, do not make it another way.`);
+    return askDecision(MODULE_ID, `changes ${changedConfigPaths.map((configPath) => `\`${configPath}\``).join(', ')}: the harness configuration that ai1's guards and Claude Code's permissions read. The person confirms; if they did not ask for this change, do not make it another way.`, [MODULE_ID]);
   },
 };

@@ -5,7 +5,7 @@ description: What a repo chooses in .ai1/config.json; each hook module belongs t
 tags: [features, config]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T09:20:51Z'
+  at: '2026-11-09T12:10:02Z'
 sources:
   - id: features-source
     resource: src/core/features.mjs
@@ -27,7 +27,7 @@ repo switches the single module off with `modules.<id>: false`.
 | `worktrees` | off | `worktree-brief` (SessionStart), `worktree-reminder` (UserPromptSubmit) | `/ai1:worktrees-plan-recipe`, `ai1 worktree`, see [worktrees feature](/features/worktrees.md) |
 | `proposals` | off | `proposals-brief` (SessionStart), `proposals-recall` (UserPromptSubmit), `proposals-upkeep` (Stop) | `/ai1:proposals-write`, `ai1 proposals`, see [proposals feature](/features/proposals.md) (called `rfc` until v0.17) |
 | `design` | off | `design-brief` (SessionStart), `design-detect` (PostToolUse Edit/Write/MultiEdit) | see [design feature](/features/design.md) |
-| `core` | always on | `brief` (SessionStart) | — |
+| `core` | always on | `brief` (SessionStart), `issue-offer` (UserPromptSubmit) | `/ai1:core-report-issue`, see [issue report](/features/issue-report.md) |
 
 Feature choice is per repo because plugin options (`userConfig`) are stored per user only in
 Claude Code; the repo file travels with the code. [/ai1:core-setup-repo](/features/init.md) writes it.
