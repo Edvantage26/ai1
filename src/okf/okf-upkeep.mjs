@@ -21,6 +21,7 @@ import {
 } from './okf-bundle.mjs';
 import { loadFileMap, findConceptsForFile } from './okf-file-map.mjs';
 import { memoryDirectoriesFor, scanSessionTranscript, loadScanState, listRecentMemories } from './okf-session-scan.mjs';
+import { isInsideWriteWindow } from '../core/session-writes.mjs';
 import { runBundleValidator, buildValidationReminder } from './okf-validator.mjs';
 import { readSessionBase, listFilesChangedSinceBase } from '../core/session-base.mjs';
 import { tryGit } from '../core/git.mjs';
@@ -220,13 +221,15 @@ export default {
     const memoryDirectories = memoryDirectoriesFor([hookInput.cwd, projectRoot], homeDirectory);
     const scanStatePath = sessionStatePath(stateDirectory, hookInput.session_id, projectRoot, 'memory-scan');
     const scanState = loadScanState(scanStatePath);
-    const transcriptScan = scanSessionTranscript(hookInput.transcript_path, { memoryDirectories, bundleRelativePath, verifyCommands: config.verify || [] }, scanState);
+    const transcriptScan = scanSessionTranscript(hookInput.transcript_path, { memoryDirectories, bundleRelativePath, verifyCommands: config.verify || [], projectRoot }, scanState);
     if (transcriptScan) writeStateText(scanStatePath, JSON.stringify(scanState));
 
-    // Only files changed after the session started, and only when the transcript shows the session
-    // may have written: uncommitted changes from before it, or another session's in the same folder,
-    // are not this session's knowledge. Without a transcript the dates alone decide.
-    const sessionMayHaveWritten = !transcriptScan || transcriptScan.sessionMayHaveWritten;
+    // Only files changed after the session started, and only inside one of its write windows (a call
+    // of this session that may write was running): uncommitted changes from before it, or another
+    // session's in the same folder, are not this session's knowledge. A deletion has no date, so it
+    // counts when the session has any window. Without a transcript the dates alone decide.
+    const writeWindows = transcriptScan ? transcriptScan.writeWindows : null;
+    const sessionMayHaveWritten = !writeWindows || writeWindows.length > 0;
     const isKnowledgeCheckedIntegration = integratedFileMatcher(projectRoot, 'knowledge_checked');
     const pendingFiles = (sessionMayHaveWritten ? listSessionChangedFiles(projectRoot, baseHead, bundleRelativePath, isFeatureEnabled('later', config) ? [LATER_DIRECTORY] : []) : [])
       .map((changedPath) => {
@@ -237,7 +240,8 @@ export default {
         return { path: changedPath, isDeleted: false, modifiedMilliseconds, signature: `${changedPath}:${Math.floor(modifiedMilliseconds)}` };
       })
       .filter((pendingFile) => pendingFile.isDeleted
-        || (pendingFile.modifiedMilliseconds >= sessionStartMilliseconds && pendingFile.modifiedMilliseconds > bundleUpdatedMilliseconds))
+        || (pendingFile.modifiedMilliseconds >= sessionStartMilliseconds && pendingFile.modifiedMilliseconds > bundleUpdatedMilliseconds
+          && (!writeWindows || isInsideWriteWindow(pendingFile.modifiedMilliseconds, writeWindows))))
       // Brought in by `ai1 worktree finish` after its OKF checks, and untouched since.
       .filter((pendingFile) => !isKnowledgeCheckedIntegration(pendingFile.path, pendingFile.isDeleted ? null : pendingFile.modifiedMilliseconds));
     // A deletion has no date to compare with the bundle, so it would stay pending forever and ride

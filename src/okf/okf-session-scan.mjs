@@ -9,8 +9,8 @@ import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
 import { splitFrontmatter } from '../core/frontmatter.mjs';
 import { readStateJson } from '../core/session-state.mjs';
 import { listShellWriteTargets } from '../core/shell-writes.mjs';
-import { readNewTranscriptEvents, eventContentBlocks } from '../core/transcript-scan.mjs';
-import { toolUseMayWriteFiles } from '../core/session-writes.mjs';
+import { readNewTranscriptEvents, eventContentBlocks, TOOL_USE_MARKER, TOOL_RESULT_MARKER } from '../core/transcript-scan.mjs';
+import { updateWriteWindows } from '../core/session-writes.mjs';
 
 // Claude Code stores auto-memory under ~/.claude/projects/<path with / and . as ->/memory.
 export function memoryDirectoriesFor(directoryPaths, homeDirectory = homedir()) {
@@ -51,21 +51,19 @@ export function shellCommandWritesBundle(commandLine, bundleRelativePath = KNOWL
 //     edited the bundle, reset to 0 by any bundle edit, and
 //   - `editedFilePaths`: other files (not memory, not the bundle) this session edited with
 //     Write/Edit since it last edited the bundle, and
-//   - `sessionMayHaveWritten`: some call may have changed files (core/session-writes; the repo's
-//     verify commands count as read-only).
+//   - `writeWindows`: when a call that may change files was running (core/session-writes; the
+//     repo's verify commands count as read-only).
 // Returns null when the transcript is not available.
-export function scanSessionTranscript(transcriptPath, { memoryDirectories, bundleRelativePath, verifyCommands = [] }, scanState = { offset: 0, paths: [], investigationCalls: 0 }) {
-  const newTranscript = readNewTranscriptEvents(transcriptPath, scanState);
+export function scanSessionTranscript(transcriptPath, { memoryDirectories, bundleRelativePath, verifyCommands = [], projectRoot }, scanState = { offset: 0, paths: [], investigationCalls: 0 }) {
+  const newTranscript = readNewTranscriptEvents(transcriptPath, scanState, [TOOL_USE_MARKER, TOOL_RESULT_MARKER]);
   if (!newTranscript) return null;
   const writtenMemoryPaths = new Set(newTranscript.restarted ? [] : scanState.paths || []);
   const editedFilePaths = new Set(newTranscript.restarted ? [] : scanState.editedPaths || []);
   let investigationCalls = newTranscript.restarted ? 0 : scanState.investigationCalls || 0;
-  // State saved by a version without this flag: earlier writes are unknown, so assume them.
-  let sessionMayHaveWritten = newTranscript.restarted ? false : scanState.sessionMayHaveWritten ?? true;
+  updateWriteWindows(scanState, newTranscript.events, { restarted: newTranscript.restarted, verifyCommands, projectRoot });
   const bundleMarker = `/${String(bundleRelativePath || KNOWLEDGE_BUNDLE_PATH).replace(/^\.\//, '').replace(/\/+$/, '')}/`;
   for (const transcriptEvent of newTranscript.events) {
     for (const contentBlock of eventContentBlocks(transcriptEvent, 'tool_use')) {
-      if (toolUseMayWriteFiles(contentBlock, verifyCommands)) sessionMayHaveWritten = true;
       const toolPath = contentBlock?.input?.file_path;
       if (MEMORY_WRITING_TOOLS.has(contentBlock.name) && typeof toolPath === 'string') {
         const isMemoryPath = memoryDirectories.some((memoryDirectory) => toolPath.startsWith(`${memoryDirectory}/`));
@@ -87,8 +85,7 @@ export function scanSessionTranscript(transcriptPath, { memoryDirectories, bundl
   scanState.paths = [...writtenMemoryPaths];
   scanState.editedPaths = [...editedFilePaths];
   scanState.investigationCalls = investigationCalls;
-  scanState.sessionMayHaveWritten = sessionMayHaveWritten;
-  return { memoryPaths: writtenMemoryPaths, editedFilePaths, investigationCalls, sessionMayHaveWritten };
+  return { memoryPaths: writtenMemoryPaths, editedFilePaths, investigationCalls, writeWindows: scanState.writeWindows };
 }
 
 // Kept for callers that only need the memory files.

@@ -5,7 +5,7 @@ description: Stop gate - the agent cannot finish while code it changed is newer 
 tags: [verify, hooks, evidence, cli]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T13:41:04Z'
+  at: '2026-11-09T13:53:57Z'
 sources:
   - id: verify-gate
     resource: src/verify/verify-gate.mjs
@@ -78,8 +78,14 @@ test run (`didRunFail`) with an edit to project code since that same test comman
 3. Blocks when a changed file is newer than the end of the last run (lists those files and asks to
    run the command as is), or when that run failed (asks to fix it or say plainly that it fails).
    At most 2 blocks per situation, then it lets the agent stop.
-   It does not block when the transcript shows no call that may have written files
-   (`src/core/session-writes.mjs`): the changes belong to another session in the same folder.
+   Only files modified inside one of the session's **write windows** count
+   (`src/core/session-writes.mjs`): each call that may write opens a window from its tool_use to its
+   tool_result (subagents, background shells and events without a time stay open; ±2 s slack), and a
+   shell command whose writes all go to absolute paths outside the project (`/tmp` scratch files)
+   opens none. The rest belong to another session in the same folder or predate this one. Until
+   2026-11-09 it was one flag per session: any command not known to be read-only (a `python3` script,
+   `node bin/ai1 log`, a scratch file in `/tmp`) made every later change by another session count, so a
+   session that had only investigated was stopped to run the tests over another session's release.
 
 Changes are judged by file modification time, not by which tool wrote them, so edits by subagents or
 shell commands count. Session start comes from the base HEAD recorded by `brief` (core, always on).
@@ -104,8 +110,9 @@ command, and untouched since, do not count (see the integration record in [workt
 - The transcript does not say in which directory a command ran: `cd elsewhere && npm test` counts.
 - Runs made by subagents are not in the main transcript: the main agent must run the command itself.
 - Failure summaries are a heuristic for piped output; prefer running the command unpiped.
-- Two sessions that both write in the same folder still see each other's changes: dates cannot tell
-  them apart. One worktree per session avoids it ([worktrees](worktrees.md)).
+- Two sessions that write in the same folder at the same moment still see each other's changes: a
+  file modified while one of this session's calls was running counts as its own. One worktree per
+  session avoids it ([worktrees](worktrees.md)).
 
 # Verified
 

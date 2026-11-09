@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T13:53:43Z'
+  at: '2026-11-09T13:53:57Z'
 ---
 
 # Flow
@@ -84,9 +84,10 @@ logged with an error signature and offered to the person as an issue ([issue rep
 Shared helpers in `src/core/`: `shell-parse.mjs` (split commands), `shell-writes.mjs` (files a shell
 command writes, with relative targets moved by an earlier `cd <dir>` in the line since 2026-11-09 - before, `cd /repo && sed -i ... .ai1/work/x/plan.md` from a worktree was refused as a worktree plan; used by okf-upkeep and lanes-gate), `session-base.mjs` (HEAD at session start, recorded
 by `brief`, okf-index and lanes-brief, never throws; used by okf, lanes and verify), `transcript-scan.mjs`
-(incremental transcript reader; okf-upkeep, verify-gate), `session-writes.mjs` (whether a tool call
-may change files: edits, subagents and shell commands not known to be read-only; okf-upkeep and
-verify-gate skip a session that only read), `path-glob.mjs` (globs for .ai1/config.json
+(incremental transcript reader that skips Claude Code's `api-request-blob` request copies; okf-upkeep,
+verify-gate), `session-writes.mjs` (whether a tool call may change files: edits, subagents and shell
+commands not known to be read-only, and the session's write windows built from them; okf-upkeep and
+verify-gate only count files modified inside a window), `path-glob.mjs` (globs for .ai1/config.json
 paths), `session-state.mjs` (per-session state files, `readStateJson`, and `claimStopBlock`: the Stop
 loop guard - the same findings block once, at most N blocks per session - of okf-upkeep and
 later-upkeep), `project-paths.mjs` (tool paths relative to the project root; used by lanes and design),

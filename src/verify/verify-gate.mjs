@@ -5,8 +5,8 @@
 //   command (redirects allowed, extra arguments or filters not), or `ai1 verify` / `ai1 step-done` / `ai1 plan-done`.
 //   Exit code from the tool result (`is_error`), plus common failure summaries for piped output.
 // - Changes are judged by file modification time against the end of the run, so edits made by
-//   subagents or shell commands count too. A session whose transcript shows no call that may write
-//   (core/session-writes) is not asked: the changes belong to another session or predate it.
+//   subagents or shell commands count too. Only files modified inside one of the session's write
+//   windows (core/session-writes) are asked about: the rest belong to another session or predate it.
 // - Asked at most twice for the same situation, then it lets the agent stop (fail open).
 
 import { existsSync, statSync } from 'node:fs';
@@ -17,7 +17,7 @@ import { readSessionBase, listFilesChangedSinceBase } from '../core/session-base
 import { resolveStateDirectory, sessionStatePath, writeStateText, shortHash, readStateJson } from '../core/session-state.mjs';
 import { baseName, commandWordsWithoutRedirects, splitSimpleCommands } from '../core/shell-parse.mjs';
 import { readNewTranscriptEvents, eventContentBlocks, TOOL_USE_MARKER, TOOL_RESULT_MARKER } from '../core/transcript-scan.mjs';
-import { toolUseMayWriteFiles } from '../core/session-writes.mjs';
+import { updateWriteWindows, isInsideWriteWindow } from '../core/session-writes.mjs';
 import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
 import { integratedFileMatcher } from '../worktrees/worktree-integrations.mjs';
 
@@ -67,23 +67,20 @@ export function didRunFail(contentBlock) {
 }
 
 // Updates `scanState.lastRuns[verifyIndex] = { endMilliseconds, passed, toolUseId }` and
-// `scanState.sessionMayHaveWritten` from the new part of the transcript. Returns false when the
-// transcript is not available.
-export function scanVerifyRuns(transcriptPath, verifyCommands, scanState) {
+// the session's write windows (`scanState.writeWindows`, core/session-writes) from the new part of
+// the transcript. Returns false when the transcript is not available.
+export function scanVerifyRuns(transcriptPath, verifyCommands, scanState, projectRoot) {
   const newTranscript = readNewTranscriptEvents(transcriptPath, scanState, [TOOL_USE_MARKER, TOOL_RESULT_MARKER]);
   if (!newTranscript) return false;
   if (newTranscript.restarted) {
     scanState.pendingRuns = {};
     scanState.lastRuns = {};
-    scanState.sessionMayHaveWritten = false;
   }
-  // State saved by a version without this flag: earlier writes are unknown, so assume them.
-  scanState.sessionMayHaveWritten ??= true;
+  updateWriteWindows(scanState, newTranscript.events, { restarted: newTranscript.restarted, verifyCommands, projectRoot });
   scanState.pendingRuns ||= {};
   scanState.lastRuns ||= {};
   for (const transcriptEvent of newTranscript.events) {
     for (const toolUse of eventContentBlocks(transcriptEvent, 'tool_use')) {
-      if (toolUseMayWriteFiles(toolUse, verifyCommands)) scanState.sessionMayHaveWritten = true;
       if (toolUse.name !== 'Bash') continue;
       const verifyIndexes = verifyCommandsRunBy(toolUse.input?.command, verifyCommands);
       if (verifyIndexes.length) scanState.pendingRuns[toolUse.id] = verifyIndexes;
@@ -159,11 +156,12 @@ export default {
     const scanStatePath = sessionStatePath(stateDirectory, hookInput.session_id, projectRoot, 'verify-scan');
     const scanState = readStateJson(scanStatePath);
     // Without a transcript there is no way to know what ran: let the agent stop.
-    if (!scanVerifyRuns(hookInput.transcript_path, verifyCommands, scanState)) return allowDecision();
+    if (!scanVerifyRuns(hookInput.transcript_path, verifyCommands, scanState, projectRoot)) return allowDecision();
     writeStateText(scanStatePath, JSON.stringify(scanState));
-    if (!scanState.sessionMayHaveWritten) return allowDecision();
+    // Only files modified while a call of this session that may write was running are its own.
+    const sessionChangedFiles = changedFiles.filter((changedFile) => isInsideWriteWindow(changedFile.modifiedMilliseconds, scanState.writeWindows));
 
-    const unverifiedChange = findUnverifiedChange(changedFiles, verifyCommands, scanState.lastRuns);
+    const unverifiedChange = findUnverifiedChange(sessionChangedFiles, verifyCommands, scanState.lastRuns);
     if (!unverifiedChange) return allowDecision();
     const situation = unverifiedChange.kind === 'failed'
       ? `failed:${unverifiedChange.toolUseId}`

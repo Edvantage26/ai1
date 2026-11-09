@@ -230,6 +230,23 @@ test('okf-upkeep: changes made by another session are not asked about when this 
   assert.equal(stopSession(projectRoot, editingOptions, { transcript_path: editingTranscript }, 'editing-session').decision, 'block');
 });
 
+test('okf-upkeep: a file another session changed while this one was not writing is not asked about', () => {
+  const projectRoot = createRepoWithBundle();
+  const options = hookOptions();
+  startSession(projectRoot, options);
+  const scriptStart = Date.now();
+  // This session ran a script that may write (scriptStart to +1s); another session changed app.py at +60s.
+  const appPath = join(projectRoot, 'src', 'app.py');
+  writeFileSync(appPath, 'print(2)\n');
+  utimesSync(appPath, (scriptStart + 60000) / 1000, (scriptStart + 60000) / 1000);
+  const transcriptPath = join(options.homeDirectory, 'transcript.jsonl');
+  writeFileSync(transcriptPath, [
+    { timestamp: new Date(scriptStart).toISOString(), message: { content: [{ type: 'tool_use', id: 'script', name: 'Bash', input: { command: 'python3 -I /tmp/scan.py' } }] } },
+    { timestamp: new Date(scriptStart + 1000).toISOString(), message: { content: [{ type: 'tool_result', tool_use_id: 'script', content: 'ok' }] } },
+  ].map((transcriptEvent) => JSON.stringify(transcriptEvent)).join('\n') + '\n');
+  assert.equal(stopSession(projectRoot, options, { transcript_path: transcriptPath }), null);
+});
+
 test('okf-upkeep: outside a git repo it fails open', () => {
   const projectRoot = createTemporaryProject({});
   mkdirSync(join(projectRoot, '.ai1', 'okf'));

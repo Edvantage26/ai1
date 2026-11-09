@@ -1,9 +1,12 @@
 // Whether a session may have changed files itself, read from its transcript. The Stop checks
 // (okf-upkeep, verify-gate) judge "changed in this session" by git and modification times, which
 // cannot tell this session from another one working in the same folder, nor from changes left
-// uncommitted before it started; a session that never wrote anything is not asked about them.
+// uncommitted before it started. So each call that may write opens a write window (from its tool_use
+// to its tool_result) and only files modified inside one of the session's windows are its own.
 // Errs towards "may write": any tool call or shell command not known to be read-only counts.
 
+import { isAbsolute, resolve } from 'node:path';
+import { eventContentBlocks } from './transcript-scan.mjs';
 import { baseName, commandWordsWithoutRedirects, splitSimpleCommands } from './shell-parse.mjs';
 import { listShellWriteTargets } from './shell-writes.mjs';
 
@@ -58,4 +61,73 @@ export function toolUseMayWriteFiles(toolUse, verifyCommands = []) {
   if (FILE_WRITING_TOOLS.has(toolUse?.name)) return true;
   if (toolUse?.name === 'Bash') return !shellCommandOnlyReads(toolUse.input?.command, verifyCommands);
   return false;
+}
+
+// Commands whose writes listShellWriteTargets resolves completely (`mv` is left out: it also removes
+// its source, which may be in the repo).
+const RESOLVED_WRITING_COMMANDS = new Set(['tee', 'touch', 'rm', 'mkdir', 'truncate', 'cp', 'install', 'ln']);
+
+function isOutsideProject(targetPath, projectRoot) {
+  if (!isAbsolute(targetPath)) return false;
+  const resolvedTarget = resolve(targetPath);
+  const resolvedRoot = resolve(projectRoot);
+  return resolvedTarget !== resolvedRoot && !resolvedTarget.startsWith(`${resolvedRoot}/`);
+}
+
+// Whether a shell command only writes outside the project (scratch files in /tmp and the like): every
+// write target is an absolute path outside `projectRoot` and every command is read-only or one whose
+// targets are known. Anything unclear counts as writing in the project.
+export function shellCommandWritesOnlyOutside(commandLine, projectRoot, verifyCommands = []) {
+  const commandText = String(commandLine || '');
+  if (!projectRoot || COMMAND_SUBSTITUTION.test(commandText)) return false;
+  const { targetPaths, runsInlineScript } = listShellWriteTargets(commandText);
+  if (runsInlineScript || targetPaths.length === 0) return false;
+  if (!targetPaths.every((targetPath) => isOutsideProject(targetPath, projectRoot))) return false;
+  const verifyCommandTexts = new Set(verifyCommands.flatMap((verifyCommand) => splitSimpleCommands(verifyCommand).map(({ words }) => commandWordsWithoutRedirects(words))));
+  return splitSimpleCommands(commandText).every(({ words }) => RESOLVED_WRITING_COMMANDS.has(baseName(words[0])) || isReadOnlySimpleCommand(words, verifyCommandTexts));
+}
+
+// Subagents and background shells go on writing after their tool_result arrives.
+const OPEN_ENDED_TOOLS = new Set(['Agent', 'Task', 'Workflow']);
+// Slack around a window for clock and timestamp granularity.
+const WINDOW_SLACK_MILLISECONDS = 2000;
+
+// Updates `windowState.writeWindows` ([{ startMilliseconds, endMilliseconds | null }], null = still
+// open) and `windowState.openWindowIndexes` from new transcript events (tool_use and tool_result).
+// A state saved by a version without windows only knew "may have written": that becomes one window
+// covering the whole session.
+export function updateWriteWindows(windowState, transcriptEvents, { restarted = false, verifyCommands = [], projectRoot } = {}) {
+  if (restarted) {
+    windowState.writeWindows = [];
+    windowState.openWindowIndexes = {};
+  }
+  if (!Array.isArray(windowState.writeWindows)) {
+    windowState.writeWindows = windowState.sessionMayHaveWritten === true ? [{ startMilliseconds: 0, endMilliseconds: null }] : [];
+  }
+  windowState.openWindowIndexes ||= {};
+  for (const transcriptEvent of transcriptEvents) {
+    const eventMilliseconds = Date.parse(transcriptEvent?.timestamp);
+    const hasTimestamp = Number.isFinite(eventMilliseconds);
+    for (const toolUse of eventContentBlocks(transcriptEvent, 'tool_use')) {
+      if (!toolUseMayWriteFiles(toolUse, verifyCommands)) continue;
+      if (toolUse.name === 'Bash' && shellCommandWritesOnlyOutside(toolUse.input?.command, projectRoot, verifyCommands)) continue;
+      windowState.writeWindows.push({ startMilliseconds: hasTimestamp ? eventMilliseconds : 0, endMilliseconds: null });
+      const isOpenEnded = !hasTimestamp || OPEN_ENDED_TOOLS.has(toolUse.name) || (toolUse.name === 'Bash' && toolUse.input?.run_in_background);
+      if (!isOpenEnded && toolUse.id) windowState.openWindowIndexes[toolUse.id] = windowState.writeWindows.length - 1;
+    }
+    for (const toolResult of eventContentBlocks(transcriptEvent, 'tool_result')) {
+      const windowIndex = windowState.openWindowIndexes[toolResult.tool_use_id];
+      if (windowIndex === undefined) continue;
+      delete windowState.openWindowIndexes[toolResult.tool_use_id];
+      if (hasTimestamp) windowState.writeWindows[windowIndex].endMilliseconds = eventMilliseconds;
+    }
+  }
+  windowState.sessionMayHaveWritten = windowState.writeWindows.length > 0;
+  return windowState;
+}
+
+// Whether a file modified at `modifiedMilliseconds` may have been written by the session.
+export function isInsideWriteWindow(modifiedMilliseconds, writeWindows) {
+  return (writeWindows || []).some(({ startMilliseconds, endMilliseconds }) => modifiedMilliseconds >= startMilliseconds - WINDOW_SLACK_MILLISECONDS
+    && (endMilliseconds === null || modifiedMilliseconds <= endMilliseconds + WINDOW_SLACK_MILLISECONDS));
 }

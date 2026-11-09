@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index and bundle health notes 
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T13:35:53Z'
+  at: '2026-11-09T13:53:57Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -132,10 +132,15 @@ sources:
   (`transcript_path`, Write/Edit calls; incremental scan with the byte offset in the session state,
   ~0.5 s once on a 33 MB transcript, then ~0.15 s per stop) and, without a transcript, the memory's
   `originSessionId`. Other sessions open on the same repo share the memory folder; their memories
-  are theirs to move. Files count only when the transcript shows a call that may have written
-  (`src/core/session-writes.mjs`; without a transcript the dates alone decide), so a session that only
-  read is not asked about another session's changes in the same folder. Before 2026-11-09 uncommitted
-  changes from before the session, and those of a concurrent session, were reminded as this session's.
+  are theirs to move. Files count only when modified inside one of the session's write windows (a
+  call that may write was running; `src/core/session-writes.mjs`, same rule as [verify](verify.md);
+  a deleted file has no date and counts when the session has any window; without a transcript the
+  dates alone decide), so a session that only read, or wrote only scratch files outside the repo, is
+  not asked about another session's changes in the same folder. Before 2026-11-09 uncommitted
+  changes from before the session, and those of a concurrent session, were reminded as this session's;
+  until the write windows (same day) one command not known to be read-only was enough for that.
+  The transcript reader skips the `api-request-blob` lines (copies of each request, without a
+  timestamp); until 2026-11-09 they made every call count twice, investigation steps included.
   A deleted file is mentioned once per session. The reminder also names the
   concepts the file map says describe the pending files ("probably affected", deleted files
   included, concepts already edited in the session left out, at most 5). Asks once per set of pending changes (fingerprint in the

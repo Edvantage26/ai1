@@ -7,6 +7,9 @@ import { closeSync, existsSync, openSync, readSync, statSync } from 'node:fs';
 
 export const TOOL_USE_MARKER = '"type":"tool_use"';
 export const TOOL_RESULT_MARKER = '"type":"tool_result"';
+// Copies of the API request Claude Code also writes to the transcript: the same tool calls again,
+// without a timestamp. Counting them would see every call twice.
+const REQUEST_COPY_EVENT_TYPES = new Set(['api-request-blob']);
 
 // Returns { events, restarted } (restarted: the transcript was replaced or truncated, so callers
 // must drop what they had accumulated), or null when the transcript is not available.
@@ -29,7 +32,8 @@ export function readNewTranscriptEvents(transcriptPath, scanState, markers = [TO
   for (const transcriptLine of completeText.split('\n')) {
     if (!markers.some((marker) => transcriptLine.includes(marker))) continue;
     try {
-      events.push(JSON.parse(transcriptLine));
+      const transcriptEvent = JSON.parse(transcriptLine);
+      if (!REQUEST_COPY_EVENT_TYPES.has(transcriptEvent?.type)) events.push(transcriptEvent);
     } catch {
       // Not a JSON event line: ignore.
     }

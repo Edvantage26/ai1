@@ -164,10 +164,24 @@ test('verify-gate: a session that only read and ran the verify command is not as
   const writingRepo = createVerifyRepo();
   const writingOptions = hookOptions();
   const writingSessionStart = startSession(writingRepo, writingOptions);
-  changeFile(writingRepo, 'src/app.js', writingSessionStart + 10 * SECOND);
+  changeFile(writingRepo, 'src/app.js', writingSessionStart + 6.5 * SECOND);
   const writingRun = { command: 'npx prettier --write src', endMilliseconds: writingSessionStart + 7 * SECOND };
   const writingTranscript = writeTranscript(writingOptions, [writingRun], { sessionEdits: false });
   assert.equal(stopSession(writingRepo, writingOptions, writingTranscript)?.decision, 'block', 'a command that may write counts');
+});
+
+test('verify-gate: a file another session changed outside this session\'s write windows is not asked about', () => {
+  const projectRoot = createVerifyRepo();
+  const options = hookOptions();
+  const sessionStart = startSession(projectRoot, options);
+  // This session runs a script (may write) from 2s to 3s and writes a scratch file in /tmp at 4s;
+  // another session bumps the version at 20s.
+  changeFile(projectRoot, 'src/app.js', sessionStart + 20 * SECOND);
+  const runs = [
+    { command: 'python3 -I /tmp/scan.py', endMilliseconds: sessionStart + 3 * SECOND },
+    { command: 'mkdir -p /tmp/scan && echo hi > /tmp/scan/notes.txt', endMilliseconds: sessionStart + 4 * SECOND },
+  ];
+  assert.equal(stopSession(projectRoot, options, writeTranscript(options, runs, { sessionEdits: false })), null);
 });
 
 test('verify-gate: switched off with the verify feature', () => {
