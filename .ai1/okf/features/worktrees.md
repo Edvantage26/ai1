@@ -5,7 +5,7 @@ description: A worktree per change (any edit to the repo files, created before t
 tags: [worktrees, git, skills, cli, hooks]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T07:48:56Z'
+  at: '2026-11-09T08:23:20Z'
 sources:
   - id: worktree-create
     resource: src/worktrees/worktree-create.mjs
@@ -90,6 +90,14 @@ Clean worktree required -> base brought in (rebase, or `--merge` to keep hashes)
 bundle needs `--ack "<reason>"`; validator errors block; no python fails open) -> fast-forward the base
 (in the checkout that has it, which must be clean except `dirty_base_paths_ok`; `update-ref` when not
 checked out) -> share links removed, worktree, branch and record removed. Never forces, never pushes.
+
+The fast-forward gives the files it writes into a checked-out base fresh modification times, so the
+Stop hooks of any session open there would take them for unchecked changes. `finish` records them in
+`<git-common-dir>/ai1-integrations.json` (`src/worktrees/worktree-integrations.mjs`, last 20): checkout,
+path and modification time of each file, `verified` (pre-finish ran every `verify` command of
+.ai1/config.json) and `knowledge_checked` (the OKF checks passed). [verify-gate](verify.md) and
+okf-upkeep ([okf](okf.md)) skip a file only while its path and time still match a record with their
+check; a later edit counts again. A fast-forward made by hand leaves no record, so the hooks ask as before.
 
 # Two roots
 

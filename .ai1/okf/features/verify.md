@@ -5,7 +5,7 @@ description: Stop gate - the agent cannot finish while code it changed is newer 
 tags: [verify, hooks, evidence, cli]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T06:42:10Z'
+  at: '2026-11-09T08:23:20Z'
 sources:
   - id: verify-gate
     resource: src/verify/verify-gate.mjs
@@ -45,6 +45,8 @@ it does nothing in a repo without `verify` commands in `.ai1/config.json`.
 
 Changes are judged by file modification time, not by which tool wrote them, so edits by subagents or
 shell commands count. Session start comes from the base HEAD recorded by `brief` (core, always on).
+Files that `ai1 worktree finish` wrote into this checkout after a pre-finish that ran every verify
+command, and untouched since, do not count (see the integration record in [worktrees](worktrees.md)).
 
 # CLI
 

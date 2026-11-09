@@ -19,6 +19,7 @@ import { baseName, commandWordsWithoutRedirects, splitSimpleCommands } from '../
 import { readNewTranscriptEvents, eventContentBlocks, TOOL_USE_MARKER, TOOL_RESULT_MARKER } from '../core/transcript-scan.mjs';
 import { toolUseMayWriteFiles } from '../core/session-writes.mjs';
 import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
+import { integratedFileMatcher } from '../worktrees/worktree-integrations.mjs';
 
 const MODULE_ID = 'verify-gate';
 const MAX_BLOCKS_PER_SITUATION = 2;
@@ -101,15 +102,18 @@ export function scanVerifyRuns(transcriptPath, verifyCommands, scanState) {
   return true;
 }
 
-// Files changed in this session (after it started), with their modification time.
+// Files changed in this session (after it started), with their modification time. Files brought in
+// by `ai1 worktree finish` after its pre-finish ran the verify commands, and untouched since, are left out.
 export function listSessionChangedCode(projectRoot, sessionBase, ignoredPaths) {
+  const isVerifiedIntegration = integratedFileMatcher(projectRoot, 'verified');
   return listFilesChangedSinceBase(projectRoot, sessionBase.baseHead)
     .filter((relativePath) => !matchesAnyGlob(relativePath, ignoredPaths))
     .map((relativePath) => {
       const absolutePath = join(projectRoot, relativePath);
       return existsSync(absolutePath) ? { relativePath, modifiedMilliseconds: statSync(absolutePath).mtimeMs } : null;
     })
-    .filter((changedFile) => changedFile && changedFile.modifiedMilliseconds >= sessionBase.sessionStartMilliseconds);
+    .filter((changedFile) => changedFile && changedFile.modifiedMilliseconds >= sessionBase.sessionStartMilliseconds)
+    .filter((changedFile) => !isVerifiedIntegration(changedFile.relativePath, changedFile.modifiedMilliseconds));
 }
 
 // { kind: 'stale' | 'failed', ... } for the first verify command not satisfied, or null.

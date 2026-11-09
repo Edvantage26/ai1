@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index at session start, CLAUDE
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T08:18:21Z'
+  at: '2026-11-09T08:23:20Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -120,7 +120,8 @@ sources:
   about 0.03 ms. Writing `resource` or `sources` in a concept is how a repo makes it show up.
 - **okf-upkeep (Stop):** blocks finishing when the session left knowledge newer than the last
   bundle update: repo files changed since the session's base HEAD (tracked diff + untracked)
-  modified after the session started and after the newest bundle file, or project memories (`~/.claude/projects/<path>/memory/*.md`,
+  modified after the session started and after the newest bundle file (except files `ai1 worktree
+  finish` brought in after its OKF checks and untouched since, see [worktrees](worktrees.md)), or project memories (`~/.claude/projects/<path>/memory/*.md`,
   not `MEMORY.md`) written **by this session**: the hook reads the session transcript
   (`transcript_path`, Write/Edit calls; incremental scan with the byte offset in the session state,
   ~0.5 s once on a 33 MB transcript, then ~0.15 s per stop) and, without a transcript, the memory's

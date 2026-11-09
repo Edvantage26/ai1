@@ -1,7 +1,7 @@
 // `ai1 worktree finish`: integrates a finished worktree into its base branch and cleans up.
 // Order: clean worktree -> bring the base into the branch (rebase, or merge to keep hashes) ->
-// recipe `pre-finish` and the OKF checks on the integrated result -> fast-forward the base ->
-// remove worktree, branch and record. It stops with a clear message at the first problem and
+// recipe `pre-finish` and the OKF checks on the integrated result -> fast-forward the base (and
+// record what it wrote there and what was checked) -> remove worktree, branch and record. It stops with a clear message at the first problem and
 // leaves everything in place; it never forces, never pushes. The danger guard asks the person
 // before it runs, so integration is always their call.
 
@@ -15,8 +15,10 @@ import { runGit, tryGit, listIgnoredPaths } from '../core/git.mjs';
 import { findRepository, removeWorktreeState } from './worktree-state.mjs';
 import { loadRecipeOrFail } from './worktree-create.mjs';
 import {
-  readStateOrFail, listUncommittedPaths, runWorktreeCommand, removeWorktreeCheckout,
+  readStateOrFail, listUncommittedPaths, runWorktreeCommand, removeWorktreeCheckout, resolveNamedCommands,
 } from './worktree-ops.mjs';
+import { recordIntegration } from './worktree-integrations.mjs';
+import { verifyCommandsRunBy } from '../verify/verify-gate.mjs';
 
 const HARNESS_PATHS = new Set(['.claude/settings.json', '.claude/settings.local.json', '.ai1/config.json']);
 
@@ -100,6 +102,21 @@ function fastForwardBase(mainRoot, baseBranch, branchName, dirtyPathsOk) {
   return `${baseBranch} fast-forwarded in ${baseCheckout}`;
 }
 
+// Records what the fast-forward wrote into the checked-out base and what was checked on it, so the
+// Stop hooks there do not take it for unchecked work (see worktree-integrations).
+function recordBaseIntegration({ mainRoot, commonDirectory, recipe, worktreeState, baseHeadBefore, knowledgeChecked }) {
+  const baseCheckout = findCheckoutOfBranch(mainRoot, worktreeState.base);
+  if (!baseCheckout) return;
+  const changedPaths = runGit(baseCheckout, ['diff', '--name-only', baseHeadBefore, 'HEAD']).split('\n').filter(Boolean);
+  if (!changedPaths.length) return;
+  const loadedConfig = loadHarnessConfig(baseCheckout);
+  const verifyCommands = loadedConfig.status === 'ok' ? loadedConfig.config.verify || [] : [];
+  const preFinishCommands = recipe.commands['pre-finish'] === undefined ? [] : resolveNamedCommands(recipe, worktreeState, 'pre-finish');
+  const verified = verifyCommands.length > 0
+    && verifyCommandsRunBy(preFinishCommands.join(' && '), verifyCommands).length === verifyCommands.length;
+  recordIntegration(commonDirectory, { checkout: baseCheckout, changedPaths, verified, knowledgeChecked });
+}
+
 // options: { merge, acknowledgement, runCommand, environment }.
 export function finishWorktree(startDirectory, worktreeName, options = {}) {
   const { mainRoot, commonDirectory } = findRepository(startDirectory);
@@ -119,7 +136,9 @@ export function finishWorktree(startDirectory, worktreeName, options = {}) {
   }
   const knowledgeCheck = checkBranchKnowledge(worktreeState.path, worktreeState.base, options);
   if (knowledgeCheck.checked) steps.push('knowledge bundle checked');
+  const baseHeadBefore = runGit(mainRoot, ['rev-parse', worktreeState.base]).trim();
   steps.push(fastForwardBase(mainRoot, worktreeState.base, worktreeState.branch, recipe.finish.dirty_base_paths_ok));
+  recordBaseIntegration({ mainRoot, commonDirectory, recipe, worktreeState, baseHeadBefore, knowledgeChecked: knowledgeCheck.checked });
 
   // What only existed in the worktree: copies made by create and heavy paths are not news.
   const recreatablePaths = [...recipe.copy, ...recipe.heavy.map((heavyEntry) => heavyEntry.path), ...(recipe.port ? [recipe.port.env_file] : [])];

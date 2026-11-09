@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, statSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { validateRecipe, loadRecipe, listUnknownRecipeFields, DEFAULT_RECIPE, RECIPE_RELATIVE_PATH } from '../src/worktrees/worktree-recipe.mjs';
@@ -9,6 +9,8 @@ import { createWorktree, decideMode } from '../src/worktrees/worktree-create.mjs
 import { readWorktreeState } from '../src/worktrees/worktree-state.mjs';
 import { listWorktrees, runWorktreeCommand, dropWorktree, applyCommandArguments } from '../src/worktrees/worktree-ops.mjs';
 import { finishWorktree } from '../src/worktrees/worktree-finish.mjs';
+import { integratedFileMatcher } from '../src/worktrees/worktree-integrations.mjs';
+import { listSessionChangedCode } from '../src/verify/verify-gate.mjs';
 import { runHookEvent } from '../src/core/dispatcher.mjs';
 import { pickWorktreePort, writeEnvVariables, listListeningPorts } from '../src/worktrees/worktree-ports.mjs';
 import { createTemporaryProject } from './helpers.mjs';
@@ -386,4 +388,53 @@ test('base trunk: the main branch is detected whatever its name, checked, and a 
   const staleTrunk = createWorktree(developRepo, 'stale-trunk', { mode: 'light', diskSpace: PLENTY_OF_DISK });
   assert.equal(staleTrunk.base, 'master', 'the configured trunk wins');
   assert.ok(staleTrunk.warnings.some((warningText) => /base is master .* but origin\/HEAD points to develop/.test(warningText)));
+});
+
+// A repo whose recipe pre-finish runs `preFinish`, with okf and verify (`npm test`) on and a bundle.
+function createCheckedRepo(preFinish) {
+  const mainRoot = createRecipeRepo({ ...TEST_RECIPE, commands: { 'pre-finish': preFinish } });
+  mkdirSync(join(mainRoot, '.ai1', 'okf'), { recursive: true });
+  writeFileSync(join(mainRoot, '.ai1', 'okf', 'index.md'), '---\nokf_version: "0.2"\n---\n# Bundle\n');
+  writeFileSync(join(mainRoot, '.ai1', 'config.json'), JSON.stringify({ features: { okf: true, verify: true }, verify: ['npm test'] }));
+  runGit(mainRoot, ['add', '.']);
+  runGit(mainRoot, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'okf']);
+  return mainRoot;
+}
+
+function finishCodeAndConcept(mainRoot, worktreeName) {
+  const created = createWorktree(mainRoot, worktreeName, { mode: 'light', diskSpace: PLENTY_OF_DISK });
+  commitInWorktree(created.path, 'feature.js', 'feature\n');
+  writeFileSync(join(created.path, '.ai1', 'okf', 'feature.md'), '---\ntype: Component\ntitle: Feature\ndescription: The feature.\n---\nIt does the feature.\n');
+  runGit(created.path, ['add', '.']);
+  runGit(created.path, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'concept']);
+  finishWorktree(mainRoot, worktreeName, { environment: NO_PYTHON, runCommand: () => 0 });
+}
+
+test('finish records what it wrote into the base, so its Stop hooks do not ask again until a file is edited', () => {
+  const mainRoot = createCheckedRepo(['npm test']);
+  const options = { environment: { CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'ai1-data-')) }, homeDirectory: mkdtempSync(join(tmpdir(), 'ai1-home-')) };
+  runHookEvent('SessionStart', { session_id: 's', cwd: mainRoot, source: 'startup' }, options);
+  const baseHead = runGit(mainRoot, ['rev-parse', 'HEAD']).trim();
+  finishCodeAndConcept(mainRoot, 'checked');
+  const featureModified = statSync(join(mainRoot, 'feature.js')).mtimeMs;
+  // The fast-forward writes the bundle first: it ends up older than the code it describes.
+  const bundleDate = new Date(featureModified - 1000);
+  for (const bundleFile of ['index.md', 'feature.md', '']) utimesSync(join(mainRoot, '.ai1', 'okf', bundleFile), bundleDate, bundleDate);
+  assert.ok(integratedFileMatcher(mainRoot, 'verified')('feature.js', featureModified));
+  assert.ok(integratedFileMatcher(mainRoot, 'knowledge_checked')('feature.js', featureModified));
+  assert.deepEqual(listSessionChangedCode(mainRoot, { baseHead, sessionStartMilliseconds: 0 }, ['.ai1/**']), []);
+  assert.equal(runHookEvent('Stop', { session_id: 's', cwd: mainRoot }, options), null, 'okf-upkeep does not ask about the integrated files');
+  writeFileSync(join(mainRoot, 'feature.js'), 'edited after the integration\n');
+  const laterDate = new Date(Date.now() + 5000);
+  utimesSync(join(mainRoot, 'feature.js'), laterDate, laterDate);
+  assert.deepEqual(listSessionChangedCode(mainRoot, { baseHead, sessionStartMilliseconds: 0 }, ['.ai1/**']).map((changedFile) => changedFile.relativePath), ['feature.js']);
+  assert.match(runHookEvent('Stop', { session_id: 's', cwd: mainRoot }, options).reason, /okf-upkeep[\s\S]*feature\.js/);
+});
+
+test('finish does not vouch for the verify commands when pre-finish does not run them', () => {
+  const mainRoot = createCheckedRepo(['npm run lint']);
+  finishCodeAndConcept(mainRoot, 'lint-only');
+  const featureModified = statSync(join(mainRoot, 'feature.js')).mtimeMs;
+  assert.equal(integratedFileMatcher(mainRoot, 'verified')('feature.js', featureModified), false);
+  assert.ok(integratedFileMatcher(mainRoot, 'knowledge_checked')('feature.js', featureModified));
 });
