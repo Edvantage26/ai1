@@ -209,6 +209,7 @@ test('run executes recipe commands in the worktree with env, port and placeholde
   assert.equal(executedCommands.at(-1).commandText, `serve --port ${created.port} --host 'my host'`);
   assert.equal(applyCommandArguments('build {{args}} --release', ['App']), 'build App --release');
   assert.equal(applyCommandArguments('build', []), 'build');
+  assert.equal(applyCommandArguments('echo {{args}}', ['$&']), "echo '$&'");
 });
 
 test('drop needs --confirm, refuses uncommitted work, bundles own commits and cleans everything', () => {

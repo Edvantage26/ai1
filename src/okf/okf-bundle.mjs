@@ -18,8 +18,8 @@ export function readBundleIndex(bundleDirectory) {
 
 // Reads `okf_version` from the index frontmatter; null when absent.
 export function readBundleSpecVersion(indexText) {
-  const frontmatterMatch = /^---\n([\s\S]*?)\n---/.exec(indexText || '');
-  const versionMatch = frontmatterMatch && /^okf_version:\s*['"]?([0-9.]+)['"]?\s*$/m.exec(frontmatterMatch[1]);
+  const { frontmatterText } = splitFrontmatter(indexText || '');
+  const versionMatch = frontmatterText && /^okf_version:\s*['"]?([0-9.]+)['"]?\s*$/m.exec(frontmatterText);
   return versionMatch ? versionMatch[1] : null;
 }
 

@@ -212,8 +212,9 @@ export function createRfc(projectRoot, { slug, title, size = 'full', knowledgePa
   const rfcText = readFileSync(join(TEMPLATE_DIRECTORY, `${size}.md`), 'utf8')
     .replaceAll('{{number}}', String(rfcNumber))
     .replaceAll('{{padded_number}}', padRfcNumber(rfcNumber))
-    .replace('title: {{title}}', `title: ${frontmatterTitle(title || titleFromSlug(slug))}`)
-    .replaceAll('{{title}}', (title || titleFromSlug(slug)).replace(/\n/g, ' ').trim())
+    // Replacer functions, so `$&` or `$$` in a title are written as they are.
+    .replace('title: {{title}}', () => `title: ${frontmatterTitle(title || titleFromSlug(slug))}`)
+    .replaceAll('{{title}}', () => (title || titleFromSlug(slug)).replace(/\n/g, ' ').trim())
     .replaceAll('{{date}}', today);
   mkdirSync(join(projectRoot, RFC_DIRECTORY), { recursive: true });
   const relativePath = `${RFC_DIRECTORY}/${padRfcNumber(rfcNumber)}-${slug}.md`;

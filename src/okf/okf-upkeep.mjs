@@ -21,6 +21,7 @@ import {
   resolveBundleDirectory, readBundleIndex, readBundleSpecVersion, newestModificationMilliseconds, buildMaintenanceRules,
 } from './okf-bundle.mjs';
 import { readSessionBase, listFilesChangedSinceBase } from '../core/session-base.mjs';
+import { splitFrontmatter } from '../core/frontmatter.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
 import { RFC_DIRECTORY } from '../rfc/rfc-documents.mjs';
 import { DEFAULT_KNOWLEDGE_PATH } from '../core/config.mjs';
@@ -131,8 +132,8 @@ export function buildInvestigationReminder(bundleRelativePath, investigationCall
 }
 
 function readMemoryOriginSession(memoryFilePath) {
-  const frontmatterMatch = /^---\n([\s\S]*?)\n---/.exec(readFileSync(memoryFilePath, 'utf8'));
-  const originMatch = frontmatterMatch && /^\s*originSessionId:\s*['"]?([\w-]+)['"]?\s*$/m.exec(frontmatterMatch[1]);
+  const { frontmatterText } = splitFrontmatter(readFileSync(memoryFilePath, 'utf8'));
+  const originMatch = frontmatterText && /^\s*originSessionId:\s*['"]?([\w-]+)['"]?\s*$/m.exec(frontmatterText);
   return originMatch ? originMatch[1] : null;
 }
 

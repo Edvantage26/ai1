@@ -240,3 +240,11 @@ test('ai1 rfc CLI: new, set, index and check from inside the repo', () => {
   assert.match(runCli(['check']), /all consistent/);
   assert.throws(() => runCli(['new', 'Nope']), (cliError) => cliError.status === 1 && /lowercase words/.test(cliError.stderr));
 });
+
+test('createRfc writes titles with $ patterns as they are', () => {
+  const projectRoot = createRfcRepo();
+  const { relativePath } = createRfc(projectRoot, { slug: 'cost-cuts', title: "Save $& on $$ and $' costs", size: 'idea', today: '2026-11-09' });
+  const rfcText = readFileSync(join(projectRoot, relativePath), 'utf8');
+  assert.match(rfcText, /^title: Save \$& on \$\$ and \$' costs$/m);
+  assert.equal(listRfcs(projectRoot)[0].title, "Save $& on $$ and $' costs");
+});

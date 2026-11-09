@@ -6,7 +6,7 @@
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { writeFrontmatterField } from '../core/frontmatter.mjs';
+import { splitFrontmatter, writeFrontmatterField } from '../core/frontmatter.mjs';
 import { AI1_DIRECTORY } from '../core/config.mjs';
 import { resolveStateDirectory, shortHash, readStateText, writeStateText } from '../core/session-state.mjs';
 
@@ -15,14 +15,14 @@ export const UNAPPROVED_STATUSES = new Set(['draft', 'ready']);
 const FINISHED_STATUSES = new Set(['done', 'abandoned']);
 
 export function readPlanStatus(planText) {
-  const frontmatterMatch = /^---\n([\s\S]*?)\n---/.exec(planText);
-  const statusMatch = frontmatterMatch && /^status:\s*['"]?([a-z-]+)/m.exec(frontmatterMatch[1]);
+  const { frontmatterText } = splitFrontmatter(planText);
+  const statusMatch = frontmatterText && /^status:\s*['"]?([a-z-]+)/m.exec(frontmatterText);
   return statusMatch ? statusMatch[1] : 'draft';
 }
 
 export function readPlanTitle(planText, fallbackTitle) {
-  const frontmatterMatch = /^---\n([\s\S]*?)\n---/.exec(planText);
-  const titleMatch = frontmatterMatch && /^title:\s*['"]?(.+?)['"]?\s*$/m.exec(frontmatterMatch[1]);
+  const { frontmatterText } = splitFrontmatter(planText);
+  const titleMatch = frontmatterText && /^title:\s*['"]?(.+?)['"]?\s*$/m.exec(frontmatterText);
   return titleMatch ? titleMatch[1] : fallbackTitle;
 }
 

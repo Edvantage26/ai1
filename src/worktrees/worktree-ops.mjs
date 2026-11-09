@@ -91,7 +91,7 @@ function quoteShellArgument(argumentText) {
 // Extra arguments go where the command says `{{args}}`, else at its end.
 export function applyCommandArguments(commandText, extraArguments) {
   const argumentsText = extraArguments.map(quoteShellArgument).join(' ');
-  if (/\{\{\s*args\s*\}\}/.test(commandText)) return commandText.replace(/\{\{\s*args\s*\}\}/g, argumentsText);
+  if (/\{\{\s*args\s*\}\}/.test(commandText)) return commandText.replace(/\{\{\s*args\s*\}\}/g, () => argumentsText);
   return argumentsText ? `${commandText} ${argumentsText}` : commandText;
 }
 
