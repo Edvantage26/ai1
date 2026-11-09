@@ -5,7 +5,7 @@ description: Work lanes by task size - quick, plan or deep - with a hook-enforce
 tags: [lanes, workflow, hooks, skills, approval]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T06:17:09Z'
+  at: '2026-11-09T08:15:25Z'
 sources:
   - id: lanes-work
     resource: src/lanes/lanes-work.mjs
@@ -54,7 +54,7 @@ gate is a hook block; plans live in a local ignored folder.
 |---|---|---|
 | `lanes-brief` | SessionStart | Injects the lane recipe (byte-stable, skipped on `resume`), lists unfinished plans, and after `compact` restores the active plans with the last 15 lines of `progress.md`. Records the session base HEAD and writes `.ai1/work/.gitignore` (`*`). |
 | `lanes-approval` | UserPromptSubmit | When a plan has `status: ready` and the person sends a short plain yes (`aprobado`, `adelante`, `ok`, `go ahead`... with no `pero`/`but`/`no`, at most 120 chars), records the approval in ai1's state dir (outside the repo) and sets `status: approved`. |
-| `lanes-gate` | PreToolUse (Edit, Write, MultiEdit, NotebookEdit, Bash) | While a plan touched in this session is `draft`/`ready`, or not approved by the person, refuses writes to project files outside `.ai1/work/`, the knowledge bundle and, with the [proposals feature](proposals.md), `.ai1/proposals/`. Shell writes come from `src/core/shell-writes.mjs`. |
+| `lanes-gate` | PreToolUse (Edit, Write, MultiEdit, NotebookEdit, Bash) | While a plan touched in this session is `draft`/`ready`, or not approved by the person, refuses writes to project files outside `.ai1/work/`, the knowledge bundle and, with the [proposals feature](proposals.md), `.ai1/proposals/`. Shell writes come from `src/core/shell-writes.mjs`; an inline interpreter script (`python3 - <<EOF`, `node -e`), whose writes it cannot tell, asks the person instead. |
 | `lanes-escalate` | PreToolUse (same tools) | With no active plan, once per session, asks the person when the session's changes pass `max_files` (6) or `max_lines` (300), options under `modules.lanes-escalate`. |
 
 Plan statuses: `draft` -> `ready` (agent asks) -> `approved` (only via the person) -> `done` or
@@ -64,8 +64,9 @@ they are listed at startup.
 # Limits
 
 - Classification is a prompt: a task wrongly sized as quick is caught only by the escalation size.
-- Shell write detection is heuristic; inline interpreter scripts are not resolved to paths, so the
-  gate does not see what they write.
+- Shell write detection is heuristic; inline interpreter scripts are not resolved to paths, so while
+  a design waits the gate asks before any of them, even one that only reads. A script saved to a
+  file and then run (`python3 tool.py`) is not seen.
 - The "plan" lane has no file and no gate; it relies on the conversation.
 - The approval store is outside the repo but not tamper-proof against a determined agent; the brief
   tells the agent not to work around hooks.
