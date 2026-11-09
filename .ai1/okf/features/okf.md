@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index and bundle health notes 
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T08:52:59Z'
+  at: '2026-11-09T09:26:54Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -140,7 +140,9 @@ sources:
   concepts the file map says describe the pending files ("probably affected", deleted files
   included, concepts already edited in the session left out, at most 5). Asks once per set of pending changes (fingerprint in the
   session state). `.claude/settings.json`, `settings.local.json` and `.ai1/config.json` never count, nor
-  `.ai1/proposals/` when the [proposals feature](proposals.md) is on (a proposal must not be written into the bundle).
+  `.ai1/proposals/` when the [proposals feature](proposals.md) is on (a proposal must not be written into the bundle),
+  nor `.ai1/work/` (scratch plans; until 2026-11-09 a plan written in a worktree, where the folder's
+  own `.gitignore` was missing, was reminded as knowledge).
 - **Investigation reminder (Stop, same module):** knowledge found by querying or running commands
   leaves no file behind, so the same transcript scan counts investigation steps (Bash, MCP calls,
   web) since the session last edited the bundle; at 10 or more, with no file/memory reminder due,

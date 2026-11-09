@@ -4,6 +4,7 @@
 // interpreter scripts, whose writes cannot be told from the command line. Designing, asking and
 // reading stay free; building waits for the approval that lanes-approval records.
 
+import { join } from 'node:path';
 import { allowDecision, askDecision, denyDecision } from '../core/hook-io.mjs';
 import { readSessionBase } from '../core/session-base.mjs';
 import { listShellWriteTargets } from '../core/shell-writes.mjs';
@@ -47,6 +48,13 @@ export default {
   feature: 'lanes',
   description: 'Refuses code edits while a deep-lane design of this session waits for the person\'s approval.',
   run({ hookInput, config, projectRoot, sharedRoot = projectRoot, environment }) {
+    // Plans live in the main checkout, where this gate, the approval and `ai1 step-done` read them; one
+    // written inside a worktree would be invisible to all three, so the design would never be gated.
+    const misplacedPlanPath = projectRoot !== sharedRoot
+      && listEditedProjectPaths(hookInput, projectRoot).find((relativePath) => isPathInside(relativePath, WORK_DIRECTORY));
+    if (misplacedPlanPath) {
+      return denyDecision(MODULE_ID, `Work plans live in the main checkout, not in a worktree: write \`${join(sharedRoot, misplacedPlanPath)}\` instead of \`${misplacedPlanPath}\` here. The design gate, the approval and \`ai1 step-done\` only read it there.`);
+    }
     // Designing stays free: the work folder, the knowledge bundle and, with the proposals feature, proposals.
     const designDirectories = [WORK_DIRECTORY, KNOWLEDGE_BUNDLE_PATH, isFeatureEnabled('proposals', config) && PROPOSALS_DIRECTORY].filter(Boolean);
     const editedPaths = listEditedProjectPaths(hookInput, projectRoot)

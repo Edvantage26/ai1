@@ -151,6 +151,15 @@ test('okf-upkeep: harness configuration files never ask', () => {
   assert.equal(stopSession(projectRoot, options), null);
 });
 
+test('okf-upkeep: a plan in .ai1/work/ never asks, even without its own .gitignore', () => {
+  const projectRoot = createRepoWithBundle();
+  const options = hookOptions();
+  startSession(projectRoot, options);
+  mkdirSync(join(projectRoot, '.ai1', 'work', 'feature'), { recursive: true });
+  writeFileSync(join(projectRoot, '.ai1', 'work', 'feature', 'plan.md'), '---\nstatus: draft\n---\n');
+  assert.equal(stopSession(projectRoot, options), null);
+});
+
 test('okf-upkeep: stop_hook_active never blocks again', () => {
   const projectRoot = createRepoWithBundle();
   const options = hookOptions();

@@ -26,7 +26,7 @@ import { readSessionBase, listFilesChangedSinceBase } from '../core/session-base
 import { tryGit } from '../core/git.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
 import { PROPOSALS_DIRECTORY } from '../proposals/proposals-documents.mjs';
-import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
+import { KNOWLEDGE_BUNDLE_PATH, WORK_DIRECTORY } from '../core/config.mjs';
 import { integratedFileMatcher } from '../worktrees/worktree-integrations.mjs';
 
 const MODULE_ID = 'okf-upkeep';
@@ -41,8 +41,10 @@ const INVESTIGATION_CALLS_BEFORE_REMINDER = 10;
 
 // `ignoredDirectories`: folders whose changes are not system knowledge (proposal drafts, when the proposals
 // feature is on: proposals-upkeep handles them, and a proposal must not be written into the bundle).
+// `.ai1/work/` (plans and handoffs) is scratch: never knowledge, even where its own .gitignore is missing
+// (a plan written by hand in a worktree shows up as untracked).
 export function listSessionChangedFiles(projectRoot, baseHead, bundleRelativePath, ignoredDirectories = []) {
-  const ignoredPrefixes = [bundleRelativePath, ...ignoredDirectories].map((directoryPath) => `${directoryPath.replace(/\/+$/, '')}/`);
+  const ignoredPrefixes = [bundleRelativePath, WORK_DIRECTORY, ...ignoredDirectories].map((directoryPath) => `${directoryPath.replace(/\/+$/, '')}/`);
   return listFilesChangedSinceBase(projectRoot, baseHead)
     .filter((changedPath) => !ignoredPrefixes.some((ignoredPrefix) => changedPath.startsWith(ignoredPrefix)) && !IGNORED_PATHS.has(changedPath));
 }

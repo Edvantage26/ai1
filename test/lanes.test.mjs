@@ -290,3 +290,17 @@ test('listPlanSlugsWrittenBy: writes to a plan count, reading it does not', () =
   assert.deepEqual(listPlanSlugsWrittenBy({ name: 'Read', input: { file_path: planPath } }), []);
   assert.deepEqual(listPlanSlugsWrittenBy({ name: 'Write', input: { file_path: '/repo/.ai1/work/billing/progress.md' } }), []);
 });
+
+test('lanes-gate: from a worktree, a plan written in the worktree\'s .ai1/work/ is refused with the main checkout path', () => {
+  const mainRoot = createLanesRepo();
+  const worktreeRoot = join(mainRoot, '.claude', 'worktrees', 'feature');
+  runGit(mainRoot, ['worktree', 'add', '-q', '-b', 'feature', worktreeRoot]);
+  const options = hookOptions();
+  const writePlan = (planPath) => runHookEvent('PreToolUse', {
+    session_id: 'session-1', cwd: worktreeRoot, tool_name: 'Write', tool_input: { file_path: planPath, content: '---\nstatus: draft\n---\n' },
+  }, { ...options, environment: { ...options.environment, CLAUDE_PROJECT_DIR: mainRoot } });
+  const misplacedOutput = writePlan(join(worktreeRoot, '.ai1', 'work', 'feature', 'plan.md'));
+  assert.equal(misplacedOutput.hookSpecificOutput.permissionDecision, 'deny');
+  assert.ok(misplacedOutput.hookSpecificOutput.permissionDecisionReason.includes(join(mainRoot, '.ai1', 'work', 'feature', 'plan.md')));
+  assert.equal(writePlan(join(mainRoot, '.ai1', 'work', 'feature', 'plan.md')), null, 'the main checkout path is free');
+});

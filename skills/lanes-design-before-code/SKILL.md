@@ -10,8 +10,9 @@ person approves the design. Designing, reading and asking are always free.
 
 ## 1. Open the work folder
 
-Pick a short slug for the task and create `.ai1/work/<slug>/plan.md` right away (`.ai1/` is
-ignored by git), with this frontmatter:
+Pick a short slug for the task and create `.ai1/work/<slug>/plan.md` right away (`.ai1/work/` is
+ignored by git) in the **main checkout**, even when this session works in a worktree: the design
+gate, the approval and `ai1 step-done` read plans only there. With this frontmatter:
 
 ```markdown
 ---

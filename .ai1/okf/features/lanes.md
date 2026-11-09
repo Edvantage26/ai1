@@ -5,7 +5,7 @@ description: Work lanes by task size - quick, plan or deep - with a hook-enforce
 tags: [lanes, workflow, hooks, skills, approval]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T08:30:31Z'
+  at: '2026-11-09T09:27:39Z'
 sources:
   - id: lanes-work
     resource: src/lanes/lanes-work.mjs
@@ -62,7 +62,10 @@ Plan statuses: `draft` -> `ready` (agent asks) -> `approved` (only via the perso
 they are listed at startup.
 
 **Whose plan it is (since v0.20.2):** plans live in the main checkout's `.ai1/work/`, shared by every
-session open on the repo. A plan is this session's when the session's transcript shows a call that
+session open on the repo. From a worktree, `lanes-gate` refuses writing a plan under the worktree's own
+`.ai1/work/` and names the main checkout path (since 2026-11-09): a plan there was invisible to the
+gate, the approval and `ai1 step-done`, so a deep design made from a worktree was never gated (seen in
+a real session: the person's "adelante" was not recorded). A plan is this session's when the session's transcript shows a call that
 wrote its `plan.md` (Write/Edit/MultiEdit on it, or a shell command naming it that is not read-only;
 `readSessionPlanSlugs` in `src/lanes/lanes-work.mjs`, incremental scan, state `<session>-<hash>.lanes-plans`).
 The gate, the escalation check, the approval and the post-compaction restore only look at this
