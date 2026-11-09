@@ -9,6 +9,7 @@ description: >-
   está desfasado", "tidy CLAUDE.md", "move CLAUDE.md into the bundle".
 user-invocable: true
 argument-hint: "[path/to/CLAUDE.md]"
+allowed-tools: Bash(ai1 skill-context *)
 ---
 
 # Tidy CLAUDE.md into the bundle
@@ -68,3 +69,14 @@ content: every line that leaves CLAUDE.md lands in a concept, or is listed as re
 2. Then write the new CLAUDE.md.
 3. Validate with /ai1:okf-validate-bundle and fix every error.
 4. Run `ai1 claude-md` again and report what is left and why (a finding the person chose to keep).
+
+## Fixed rules
+
+- Nothing is written until the person approves the proposal.
+- Never drop content: every line that leaves CLAUDE.md lands in a concept or is listed as removed with a reason.
+
+## Customization
+
+This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `ai1 skill-context okf-tidy-claude-md` and apply what it prints.
+
+!`ai1 skill-context okf-tidy-claude-md`

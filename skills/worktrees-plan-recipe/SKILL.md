@@ -1,6 +1,7 @@
 ---
 name: worktrees-plan-recipe
 description: Worktrees — Plan, follow or revise how this repository makes git worktrees, one per change. Use when the person wants changes done in worktrees ("trabaja en un worktree", "un worktree por desarrollo", "work in a worktree"), when a session says the worktrees feature has no recipe yet, before the first change to files in a repo with the worktrees feature, or to revise the recipe ("revisa la receta de worktrees", "/ai1:worktrees-plan-recipe revisar").
+allowed-tools: Bash(ai1 skill-context *)
 ---
 
 # Worktrees made the way this project needs
@@ -95,3 +96,15 @@ dry run again. Never start from scratch when a recipe exists.
   the danger guard asks them. Never push unless they ask for it.
 - `ai1 worktree create` never installs anything: run what it prints under "next".
 - Inside a worktree, mention it at the start of every progress report.
+
+## Fixed rules
+
+- Integrating (`ai1 worktree finish`) and abandoning (`ai1 worktree drop`) are the person's call; never push unless they ask.
+- Never edit a path a worktree shares with the main checkout (`share` strategy).
+- Never start a recipe from scratch when one exists: revise it, and only after the person approves the diff.
+
+## Customization
+
+This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `ai1 skill-context worktrees-plan-recipe` and apply what it prints.
+
+!`ai1 skill-context worktrees-plan-recipe`

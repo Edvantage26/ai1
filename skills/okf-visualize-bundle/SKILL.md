@@ -10,7 +10,7 @@ description: >-
   Use when asked to visualize, graph, preview, or explore an OKF bundle.
 user-invocable: true
 argument-hint: "<bundle-dir> [-o viz.html]"
-allowed-tools: Bash
+allowed-tools: Bash Bash(ai1 skill-context *)
 ---
 
 # Visualize an OKF bundle
@@ -58,3 +58,13 @@ suggests rendering a subdirectory.
 Open it in any browser. The page is
 deep-linkable: `?select=<concept-id>` or `#<concept-id>` opens that concept,
 `?layout=<name>` presets the layout.
+
+## Fixed rules
+
+- The bundle is only read, never changed; the output is one self-contained HTML file.
+
+## Customization
+
+This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `ai1 skill-context okf-visualize-bundle` and apply what it prints.
+
+!`ai1 skill-context okf-visualize-bundle`

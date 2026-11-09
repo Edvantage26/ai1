@@ -10,7 +10,7 @@ description: >-
   "capture this as a concept", or any work in a repo that has an OKF bundle.
 user-invocable: true
 argument-hint: "[produce|maintain|consume] [path]"
-allowed-tools: Read Write Edit Grep Glob Bash
+allowed-tools: Read Write Edit Grep Glob Bash Bash(ai1 skill-context *)
 ---
 
 # Open Knowledge Format (OKF) skill
@@ -161,3 +161,15 @@ python3 "${CLAUDE_SKILL_DIR}/../okf-validate-bundle/scripts/okf_validate.py" <bu
 Resolve every `ERROR` (hard §11 failures). Under `--strict` warnings also fail
 the run (exit 1), so clear them too; drop `--strict` (or use `--max-warnings N`)
 if you only want §11 conformance gated.
+
+## Fixed rules
+
+- Every concept file has a YAML frontmatter block with a non-empty `type` (the one hard rule).
+- Validate with /ai1:okf-validate-bundle before declaring done and resolve every ERROR.
+- No secrets in the bundle.
+
+## Customization
+
+This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `ai1 skill-context okf-maintain-knowledge` and apply what it prints.
+
+!`ai1 skill-context okf-maintain-knowledge`

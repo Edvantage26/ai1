@@ -1,6 +1,7 @@
 ---
 name: lanes-design-before-code
 description: Lanes — Use when a task is in the deep lane - the goal is unclear, there are design choices with trade-offs, it touches a risky area (auth, data, money, migrations, public API), or it will take hours - or when the person says "piénsalo bien", "think it through", "dale una vuelta" or asks for a design before code.
+allowed-tools: Bash(ai1 skill-context *)
 ---
 
 # Deep lane: understand, design, get approval, then build
@@ -86,3 +87,15 @@ edits. If they ask for changes, update the plan, keep `status: ready` and ask ag
 Run the full verify commands, set `status: done`, and tell the person what was built, what was
 verified, and every ruling you made. Move lasting decisions to the knowledge bundle; the work
 folder is scratch.
+
+## Fixed rules
+
+- No code edits outside `.ai1/` and the knowledge bundle before the person approves the design.
+- The plan lives in `.ai1/work/<slug>/plan.md` of the main checkout.
+- A step is done only through `ai1 step-done`, with the verify commands green.
+
+## Customization
+
+This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `ai1 skill-context lanes-design-before-code` and apply what it prints.
+
+!`ai1 skill-context lanes-design-before-code`

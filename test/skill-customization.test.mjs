@@ -132,3 +132,28 @@ test('the CLI entry point prints the context and exits 0', () => {
   const cliOutput = execFileSync('node', [join(import.meta.dirname, '..', 'bin', 'ai1'), 'skill-context', 'worktrees-plan-recipe'], { cwd: projectRoot, encoding: 'utf8', env: { ...process.env, HOME: createUserHome('worktrees'), XDG_CONFIG_HOME: '' } });
   assert.match(cliOutput, /never share data\//);
 });
+
+test('every skill folder is in the customization index, and each SKILL.md matches its entry', async () => {
+  const { readdirSync, readFileSync } = await import('node:fs');
+  const { SKILL_CUSTOMIZATION_INDEX } = await import('../src/core/skill-customization-index.mjs');
+  const skillsDirectory = join(import.meta.dirname, '..', 'skills');
+  const skillFolders = readdirSync(skillsDirectory, { withFileTypes: true }).filter((directoryEntry) => directoryEntry.isDirectory()).map((directoryEntry) => directoryEntry.name);
+  assert.deepEqual(skillFolders.filter((skillFolder) => !SKILL_CUSTOMIZATION_INDEX[skillFolder]), [], 'skills missing from src/core/skill-customization-index.mjs (decide: customizable, or not and why)');
+  assert.deepEqual(Object.keys(SKILL_CUSTOMIZATION_INDEX).filter((skillFolder) => !skillFolders.includes(skillFolder)), [], 'index entries without a skill folder');
+  for (const skillFolder of skillFolders) {
+    const skillText = readFileSync(join(skillsDirectory, skillFolder, 'SKILL.md'), 'utf8');
+    const frontmatterText = /^---\n([\s\S]*?)\n---/.exec(skillText)?.[1] ?? '';
+    const allowedToolsLine = /^allowed-tools:(.*)$/m.exec(frontmatterText)?.[1] ?? '';
+    const injectionLine = `!\`ai1 skill-context ${skillFolder}\``;
+    const lastLine = skillText.trimEnd().split('\n').at(-1);
+    if (SKILL_CUSTOMIZATION_INDEX[skillFolder].customizable) {
+      assert.ok(allowedToolsLine.includes('Bash(ai1 skill-context *)'), `${skillFolder}: allowed-tools must pre-approve Bash(ai1 skill-context *)`);
+      assert.match(skillText, /\n## Fixed rules\n+- /, `${skillFolder}: needs a "## Fixed rules" section with at least one bullet`);
+      assert.equal(lastLine, injectionLine, `${skillFolder}: the last line must be ${injectionLine}`);
+    } else {
+      assert.ok(!allowedToolsLine.includes('ai1 skill-context'), `${skillFolder}: not customizable, so no skill-context permission`);
+      assert.ok(!skillText.includes('ai1 skill-context'), `${skillFolder}: not customizable, so no skill-context injection`);
+      assert.ok(SKILL_CUSTOMIZATION_INDEX[skillFolder].reason, `${skillFolder}: an excluded skill says why`);
+    }
+  }
+});

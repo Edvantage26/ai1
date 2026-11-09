@@ -1,6 +1,7 @@
 ---
 name: core-setup-repo
 description: Core — Set up ai1 in the current repository — read the project and propose a configuration (which features and why, verify commands, plugins that overlap), let the person adjust it, write .ai1/config.json and .claude/settings.json so ai1 runs for everyone who opens the repo, then walk through each enabled feature's own setup (worktree recipe, design context, knowledge bundle). Use when the person says "set up ai1 here", "configure the harness", "enable/disable an ai1 feature", "activa ai1 en este repo", or when a session reports that ai1 is installed but inactive.
+allowed-tools: Bash(ai1 skill-context *)
 ---
 
 # Set up ai1 in this repository
@@ -111,3 +112,16 @@ one at a time, in this order, and do it only after a yes (the person may leave a
 - Tell the person to commit `.ai1/` (and the moves, if any) and `.claude/settings.json`, and to restart
   the Claude Code session so the hooks and skills load with the new configuration.
 - Do not commit on your own.
+- In one line, tell them that ai1 skills can be customized for this project (committed) or only for
+  them: `ai1 skill-context --list` shows which ones, and /ai1:core-customize-skill writes it.
+
+## Fixed rules
+
+- The files are written by the `ai1` CLI, never by hand.
+- Each feature's own setup only after a yes; do not commit on your own.
+
+## Customization
+
+This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `ai1 skill-context core-setup-repo` and apply what it prints.
+
+!`ai1 skill-context core-setup-repo`
