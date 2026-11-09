@@ -61,6 +61,9 @@ test('lanes-brief: the recipe names the three lanes, the verify command and the 
   assert.match(contextText, /plan: /);
   assert.match(contextText, /deep: .*\/ai1:lanes-design-before-code/);
   assert.match(contextText, /lightest lane/);
+  assert.match(contextText, /quick: .*resumed from the request and `git diff` alone/, 'quick is sized by the resume test');
+  assert.match(contextText, /number of files never decides/);
+  assert.match(contextText, /deep: .*concurrency.*no test would catch/, 'the fuller risk list reaches deep');
   assert.equal(readFileSync(join(projectRoot, '.ai1', 'work', '.gitignore'), 'utf8'), '*\n', '.ai1/work ignores itself');
 });
 

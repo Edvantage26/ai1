@@ -41,6 +41,10 @@ instead of reopening them, and add `later: <number>` to the plan frontmatter.
 Keep it proportional: a page for most tasks, more only when the task truly needs it.
 
 ```markdown
+# Request
+> The person's original request, copied word for word.
+> Later corrections from them, also word for word, each with its date.
+
 # Goal
 What the person can do when this is done, and why it matters.
 
@@ -63,7 +67,9 @@ What could go wrong and how it would show; rulings you made.
 ```
 
 **Behaviour** is what the person approves as "done means this": 2-5 scenarios, each one a
-situation the person can observe (not an internal detail), numbered `S1`, `S2`... When the task
+situation the person can observe (not an internal detail), numbered `S1`, `S2`... A scenario
+quotes the person's exact strings (messages, names, examples) word for word, never paraphrased:
+**Request** and those quotes are what survives a compaction intact. When the task
 changes no observable behaviour (a refactor, docs, internals), write `None - <why>` instead.
 The test that covers a scenario carries the tag `[<slug>:S<n>]` in its name or a comment next to it,
 e.g. `test('locks the account after 4 failures [login-lock:S1]', ...)`. Name in each step which
@@ -90,6 +96,10 @@ edits. If they ask for changes, update the plan, keep `status: ready` and ask ag
   commit>"`: it runs the repo's verify commands and logs the step in `progress.md` only if they
   pass, and says how many scenarios have a tagged test so far. Tick the step in the plan. If it
   fails, fix it before the next step.
+- A subagent you hand a step to gets the plan path, the step and its `S<n>`, never your own
+  summary of the request.
+- When the person corrects the request, add it word for word to **Request**, then update only the
+  affected scenarios and steps.
 - When reality contradicts the design, stop: update the plan, set `status: ready`, ask again.
 - After a compaction, the plan and progress are put back in context: trust them and `git log`
   over memory.

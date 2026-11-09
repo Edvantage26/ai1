@@ -5,7 +5,7 @@ description: Work lanes by task size - quick, plan or deep - with a hook-enforce
 tags: [lanes, workflow, hooks, skills, approval]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T14:03:22Z'
+  at: '2026-11-09T18:33:50Z'
 sources:
   - id: lanes-work
     resource: src/lanes/lanes-work.mjs
@@ -48,11 +48,16 @@ The agent sizes each task and names the lane in one line; the person can force o
 gate is a hook block; plans live in a local ignored folder.
 
 - **quick**: do it, run `verify`, report.
+- Sizing (since 2026-11-09, taken from gentle-ai's ODD, see [prior art](/decisions/prior-art.md)): a
+  task is quick when it could be resumed from the request and `git diff` alone; the number of files
+  never decides. Risky areas that send a task to deep: auth, data or irreversible effects, money,
+  migrations, a public API or contract others use, concurrency, deploy or environment, and code no
+  test would catch breaking.
 - **plan**: read the code, say the plan in a few lines and start without waiting for a yes (conversation
   only; until 2026-11-09 it waited, and approving plans and their adjustments was 38 of the questions
   counted that week).
 - **deep**: `/ai1:lanes-design-before-code` skill - look before asking, one question at a time, design in
-  `.ai1/work/<slug>/plan.md` (goal, constraints, approaches with the choice, steps with checks,
+  `.ai1/work/<slug>/plan.md` (the request word for word with later corrections, goal, constraints, approaches with the choice, steps with checks,
   risks, rulings), one builder-check subagent, approval, then step by step; a task that builds an accepted [later](later.md) entry carries `later: <number>` in the plan frontmatter; each step closed with `ai1 step-done`, which logs it in `progress.md` only when
   the [verify](verify.md) commands pass; the plan closed with `ai1 plan-done` (below).
 
@@ -60,7 +65,9 @@ gate is a hook block; plans live in a local ignored folder.
 
 A deep plan carries a `# Behaviour` section: 2-5 scenarios the person approves with the design,
 `- S1: Given <state>, when <action>, then <observable result>`, or `None - <why>` for refactors and
-internals. The test that covers a scenario carries `[<slug>:S<n>]` in its name or a comment. Light
+internals. Scenarios quote the person's exact strings, and a subagent handed a step gets the plan
+path and its `S<n>`, never a summary: the verbatim request and quotes survive compaction and handoffs
+without drifting. The test that covers a scenario carries `[<slug>:S<n>]` in its name or a comment. Light
 BDD: the valuable part (concrete examples agreed before the code, a shared language) without
 Gherkin/Cucumber glue. Decided with the person on 2026-11-09; goal: the agent cannot call a design
 done while an agreed behaviour has no test - the verify gate alone only knows the suite is green.

@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T14:59:15Z'
+  at: '2026-11-09T18:33:50Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -18,6 +18,7 @@ First review on 2026-10-30 by reading the repositories.
 | [Impeccable](https://github.com/pbakaus/impeccable) (Apache 2.0, Paul Bakaus; reviewed 2026-11-08) | Design skill for coding agents: one `/impeccable` skill with ~24 commands (critique, audit, polish...), `PRODUCT.md`/`DESIGN.md` context, and a deterministic anti-pattern detector (62 rules, Rust) run as a hook, CLI and browser extension | The detector-as-hook idea and rule ids, re-implemented for source text, and the product/design context (as OKF concepts) in the [design feature](/features/design.md) | The command set and its reference texts: install Impeccable for those; ai1 points to it when present |
 | [rsc-factory](https://github.com/gregoryjp/rsc-factory) (unofficial) | PRD-to-product engine outside the agent | Risk classifier idea (auto vs human PR) for a future pipeline mode | Whole engine: out of scope |
 | [graphify](https://github.com/gmh5225/graphify) (reviewed 2026-11-09 from its docs and third-party reviews, not its code) | `/graphify` skill: tree-sitter code graph + LLM pass over docs/PDFs/images into `graphify-out/` (`graph.json`, `GRAPH_REPORT.md`, `graph.html`), Leiden clusters, EXTRACTED/INFERRED/AMBIGUOUS edges, PreToolUse nudge on Grep/Glob, MCP server, git hooks | Nothing yet; see [graphify review](#graphify-review-2026-11-09) | The LLM semantic pass (the OKF bundle covers it, curated), Python + native deps, git hooks, a committed `graph.json` |
+| [gentle-ai](https://github.com/Gentleman-Programming/gentle-ai) (MIT; reviewed 2026-11-09 from its docs and `odd/tasks/`) | Go installer that configures many agents: persistent memory (Engram), ODD (Organic-Driven Development) as its only workflow after retiring SDD/OpenSpec, risk-tiered review (RDD), skills, personas | Sizing by "resumable from the request + `git diff`" and its fuller risk list, the request word for word in the plan, handoffs by reference, in [lanes](/features/lanes.md); see [gentle-ai review](#gentle-ai-review-2026-11-09) | Engram, test-first by default, mandatory delegation, ~400-line work units and chained PRs, RDD consent, ~40 KB of routing prompt |
 
 No code is copied at this stage; if any is, it keeps its license notice and attribution.
 
@@ -255,3 +256,21 @@ Reviewed from docs and posts (not code) for the planned walkthrough feature (`.a
   storyboard validates the flow as seen, not that it works.
 - **Google Drive does not render HTML** (it downloads it or shows the source); it previews PDF and
   images, also on mobile. Anything for a file-sync destination should be a PDF.
+
+# gentle-ai review (2026-11-09)
+
+ODD (`docs/usage.md`): authorize → explore → resolve uncertainty → classify by size → for large work
+one feature document `odd/tasks/<x>.md` (`## Specs` with `S#` quoting the user verbatim, `## Tasks`
+with the commit of each, `## Log` whose `L1` is the request verbatim), mirrored to Engram → task by
+task with test-first and ~400-line work-unit commits → RDD review gated by assessed risk.
+
+- Signal: they retired SDD/OpenSpec for ODD (issue #4959), and softened mandatory delegation for cost
+  (`odd-spend-proportionality`), in line with [Comparisons of methodologies](#comparisons-of-methodologies-2026-11-08).
+- Taken, as text only: a task is small when it could be resumed from the request and `git diff`
+  alone, never by file count; high risk also covers concurrency, deploy/environment and code no
+  test would catch; the deep plan starts with the request word for word; subagents get the plan path
+  and `S<n>`, not a paraphrase.
+- Maybe later: comparing the output (stdout, stderr, exit code) of existing commands before and after
+  a change, to pin unasked-for differences as regressions.
+- Left out: everything is prompt (one ~40 KB routing file rendered for 12 agents), so it shares the
+  compaction weakness ai1 closes with hooks; its task logs are long and token-heavy.

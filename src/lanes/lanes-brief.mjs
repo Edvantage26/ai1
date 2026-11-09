@@ -21,11 +21,11 @@ export function buildLanesRecipe(verifyCommands, usesWorktrees = false) {
   const verifyText = verifyCommands.length ? verifyCommands.map((verifyCommand) => `\`${verifyCommand}\``).join(', ') : 'the project checks';
   return [
     'Lanes: size every new task before acting and say the lane in one line ("Lane: quick, because ...").',
-    `- quick: a clear, contained change (a bug, a wording, a small tweak). Do it, run ${verifyText}, report.`,
+    `- quick: a clear, contained change that could be resumed from the request and \`git diff\` alone (a bug, a wording, a small tweak). Do it, run ${verifyText}, report.`,
     '- plan: several pieces but a clear goal. Read the relevant code, say the plan in a few lines (files, steps, how you will verify) and start; do not wait for a yes.',
-    '- deep: unclear goal, design choices, a risky area (auth, data, money, migrations, public API) or hours of work. Load the /ai1:lanes-design-before-code skill and follow it: questions, a design in `' + WORK_DIRECTORY + '/<slug>/plan.md`, approval by the person, then step by step.',
+    '- deep: unclear goal, design choices, a risky area (auth, data or irreversible effects, money, migrations, a public API or contract others use, concurrency, deploy or environment, code no test would catch breaking) or hours of work. Load the /ai1:lanes-design-before-code skill and follow it: questions, a design in `' + WORK_DIRECTORY + '/<slug>/plan.md`, approval by the person, then step by step.',
     ...(usesWorktrees ? ['- plan and deep tasks are built in their own worktree (see Worktrees); name it in the plan so it survives compaction.'] : []),
-    'Pick the lightest lane that fits. "rápido"/"quick" or "piénsalo bien"/"think it through" from the person sets the lane. When a quick task grows, stop and move to plan.',
+    'Pick the lightest lane that fits; the number of files never decides it. "rápido"/"quick" or "piénsalo bien"/"think it through" from the person sets the lane. When a quick task grows, stop and move to plan.',
   ].join('\n');
 }
 
