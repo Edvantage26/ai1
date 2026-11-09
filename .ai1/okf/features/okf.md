@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index at session start, relate
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T04:45:09Z'
+  at: '2026-11-09T05:04:46Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -13,6 +13,12 @@ sources:
   - id: okf-upkeep
     resource: src/okf/okf-upkeep.mjs
     title: Stop module
+  - id: okf-session-scan
+    resource: src/okf/okf-session-scan.mjs
+    title: Transcript, memory and shell-edit scan for upkeep
+  - id: okf-validator
+    resource: src/okf/okf-validator.mjs
+    title: Bundled Python validator runner
   - id: okf-bundle
     resource: src/okf/okf-bundle.mjs
     title: Shared bundle helpers and maintenance rules
