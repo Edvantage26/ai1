@@ -4,11 +4,11 @@
 //      pending changes; or
 //   2. the bundle was touched in this session and the OKF validator reports ERRORS. The hook runs
 //      the validator itself, because asking the agent to validate proved unreliable in field tests.
-//      Warnings never block; a missing python3 fails open.
+//      Warnings never block; without Python it fails open and tells the person once per session.
 
 import { existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { allowDecision, blockDecision } from '../core/hook-io.mjs';
+import { allowDecision, blockDecision, noticeDecision } from '../core/hook-io.mjs';
 import { resolveStateDirectory, sessionStatePath, readStateText, writeStateText, shortHash, claimStopBlock } from '../core/session-state.mjs';
 import {
   resolveBundleDirectory, readBundleIndex, readBundleSpecVersion, newestModificationMilliseconds, buildMaintenanceRules,
@@ -93,7 +93,10 @@ function checkBundleValidity({ hookInput, projectRoot, stateDirectory, bundleDir
   const validation = runBundleValidator(bundleDirectory, environment);
   if (!validation.ran) {
     process.stderr.write(`ai1: okf-upkeep could not validate ${bundleRelativePath}: ${validation.reason}\n`);
-    return allowDecision();
+    const noticedPath = sessionStatePath(stateDirectory, hookInput.session_id, projectRoot, 'validator-missing');
+    if (readStateText(noticedPath) !== null) return allowDecision();
+    writeStateText(noticedPath, validation.reason);
+    return noticeDecision(MODULE_ID, `the OKF bundle was not validated: ${validation.reason}. Install Python 3.9+ to turn the check on.`);
   }
   if (!validation.errors.length) return allowDecision();
   const validatedPath = sessionStatePath(stateDirectory, hookInput.session_id, projectRoot, 'validated');

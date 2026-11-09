@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index at session start, relate
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T06:42:10Z'
+  at: '2026-11-09T07:24:06Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -104,7 +104,9 @@ sources:
   block. It also runs when `stop_hook_active` is set (the agent was just asked to update the
   bundle), which is exactly when it matters; the upkeep reminder itself is not repeated then.
   Loop guards: the same errors are reported once, and at most 3 validation blocks per session.
-  Without `python3` it fails open (message on stderr).
+  It tries `python3`, `python` and `py -3` (Windows) in order. Without a Python 3 it fails open and
+  tells the person once per session (`systemMessage`, never blocking); before 2026-11-09 only stderr
+  said it, so on Windows the gate was off without anyone knowing.
 - **Rules given to the agent:** update the concept and `generated: { by: claude-code/<model>, at }`
   with the real current UTC time; `log.md` only for lifecycle events; validate with `/ai1:okf-validate-bundle`
   and fix errors. On a v0.1 bundle: legacy warnings are expected, the agent must not migrate the

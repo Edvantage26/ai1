@@ -158,7 +158,9 @@ wiring. Internal errors never block the agent; a matched rule does.
 Requirements: **Node 18+** (hooks and the `ai1` CLI) and **Python 3.9+** (the OKF toolkit scripts),
 nothing else: no `uv`, no `pip install`, no network. PyYAML ships inside the plugin
 (`vendor/`). Python 3.9+ comes with most Linux distributions and with the macOS
-command line tools (the ones that provide `git`).
+command line tools (the ones that provide `git`); on Windows install it from python.org (ai1 tries
+`python3`, `python` and `py -3`). Without Python the hooks still work: only the OKF bundle check is
+off, and ai1 says so once per session.
 
 ## Development
 

@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T06:42:10Z'
+  at: '2026-11-09T07:24:19Z'
 ---
 
 # Flow
@@ -30,14 +30,15 @@ generated:
    (`src/core/registry.mjs`), for tests and in-process callers.
 4. `src/core/hook-io.mjs` combines decisions (deny/block > ask > context > allow) and prints the
    JSON each event expects (PreToolUse `permissionDecision`, Stop `decision: block`,
-   SessionStart, UserPromptSubmit and PostToolUse `additionalContext`).
+   SessionStart, UserPromptSubmit and PostToolUse `additionalContext`). A `notice` never competes:
+   it is added as `systemMessage` (shown to the person, not the agent) to whatever was decided.
 
 # Module contract
 
 `{ id, event, feature, description, toolNames?, run(moduleContext) -> decision }`, where
 `moduleContext` has `hookInput`, `config`, `projectRoot` (tree root), `sharedRoot`, `environment`, `homeDirectory`, `enabledModules` and `moduleOptions`
 (`modules.<id>` from .ai1/config.json minus `enabled`). Decisions: `allow`, `ask`, `deny`, `block`,
-`context`. A reason always says how to carry on.
+`context`, `notice`. A reason always says how to carry on.
 
 Adding a module = one file (with its `feature`) + one line in `src/core/module-index.mjs` (id, event,
 feature, toolNames, path) + its entry in the schema. `test/dispatcher.test.mjs` fails if the index and
