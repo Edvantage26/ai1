@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T18:33:50Z'
+  at: '2026-11-09T18:40:29Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -238,6 +238,15 @@ Read from source or READMEs by subagents; popularity from the GitHub API.
   compresses activity into SQLite + Chroma, per machine; telemetry on by default; code readings report
   unbatched calls, no timeouts, shell injection. Its three-step progressive disclosure is what
   `okf-recall` already does (pointers only). Critique to answer with data: memory add-ons cost context.
+- **Engram** (MIT, ~7.9k stars, reviewed 2026-11-09 from its docs; the memory layer of gentle-ai): Go
+  binary, per-machine SQLite + FTS5 behind a 27-tool MCP; the agent saves small observations
+  (`mem_save`, `topic_key` upserts) and a summary per session, then retrieves them on demand
+  (`mem_search` → detail); Claude hooks inject context at start and after compaction and capture
+  prompts; git-chunk or cloud sync. Episodic, opaque and recall left to the agent, where OKF is
+  curated, in the repo, reviewed in PRs and recalled by hooks; not integrated. Idea worth keeping: a
+  review interval by knowledge type (config 3 months, decision 6, architecture 12) that flags stale
+  entries as `needs_review` without hiding them - OKF drift today only fires when cited code changes.
+  Left out: a per-session summary (tokens at every close; `git log` and plan progress cover most).
 - **claude-code-hooks-mastery** (~4k stars, no license): demo of all 13 hook events in `uv` Python.
   Ideas: an opt-in local JSONL log of hook decisions (module, decision, ms) for misfires and
   `/ai1:core-report-issue`; a PermissionRequest handler allowing commands already classified safe.
