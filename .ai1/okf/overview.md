@@ -5,7 +5,7 @@ description: What ai1 is, the four pieces of a harness, and what exists today.
 tags: [overview, harness]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T14:08:20Z'
+  at: '2026-11-09T16:16:59Z'
 ---
 
 # What it is
@@ -38,7 +38,7 @@ similar stack, and almost none enforce them. Prior art and what was taken from i
 
 # Status
 
-v0.26.0 (2026-11-09). Per-repo [features](architecture/features.md) chosen with
+v0.27.0 (2026-11-09). Per-repo [features](architecture/features.md) chosen with
 [/ai1:core-setup-repo](features/init.md). On by default: the [okf feature](features/okf.md) (index, CLAUDE.md drift hint,
 recall, upkeep and the [OKF toolkit](packs/okf-pack.md)), the [danger guard](guards/danger.md), the
 [craft rules](features/craft.md) and the [verify gate](features/verify.md); with them, the
