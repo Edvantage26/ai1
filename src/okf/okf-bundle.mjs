@@ -3,7 +3,8 @@
 // modules say the same thing.
 
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { basename, join, relative } from 'node:path';
+import { listMarkdownFiles } from '../core/markdown-files.mjs';
 import { splitFrontmatter, readFrontmatterField } from '../core/frontmatter.mjs';
 import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
 
@@ -34,14 +35,9 @@ export function newestModificationMilliseconds(directoryPath) {
   return newestMilliseconds;
 }
 
+// Concept files: every markdown file but the index.md and log.md of each folder.
 function listConceptFiles(directoryPath) {
-  const conceptFiles = [];
-  for (const entryName of readdirSync(directoryPath)) {
-    const entryPath = join(directoryPath, entryName);
-    if (statSync(entryPath).isDirectory()) conceptFiles.push(...listConceptFiles(entryPath));
-    else if (entryName.endsWith('.md') && entryName !== 'index.md' && entryName !== 'log.md') conceptFiles.push(entryPath);
-  }
-  return conceptFiles;
+  return listMarkdownFiles(directoryPath).filter((markdownPath) => !['index.md', 'log.md'].includes(basename(markdownPath)));
 }
 
 // Every concept of the bundle with its main frontmatter fields and its body.

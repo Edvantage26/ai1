@@ -4,7 +4,7 @@
 
 import { allowDecision, contextDecision } from '../core/hook-io.mjs';
 import { readGitDirectories } from '../core/project-roots.mjs';
-import { resolveStateDirectory, sessionStatePath, readStateText, writeStateText } from '../core/session-state.mjs';
+import { resolveStateDirectory, sessionStatePath, writeStateText, readStateJson } from '../core/session-state.mjs';
 import { loadRecipe } from './worktree-recipe.mjs';
 import { listWorktreeStates } from './worktree-state.mjs';
 
@@ -32,12 +32,7 @@ export default {
     const worktreeStates = listWorktreeStates(commonDirectory);
     const snapshotText = worktreeStates.map((worktreeState) => `${worktreeState.name}@${worktreeState.path === projectRoot ? 'here' : 'other'}`).join(',');
     const reminderStatePath = sessionStatePath(resolveStateDirectory(environment), hookInput.session_id, sharedRoot, 'worktree-reminder');
-    let reminderState = { prompts: 0, snapshot: '' };
-    try {
-      reminderState = { ...reminderState, ...JSON.parse(readStateText(reminderStatePath) || '{}') };
-    } catch {
-      // a broken state file only means one extra reminder
-    }
+    const reminderState = { prompts: 0, snapshot: '', ...readStateJson(reminderStatePath) };
     const promptCount = reminderState.prompts + 1;
     writeStateText(reminderStatePath, JSON.stringify({ prompts: promptCount, snapshot: snapshotText }));
     if (worktreeStates.length === 0) {

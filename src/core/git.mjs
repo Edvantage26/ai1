@@ -1,4 +1,5 @@
-// git helpers shared by the worktree engine and the guards: synchronous, local, no network.
+// git for every module and the CLI: synchronous, local, no network. runGit throws on failure (its
+// error carries stderr); tryGit returns the trimmed output, or null when git fails.
 
 import { execFileSync } from 'node:child_process';
 

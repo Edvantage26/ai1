@@ -11,7 +11,7 @@ import { loadHarnessConfig, KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
 import { matchesAnyGlob } from '../core/path-glob.mjs';
 import { runBundleValidator } from '../okf/okf-upkeep.mjs';
-import { runGit, tryGit, listIgnoredPaths } from './worktree-git.mjs';
+import { runGit, tryGit, listIgnoredPaths } from '../core/git.mjs';
 import { findRepository, removeWorktreeState } from './worktree-state.mjs';
 import { loadRecipeOrFail } from './worktree-create.mjs';
 import {

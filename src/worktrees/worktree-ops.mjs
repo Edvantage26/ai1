@@ -3,7 +3,7 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, lstatSync, mkdirSync, rmSync, unlinkSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { runGit, tryGit } from './worktree-git.mjs';
+import { runGit, tryGit } from '../core/git.mjs';
 import {
   findRepository, validateWorktreeName, readWorktreeState, writeWorktreeState, removeWorktreeState,
   listWorktreeStates, worktreeStateDirectory,

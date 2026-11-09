@@ -4,8 +4,9 @@
 // Overrides that only make sense on this machine (switching off the person's own standalone OKF
 // plugin) go to .claude/settings.local.json, which is personal and kept out of git.
 
-import { execFileSync } from 'node:child_process';
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { tryGit } from '../core/git.mjs';
+import { readJsonFile, writeJsonFile } from '../core/json-file.mjs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { FEATURES, KNOWN_FEATURE_IDS, isFeatureEnabled } from '../core/features.mjs';
@@ -17,34 +18,18 @@ import { planLegacyMigration, migrateLegacyLayout, readLegacyConfig } from './le
 
 export const AI1_MARKETPLACE = { source: { source: 'github', repo: 'Edvantage26/ai1' } };
 
-function readJsonFile(filePath) {
-  return existsSync(filePath) ? JSON.parse(readFileSync(filePath, 'utf8')) : null;
-}
-
-function writeJsonFile(filePath, jsonValue) {
-  writeFileSync(filePath, `${JSON.stringify(jsonValue, null, 2)}\n`);
-}
-
-function runGit(repoRoot, gitArguments) {
-  try {
-    return execFileSync('git', ['-C', repoRoot, ...gitArguments], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
-  } catch {
-    return '';
-  }
-}
-
 export function findRepoRoot(startDirectory) {
-  return runGit(startDirectory, ['rev-parse', '--show-toplevel']) || startDirectory;
+  return tryGit(startDirectory, ['rev-parse', '--show-toplevel']) || startDirectory;
 }
 
 // origin/HEAD when the clone knows it, else main or master if present, else the current branch.
 export function detectTrunkBranch(repoRoot) {
-  const originHead = runGit(repoRoot, ['symbolic-ref', '--short', 'refs/remotes/origin/HEAD']);
+  const originHead = tryGit(repoRoot, ['symbolic-ref', '--short', 'refs/remotes/origin/HEAD']);
   if (originHead) return originHead.replace(/^origin\//, '');
   for (const candidateBranch of ['main', 'master']) {
-    if (runGit(repoRoot, ['rev-parse', '--verify', '--quiet', `refs/heads/${candidateBranch}`])) return candidateBranch;
+    if (tryGit(repoRoot, ['rev-parse', '--verify', '--quiet', `refs/heads/${candidateBranch}`])) return candidateBranch;
   }
-  return runGit(repoRoot, ['branch', '--show-current']) || 'main';
+  return tryGit(repoRoot, ['branch', '--show-current']) || 'main';
 }
 
 // Another enabled plugin that also ships OKF skills (e.g. a standalone `okf@...`) would duplicate
@@ -58,7 +43,7 @@ export function findOtherOkfPlugins(userSettings) {
 // Makes sure the repo itself ignores .claude/settings.local.json before ai1 writes into it.
 // A rule from the person's global git excludes does not count: a teammate's clone would not have it.
 export function ensureLocalSettingsIgnored(repoRoot) {
-  const ignoreMatch = runGit(repoRoot, ['check-ignore', '-v', '.claude/settings.local.json']);
+  const ignoreMatch = tryGit(repoRoot, ['check-ignore', '-v', '.claude/settings.local.json']) ?? '';
   const ignoreSourcePath = ignoreMatch.split(':')[0];
   const isIgnoredByRepoRule = Boolean(ignoreSourcePath) && !ignoreSourcePath.startsWith('/') && !ignoreSourcePath.startsWith('.git/');
   if (isIgnoredByRepoRule) return false;

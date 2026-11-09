@@ -1,17 +1,13 @@
 // The HEAD at session start, shared by the modules that need to know what this session changed
 // (okf-upkeep, lanes). Recorded once per session; resume/compact must not move the baseline.
 
-import { execFileSync } from 'node:child_process';
+import { runGit, tryGit } from './git.mjs';
 import {
   resolveStateDirectory, sessionStatePath, readStateText, writeStateText, removeExpiredStateFiles, stateModifiedMilliseconds,
 } from './session-state.mjs';
 
 export function readGitHead(projectRoot) {
-  try {
-    return execFileSync('git', ['-C', projectRoot, 'rev-parse', 'HEAD'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
-  } catch {
-    return null;
-  }
+  return tryGit(projectRoot, ['rev-parse', 'HEAD']);
 }
 
 function baseHeadStatePath(hookInput, projectRoot, environment) {
@@ -55,8 +51,7 @@ export function readSessionBase(hookInput, projectRoot, environment) {
 // Repo-relative paths changed since `baseHead`: tracked changes (committed or not) and untracked
 // files that git does not ignore. Deleted files are included; callers check existence.
 export function listFilesChangedSinceBase(projectRoot, baseHead) {
-  const runGit = (gitArguments) => execFileSync('git', ['-C', projectRoot, ...gitArguments], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
-  const trackedChanges = runGit(['diff', '--name-only', baseHead]).split('\n');
-  const untrackedFiles = runGit(['ls-files', '--others', '--exclude-standard']).split('\n');
+  const trackedChanges = runGit(projectRoot, ['diff', '--name-only', baseHead]).split('\n');
+  const untrackedFiles = runGit(projectRoot, ['ls-files', '--others', '--exclude-standard']).split('\n');
   return [...new Set([...trackedChanges, ...untrackedFiles])].filter(Boolean);
 }

@@ -29,6 +29,16 @@ export function readStateText(statePath) {
   return existsSync(statePath) ? readFileSync(statePath, 'utf8') : null;
 }
 
+// Parsed JSON state, or `fallbackValue` when the file is missing or broken (a broken state file only
+// means the module starts over, never an error).
+export function readStateJson(statePath, fallbackValue = {}) {
+  try {
+    return JSON.parse(readStateText(statePath) || 'null') ?? fallbackValue;
+  } catch {
+    return fallbackValue;
+  }
+}
+
 export function writeStateText(statePath, stateText) {
   writeFileSync(statePath, stateText);
 }

@@ -14,6 +14,7 @@ import { splitFrontmatter, readFrontmatterField, writeFrontmatterField } from '.
 import { isFeatureEnabled } from '../core/features.mjs';
 import { resolveBundleDirectory, readBundleIndex } from '../okf/okf-bundle.mjs';
 import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
+import { listMarkdownFiles } from '../core/markdown-files.mjs';
 
 export const RFC_DIRECTORY = '.ai1/rfc';
 export const RFC_INDEX_FILE = 'README.md';
@@ -129,15 +130,6 @@ export function writeRfcIndex(projectRoot, knowledgePath) {
   return `${RFC_DIRECTORY}/${RFC_INDEX_FILE}`;
 }
 
-function listBundleFiles(directoryPath) {
-  if (!existsSync(directoryPath)) return [];
-  return readdirSync(directoryPath, { withFileTypes: true }).flatMap((directoryEntry) => {
-    const entryPath = join(directoryPath, directoryEntry.name);
-    if (directoryEntry.isDirectory()) return listBundleFiles(entryPath);
-    return directoryEntry.name.endsWith('.md') ? [entryPath] : [];
-  });
-}
-
 // Where the index and the brief say decisions live: the bundle path when the okf feature is on.
 export function resolveKnowledgePath(config) {
   return isFeatureEnabled('okf', config) ? KNOWLEDGE_BUNDLE_PATH : null;
@@ -156,7 +148,7 @@ export function checkRfcs(projectRoot, { knowledgePath = null, bundleDirectory =
   const rfcDocuments = listRfcs(projectRoot);
   const rfcProblems = [];
   const seenNumbers = new Map();
-  const bundleTexts = bundleDirectory ? listBundleFiles(bundleDirectory).map((bundleFile) => readFileSync(bundleFile, 'utf8')) : null;
+  const bundleTexts = bundleDirectory ? listMarkdownFiles(bundleDirectory).map((bundleFile) => readFileSync(bundleFile, 'utf8')) : null;
   for (const rfcDocument of rfcDocuments) {
     const rfcLabel = rfcDocument.relativePath;
     if (seenNumbers.has(rfcDocument.fileNumber)) rfcProblems.push(`${rfcLabel}: number ${padRfcNumber(rfcDocument.fileNumber)} is also used by ${seenNumbers.get(rfcDocument.fileNumber)}`);

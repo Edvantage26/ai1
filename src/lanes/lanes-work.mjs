@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSy
 import { join, relative } from 'node:path';
 import { splitFrontmatter, writeFrontmatterField } from '../core/frontmatter.mjs';
 import { AI1_DIRECTORY } from '../core/config.mjs';
-import { resolveStateDirectory, shortHash, readStateText, writeStateText } from '../core/session-state.mjs';
+import { resolveStateDirectory, shortHash, readStateJson, writeStateText } from '../core/session-state.mjs';
 
 export const WORK_DIRECTORY = join(AI1_DIRECTORY, 'work');
 export const UNAPPROVED_STATUSES = new Set(['draft', 'ready']);
@@ -66,11 +66,7 @@ function approvalsStatePath(projectRoot, environment) {
 }
 
 export function readApprovals(projectRoot, environment) {
-  try {
-    return JSON.parse(readStateText(approvalsStatePath(projectRoot, environment)) || '{}');
-  } catch {
-    return {};
-  }
+  return readStateJson(approvalsStatePath(projectRoot, environment));
 }
 
 export function recordApproval(projectRoot, environment, planRelativePath, approvedAt = new Date().toISOString()) {

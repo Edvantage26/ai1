@@ -15,7 +15,7 @@ import { allowDecision, blockDecision } from '../core/hook-io.mjs';
 import { listShellWriteTargets } from '../core/shell-writes.mjs';
 import { readNewTranscriptEvents, eventContentBlocks } from '../core/transcript-scan.mjs';
 import {
-  resolveStateDirectory, sessionStatePath, readStateText, writeStateText, shortHash,
+  resolveStateDirectory, sessionStatePath, readStateText, writeStateText, shortHash, readStateJson,
 } from '../core/session-state.mjs';
 import {
   resolveBundleDirectory, readBundleIndex, readBundleSpecVersion, newestModificationMilliseconds, buildMaintenanceRules,
@@ -115,11 +115,7 @@ export function listMemoryFilesWrittenBySession(transcriptPath, memoryDirectorie
 }
 
 function loadScanState(scanStatePath) {
-  try {
-    return { offset: 0, paths: [], investigationCalls: 0, ...JSON.parse(readStateText(scanStatePath) || '{}') };
-  } catch {
-    return { offset: 0, paths: [], investigationCalls: 0 };
-  }
+  return { offset: 0, paths: [], investigationCalls: 0, ...readStateJson(scanStatePath) };
 }
 
 export function buildInvestigationReminder(bundleRelativePath, investigationCalls) {

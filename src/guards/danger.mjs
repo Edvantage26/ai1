@@ -7,7 +7,7 @@
 import { askDecision, denyDecision, allowDecision } from '../core/hook-io.mjs';
 import { isAbsolute, resolve } from 'node:path';
 import { splitSimpleCommands, baseName, hasShortFlag, hasLongFlag } from '../core/shell-parse.mjs';
-import { listIgnoredPaths } from '../worktrees/worktree-git.mjs';
+import { listIgnoredPaths } from '../core/git.mjs';
 
 const MODULE_ID = 'danger';
 

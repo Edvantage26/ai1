@@ -2,8 +2,9 @@
 // `<git-common-dir>/ai1-worktrees/`, shared by every checkout of the repo, outside all of them
 // (invisible to git status, untouched when a worktree is removed).
 
-import { existsSync, mkdirSync, readFileSync, readdirSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
+import { readJsonFileIfValid, writeJsonFile } from '../core/json-file.mjs';
 import { findMainCheckout, findWorkingTreeTop, readGitDirectories } from '../core/project-roots.mjs';
 
 export const WORKTREE_NAME_PATTERN = /^[a-z0-9][a-z0-9._-]{0,47}$/;
@@ -33,18 +34,12 @@ function worktreeStatePath(commonDirectory, worktreeName) {
 }
 
 export function readWorktreeState(commonDirectory, worktreeName) {
-  const statePath = worktreeStatePath(commonDirectory, worktreeName);
-  if (!existsSync(statePath)) return null;
-  try {
-    return JSON.parse(readFileSync(statePath, 'utf8'));
-  } catch {
-    return null;
-  }
+  return readJsonFileIfValid(worktreeStatePath(commonDirectory, worktreeName));
 }
 
 export function writeWorktreeState(commonDirectory, worktreeState) {
   mkdirSync(worktreeStateDirectory(commonDirectory), { recursive: true });
-  writeFileSync(worktreeStatePath(commonDirectory, worktreeState.name), `${JSON.stringify(worktreeState, null, 2)}\n`);
+  writeJsonFile(worktreeStatePath(commonDirectory, worktreeState.name), worktreeState);
 }
 
 export function removeWorktreeState(commonDirectory, worktreeName) {

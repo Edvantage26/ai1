@@ -2,7 +2,7 @@
 // session's changes pass a size threshold (files or lines since the session started) and there is
 // no deep-lane plan, the next edit asks the person once whether to go on or stop for a plan.
 
-import { execFileSync } from 'node:child_process';
+import { runGit } from '../core/git.mjs';
 import { readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { allowDecision, askDecision } from '../core/hook-io.mjs';
@@ -16,10 +16,6 @@ const MODULE_ID = 'lanes-escalate';
 export const DEFAULT_MAX_FILES = 6;
 export const DEFAULT_MAX_LINES = 300;
 const MAX_COUNTED_FILE_BYTES = 1024 * 1024;
-
-function runGit(projectRoot, gitArguments) {
-  return execFileSync('git', ['-C', projectRoot, ...gitArguments], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
-}
 
 function countFileLines(filePath) {
   try {

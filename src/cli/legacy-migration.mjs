@@ -9,7 +9,9 @@
 // mention old paths are listed for the person, not edited: the docs an agent reads (markdown at the
 // root or one level down, and `.claude/`), not vendored or nested projects.
 
-import { execFileSync } from 'node:child_process';
+import { runGit } from '../core/git.mjs';
+import { readJsonFileIfValid, writeJsonFile } from '../core/json-file.mjs';
+import { listMarkdownFiles } from '../core/markdown-files.mjs';
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, posix, relative } from 'node:path';
 import { CONFIG_RELATIVE_PATH, KNOWLEDGE_BUNDLE_PATH, AI1_DIRECTORY, AI1_PLUGIN_ID, SCHEMA_URL } from '../core/config.mjs';
@@ -24,18 +26,6 @@ const LEGACY_PLUGIN_ID = 'jig@jig';
 const LEGACY_MARKETPLACE_KEY = 'jig';
 const SETTINGS_PATHS = [join('.claude', 'settings.json'), join('.claude', 'settings.local.json')];
 const OLD_PATH_MENTION = /(^|[^\w./-])(\.okf\/|docs\/rfc\/|\.claude\/jig\.json|\/jig:)/;
-
-function readJsonFile(filePath) {
-  try {
-    return JSON.parse(readFileSync(filePath, 'utf8'));
-  } catch {
-    return null;
-  }
-}
-
-function runGit(repoRoot, gitArguments) {
-  return execFileSync('git', ['-C', repoRoot, ...gitArguments], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
-}
 
 function isTrackedByGit(repoRoot, relativePath) {
   try {
@@ -55,8 +45,8 @@ function settingsMentionLegacyPlugin(settingsJson) {
 
 // { moves: [{ from, to }], conflicts: [path], settingsFiles: [path] }: what migrateLegacyLayout would do.
 export function planLegacyMigration(repoRoot) {
-  const legacyConfig = readJsonFile(join(repoRoot, LEGACY_CONFIG_PATH));
-  const currentConfig = readJsonFile(join(repoRoot, CONFIG_RELATIVE_PATH));
+  const legacyConfig = readJsonFileIfValid(join(repoRoot, LEGACY_CONFIG_PATH));
+  const currentConfig = readJsonFileIfValid(join(repoRoot, CONFIG_RELATIVE_PATH));
   // The repo's bundle: the path the retired `knowledge` setting named (null = none), else `.okf/`.
   const knowledgeSetting = (legacyConfig || currentConfig)?.knowledge;
   const configuredBundlePath = typeof knowledgeSetting === 'string' ? normalizeRelativePath(knowledgeSetting)
@@ -69,13 +59,13 @@ export function planLegacyMigration(repoRoot) {
   if (legacyConfig?.features?.rfc === true && existsSync(join(repoRoot, LEGACY_RFC_PATH))) moves.push({ from: LEGACY_RFC_PATH, to: join(AI1_DIRECTORY, 'rfc') });
   if (existsSync(join(repoRoot, LEGACY_WORK_PATH))) moves.push({ from: LEGACY_WORK_PATH, to: join(AI1_DIRECTORY, 'work') });
   const conflicts = moves.filter((plannedMove) => existsSync(join(repoRoot, plannedMove.to))).map((plannedMove) => plannedMove.to);
-  const settingsFiles = SETTINGS_PATHS.filter((settingsPath) => settingsMentionLegacyPlugin(readJsonFile(join(repoRoot, settingsPath))));
+  const settingsFiles = SETTINGS_PATHS.filter((settingsPath) => settingsMentionLegacyPlugin(readJsonFileIfValid(join(repoRoot, settingsPath))));
   return { moves, conflicts, settingsFiles };
 }
 
 // The old `.claude/jig.json`, so `ai1 status` can show the features the repo had before migrating.
 export function readLegacyConfig(repoRoot) {
-  return readJsonFile(join(repoRoot, LEGACY_CONFIG_PATH));
+  return readJsonFileIfValid(join(repoRoot, LEGACY_CONFIG_PATH));
 }
 
 export function hasLegacyLayout(repoRoot) {
@@ -98,15 +88,6 @@ function moveLeftovers(fromAbsolutePath, toAbsolutePath) {
   if (!statSync(fromAbsolutePath).isDirectory()) return;
   for (const entryName of readdirSync(fromAbsolutePath)) moveLeftovers(join(fromAbsolutePath, entryName), join(toAbsolutePath, entryName));
   if (readdirSync(fromAbsolutePath).length === 0) rmSync(fromAbsolutePath, { recursive: true });
-}
-
-function listMarkdownFiles(directoryPath) {
-  if (!existsSync(directoryPath)) return [];
-  return readdirSync(directoryPath, { withFileTypes: true }).flatMap((directoryEntry) => {
-    const entryPath = join(directoryPath, directoryEntry.name);
-    if (directoryEntry.isDirectory()) return listMarkdownFiles(entryPath);
-    return directoryEntry.name.endsWith('.md') ? [entryPath] : [];
-  });
 }
 
 function mapThroughMoves(repoRelativePath, moves) {
@@ -137,14 +118,14 @@ function rewriteMovedMarkdown(fileText, oldFilePath, newFilePath, moves) {
 // The plugin entry keeps its value under the new id; the old marketplace entry goes (`ai1 init`
 // writes the new one).
 function rewriteSettingsFile(settingsPath) {
-  const settingsJson = readJsonFile(settingsPath);
+  const settingsJson = readJsonFileIfValid(settingsPath);
   if (!settingsJson) return;
   if (settingsJson.enabledPlugins && LEGACY_PLUGIN_ID in settingsJson.enabledPlugins) {
     const { [LEGACY_PLUGIN_ID]: legacyEnabled, ...otherPlugins } = settingsJson.enabledPlugins;
     settingsJson.enabledPlugins = { ...otherPlugins, [AI1_PLUGIN_ID]: legacyEnabled };
   }
   if (settingsJson.extraKnownMarketplaces) delete settingsJson.extraKnownMarketplaces[LEGACY_MARKETPLACE_KEY];
-  writeFileSync(settingsPath, `${JSON.stringify(settingsJson, null, 2)}\n`);
+  writeJsonFile(settingsPath, settingsJson);
 }
 
 function listFilesMentioningOldPaths(repoRoot) {
@@ -187,11 +168,11 @@ export function migrateLegacyLayout(repoRoot) {
     const rewrittenText = rewriteMovedMarkdown(fileText, oldFilePath, newFilePath, moves);
     if (rewrittenText !== fileText) writeFileSync(newAbsolutePath, rewrittenText);
   }
-  const migratedConfig = moves.some((plannedMove) => plannedMove.from === LEGACY_CONFIG_PATH) && readJsonFile(join(repoRoot, CONFIG_RELATIVE_PATH));
+  const migratedConfig = moves.some((plannedMove) => plannedMove.from === LEGACY_CONFIG_PATH) && readJsonFileIfValid(join(repoRoot, CONFIG_RELATIVE_PATH));
   if (migratedConfig) {
     if (migratedConfig.$schema) migratedConfig.$schema = SCHEMA_URL;
     delete migratedConfig.knowledge;
-    writeFileSync(join(repoRoot, CONFIG_RELATIVE_PATH), `${JSON.stringify(migratedConfig, null, 2)}\n`);
+    writeJsonFile(join(repoRoot, CONFIG_RELATIVE_PATH), migratedConfig);
   }
   for (const settingsPath of settingsFiles) rewriteSettingsFile(join(repoRoot, settingsPath));
   if (moves.some((plannedMove) => plannedMove.from === LEGACY_WORK_PATH)) ensureWorkDirectoryIgnored(repoRoot);

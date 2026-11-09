@@ -13,7 +13,7 @@ import { join } from 'node:path';
 import { allowDecision, blockDecision } from '../core/hook-io.mjs';
 import { matchesAnyGlob } from '../core/path-glob.mjs';
 import { readSessionBase, listFilesChangedSinceBase } from '../core/session-base.mjs';
-import { resolveStateDirectory, sessionStatePath, readStateText, writeStateText, shortHash } from '../core/session-state.mjs';
+import { resolveStateDirectory, sessionStatePath, writeStateText, shortHash, readStateJson } from '../core/session-state.mjs';
 import { baseName, splitSimpleCommands } from '../core/shell-parse.mjs';
 import { readNewTranscriptEvents, eventContentBlocks, TOOL_USE_MARKER, TOOL_RESULT_MARKER } from '../core/transcript-scan.mjs';
 import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
@@ -158,12 +158,7 @@ export default {
 
     const stateDirectory = resolveStateDirectory(environment);
     const scanStatePath = sessionStatePath(stateDirectory, hookInput.session_id, projectRoot, 'verify-scan');
-    let scanState;
-    try {
-      scanState = JSON.parse(readStateText(scanStatePath) || '{}');
-    } catch {
-      scanState = {};
-    }
+    const scanState = readStateJson(scanStatePath);
     // Without a transcript there is no way to know what ran: let the agent stop.
     if (!scanVerifyRuns(hookInput.transcript_path, verifyCommands, scanState)) return allowDecision();
     writeStateText(scanStatePath, JSON.stringify(scanState));
@@ -174,12 +169,7 @@ export default {
       ? `failed:${unverifiedChange.toolUseId}`
       : `stale:${shortHash(unverifiedChange.staleFiles.map((changedFile) => `${changedFile.relativePath}@${changedFile.modifiedMilliseconds}`).join('\n'))}`;
     const blocksPath = sessionStatePath(stateDirectory, hookInput.session_id, projectRoot, 'verify-blocks');
-    let blockCounts;
-    try {
-      blockCounts = JSON.parse(readStateText(blocksPath) || '{}');
-    } catch {
-      blockCounts = {};
-    }
+    const blockCounts = readStateJson(blocksPath);
     if ((blockCounts[situation] || 0) >= MAX_BLOCKS_PER_SITUATION) return allowDecision();
     blockCounts[situation] = (blockCounts[situation] || 0) + 1;
     writeStateText(blocksPath, JSON.stringify(blockCounts));

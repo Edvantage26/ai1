@@ -9,7 +9,7 @@ import { dirname, join, resolve } from 'node:path';
 import { loadHarnessConfig } from '../core/config.mjs';
 import { matchesAnyGlob } from '../core/path-glob.mjs';
 import { loadRecipe } from './worktree-recipe.mjs';
-import { runGit, tryGit } from './worktree-git.mjs';
+import { runGit, tryGit } from '../core/git.mjs';
 import {
   findRepository, validateWorktreeName, readWorktreeState, writeWorktreeState, listWorktreeStates,
 } from './worktree-state.mjs';
