@@ -118,6 +118,25 @@ you approve it with a plain "ok"/"aprobado" → step-by-step build with a progre
 approve, a hook refuses code edits; if a "quick" task grows past 6 files or 300 lines, it asks you
 once whether to stop for a plan (`modules.lanes-escalate.max_files` / `max_lines`).
 
+### Customize a skill
+
+ai1's skills come from the plugin, so you do not edit them; you add to them. When a skill loads it
+prints its customization at the end, from two places:
+
+- **this project**: `.ai1/skills/<feature>/overlay.md`, committed, for everyone on the repo
+  (`<feature>` is the skill's prefix: `.ai1/skills/proposals/overlay.md` for `/ai1:proposals-write`);
+- **you**: `~/.config/ai1/skills/<feature>/overlay.md` in every repo, and plugin options in `/config`
+  (today **Fork opener**: where `/ai1:session-fork-conversation` opens new conversations - `auto`,
+  `paseo`, `vscode`, `desktop`, `terminal`).
+
+An overlay is a few markdown bullets. It adds to the skill but never overrides its **Fixed rules**;
+where the two disagree, the project's wins over yours. When you correct how a skill works, the agent
+offers once to save it; `/ai1:core-customize-skill` writes it after you approve the text, and changing
+`.ai1/skills/` asks you first (`config-guard`). `ai1 skill-context --list` shows which skills can be
+customized and what you have. Not customizable, with the reason in the list: the skills that protect
+others or are deterministic (`core-report-issue`, `okf-validate-bundle`, `danger-write-rule`,
+`core-customize-skill`) and `okf-backfill-from-history` (its subagents would not see it).
+
 ## Components
 
 | Component | Feature | Event | Status |
@@ -129,7 +148,7 @@ once whether to stop for a plan (`modules.lanes-escalate.max_files` / `max_lines
 | `okf-file-context`: when the agent reads or edits a file, names the concept that describes it (from `resource`, `sources` and code paths in concepts) | okf | PostToolUse | works |
 | `okf-upkeep`: asks to update the bundle after changes, new memories or a long run of investigation (findings, ways to validate, ways of working), and runs the OKF validator itself when the bundle changed, blocking only on errors | okf | Stop | works |
 | `danger`: confirms or refuses `git reset --hard`, force push, `rm -rf`, `--no-verify`, `DROP TABLE`... | danger | PreToolUse | works |
-| `config-guard`: asks you before the agent changes `.ai1/config.json`, `.claude/settings*.json` or `.claude/hooks/` (file tools or shell), in any worktree | danger | PreToolUse | works |
+| `config-guard`: asks you before the agent changes `.ai1/config.json`, `.claude/settings*.json`, `.claude/hooks/` or the skill overlays in `.ai1/skills/` (file tools or shell), in any worktree | danger | PreToolUse | works |
 | `repo-rules` + `/ai1:danger-write-rule`: your repo's own ask/deny rules for shell commands and edits, from `rules` in `.ai1/config.json` | danger | PreToolUse | works |
 | `test-guard`: asks you before tests are skipped, emptied, weakened or deleted (`modules.test-guard.test_paths` / `ignore_rules`) | verify | PreToolUse | works |
 | Decision log + `ai1 log`: every module run logged locally (module, decision, ms, characters added; no commands or paths), off with `AI1_DECISION_LOG=0` | — | all | works |
@@ -149,8 +168,9 @@ once whether to stop for a plan (`modules.lanes-escalate.max_files` / `max_lines
 | `worktree-reminder`: the active worktrees when they change and every few prompts, marking this session's | worktrees | UserPromptSubmit | works |
 | `/ai1:worktrees-plan-recipe` + `ai1 worktree` (`create`, `list`, `run`, `finish`, `drop`) | worktrees | — | works |
 | Shared read-only caches per dependency version, `writable`, build slots, `WorktreeCreate` hook for heavy repos | worktrees | — | planned |
-| `/ai1:core-setup-repo` + `ai1` CLI (`ai1 status`, `ai1 init`, `ai1 verify`, `ai1 step-done`, `ai1 proposals`, `ai1 worktree`, `ai1 fork`, `ai1 issue`, `ai1 claude-md`, `ai1 log`) | — | — | works |
-| `/ai1:session-fork-conversation` + `ai1 fork`: a new conversation from this one, `full` (a copy of the whole conversation) or `brief` (only a written handoff), opened natively in Paseo (an agent), VS Code (the extension URI), a terminal or Claude Desktop (the commands to open it). Needs no feature: works in any repo while the plugin is enabled | — | — | works |
+| `/ai1:core-setup-repo` + `ai1` CLI (`ai1 status`, `ai1 init`, `ai1 verify`, `ai1 step-done`, `ai1 proposals`, `ai1 worktree`, `ai1 fork`, `ai1 issue`, `ai1 claude-md`, `ai1 log`, `ai1 skill-context`) | — | — | works |
+| Skill customization: project (`.ai1/skills/<feature>/overlay.md`) and personal (`~/.config/ai1/...`) overlays injected when a skill loads, Fixed rules that win, `/ai1:core-customize-skill`, `ai1 skill-context --list`; every skill is customizable or excluded with a reason (a test checks it) | — | — | works |
+| `/ai1:session-fork-conversation` + `ai1 fork`: a new conversation from this one, `full` (a copy of the whole conversation) or `brief` (only a written handoff), opened natively in Paseo (an agent), VS Code (the extension URI), a terminal or Claude Desktop (the commands to open it); the **Fork opener** option in `/config` chooses where instead of detecting it. Needs no feature: works in any repo while the plugin is enabled | — | — | works |
 | `/ai1:core-report-issue` + `ai1 issue`: report a problem with ai1 as an issue on this repo; gathers versions and features (`ai1 issue env`), writes a minimal reproduction without private paths, hosts, names or code, checks duplicates and creates it with `gh` (or a prefilled link, `ai1 issue url`) only after you approve the text. Needs no feature | — | — | works |
 | OKF toolkit skills and agents (`skills/okf-*`, `agents/`) | okf | — | works |
 | `prod`: blocks writes to production resources declared in `.ai1/config.json` | prod | PreToolUse | planned |

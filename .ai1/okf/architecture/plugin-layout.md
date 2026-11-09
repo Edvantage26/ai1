@@ -5,7 +5,7 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T10:30:29Z'
+  at: '2026-11-09T11:59:45Z'
 ---
 
 # Layout
@@ -26,7 +26,8 @@ schema/  templates/config.json    the per-repo contract
 
 Every skill is `/ai1:<module>-<what it does>` so its owner and purpose read from the name:
 `core-setup-repo`, `core-report-issue` ([issue report](../features/issue-report.md)), `lanes-design-before-code`, `proposals-write`, `worktrees-plan-recipe`,
-`session-fork-conversation` ([session fork](../features/session-fork.md)), and
+`session-fork-conversation` ([session fork](../features/session-fork.md)), `core-customize-skill`
+([skill customization](skill-customization.md)), and
 from the OKF pack `okf-maintain-knowledge`, `okf-validate-bundle`, `okf-visualize-bundle`,
 `okf-backfill-from-history` (see [OKF toolkit](../packs/okf-pack.md)), plus `okf-tidy-claude-md`
 written in ai1 ([okf feature](../features/okf.md)). Claude Code
@@ -37,7 +38,8 @@ the folder carries the full name. Each description starts with its module.
 
 All under `.ai1/` (constants in `src/core/config.mjs`): `config.json` (the
 [contract](harness-contract.md)), `okf/` (the bundle, a fixed path since v0.16.0), `proposals/` (called `rfc/` until v0.17) and `work/`, which ignores
-itself with its own `.gitignore`. Outside it only `.claude/settings.json` (Claude Code reads it
+itself with its own `.gitignore`. `.ai1/skills/<feature>/overlay.md` holds the project's skill customizations
+([skill customization](skill-customization.md)). Outside it only `.claude/settings.json` (Claude Code reads it
 there), the worktree recipe `.claude/skills/worktree/` (must be a project skill) and session state
 in `${CLAUDE_PLUGIN_DATA}` or `~/.cache/ai1`.
 
@@ -109,7 +111,8 @@ Checked against the Claude Code docs (plugins reference, skills) on 2026-11-09:
     `pluginConfigs` (authenticate with a token in the environment, since that folder has no login).
 
 So per-repo behaviour has to live in the repo (`.ai1/`, or a project skill as the worktree recipe
-does) and be read by the plugin skill or the CLI; per-person behaviour fits `userConfig`.
+does) and be read by the plugin skill or the CLI; per-person behaviour fits `userConfig`. ai1 does
+both: see [skill customization](skill-customization.md).
 
 # Dogfooding
 

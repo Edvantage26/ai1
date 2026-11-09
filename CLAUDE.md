@@ -26,7 +26,7 @@ OKF validator in `--strict` mode (`python3 skills/okf-validate-bundle/scripts/ok
 - Every module ships with tests; run `npm test` and `claude plugin validate .` before committing.
 - Adding a module: one file (with its `feature`), one line in `src/core/module-index.mjs`, its entry in the schema.
 - Skills live in `skills/<module>-<action>/`: Claude Code names a plugin skill by its folder. The OKF toolkit (`skills/okf-*`, `agents/`, `vendor/`) is ours now (see `.ai1/okf/packs/okf-pack.md`); keep `THIRD-PARTY.md` in sync.
-- Adding a skill: say whether it should be customizable per project or per person, and why, and add it to the classification table of proposal 0001 (`.ai1/proposals/0001-skill-customization.md`) while that proposal is open.
+- Adding a skill: its entry in `src/core/skill-customization-index.mjs` (customizable, with its scopes, or not and why); a customizable one gets the `allowed-tools` permission, a `## Fixed rules` section and the `skill-context` injection as last line (the coherence test checks it; see `.ai1/okf/architecture/skill-customization.md`).
 - Keep `.claude-plugin/plugin.json` and `marketplace.json` versions in sync; tag releases.
 - README describes only what exists; anything not built yet is marked *planned*.
 

@@ -5,7 +5,7 @@ description: Fork the current conversation into a new one - full copy or a scope
 tags: [session, fork, paseo, vscode, desktop, handoff]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T07:22:10Z'
+  at: '2026-11-09T11:59:45Z'
 sources:
   - id: cli-sessions
     resource: https://code.claude.com/docs/en/sessions
@@ -41,6 +41,14 @@ in any repo while the plugin is enabled (ai1 is installed at user scope). Code i
 | VS Code | `CLAUDE_CODE_ENTRYPOINT=claude-vscode` or `TERM_PROGRAM=vscode` | `code --open-url vscode://anthropic.claude-code/open?session=<id>` | same with `?prompt=` |
 | Terminal / JetBrains / SDK / Desktop | default (Desktop has no signal) | prints `claude --resume <id>` (+ `claude --desktop --resume` on macOS/Windows) | prints `claude "$(cat <file>)"` (+ `claude://code/new?q=`) |
 | Web | `CLAUDE_CODE_REMOTE=true` | refused: brief or `/branch` | paste the brief |
+
+The person can override detection with the plugin option `fork_opener` (`/config`: `auto`, `paseo`,
+`vscode`, `desktop`, `terminal`), which the skill passes as `--opener '${user_config.fork_opener}'`
+(`applyForkOpener` in `fork-host.mjs`): unset, `auto` or a literal `${…}` keep detection; an unknown
+value keeps it with a note; the web ignores it; `desktop` where Desktop cannot open (Linux) keeps
+detection with a note. `paseo` from another host starts plain Claude with Paseo's defaults, labelled
+`forked_from=<session id>`; `desktop` lists the Desktop command first. See
+[skill customization](/architecture/skill-customization.md).
 
 `CLAUDE_CODE_ENTRYPOINT` values are observed, not documented, so detection falls back to terminal and
 every way to open the result is always printed. Native alternatives the skill mentions: `/branch`,

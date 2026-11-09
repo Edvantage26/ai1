@@ -2,9 +2,10 @@
 proposal: 1
 title: "Customizable ai1 skills: project and user overlays"
 size: full
-status: draft
+status: implemented
 created: 2026-11-09
 updated: 2026-11-09
+decided: 2026-11-09
 ---
 
 # Proposal 0001: Customizable ai1 skills: project and user overlays
@@ -275,8 +276,25 @@ repo's CLAUDE.md: "Adding a skill: its folder and its entry in the customization
 
 ## Outcome
 
-Not decided yet.
+- **Decision:** accepted (option A); phases 0-2 built.
+- **Date:** 2026-11-09
+- **Decided by:** Edgar Alarcon
+- **Why:** one mechanism for every skill, with the person's tools kept personal; new skills are
+  forced to decide by a test.
+- **Conditions / changes from the design:** folder per feature (skill prefix); no per-feature
+  `settings.json` yet; the injection calls the plugin's own `"${CLAUDE_PLUGIN_ROOT}/bin/ai1"` (an
+  older `ai1` on PATH broke the skill load in the end-to-end test); `allowed-tools` is required or a
+  non-bypass session refuses the command; `fork_opener` reaches the CLI through the skill text
+  (`--opener '${user_config.fork_opener}'`), since `CLAUDE_PLUGIN_OPTION_*` only reaches hooks;
+  `core-customize-skill` added as excluded; `config-guard` covers `.ai1/skills/`.
+- **Recorded in the knowledge bundle:** `architecture/skill-customization.md`,
+  `decisions/skill-customization.md`, `architecture/plugin-layout.md` (phase 0 facts),
+  `features/session-fork.md`, `guards/config-guard.md`.
+- **Next step:** phase 3 (worktree recipe into `.ai1/skills/worktrees/`, after deciding on
+  `/worktree`) and phase 4 (report-issue privacy check in code), when wanted.
 
 ## History
 
 - 2026-11-09: created
+- 2026-11-09: status accepted
+- 2026-11-09: status implemented
