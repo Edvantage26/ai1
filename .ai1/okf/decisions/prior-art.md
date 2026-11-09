@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T07:11:26Z'
+  at: '2026-11-09T09:20:51Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -151,3 +151,78 @@ Popular on GitHub, little independent evaluation (HN submission: 3 points, no co
 Sources: [Pantheon analysis](https://pantheon-org.github.io/agentic-context/analysis/graphify/),
 [explainx.ai](https://explainx.ai/blog/graphify-codebase-knowledge-graph-skill-claude-code-cursor-codex-trending-2026),
 [RoboRhythms](https://www.roborhythms.com/graphify-review/).
+
+# Skills and hook packs survey (2026-11-09)
+
+Web survey of popular skills and plugins, read from READMEs, not code. Most skills are domain skills
+(documents, frameworks, marketing), out of ai1's scope; the useful part is hook packs.
+
+- **[karanb192/claude-code-hooks](https://github.com/karanb192/claude-code-hooks)** (MIT, JS, ~580 stars):
+  `protect-tests` (block deleting, renaming or disabling tests), `config-guard` (block edits to guardrail
+  config and hooks), `protect-secrets` (no reads of `.env`, SSH keys, credentials), `subagent-spawn-cap`
+  (warn at 20, deny at 60 per session), `dead-end-registry` (warn before retrying a reverted approach),
+  `instructions-audit` (hidden directives in CLAUDE.md), `dead-rules-audit` (CLAUDE.md rule compliance).
+- **[agent-guard](https://github.com/hahahahahahahahah6/agent-guard)** (MIT, Python stdlib, 0 stars,
+  178 tests): test-tampering at Stop (hash snapshot at SessionStart; tests changed with no source
+  changed), regex "tamper shapes" on added test text (weakened asserts, skip/only, mocking the subject,
+  RNG or time patching, snapshot updates), and a **cross-tool write guard**: Bash writes (`sed -i`,
+  `tee`, heredocs, `cp`/`mv`) bypass any Edit/Write hook.
+- **Anthropic `security-guidance`** (official, 2026-05-27): deterministic scan of ~25 insecure code
+  patterns on Edit/Write, extensible with `.claude/security-patterns.yaml`. Insecure code, not secret
+  files: no overlap with a `secrets` guard. Point to it when present, as with Impeccable.
+- Covered already, left out: planning-with-files and handoff skills (lanes `plan.md`, compaction
+  restore, brief fork); `code-review` and `skill-creator` (official, point to them);
+  [trailofbits/skills](https://github.com/trailofbits/skills) (security research domain).
+
+Gaps found in ai1 (checked in `src/`): nothing guards `.ai1/config.json`, `.claude/settings.json` or
+the hooks against the agent switching its own rules off; no test-weakening detector yet. Bash writes
+are already handled: the Stop checks (`okf-upkeep`, `verify-gate`) judge by git and mtimes, and
+`src/core/shell-writes.mjs` feeds `session-writes`, `lanes-gate` and the bundle-edit count; only the
+PostToolUse checks matched on Read/Edit/Write (`okf-file-context`) miss a file written by Bash.
+`dead-end-registry` (keyword recall of reverted approaches from a JSONL outside the repo) is covered by
+OKF: Decision concepts and per-concept "ruled out" notes, the upkeep reminder's "what was ruled out",
+recall by message and by file; the only miss is a short try-and-revert that leaves no diff and fewer
+than 10 investigation steps. Built on 2026-11-09 (v0.21.0): config guard, test-weakening guard, repo
+rules, credential deny rules and a decision log, see [harness guards](harness-guards.md). Still
+candidates, not decided: a subagent cap and a systematic-debugging method skill. The short
+try-and-revert gap was closed the same day by okf-upkeep's reminder for attempts undone in the session.
+
+Checked against the code (2026-11-09; hooks.json has no PreToolUse matcher for Read, Grep, Glob, Agent or Task):
+
+| Idea | In ai1 | Gap |
+|---|---|---|
+| config-guard | no (built 2026-11-09) | `danger` reads `ignore_rules` from `.ai1/config.json`, which the agent can edit; nothing guards it, `.claude/settings*.json` or `hooks/`; `verify-gate` ignores `.claude/**` and `.ai1/**`. `listShellWriteTargets` can be reused |
+| protect-tests | partial (test-guard built 2026-11-09) | `verify-gate` needs a passing run, but nothing reads test content: a weakened suite passes |
+| protect-secrets | no (deny rules in `ai1 init`, 2026-11-09) | needs a Read/Grep matcher and a parser of shell read targets |
+| subagent cap | no | Agent/Task only mark "may write" in `session-writes` |
+| instructions-audit | partial | `okf-claude-md-check` is the scanner to extend; no invisible-Unicode or `curl\|sh` checks |
+| dead-rules-audit | no | `transcript-scan` could feed it, in `ai1 doctor --session` |
+
+# Harness and memory projects (2026-11-09)
+
+Read from source or READMEs by subagents; popularity from the GitHub API.
+
+- **hookify** (official, Apache-2.0): regex rules as `.claude/hookify.<name>.local.md` (event, pattern
+  or conditions, `warn|block`, body = message), re-read on each call; `/hookify` with no argument mines
+  recent corrections. Idea: repo-declared block/warn rules through the `danger` engine, a skill drafting
+  one from a correction after a yes.
+- **ralph-loop** (official, Apache-2.0): Stop hook re-feeding the prompt until a self-declared
+  `<promise>` or an iteration cap; state file keyed by session. `verify` is the deterministic version
+  and already gives up after 2 blocks per situation. Nothing to take.
+- **security-guidance** v2.0.18 adds an LLM diff review at Stop and an async reviewer on `git commit`,
+  with environment kill switches per layer. Other official plugins overlap: `feature-dev` (deep lane),
+  `claude-md-management` (`okf-tidy-claude-md`), `explanatory-output-style` (brief injection).
+- **trailofbits/claude-code-config** (~2.1k stars, no license: ideas only): permission deny rules for
+  credential paths and destructive commands, which bind Bash only under `/sandbox`; "hooks are
+  guardrails, not walls". Idea: `/ai1:core-setup-repo` offers credential `Read`/`Edit` deny rules in
+  `.claude/settings.json`, zero runtime cost.
+- **Continuous-Claude v3** (MIT, ~3.9k stars, stale since 2026-01): ledgers, YAML handoffs written on
+  PreCompact, Postgres + pgvector, embeddings, daemons, a headless Claude extracting learnings. Opposite
+  of [principles](principles.md); lanes already restore plan progress after compaction.
+- **claude-mem** (Apache-2.0, ~115k stars): every hook posts to a Bun worker whose observer LLM
+  compresses activity into SQLite + Chroma, per machine; telemetry on by default; code readings report
+  unbatched calls, no timeouts, shell injection. Its three-step progressive disclosure is what
+  `okf-recall` already does (pointers only). Critique to answer with data: memory add-ons cost context.
+- **claude-code-hooks-mastery** (~4k stars, no license): demo of all 13 hook events in `uv` Python.
+  Ideas: an opt-in local JSONL log of hook decisions (module, decision, ms) for misfires and
+  `/ai1:core-report-issue`; a PermissionRequest handler allowing commands already classified safe.

@@ -64,10 +64,19 @@ ask with AskUserQuestion, **multiSelect**, which ones to disable **in this repo 
 One option per plugin; mark the `disable` ones "(recommended)", the `warn` ones without it. Never
 disable one the person did not pick. If none is left, skip this step.
 
+Then, unless `credentialDenyRules` already shows them all, ask one yes/no question (recommended:
+yes): add Claude Code permission deny rules so the agent cannot read credential files - private
+keys (`*.pem`, `*.key`, `~/.ssh/id_*`) and the credential stores in the home folder (`~/.aws`,
+`~/.gnupg`, `~/.kube`, `~/.config/gh`, `~/.docker/config.json`, `~/.netrc`, `~/.git-credentials`,
+`~/.npmrc`, `~/.pypirc`). Say in one line what they cover: the file tools and the shell file
+commands Claude Code recognises (`cat`, `head`, redirects), not scripts that open files themselves,
+and that they go in the committed `.claude/settings.json`, so they apply to the whole team. `.env`
+files are not included.
+
 ## 4. Write the configuration
 
 ```bash
-ai1 init --features <comma-separated ids> [--verify "<command>" ...] [--disable-plugins <ids picked in step 3>]
+ai1 init --features <comma-separated ids> [--verify "<command>" ...] [--disable-plugins <ids picked in step 3>] [--deny-credentials]
 ```
 
 Pass `--features ""` to turn every optional feature off. Report what the command printed,

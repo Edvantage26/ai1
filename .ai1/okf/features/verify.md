@@ -5,7 +5,7 @@ description: Stop gate - the agent cannot finish while code it changed is newer 
 tags: [verify, hooks, evidence, cli]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T08:23:20Z'
+  at: '2026-11-09T09:20:51Z'
 sources:
   - id: verify-gate
     resource: src/verify/verify-gate.mjs
@@ -25,6 +25,11 @@ that works in the [prior-art review](/decisions/prior-art.md) shares one thing: 
 agent cannot declare by itself (Ralph loop backpressure, Superpowers `task-done`). Superpowers'
 prompt-only version measured agents running only the named test file in 11/12 runs. On by default;
 it does nothing in a repo without `verify` commands in `.ai1/config.json`.
+
+# test-guard (PreToolUse)
+
+The gate trusts a passing suite, so [test-guard](../guards/test-guard.md) asks the person before an
+edit or shell command skips, empties, weakens or deletes tests (since 2026-11-09).
 
 # verify-gate (Stop)
 

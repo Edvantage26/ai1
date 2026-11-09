@@ -10,7 +10,7 @@ function runEntrypoint(eventName, stdinText, environment = {}) {
   return spawnSync(process.execPath, [HOOK_ENTRYPOINT, eventName], {
     input: stdinText,
     encoding: 'utf8',
-    env: { PATH: process.env.PATH, ...environment },
+    env: { PATH: process.env.PATH, AI1_DECISION_LOG: '0', ...environment },
   });
 }
 

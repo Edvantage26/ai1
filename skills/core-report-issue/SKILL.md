@@ -25,6 +25,10 @@ From the conversation, take what went wrong: which hook, skill or command (the `
 prefix of a hook message names it), the exact message, what the agent or person was doing, and
 what was expected. Ask the person only for what is missing; one question at a time.
 
+For a hook that misfires or is slow, `ai1 log --since 2` shows what each module decided and how
+long it took (metadata only: module, event, decision, ms, characters added; no commands or paths).
+Quote the lines of the module at fault.
+
 ## 2. Look for a duplicate
 
 ```bash

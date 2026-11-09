@@ -5,7 +5,7 @@ description: Phases from proving ai1 in a real repo to the doctor command.
 tags: [roadmap]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T07:36:47Z'
+  at: '2026-11-09T09:20:51Z'
 ---
 
 Order changed on 2026-10-30: build the generic structure in ai1 first, then prove it in real repos.
@@ -28,8 +28,13 @@ Order changed on 2026-10-30: build the generic structure in ai1 first, then prov
 2g. **Session fork** (done 2026-11-09, v0.14): `/ai1:session-fork-conversation` and `ai1 fork`, a
    full or brief fork of the conversation opened natively per host. See
    [session fork](features/session-fork.md).
+2h. **Harness guards** (done 2026-11-09, v0.21.0, proposals 0001-0005): [config-guard](guards/config-guard.md),
+   [test-guard](guards/test-guard.md), [repo-rules](guards/repo-rules.md) with `/ai1:danger-write-rule`,
+   credential deny rules in `ai1 init`, and the [decision log](architecture/decision-log.md) with `ai1 log`.
+   See [harness guards](decisions/harness-guards.md).
 3. **`prod` and `secrets` guards**, driven by .ai1/config.json (MCP tools writing to production, shell
-   patterns, secrets in staged files).
+   patterns, secrets in staged files). Credential files are already covered by permission deny rules
+   (2h); `secrets` remains for staged files and scripts.
 4. **`verify` Stop gate** (done 2026-11-08): see [verify feature](features/verify.md).
 5. **`ai1 doctor`**: audit a repo against its features.
 6. **Method skills and reviewers**: `ftd`, `verify`, `review`, finding verifier.

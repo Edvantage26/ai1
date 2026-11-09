@@ -5,7 +5,7 @@ description: PreToolUse guard that confirms or refuses shell commands that destr
 tags: [guard, hooks, bash]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T08:09:21Z'
+  at: '2026-11-09T09:20:51Z'
 ---
 
 Source: `src/guards/danger.mjs`. Runs on `Bash` tool calls when the `danger` feature is on (on by default).
@@ -35,3 +35,7 @@ and each simple command is checked against the rules.
 Option: `modules.danger.ignore_rules` (list of rule ids). The schema enum must list every rule id.
 
 In headless sessions (`claude -p`, Paseo agents) an `ask` cannot be confirmed, so it acts as a refusal.
+
+The `danger` feature also runs [config-guard](config-guard.md) (changes to `.ai1/config.json`,
+`.claude/settings*.json`, `.claude/hooks/` ask the person, so `ignore_rules` cannot be edited away
+unseen) and [repo-rules](repo-rules.md) (the repo's own rules).

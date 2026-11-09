@@ -5,7 +5,7 @@ description: The per-repo file that makes generic hooks behave correctly in each
 tags: [config, contract, hooks]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T06:17:09Z'
+  at: '2026-11-09T09:20:51Z'
 ---
 
 Each repo commits `.ai1/config.json` (template in `templates/config.json`).
@@ -17,6 +17,7 @@ Each repo commits `.ai1/config.json` (template in `templates/config.json`).
 | `trunk` | Protected branch name; default `main` |
 | `verify` | Commands that must pass before the agent calls a change done |
 | `modules.<id>` | `true`/`false` to force a module on/off, or an options object (with optional `enabled`) |
+| `rules` | the repo's own guard rules, see [repo-rules](/guards/repo-rules.md); a bad rule is dropped with a notice, a non-list is invalid |
 
 The OKF bundle is always `.ai1/okf/` (`KNOWLEDGE_BUNDLE_PATH` in `src/core/config.mjs`).
 

@@ -19,9 +19,10 @@ Skills are named `/ai1:<module>-<what it does>`, e.g. `/ai1:okf-validate-bundle`
 A repo set up with the old name (`jig`: `.claude/jig.json`, `.okf/`, `docs/rfc/`, `.jig/work/`) is
 moved to `.ai1/` by `/ai1:core-setup-repo`, with `git mv` so history follows.
 
-> **Status: early (v0.20.2).** Per-repo features, the `okf` feature (project knowledge) and the
+> **Status: early (v0.21.0).** Per-repo features, the `okf` feature (project knowledge) and the
 > `danger` guard work, are tested and verified in real sessions. The `lanes`, `design`, `verify`,
-> `proposals` and `worktrees` features are new and tested, not yet tried in live sessions. Everything marked *planned* does not exist yet.
+> `proposals` and `worktrees` features, and the `config-guard`, `repo-rules` and `test-guard` modules,
+> are new and tested, not yet tried in live sessions. Everything marked *planned* does not exist yet.
 
 ## Why
 
@@ -93,10 +94,10 @@ bundle, the design context.
 | Feature | Default | What it does |
 |---|---|---|
 | `okf` | on | Project knowledge in an [OKF](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf) bundle: loads its index at session start, points the agent to the concepts related to each message and to each file it reads or edits, asks to update it when the session changed files or saved memories after its last update, and ships the OKF toolkit (`/ai1:okf-maintain-knowledge`, `/ai1:okf-validate-bundle`, `/ai1:okf-visualize-bundle`, `/ai1:okf-backfill-from-history`), plus `/ai1:okf-tidy-claude-md` to move knowledge piled up in CLAUDE.md into the bundle |
-| `danger` | on | Confirms or refuses commands that destroy work or data |
+| `danger` | on | Confirms or refuses commands that destroy work or data; asks you before the agent changes ai1's or Claude Code's configuration (so it cannot switch its own guards off); applies your repo's own rules (`rules` in `.ai1/config.json`, written with `/ai1:danger-write-rule`: "use pnpm", "never edit `generated/`") |
 | `craft` | on | Gives the agent the rules for orderly code: the minimum change that solves the task, nothing outside it, reuse before writing, refactors proposed (not applied) when it sees duplication or dead code, self-explanatory names. Where things live (layout, how to add each kind of piece, reusable helpers) goes in the OKF bundle |
 | `design` | off | For repos with a frontend. At session start: read the product and design-system context (OKF concepts of type `Product` / `DesignSystem`, or Impeccable's `PRODUCT.md` / `DESIGN.md`), avoid the generic AI look, keep a quality floor. After every edit to a UI file, 26 deterministic rules (overused fonts, purple gradients, glows, gradient text, low contrast, skipped headings, tiny text, placeholder images...) report what that edit introduced. Points to [Impeccable](https://github.com/pbakaus/impeccable) commands when it is installed |
-| `verify` | on | You cannot get a "done" while code changed after the last passing run of the `verify` commands (run in full: a filtered run does not count). Docs and harness config are exempt. `ai1 verify` runs them; `ai1 step-done` logs a deep-lane step only when they pass |
+| `verify` | on | You cannot get a "done" while code changed after the last passing run of the `verify` commands (run in full: a filtered run does not count). Docs and harness config are exempt. Skipping, emptying, weakening or deleting tests asks you first (`test-guard`). `ai1 verify` runs them; `ai1 step-done` logs a deep-lane step only when they pass |
 | `lanes` | off | Sizes each task: quick ones are done directly, medium ones get a short plan, complex or risky ones get questions and a design (`/ai1:lanes-design-before-code`) that you approve before any code is edited. Restores progress after a compaction |
 | `proposals` | off | Large changes and future features, not decided yet, in `.ai1/proposals/NNNN-<slug>.md` (versioned, apart from the knowledge bundle because a proposal is not the system). The agent creates one only when you ask for it. When a clearly different subject comes up mid-task, it offers in one line to do it here, fork it into a new conversation, or save it as a proposal, and acts on what you pick. Two sizes: a one-page *idea* and a *full* proposal (criteria before options, "do nothing" always an option, assumptions, phases, how to resume). Open proposals listed at session start and related ones recalled on each message; when a proposal is accepted, a hook asks for its decisions to be recorded in the OKF bundle. `/ai1:proposals-write`, `ai1 proposals new\|set\|index\|check`. Called `rfc` until v0.17: `ai1 init` migrates `.ai1/rfc/` and `features.rfc` |
 
@@ -128,6 +129,10 @@ once whether to stop for a plan (`modules.lanes-escalate.max_files` / `max_lines
 | `okf-file-context`: when the agent reads or edits a file, names the concept that describes it (from `resource`, `sources` and code paths in concepts) | okf | PostToolUse | works |
 | `okf-upkeep`: asks to update the bundle after changes, new memories or a long run of investigation (findings, ways to validate, ways of working), and runs the OKF validator itself when the bundle changed, blocking only on errors | okf | Stop | works |
 | `danger`: confirms or refuses `git reset --hard`, force push, `rm -rf`, `--no-verify`, `DROP TABLE`... | danger | PreToolUse | works |
+| `config-guard`: asks you before the agent changes `.ai1/config.json`, `.claude/settings*.json` or `.claude/hooks/` (file tools or shell), in any worktree | danger | PreToolUse | works |
+| `repo-rules` + `/ai1:danger-write-rule`: your repo's own ask/deny rules for shell commands and edits, from `rules` in `.ai1/config.json` | danger | PreToolUse | works |
+| `test-guard`: asks you before tests are skipped, emptied, weakened or deleted (`modules.test-guard.test_paths` / `ignore_rules`) | verify | PreToolUse | works |
+| Decision log + `ai1 log`: every module run logged locally (module, decision, ms, characters added; no commands or paths), off with `AI1_DECISION_LOG=0` | — | all | works |
 | `craft-brief`: the code craft rules at session start | craft | SessionStart | works |
 | `lanes-brief`: the lane recipe at session start; restores deep-lane progress after compaction | lanes | SessionStart | works |
 | `lanes-approval`: records your approval of a deep-lane design marked ready | lanes | UserPromptSubmit | works |
@@ -144,11 +149,12 @@ once whether to stop for a plan (`modules.lanes-escalate.max_files` / `max_lines
 | `worktree-reminder`: the active worktrees when they change and every few prompts, marking this session's | worktrees | UserPromptSubmit | works |
 | `/ai1:worktrees-plan-recipe` + `ai1 worktree` (`create`, `list`, `run`, `finish`, `drop`) | worktrees | — | works |
 | Shared read-only caches per dependency version, `writable`, build slots, `WorktreeCreate` hook for heavy repos | worktrees | — | planned |
-| `/ai1:core-setup-repo` + `ai1` CLI (`ai1 status`, `ai1 init`, `ai1 verify`, `ai1 step-done`, `ai1 proposals`, `ai1 worktree`, `ai1 fork`, `ai1 issue`, `ai1 claude-md`) | — | — | works |
+| `/ai1:core-setup-repo` + `ai1` CLI (`ai1 status`, `ai1 init`, `ai1 verify`, `ai1 step-done`, `ai1 proposals`, `ai1 worktree`, `ai1 fork`, `ai1 issue`, `ai1 claude-md`, `ai1 log`) | — | — | works |
 | `/ai1:session-fork-conversation` + `ai1 fork`: a new conversation from this one, `full` (a copy of the whole conversation) or `brief` (only a written handoff), opened natively in Paseo (an agent), VS Code (the extension URI), a terminal or Claude Desktop (the commands to open it). Needs no feature: works in any repo while the plugin is enabled | — | — | works |
 | `/ai1:core-report-issue` + `ai1 issue`: report a problem with ai1 as an issue on this repo; gathers versions and features (`ai1 issue env`), writes a minimal reproduction without private paths, hosts, names or code, checks duplicates and creates it with `gh` (or a prefilled link, `ai1 issue url`) only after you approve the text. Needs no feature | — | — | works |
 | OKF toolkit skills and agents (`skills/okf-*`, `agents/`) | okf | — | works |
 | `prod`: blocks writes to production resources declared in `.ai1/config.json` | prod | PreToolUse | planned |
+| Credential deny rules: `ai1 init --deny-credentials` (offered by the setup) adds Claude Code permission rules so the agent cannot read private keys and home credential stores (`.env` files are not included) | — | — | works |
 | `secrets`: refuses committing secrets | secrets | PreToolUse | planned |
 | `verify-gate`: no "done" while code is newer than the last passing run of `verify` | verify | Stop | works |
 | `ai1 doctor`, method skills (`ftd`, `review`) and a finding verifier | — | — | planned |

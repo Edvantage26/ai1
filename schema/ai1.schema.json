@@ -157,6 +157,38 @@
             }
           ]
         },
+        "config-guard": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "repo-rules": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
         "okf-index": {
           "oneOf": [
             {
@@ -451,6 +483,42 @@
             }
           ]
         },
+        "test-guard": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "test_paths": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": "Globs of test files, replacing the defaults (*.test.*, *.spec.*, test_*.py, *_test.py, *_test.go, **/test/**, **/tests/**, **/__tests__/**)."
+                },
+                "ignore_rules": {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "test-skip-added",
+                      "test-assertions-removed",
+                      "test-file-emptied",
+                      "test-file-removed",
+                      "test-shell-edit"
+                    ]
+                  }
+                }
+              }
+            }
+          ]
+        },
         "proposals-brief": {
           "oneOf": [
             {
@@ -510,6 +578,62 @@
         "rfc-upkeep": {
           "deprecated": true,
           "description": "Renamed to proposals-upkeep in v0.18.0; ignored with a notice at session start."
+        }
+      }
+    },
+    "rules": {
+      "type": "array",
+      "default": [],
+      "description": "The repo's own guard rules, applied by the repo-rules module (feature danger) before shell commands and file edits. A rule that does not validate is ignored with a notice at session start.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "on",
+          "action",
+          "message"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "description": "Unique kebab-case id, shown in the reason."
+          },
+          "on": {
+            "enum": [
+              "bash",
+              "edit"
+            ],
+            "description": "bash: each simple command of a shell call; edit: Edit/Write/MultiEdit/NotebookEdit."
+          },
+          "pattern": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "description": "JavaScript regular expression: tested against each simple command (bash) or the new text (edit). Required for bash rules."
+          },
+          "paths": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Edit rules only: globs of the files the rule covers (default: all)."
+          },
+          "action": {
+            "enum": [
+              "ask",
+              "deny"
+            ],
+            "description": "ask: the person confirms; deny: refused."
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Why, and what to do instead."
+          }
         }
       }
     }

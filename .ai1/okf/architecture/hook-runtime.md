@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T08:00:33Z'
+  at: '2026-11-09T09:20:51Z'
 ---
 
 # Flow
@@ -49,6 +49,9 @@ the module file disagree, `test/config.test.mjs` if the schema and the index do.
 A module that throws is reported on stderr (visible in verbose mode) and skipped; the others still
 decide. Garbage input makes the entry point exit 0 with no output.
 
+Every module run is timed and logged locally, metadata only: see [decision log](decision-log.md)
+(`ai1 log`, off with `AI1_DECISION_LOG=0`).
+
 # Current modules
 
 | Module | Event | Feature |
@@ -59,9 +62,11 @@ decide. Garbage input makes the entry point exit 0 with no output.
 | `okf-recall` | UserPromptSubmit | okf |
 | `okf-file-context` | PostToolUse (Read, Edit, Write, MultiEdit) | okf |
 | `danger` | PreToolUse (Bash) | danger |
+| `config-guard`, `repo-rules` | PreToolUse (Edit, Write, MultiEdit, NotebookEdit, Bash) | danger |
 | `okf-upkeep` | Stop | okf |
 | `craft-brief` | SessionStart | craft |
 | `verify-gate` | Stop | verify |
+| `test-guard` | PreToolUse (Edit, Write, MultiEdit, Bash) | verify |
 | `lanes-brief` | SessionStart | lanes |
 | `lanes-approval` | UserPromptSubmit | lanes |
 | `lanes-gate`, `lanes-escalate` | PreToolUse (Edit, Write, MultiEdit, NotebookEdit, Bash) | lanes |
@@ -85,7 +90,9 @@ proposals-upkeep), `project-paths.mjs` (tool paths relative to the project root;
 `frontmatter.mjs` (read and write flat YAML frontmatter; okf, lanes and proposals), `git.mjs` (`runGit`,
 `tryGit`, `listIgnoredPaths`, `readOriginHeadBranch`, `detectTrunkBranch`; every module and the CLI), `json-file.mjs` (`readJsonFile` throws on
 invalid JSON for files about to be rewritten, `readJsonFileIfValid`, `writeJsonFile`),
-`markdown-files.mjs` (recursive markdown listing), `legacy-layout.mjs` (detection of the old `jig`
+`markdown-files.mjs` (recursive markdown listing), `tool-call-paths.mjs` (the files a tool call may
+change, sorted as edit / shell-write / remove / move / move-target; config-guard and test-guard),
+`repo-rules-config.mjs` (validation of `rules`), `decision-log.mjs`, `legacy-layout.mjs` (detection of the old `jig`
 layout, so core never imports `src/cli/`). Paths under `.ai1/` (`KNOWLEDGE_BUNDLE_PATH`,
 `WORK_DIRECTORY`) are constants in `config.mjs`.
 okf-upkeep is split: `okf-session-scan.mjs` (transcript, memories, shell edits of the bundle) and

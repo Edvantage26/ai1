@@ -5,6 +5,7 @@
 // with ai1, see src/core/plugin-overlaps.mjs) go to .claude/settings.local.json, personal and kept out of git.
 
 import { tryGit, detectTrunkBranch } from '../core/git.mjs';
+import { splitRepoRules } from '../core/repo-rules-config.mjs';
 import { readJsonFile, writeJsonFile } from '../core/json-file.mjs';
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -49,6 +50,27 @@ function describeWorktreeRecipe(repoRoot) {
   return { status: loadedRecipe.status, path: loadedRecipe.recipePath, errors: loadedRecipe.errors ?? [], warnings: loadedRecipe.warnings ?? [] };
 }
 
+// Permission deny rules for credential files, offered by the setup (`ai1 init --deny-credentials`).
+// Claude Code applies them to its file tools and to the shell file commands it recognises (cat, head,
+// sed, redirects), not to scripts that open files themselves (the sandbox covers those). `.env` files
+// are left out on purpose: local workflows read keys from them. Only the key files in ~/.ssh, so
+// ~/.ssh/config stays readable.
+export const CREDENTIAL_DENY_RULES = [
+  'Read(**/*.pem)', 'Read(**/*.key)', 'Read(~/.ssh/id_*)', 'Read(~/.aws/**)', 'Read(~/.gnupg/**)', 'Read(~/.kube/**)',
+  'Read(~/.config/gh/**)', 'Read(~/.docker/config.json)', 'Read(~/.netrc)', 'Read(~/.git-credentials)', 'Read(~/.npmrc)', 'Read(~/.pypirc)',
+];
+
+function countCredentialDenyRules(projectSettings) {
+  const denyRules = new Set(projectSettings?.permissions?.deny || []);
+  return CREDENTIAL_DENY_RULES.filter((denyRule) => denyRules.has(denyRule)).length;
+}
+
+function describeRepoRules(ai1Config) {
+  if (!Array.isArray(ai1Config?.rules)) return { active: [], ignored: [] };
+  const { validRules, notices } = splitRepoRules(ai1Config.rules);
+  return { active: validRules.map((repoRule) => repoRule.id), ignored: notices };
+}
+
 export function describeRepo(repoRoot, { userSettingsPath = DEFAULT_USER_SETTINGS_PATH } = {}) {
   const ai1Config = readJsonFile(join(repoRoot, CONFIG_RELATIVE_PATH));
   // Before a migration, the features and trunk the repo had under the old name.
@@ -63,6 +85,9 @@ export function describeRepo(repoRoot, { userSettingsPath = DEFAULT_USER_SETTING
     hasKnowledgeBundle,
     detectedVerifyCommands,
     worktreeRecipe: describeWorktreeRecipe(repoRoot),
+    // The repo's own guard rules (`rules`): how many run, and why the others are ignored.
+    repoRules: describeRepoRules(ai1Config),
+    credentialDenyRules: { present: countCredentialDenyRules(readJsonFile(join(repoRoot, '.claude', 'settings.json'))), total: CREDENTIAL_DENY_RULES.length },
     legacyMigration: planLegacyMigration(repoRoot),
     // Against every feature, not only the enabled ones: the setup skill keeps those that overlap with
     // the features the person picks.
@@ -80,7 +105,8 @@ export function describeRepo(repoRoot, { userSettingsPath = DEFAULT_USER_SETTING
 
 // disabledPluginIds: plugins the person chose to switch off in this repo (from describeRepo's
 // overlappingPlugins); ai1 never picks them by itself.
-export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, disabledPluginIds = [] }) {
+// denyCredentials: add CREDENTIAL_DENY_RULES to the committed settings (existing rules are kept).
+export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, disabledPluginIds = [], denyCredentials = false }) {
   if (disabledPluginIds.includes(AI1_PLUGIN_ID)) throw new Error(`${AI1_PLUGIN_ID} cannot be disabled by ai1 init`);
   const malformedPluginIds = disabledPluginIds.filter((pluginId) => !/^[^@\s]+@[^@\s]+$/.test(pluginId));
   if (malformedPluginIds.length) throw new Error(`not plugin ids (name@marketplace): ${malformedPluginIds.join(', ')}`);
@@ -113,6 +139,9 @@ export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, disable
   const projectSettings = readJsonFile(settingsPath) || {};
   projectSettings.extraKnownMarketplaces = { ...projectSettings.extraKnownMarketplaces, ai1: AI1_MARKETPLACE };
   projectSettings.enabledPlugins = { ...projectSettings.enabledPlugins, [AI1_PLUGIN_ID]: true };
+  const existingDenyRules = projectSettings.permissions?.deny || [];
+  const addedDenyRules = denyCredentials ? CREDENTIAL_DENY_RULES.filter((denyRule) => !existingDenyRules.includes(denyRule)) : [];
+  if (addedDenyRules.length) projectSettings.permissions = { ...projectSettings.permissions, deny: [...existingDenyRules, ...addedDenyRules] };
   writeJsonFile(settingsPath, projectSettings);
 
   const disabledPlugins = [...new Set(disabledPluginIds)];
@@ -138,6 +167,7 @@ export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, disable
     knowledge: KNOWLEDGE_BUNDLE_PATH,
     hasKnowledgeBundle: existsSync(join(repoRoot, KNOWLEDGE_BUNDLE_PATH, 'index.md')),
     disabledPlugins,
+    addedDenyRules,
     legacyMigration,
   };
 }

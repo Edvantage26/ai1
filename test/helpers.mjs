@@ -2,6 +2,9 @@ import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+// Tests that dispatch with the real environment must not fill the person's decision log.
+process.env.AI1_DECISION_LOG = '0';
+
 // Creates a throwaway project directory, optionally with a .ai1/config.json.
 export function createTemporaryProject(ai1Config) {
   const projectRoot = mkdtempSync(join(tmpdir(), 'ai1-test-'));

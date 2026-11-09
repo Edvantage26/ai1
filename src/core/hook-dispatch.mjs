@@ -8,6 +8,7 @@ import { loadHarnessConfig, isModuleEnabled, getModuleOptions, CONFIG_RELATIVE_P
 import { resolveProjectRoots } from './project-roots.mjs';
 import { MODULE_INDEX, KNOWN_MODULE_IDS, modulesForEvent } from './module-index.mjs';
 import { hasLegacyLayout } from './legacy-layout.mjs';
+import { appendDecisionLog, decisionCharacters } from './decision-log.mjs';
 
 // moduleDefinitions: metadata of every module (what `enabledModules` lists); runnableModules: the
 // loaded modules of this event (an enabled module that was not loaded is skipped).
@@ -36,9 +37,12 @@ export function dispatchHookEvent(eventName, hookInput, { environment = process.
     .map((moduleDefinition) => runnableById.get(moduleDefinition.id))
     .filter(Boolean);
   const moduleDecisions = [];
+  const logEntries = [];
   for (const moduleDefinition of eventModules) {
+    const startedAt = performance.now();
+    let moduleDecision;
     try {
-      moduleDecisions.push(moduleDefinition.run({
+      moduleDecision = moduleDefinition.run({
         hookInput,
         config,
         projectRoot,
@@ -47,11 +51,24 @@ export function dispatchHookEvent(eventName, hookInput, { environment = process.
         homeDirectory,
         enabledModules,
         moduleOptions: getModuleOptions(moduleDefinition.id, config),
-      }));
+      });
+      moduleDecisions.push(moduleDecision);
     } catch (moduleError) {
+      moduleDecision = { kind: 'error' };
       reportInternalError(`module ${moduleDefinition.id} failed: ${moduleError.stack || moduleError}`);
     }
+    logEntries.push({
+      at: new Date().toISOString(),
+      session: hookInput.session_id,
+      event: eventName,
+      tool: hookInput.tool_name,
+      module: moduleDefinition.id,
+      decision: moduleDecision?.kind || 'allow',
+      ms: Math.round((performance.now() - startedAt) * 100) / 100,
+      chars: decisionCharacters(moduleDecision),
+    });
   }
+  appendDecisionLog(logEntries, sharedRoot, environment);
   for (const configNotice of loadedConfig.notices) {
     reportInternalError(configNotice);
     if (eventName === 'SessionStart') moduleDecisions.push(contextDecision('setup', configNotice));

@@ -5,7 +5,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { setupRepo, describeRepo } from '../src/cli/setup-repo.mjs';
+import { setupRepo, describeRepo, CREDENTIAL_DENY_RULES } from '../src/cli/setup-repo.mjs';
 import { findOverlappingPlugins, describeOverlap, readEnabledPlugins, localSettingsPathFor } from '../src/core/plugin-overlaps.mjs';
 import { detectTrunkBranch } from '../src/core/git.mjs';
 import { AI1_PLUGIN_ID, loadHarnessConfig } from '../src/core/config.mjs';
@@ -154,4 +154,32 @@ test('the ai1 CLI runs init and status from a subdirectory', () => {
 test('init refuses the retired rfc feature id with the new name', () => {
   const repoRoot = mkdtempSync(join(tmpdir(), 'ai1-setup-'));
   assert.throws(() => setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'rfc'] }), /called proposals since v0\.18\.0/);
+});
+
+test('describeRepo lists the active repo rules and why the others are ignored', () => {
+  const repoRoot = mkdtempSync(join(tmpdir(), 'ai1-status-rules-'));
+  mkdirSync(join(repoRoot, '.ai1'));
+  writeFileSync(join(repoRoot, '.ai1', 'config.json'), JSON.stringify({ rules: [{ id: 'use-pnpm', on: 'bash', pattern: '^npm i', action: 'deny', message: 'pnpm' }, { id: 'x' }] }));
+  const { repoRules } = describeRepo(repoRoot, { userSettingsPath: join(repoRoot, 'none.json') });
+  assert.deepEqual(repoRules.active, ['use-pnpm']);
+  assert.match(repoRules.ignored[0], /rules\[1\] \(x\) is ignored/);
+});
+
+test('setupRepo adds the credential deny rules once, keeping existing ones; describeRepo counts them', () => {
+  const repoRoot = mkdtempSync(join(tmpdir(), 'ai1-deny-'));
+  mkdirSync(join(repoRoot, '.claude'));
+  writeFileSync(join(repoRoot, '.claude', 'settings.json'), JSON.stringify({ permissions: { deny: ['Bash(rm -rf *)', 'Read(~/.netrc)'] } }));
+  const userSettingsPath = join(repoRoot, 'none.json');
+  assert.equal(describeRepo(repoRoot, { userSettingsPath }).credentialDenyRules.present, 1);
+  const firstSetup = setupRepo(repoRoot, { enabledFeatureIds: ['danger'], denyCredentials: true });
+  assert.equal(firstSetup.addedDenyRules.length, CREDENTIAL_DENY_RULES.length - 1);
+  const denyRules = JSON.parse(readFileSync(join(repoRoot, '.claude', 'settings.json'), 'utf8')).permissions.deny;
+  assert.deepEqual(denyRules.slice(0, 2), ['Bash(rm -rf *)', 'Read(~/.netrc)']);
+  assert.equal(denyRules.length, CREDENTIAL_DENY_RULES.length + 1);
+  assert.ok(!denyRules.some((denyRule) => denyRule.includes('.env')), '.env files stay readable');
+  assert.deepEqual(setupRepo(repoRoot, { enabledFeatureIds: ['danger'], denyCredentials: true }).addedDenyRules, []);
+  assert.deepEqual(describeRepo(repoRoot, { userSettingsPath }).credentialDenyRules, { present: CREDENTIAL_DENY_RULES.length, total: CREDENTIAL_DENY_RULES.length });
+  const withoutFlag = mkdtempSync(join(tmpdir(), 'ai1-nodeny-'));
+  setupRepo(withoutFlag, { enabledFeatureIds: ['danger'] });
+  assert.equal(JSON.parse(readFileSync(join(withoutFlag, '.claude', 'settings.json'), 'utf8')).permissions, undefined);
 });
