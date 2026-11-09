@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { appendFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { loadHarnessConfig } from '../core/config.mjs';
-import { KNOWN_MODULE_IDS } from '../core/registry.mjs';
+import { KNOWN_MODULE_IDS } from '../core/module-index.mjs';
 import { WORK_DIRECTORY } from '../core/config.mjs';
 
 export function readVerifyCommands(repoRoot) {

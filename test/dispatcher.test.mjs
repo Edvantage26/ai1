@@ -2,6 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { runHookEvent } from '../src/core/dispatcher.mjs';
 import { ALL_MODULES } from '../src/core/registry.mjs';
+import { MODULE_INDEX, loadModulesForEvent } from '../src/core/module-index.mjs';
+import { dispatchHookEvent } from '../src/core/hook-dispatch.mjs';
 import { KNOWN_FEATURE_IDS } from '../src/core/features.mjs';
 import { allowDecision, askDecision } from '../src/core/hook-io.mjs';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -117,4 +119,27 @@ test('registry modules all declare the required fields', () => {
     assert.equal(typeof moduleDefinition.run, 'function');
   }
   assert.equal(allowDecision().kind, 'allow');
+});
+
+test('the module index agrees with each module file, and an event loads only its modules', async () => {
+  assert.equal(MODULE_INDEX.length, ALL_MODULES.length);
+  for (const [moduleIndexPosition, moduleEntry] of MODULE_INDEX.entries()) {
+    const loadedModule = ALL_MODULES[moduleIndexPosition];
+    assert.deepEqual(
+      { id: loadedModule.id, event: loadedModule.event, feature: loadedModule.feature, toolNames: loadedModule.toolNames },
+      { id: moduleEntry.id, event: moduleEntry.event, feature: moduleEntry.feature, toolNames: moduleEntry.toolNames },
+      moduleEntry.modulePath,
+    );
+  }
+  const bashModules = await loadModulesForEvent('PreToolUse', 'Bash');
+  assert.deepEqual(bashModules.map((loadedModule) => loadedModule.id), ['danger', 'lanes-gate', 'lanes-escalate']);
+  assert.deepEqual((await loadModulesForEvent('PostToolUse', 'Read')).map((loadedModule) => loadedModule.id), ['okf-file-context']);
+});
+
+test('dispatchHookEvent lists every enabled module but runs only the loaded ones', () => {
+  const projectRoot = createTemporaryProject({ verify: ['npm test'] });
+  const briefModule = ALL_MODULES.find((loadedModule) => loadedModule.id === 'brief');
+  const briefText = dispatchHookEvent('SessionStart', { cwd: projectRoot }, { ...quietOptions, runnableModules: [briefModule] }).hookSpecificOutput.additionalContext;
+  assert.match(briefText, /Hooks enforcing them: .*danger.*verify-gate/, 'the brief names modules that were not loaded');
+  assert.doesNotMatch(briefText, /Craft: keep the code growing/, 'craft-brief was not loaded, so it did not run');
 });
