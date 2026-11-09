@@ -12,14 +12,14 @@ sources:
     resource: src/cli/log-command.mjs
     title: ai1 log
   - id: proposal-0005
-    resource: .ai1/proposals/0005-hook-decision-log.md
-    title: Proposal 0005
+    resource: .ai1/later/0005-hook-decision-log.md
+    title: Later 0005
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T12:10:02Z'
+  at: '2026-11-09T13:24:58Z'
 ---
 
-Built 2026-11-09 from proposal 0005; decision in [harness guards](../decisions/harness-guards.md).
+Built 2026-11-09 from later 0005; decision in [harness guards](../decisions/harness-guards.md).
 Part of the [hook runtime](hook-runtime.md), not of a feature: always on, off with `AI1_DECISION_LOG=0`.
 
 # What is logged

@@ -146,10 +146,10 @@ export const DANGER_RULES = [
     },
   },
   {
-    id: 'ai1-proposals-new',
+    id: 'ai1-later-new',
     check(commandWords) {
-      if (baseName(commandWords[0]) !== 'ai1' || commandWords[1] !== 'proposals' || commandWords[2] !== 'new') return null;
-      return { action: 'ask', why: 'ai1 proposals new creates a proposal: only the person decides that something becomes one.' };
+      if (baseName(commandWords[0]) !== 'ai1' || commandWords[1] !== 'later' || commandWords[2] !== 'new') return null;
+      return { action: 'ask', why: 'ai1 later new notes a change down for later: only the person decides that something is noted down.' };
     },
   },
   {

@@ -50,13 +50,13 @@ test('status shows the old layout and the features the repo had', () => {
   assert.equal(repoDescription.hasAi1Config, false);
   assert.deepEqual(repoDescription.legacyMigration.moves.map((plannedMove) => plannedMove.from), ['.claude/jig.json', '.okf', 'docs/rfc', '.jig/work']);
   assert.deepEqual(repoDescription.legacyMigration.settingsFiles, ['.claude/settings.json']);
-  assert.equal(repoDescription.features.find((featureStatus) => featureStatus.id === 'proposals').enabled, true);
+  assert.equal(repoDescription.features.find((featureStatus) => featureStatus.id === 'later').enabled, true);
   assert.equal(repoDescription.features.find((featureStatus) => featureStatus.id === 'danger').enabled, false);
 });
 
 test('ai1 init moves the old layout to .ai1/, keeps history and rewrites links', () => {
   const repoRoot = createLegacyRepo();
-  const setupResult = setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'proposals'], userSettingsPath: writeUserSettings() });
+  const setupResult = setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'later'], userSettingsPath: writeUserSettings() });
   for (const movedAway of ['.claude/jig.json', '.okf', 'docs/rfc', '.jig']) assert.equal(existsSync(join(repoRoot, movedAway)), false, movedAway);
   assert.ok(existsSync(join(repoRoot, 'docs/other.md')), 'the rest of docs/ stays');
   assert.ok(existsSync(join(repoRoot, '.ai1/okf/draft.md')), 'untracked bundle files move too');
@@ -75,8 +75,8 @@ test('ai1 init moves the old layout to .ai1/, keeps history and rewrites links',
   assert.equal(projectSettings.extraKnownMarketplaces.jig, undefined);
   assert.equal(projectSettings.extraKnownMarketplaces.ai1.source.repo, 'Edvantage26/ai1');
 
-  assert.equal(readFileSync(join(repoRoot, '.ai1/proposals/0001-guard.md'), 'utf8'), 'See the [decision](../okf/decisions/guard.md) and the bundle `.ai1/okf/`.\n');
-  assert.equal(readFileSync(join(repoRoot, '.ai1/okf/decisions/guard.md'), 'utf8'), '---\ntype: Decision\nsources:\n  - resource: .ai1/proposals/0001-guard.md\n---\nDecided in `.ai1/proposals/0001-guard.md`; code in [the guard](../../../src/guard.mjs).\n');
+  assert.equal(readFileSync(join(repoRoot, '.ai1/later/0001-guard.md'), 'utf8'), 'See the [decision](../okf/decisions/guard.md) and the bundle `.ai1/okf/`.\n');
+  assert.equal(readFileSync(join(repoRoot, '.ai1/okf/decisions/guard.md'), 'utf8'), '---\ntype: Decision\nsources:\n  - resource: .ai1/later/0001-guard.md\n---\nDecided in `.ai1/later/0001-guard.md`; code in [the guard](../../../src/guard.mjs).\n');
   assert.equal(readFileSync(join(repoRoot, '.ai1/okf/index.md'), 'utf8'), '---\nokf_version: "0.2"\n---\n# Bundle\n* [Decision](decisions/guard.md)\n');
 
   const stagedRenames = runGit(repoRoot, ['diff', '--cached', '-M', '--name-status']);
@@ -84,7 +84,7 @@ test('ai1 init moves the old layout to .ai1/, keeps history and rewrites links',
   assert.match(stagedRenames, /^R\d+\t\.claude\/jig\.json\t\.ai1\/config\.json$/m);
   assert.deepEqual(setupResult.legacyMigration.filesMentioningOldPaths, ['CLAUDE.md']);
 
-  assert.deepEqual(setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'proposals'], userSettingsPath: writeUserSettings() }).legacyMigration.moves, [], 'a second run has nothing to move');
+  assert.deepEqual(setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'later'], userSettingsPath: writeUserSettings() }).legacyMigration.moves, [], 'a second run has nothing to move');
 });
 
 test('migration refuses when a target exists and moves nothing', () => {
@@ -153,31 +153,71 @@ function createRfcFeatureRepo() {
   return repoRoot;
 }
 
-test('ai1 init renames the rfc feature of ai1 < 0.18 to proposals: folder, names, bundle, plans and config', () => {
+test('ai1 init renames the rfc feature of ai1 < 0.18 to later: folder, names, bundle, plans and config', () => {
   const repoRoot = createRfcFeatureRepo();
-  assert.deepEqual(planLegacyMigration(repoRoot).moves, [{ from: '.ai1/rfc', to: '.ai1/proposals' }]);
-  assert.equal(describeRepo(repoRoot).features.find((featureStatus) => featureStatus.id === 'proposals').enabled, true, 'status reads features.rfc as proposals');
-  setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'proposals'], userSettingsPath: writeUserSettings() });
+  assert.deepEqual(planLegacyMigration(repoRoot).moves, [{ from: '.ai1/rfc', to: '.ai1/later' }]);
+  assert.equal(describeRepo(repoRoot).features.find((featureStatus) => featureStatus.id === 'later').enabled, true, 'status reads features.rfc as later');
+  setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'later'], userSettingsPath: writeUserSettings() });
   assert.ok(!existsSync(join(repoRoot, '.ai1/rfc')));
-  assert.match(runGit(repoRoot, ['status', '--porcelain']), /^R. \.ai1\/rfc\/0001-guard\.md -> \.ai1\/proposals\/0001-guard\.md$/m, 'moved with git mv');
-  assert.equal(readFileSync(join(repoRoot, '.ai1/proposals/0001-guard.md'), 'utf8'), '---\nproposal: 1\ntitle: Guard\nsize: idea\nstatus: accepted\ncreated: 2026-11-01\nupdated: 2026-11-02\ndecided: 2026-11-02\n---\n\n# Proposal 0001: Guard\n\nDates are RFC 3339. See /ai1:proposals-write.\n');
-  const indexText = readFileSync(join(repoRoot, '.ai1/proposals/README.md'), 'utf8');
-  assert.match(indexText, /^# Proposals\n\nProposals for large changes and future features\. A proposal is not the system:/);
-  assert.match(indexText, /Create and change proposals with `ai1 proposals new` and `ai1 proposals set`/);
-  assert.match(indexText, /<!-- proposals-index:start \(generated by `ai1 proposals index`; do not edit by hand\) -->[\s\S]*<!-- proposals-index:end -->/);
-  assert.equal(readFileSync(join(repoRoot, '.ai1/okf/decisions/guard.md'), 'utf8'), '---\ntype: Decision\nsources:\n  - resource: .ai1/proposals/0001-guard.md\n---\nFrom Proposal 0001 ([proposal](../../proposals/0001-guard.md)); timestamps are RFC 3339; RFC 0009 is not ours.\n');
+  assert.match(runGit(repoRoot, ['status', '--porcelain']), /^R. \.ai1\/rfc\/0001-guard\.md -> \.ai1\/later\/0001-guard\.md$/m, 'moved with git mv');
+  assert.equal(readFileSync(join(repoRoot, '.ai1/later/0001-guard.md'), 'utf8'), '---\nnumber: 1\ntitle: Guard\nsize: idea\nstatus: accepted\ncreated: 2026-11-01\nupdated: 2026-11-02\ndecided: 2026-11-02\n---\n\n# Later 0001: Guard\n\nDates are RFC 3339. See /ai1:later-write.\n');
+  const indexText = readFileSync(join(repoRoot, '.ai1/later/README.md'), 'utf8');
+  assert.match(indexText, /^# Later\n\nLarge changes and future features, not decided yet, noted down for later\. A later entry is not the system:/);
+  assert.match(indexText, /Create and change entries with `ai1 later new` and `ai1 later set`/);
+  assert.match(indexText, /<!-- later-index:start \(generated by `ai1 later index`; do not edit by hand\) -->[\s\S]*<!-- later-index:end -->/);
+  assert.equal(readFileSync(join(repoRoot, '.ai1/okf/decisions/guard.md'), 'utf8'), '---\ntype: Decision\nsources:\n  - resource: .ai1/later/0001-guard.md\n---\nFrom Later 0001 ([proposal](../../later/0001-guard.md)); timestamps are RFC 3339; RFC 0009 is not ours.\n');
   assert.equal(readFileSync(join(repoRoot, '.ai1/okf/log.md'), 'utf8'), '# Log\n\n## 2026-11-08\n\n* **Creation**: RFC 0001 in `.ai1/rfc/`.\n', 'the log is history: untouched');
-  assert.match(readFileSync(join(repoRoot, '.ai1/work/guard/plan.md'), 'utf8'), /^---\ntitle: Build the guard\nstatus: done\nproposal: 1\n---/);
+  assert.match(readFileSync(join(repoRoot, '.ai1/work/guard/plan.md'), 'utf8'), /^---\ntitle: Build the guard\nstatus: done\nlater: 1\n---/);
   const ai1Config = readJson(join(repoRoot, '.ai1/config.json'));
-  assert.equal(ai1Config.features.proposals, true);
+  assert.equal(ai1Config.features.later, true);
   assert.ok(!Object.hasOwn(ai1Config.features, 'rfc'));
-  assert.deepEqual(ai1Config.modules, { 'proposals-recall': false });
-  assert.deepEqual(setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'proposals'], userSettingsPath: writeUserSettings() }).legacyMigration.moves, [], 'nothing left to move');
+  assert.deepEqual(ai1Config.modules, { 'later-recall': false });
+  assert.deepEqual(setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'later'], userSettingsPath: writeUserSettings() }).legacyMigration.moves, [], 'nothing left to move');
 });
 
-test('the proposals migration refuses when .ai1/proposals already exists', () => {
-  const repoRoot = createRfcFeatureRepo();
-  writeRepoFile(repoRoot, '.ai1/proposals/README.md', '# Proposals\n');
-  assert.deepEqual(planLegacyMigration(repoRoot).conflicts, ['.ai1/proposals']);
-  assert.throws(() => setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'proposals'], userSettingsPath: writeUserSettings() }), /\.ai1\/proposals already exist/);
+function createProposalsFeatureRepo() {
+  const repoRoot = mkdtempSync(join(tmpdir(), 'ai1-proposals-'));
+  runGit(repoRoot, ['init', '-q', '-b', 'main']);
+  writeRepoFile(repoRoot, '.ai1/config.json', JSON.stringify({ version: 1, features: { okf: true, proposals: true }, modules: { 'proposals-recall': false } }));
+  writeRepoFile(repoRoot, '.ai1/proposals/README.md', [
+    '# Proposals', '', 'Proposals for large changes and future features. A proposal is not the system: what is in force lives in the knowledge bundle (`.ai1/okf/`).',
+    'Create and change proposals with `ai1 proposals new` and `ai1 proposals set`; this table is regenerated by them.', '',
+    '<!-- proposals-index:start (generated by `ai1 proposals index`; do not edit by hand) -->', '| No. | Title |', '|---|---|', '| [0001](0001-guard.md) | Guard |', '| [0002](0002-other.md) | Other |', '<!-- proposals-index:end -->', '',
+  ].join('\n'));
+  writeRepoFile(repoRoot, '.ai1/proposals/0001-guard.md', '---\nproposal: 1\ntitle: Guard\nsize: idea\nstatus: superseded\ncreated: 2026-11-01\nupdated: 2026-11-02\nsuperseded_by: 2\n---\n\n# Proposal 0001: Guard\n\nSee /ai1:proposals-write.\n\n## History\n\n- 2026-11-02: status superseded by proposal 0002\n');
+  writeRepoFile(repoRoot, '.ai1/proposals/0002-other.md', '---\nproposal: 2\ntitle: Other\nsize: idea\nstatus: draft\ncreated: 2026-11-02\nupdated: 2026-11-02\n---\n\n# Proposal 0002: Other\n');
+  writeRepoFile(repoRoot, '.ai1/okf/index.md', '---\nokf_version: "0.2"\n---\n# Bundle\n');
+  writeRepoFile(repoRoot, '.ai1/okf/decisions/guard.md', '---\ntype: Decision\nsources:\n  - resource: .ai1/proposals/0001-guard.md\n---\nFrom Proposal 0001 ([it](../../proposals/0001-guard.md)); Proposal 0009 is not ours.\n');
+  writeRepoFile(repoRoot, '.ai1/work/guard/plan.md', '---\ntitle: Build the guard\nstatus: done\nproposal: 1\n---\n# Goal\n');
+  runGit(repoRoot, ['add', '.']);
+  runGit(repoRoot, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'init']);
+  return repoRoot;
+}
+
+test('ai1 init renames the proposals feature of ai1 < 0.24 to later: folder, names, bundle, plans and config', () => {
+  const repoRoot = createProposalsFeatureRepo();
+  assert.deepEqual(planLegacyMigration(repoRoot).moves, [{ from: '.ai1/proposals', to: '.ai1/later' }]);
+  assert.equal(describeRepo(repoRoot).features.find((featureStatus) => featureStatus.id === 'later').enabled, true, 'status reads features.proposals as later');
+  setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'later'], userSettingsPath: writeUserSettings() });
+  assert.ok(!existsSync(join(repoRoot, '.ai1/proposals')));
+  assert.match(runGit(repoRoot, ['status', '--porcelain']), /^R. \.ai1\/proposals\/0001-guard\.md -> \.ai1\/later\/0001-guard\.md$/m, 'moved with git mv');
+  assert.equal(readFileSync(join(repoRoot, '.ai1/later/0001-guard.md'), 'utf8'), '---\nnumber: 1\ntitle: Guard\nsize: idea\nstatus: superseded\ncreated: 2026-11-01\nupdated: 2026-11-02\nsuperseded_by: 2\n---\n\n# Later 0001: Guard\n\nSee /ai1:later-write.\n\n## History\n\n- 2026-11-02: status superseded by later 0002\n');
+  const indexText = readFileSync(join(repoRoot, '.ai1/later/README.md'), 'utf8');
+  assert.match(indexText, /^# Later\n\nLarge changes and future features, not decided yet, noted down for later\. A later entry is not the system:/);
+  assert.match(indexText, /Create and change entries with `ai1 later new` and `ai1 later set`/);
+  assert.match(indexText, /<!-- later-index:start \(generated by `ai1 later index`; do not edit by hand\) -->[\s\S]*<!-- later-index:end -->/);
+  assert.equal(readFileSync(join(repoRoot, '.ai1/okf/decisions/guard.md'), 'utf8'), '---\ntype: Decision\nsources:\n  - resource: .ai1/later/0001-guard.md\n---\nFrom Later 0001 ([it](../../later/0001-guard.md)); Proposal 0009 is not ours.\n');
+  assert.match(readFileSync(join(repoRoot, '.ai1/work/guard/plan.md'), 'utf8'), /^---\ntitle: Build the guard\nstatus: done\nlater: 1\n---/);
+  const ai1Config = readJson(join(repoRoot, '.ai1/config.json'));
+  assert.equal(ai1Config.features.later, true);
+  assert.ok(!Object.hasOwn(ai1Config.features, 'proposals'));
+  assert.deepEqual(ai1Config.modules, { 'later-recall': false });
+  assert.deepEqual(setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'later'], userSettingsPath: writeUserSettings() }).legacyMigration.moves, [], 'nothing left to move');
+});
+
+test('the later migration refuses when .ai1/later already exists', () => {
+  const repoRoot = createProposalsFeatureRepo();
+  writeRepoFile(repoRoot, '.ai1/later/README.md', '# Later\n');
+  assert.deepEqual(planLegacyMigration(repoRoot).conflicts, ['.ai1/later']);
+  assert.throws(() => setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'later'], userSettingsPath: writeUserSettings() }), /\.ai1\/later already exist/);
 });

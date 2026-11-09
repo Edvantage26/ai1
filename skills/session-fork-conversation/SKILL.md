@@ -66,7 +66,7 @@ Code session id, on the web, or when the Paseo agent is not a Claude one (use `b
 
    ## Context you need
    Only the facts and decisions this task depends on, each with its source (file, concept in the
-   knowledge bundle, proposal, plan, commit). State what was decided, not how the discussion went.
+   knowledge bundle, later entry, plan, commit). State what was decided, not how the discussion went.
 
    ## Files
    Where to look and where to change.

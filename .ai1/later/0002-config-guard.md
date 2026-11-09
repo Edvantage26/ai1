@@ -1,5 +1,5 @@
 ---
-proposal: 2
+number: 2
 title: Guard the harness configuration from the agent
 size: idea
 status: implemented
@@ -8,7 +8,7 @@ updated: 2026-11-09
 decided: 2026-11-09
 ---
 
-# Proposal 0002: Guard the harness configuration from the agent
+# Later 0002: Guard the harness configuration from the agent
 
 ## Problem
 

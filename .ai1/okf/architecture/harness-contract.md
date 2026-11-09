@@ -5,7 +5,7 @@ description: The per-repo file that makes generic hooks behave correctly in each
 tags: [config, contract, hooks]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T09:20:51Z'
+  at: '2026-11-09T13:24:58Z'
 ---
 
 Each repo commits `.ai1/config.json` (template in `templates/config.json`).
@@ -33,11 +33,12 @@ bundle to `.ai1/okf/` with `git mv` (the same migration as the old `jig` layout)
 setting; `--knowledge` is refused. The schema keeps the field as `deprecated`, so editors flag it
 without an error on configs that still carry `.ai1/okf`.
 
-# Retired: the `rfc` feature and modules (v0.18.0)
+# Retired: the `rfc` (v0.18.0) and `proposals` (v0.24.0) features and modules
 
-Renamed to `proposals` (see the [proposals feature](/features/proposals.md)). Not aliased:
-`features.rfc`, `modules.rfc-*` and a `.ai1/rfc/` folder give one notice at session start and are
-ignored; `ai1 init` renames them (`renameRetiredIds` in `src/core/config.mjs`, the folder move in the
+`rfc` was renamed to `proposals` in v0.18.0, and `proposals` to `later` in v0.24.0 (see the
+[later feature](/features/later.md)). Not aliased: `features.rfc`, `features.proposals`,
+`modules.rfc-*`, `modules.proposals-*` and a `.ai1/rfc/` or `.ai1/proposals/` folder give one notice
+at session start and are ignored; `ai1 init` renames them (`renameRetiredIds` in `src/core/config.mjs`, the folder move in the
 legacy migration). The schema keeps them as `deprecated`.
 
 Schema: `schema/ai1.schema.json` (for editors). Validation at runtime is hand-written in

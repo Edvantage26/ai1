@@ -39,7 +39,7 @@ test('a small frontend repo: design and verify on, lanes off, worktrees asked', 
   assert.equal(recommendations.verify.recommended, true);
 });
 
-test('a backend repo with migrations and decision records: lanes and proposals on, design off', () => {
+test('a backend repo with migrations and decision records: lanes and later on, design off', () => {
   const repoRoot = createRepoWithFiles({
     'pyproject.toml': '[tool.pytest.ini_options]\naddopts = "-q"\n',
     'app/db/migrations/0001_init.py': '',
@@ -51,13 +51,13 @@ test('a backend repo with migrations and decision records: lanes and proposals o
   assert.equal(recommendations.lanes.recommended, true);
   assert.ok(recommendations.lanes.evidence.includes('risky area: app/db/migrations'));
   assert.ok(recommendations.lanes.evidence.includes('risky area: infra'));
-  assert.equal(recommendations.proposals.recommended, true);
+  assert.equal(recommendations.later.recommended, true);
   assert.equal(recommendations.design.recommended, false);
 });
 
 test('an empty repo: only the always-useful features, verify off until there are tests', () => {
   assert.deepEqual(recommendedIn(createRepoWithFiles({ 'README.md': 'x\n' })), {
-    okf: true, danger: true, craft: true, lanes: false, worktrees: null, proposals: false, design: false, verify: false,
+    okf: true, danger: true, craft: true, lanes: false, worktrees: null, later: false, design: false, verify: false,
   });
 });
 

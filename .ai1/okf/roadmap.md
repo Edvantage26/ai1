@@ -5,7 +5,7 @@ description: Phases from proving ai1 in a real repo to the doctor command.
 tags: [roadmap]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T09:20:51Z'
+  at: '2026-11-09T13:24:58Z'
 ---
 
 Order changed on 2026-10-30: build the generic structure in ai1 first, then prove it in real repos.
@@ -18,9 +18,10 @@ Order changed on 2026-10-30: build the generic structure in ai1 first, then prov
    reuse, proposed refactors, names). See [craft feature](features/craft.md).
 2d. **Design** (done 2026-11-08): UI rules at session start and deterministic design checks on
    edited UI files, ideas from Impeccable. See [design feature](features/design.md).
-2e. **Proposals** (done 2026-11-08 as `rfc`, renamed 2026-11-09 in v0.18.0): undecided changes and
-   future features in `.ai1/proposals/`, apart from the bundle until decided, created only on request
-   or acceptance. See [proposals feature](features/proposals.md).
+2e. **Later** (done 2026-11-08 as `rfc`, renamed `proposals` in v0.18.0 and `later` in v0.24.0, both
+   2026-11-09): undecided changes and future features noted down for later in `.ai1/later/`, apart
+   from the bundle until decided, only on request or when picked in an offer. See
+   [later feature](features/later.md).
 2f. **Worktrees** (phase 1 done 2026-11-08): a worktree per change with a per-project
    recipe planned once (`/ai1:worktrees-plan-recipe`), engine `ai1 worktree`, brief and reminder. Phase 2 (planned):
    shared read-only caches per version, `writable`, build slots and locks, `WorktreeCreate` hook for
@@ -28,7 +29,7 @@ Order changed on 2026-10-30: build the generic structure in ai1 first, then prov
 2g. **Session fork** (done 2026-11-09, v0.14): `/ai1:session-fork-conversation` and `ai1 fork`, a
    full or brief fork of the conversation opened natively per host. See
    [session fork](features/session-fork.md).
-2h. **Harness guards** (done 2026-11-09, v0.21.0, proposals 0002-0006): [config-guard](guards/config-guard.md),
+2h. **Harness guards** (done 2026-11-09, v0.21.0, later 0002-0006): [config-guard](guards/config-guard.md),
    [test-guard](guards/test-guard.md), [repo-rules](guards/repo-rules.md) with `/ai1:danger-write-rule`,
    credential deny rules in `ai1 init`, and the [decision log](architecture/decision-log.md) with `ai1 log`.
    See [harness guards](decisions/harness-guards.md).
@@ -39,7 +40,7 @@ Order changed on 2026-10-30: build the generic structure in ai1 first, then prov
 5. **`ai1 doctor`**: audit a repo against its features.
 6. **Method skills and reviewers**: `ftd`, `verify`, `review`, finding verifier.
 
-Not-yet-decided items live as proposals in `.ai1/proposals/` (index in `.ai1/proposals/README.md`); this roadmap only
+Not-yet-decided items are noted down in `.ai1/later/` (index in `.ai1/later/README.md`); this roadmap only
 orders them. When one is accepted, its decisions become concepts in [decisions/](decisions/index.md).
 
 After each increment, the plugin is tried in real repos of different shapes; the

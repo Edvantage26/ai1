@@ -6,15 +6,15 @@ tags: [guard, hooks, verify, tests]
 resource: src/verify/test-guard.mjs
 sources:
   - id: proposal-0003
-    resource: .ai1/proposals/0003-test-weakening-guard.md
-    title: Proposal 0003
+    resource: .ai1/later/0003-test-weakening-guard.md
+    title: Later 0003
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T09:20:51Z'
+  at: '2026-11-09T13:24:58Z'
 ---
 
 Feature `verify` (on by default), PreToolUse on Edit, Write, MultiEdit and Bash. Built 2026-11-09
-from proposal 0003; decision in [harness guards](../decisions/harness-guards.md).
+from later 0003; decision in [harness guards](../decisions/harness-guards.md).
 
 # Why
 

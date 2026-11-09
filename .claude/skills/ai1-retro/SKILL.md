@@ -43,6 +43,6 @@ and test). Most important first: errors, then false positives, then cost. Then a
 
 - Apply nothing without a yes. Each accepted fix follows this repo's rules: a worktree, a test that
   fails before the fix, `npm test`, the OKF concept of the module updated.
-- A finding too large for one session: offer to save it as a proposal (`/ai1:proposals-write`).
+- A finding too large for one session: offer to note it down for later (`/ai1:later-write`).
 - Never paste repo paths or names from other repos into anything public (issues, commits, the bundle):
   describe the shape, not the project.

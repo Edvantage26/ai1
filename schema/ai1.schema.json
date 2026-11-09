@@ -15,7 +15,7 @@
     },
     "features": {
       "type": "object",
-      "description": "Features enabled in this repo. Omitted features use their default (okf, danger, craft and verify: on, lanes, worktrees, design and proposals: off).",
+      "description": "Features enabled in this repo. Omitted features use their default (okf, danger, craft and verify: on, lanes, worktrees, design and later: off).",
       "additionalProperties": false,
       "properties": {
         "okf": {
@@ -53,15 +53,20 @@
           "default": true,
           "description": "Verification gate: no finishing while code changed after the last passing run of the verify commands."
         },
-        "proposals": {
+        "later": {
           "type": "boolean",
           "default": false,
-          "description": "Proposals: undecided changes and future features in .ai1/proposals/, created only when the person asks or accepts an offer; open ones listed at session start, related ones recalled per message, consistency and bundle citation checked at stop (/ai1:proposals-write, ai1 proposals)."
+          "description": "Later: undecided changes and future features noted down for later in .ai1/later/, only when the person asks or picks it in an offer; open ones listed at session start, related ones recalled per message, consistency and bundle citation checked at stop (/ai1:later-write, ai1 later)."
+        },
+        "proposals": {
+          "type": "boolean",
+          "deprecated": true,
+          "description": "Renamed to later in v0.24.0; ignored with a notice at session start. /ai1:core-setup-repo (ai1 init) migrates it."
         },
         "rfc": {
           "type": "boolean",
           "deprecated": true,
-          "description": "Renamed to proposals in v0.18.0; ignored with a notice at session start. /ai1:core-setup-repo (ai1 init) migrates it."
+          "description": "Renamed to proposals in v0.18.0 and to later in v0.24.0; ignored with a notice at session start. /ai1:core-setup-repo (ai1 init) migrates it."
         }
       }
     },
@@ -159,7 +164,7 @@
                       "git-worktree-remove",
                       "ai1-worktree-drop",
                       "ai1-worktree-finish",
-                      "ai1-proposals-new",
+                      "ai1-later-new",
                       "rm-recursive-force",
                       "find-delete",
                       "file-truncate",
@@ -573,7 +578,7 @@
             }
           ]
         },
-        "proposals-brief": {
+        "later-brief": {
           "oneOf": [
             {
               "type": "boolean"
@@ -588,50 +593,62 @@
               "additionalProperties": false
             }
           ]
+        },
+        "later-recall": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "later-upkeep": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "proposals-brief": {
+          "deprecated": true,
+          "description": "Renamed to later-brief in v0.24.0; ignored with a notice at session start."
         },
         "proposals-recall": {
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "enabled": {
-                  "type": "boolean"
-                }
-              },
-              "additionalProperties": false
-            }
-          ]
+          "deprecated": true,
+          "description": "Renamed to later-recall in v0.24.0; ignored with a notice at session start."
         },
         "proposals-upkeep": {
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "enabled": {
-                  "type": "boolean"
-                }
-              },
-              "additionalProperties": false
-            }
-          ]
+          "deprecated": true,
+          "description": "Renamed to later-upkeep in v0.24.0; ignored with a notice at session start."
         },
         "rfc-brief": {
           "deprecated": true,
-          "description": "Renamed to proposals-brief in v0.18.0; ignored with a notice at session start."
+          "description": "Renamed to proposals-brief in v0.18.0 and to later-brief in v0.24.0; ignored with a notice at session start."
         },
         "rfc-recall": {
           "deprecated": true,
-          "description": "Renamed to proposals-recall in v0.18.0; ignored with a notice at session start."
+          "description": "Renamed to proposals-recall in v0.18.0 and to later-recall in v0.24.0; ignored with a notice at session start."
         },
         "rfc-upkeep": {
           "deprecated": true,
-          "description": "Renamed to proposals-upkeep in v0.18.0; ignored with a notice at session start."
+          "description": "Renamed to proposals-upkeep in v0.18.0 and to later-upkeep in v0.24.0; ignored with a notice at session start."
         }
       }
     },

@@ -5,7 +5,7 @@ description: Sets up ai1 in a repo - asks the features, writes .ai1/config.json 
 tags: [init, cli, setup]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T12:14:40Z'
+  at: '2026-11-09T13:24:58Z'
 sources:
   - id: setup-repo
     resource: src/cli/setup-repo.mjs
@@ -75,7 +75,7 @@ sources:
   auth, payments, billing, infra, terraform, `.tf`), else at least 50 tracked files or 100 commits.
   worktrees: an existing practice (`.worktreeinclude`, `.config/wt.toml`, `.gtrconfig`,
   `.claude/worktrees`), other git worktrees or several authors in 90 days; otherwise `null` (ask
-  whether several sessions run at once). proposals: `.ai1/proposals`, RFC/ADR/decision folders or a
+  whether several sessions run at once). later: `.ai1/later`, RFC/ADR/decision folders or a
   `ROADMAP.md`.
 - **Skill `/ai1:core-setup-repo`** is a setup assistant: runs `ai1 status`, checks the
   recommendations against the repo, proposes a configuration as a table (feature, on/off, why, with

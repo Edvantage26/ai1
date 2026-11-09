@@ -25,7 +25,7 @@ import { runBundleValidator, buildValidationReminder } from './okf-validator.mjs
 import { readSessionBase, listFilesChangedSinceBase } from '../core/session-base.mjs';
 import { tryGit } from '../core/git.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
-import { PROPOSALS_DIRECTORY } from '../proposals/proposals-documents.mjs';
+import { LATER_DIRECTORY } from '../later/later-documents.mjs';
 import { KNOWLEDGE_BUNDLE_PATH, WORK_DIRECTORY } from '../core/config.mjs';
 import { integratedFileMatcher } from '../worktrees/worktree-integrations.mjs';
 
@@ -39,8 +39,8 @@ const MAX_LISTED_AFFECTED_CONCEPTS = 5;
 const IGNORED_PATHS = new Set(['.claude/settings.json', '.claude/settings.local.json', '.ai1/config.json']);
 const INVESTIGATION_CALLS_BEFORE_REMINDER = 10;
 
-// `ignoredDirectories`: folders whose changes are not system knowledge (proposal drafts, when the proposals
-// feature is on: proposals-upkeep handles them, and a proposal must not be written into the bundle).
+// `ignoredDirectories`: folders whose changes are not system knowledge (later entries, when the later
+// feature is on: later-upkeep handles them, and a later entry must not be written into the bundle).
 // `.ai1/work/` (plans and handoffs) is scratch: never knowledge, even where its own .gitignore is missing
 // (a plan written by hand in a worktree shows up as untracked).
 export function listSessionChangedFiles(projectRoot, baseHead, bundleRelativePath, ignoredDirectories = []) {
@@ -223,7 +223,7 @@ export default {
     // are not this session's knowledge. Without a transcript the dates alone decide.
     const sessionMayHaveWritten = !transcriptScan || transcriptScan.sessionMayHaveWritten;
     const isKnowledgeCheckedIntegration = integratedFileMatcher(projectRoot, 'knowledge_checked');
-    const pendingFiles = (sessionMayHaveWritten ? listSessionChangedFiles(projectRoot, baseHead, bundleRelativePath, isFeatureEnabled('proposals', config) ? [PROPOSALS_DIRECTORY] : []) : [])
+    const pendingFiles = (sessionMayHaveWritten ? listSessionChangedFiles(projectRoot, baseHead, bundleRelativePath, isFeatureEnabled('later', config) ? [LATER_DIRECTORY] : []) : [])
       .map((changedPath) => {
         const absolutePath = join(projectRoot, changedPath);
         // A deleted file has no mtime: it is pending, with a fixed signature so it is asked only once.

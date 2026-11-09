@@ -12,15 +12,15 @@ sources:
     resource: skills/danger-write-rule/SKILL.md
     title: /ai1:danger-write-rule
   - id: proposal-0006
-    resource: .ai1/proposals/0006-repo-rules.md
-    title: Proposal 0006
+    resource: .ai1/later/0006-repo-rules.md
+    title: Later 0006
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T09:39:25Z'
+  at: '2026-11-09T13:24:58Z'
 ---
 
 Feature `danger` (on by default), PreToolUse on Edit, Write, MultiEdit, NotebookEdit and Bash.
-Built 2026-11-09 from proposal 0006; decision in [harness guards](../decisions/harness-guards.md).
+Built 2026-11-09 from later 0006; decision in [harness guards](../decisions/harness-guards.md).
 
 # Contract
 

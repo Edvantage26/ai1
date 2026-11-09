@@ -11,7 +11,7 @@ import { readJsonFileIfValid } from '../core/json-file.mjs';
 const FRONTEND_PACKAGES = ['react', 'vue', 'svelte', '@angular/core', 'next', 'nuxt', 'astro', 'solid-js', 'preact', 'lit', '@remix-run/react', 'react-native', 'expo'];
 const FRONTEND_FILE_PATTERN = /\.(tsx|jsx|vue|svelte|astro|css|scss)$/i;
 const RISKY_PATH_PATTERN = /(^|\/)(migrations?|alembic|auth|authentication|payments?|billing|infra|terraform)(\/|$)|\.tf$/i;
-const PROPOSAL_DIRECTORIES = ['.ai1/proposals', 'docs/rfc', 'docs/rfcs', 'rfcs', 'docs/adr', 'adr', 'docs/decisions', 'decisions'];
+const LATER_EVIDENCE_DIRECTORIES = ['.ai1/later', 'docs/rfc', 'docs/rfcs', 'rfcs', 'docs/adr', 'adr', 'docs/decisions', 'decisions'];
 const WORKTREE_PRACTICE_FILES = ['.worktreeinclude', '.config/wt.toml', '.gtrconfig', '.claude/worktrees'];
 const LARGE_REPO_TRACKED_FILES = 50;
 const LARGE_REPO_COMMITS = 100;
@@ -118,8 +118,8 @@ function recommendWorktrees(repoRoot) {
     : { recommended: null, reason: 'it depends on whether you run several sessions on this repo at the same time', evidence };
 }
 
-function recommendProposals(repoRoot) {
-  const evidence = [...PROPOSAL_DIRECTORIES, 'ROADMAP.md'].filter((candidatePath) => existsSync(join(repoRoot, candidatePath))).map((candidatePath) => `${candidatePath} exists`);
+function recommendLater(repoRoot) {
+  const evidence = [...LATER_EVIDENCE_DIRECTORIES, 'ROADMAP.md'].filter((candidatePath) => existsSync(join(repoRoot, candidatePath))).map((candidatePath) => `${candidatePath} exists`);
   return evidence.length
     ? { recommended: true, reason: 'the repo already keeps RFCs, decisions or a roadmap', evidence }
     : { recommended: false, reason: 'no RFCs, decision records or roadmap found', evidence };
@@ -137,7 +137,7 @@ export function recommendFeatures(repoRoot, { hasKnowledgeBundle }) {
       craft: { recommended: true, reason: 'keeps changes small and the code in order in every repo', evidence: [] },
       lanes: recommendLanes(repoRoot, trackedFiles),
       worktrees: recommendWorktrees(repoRoot),
-      proposals: recommendProposals(repoRoot),
+      later: recommendLater(repoRoot),
       design: recommendDesign(repoRoot, trackedFiles),
       verify: verifyCommands.length
         ? { recommended: true, reason: 'the repo has tests to run before a change is done', evidence: verifyCommands }

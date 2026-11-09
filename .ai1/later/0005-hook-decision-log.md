@@ -1,5 +1,5 @@
 ---
-proposal: 5
+number: 5
 title: Local log of hook decisions
 size: idea
 status: implemented
@@ -8,7 +8,7 @@ updated: 2026-11-09
 decided: 2026-11-09
 ---
 
-# Proposal 0005: Local log of hook decisions
+# Later 0005: Local log of hook decisions
 
 ## Problem
 

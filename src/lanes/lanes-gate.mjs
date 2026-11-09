@@ -1,5 +1,5 @@
 // lanes-gate (PreToolUse, feature `lanes`): while a deep-lane design of this session is not approved
-// by the person, refuses edits to project files outside `.ai1/`, the knowledge bundle and proposals (Edit,
+// by the person, refuses edits to project files outside `.ai1/`, the knowledge bundle and later entries (Edit,
 // Write, MultiEdit, NotebookEdit, and shell commands that write files) and asks before inline
 // interpreter scripts, whose writes cannot be told from the command line. Designing, asking and
 // reading stay free; building waits for the approval that lanes-approval records.
@@ -13,7 +13,7 @@ import {
 } from './lanes-work.mjs';
 import { projectRelativePath } from '../core/project-paths.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
-import { PROPOSALS_DIRECTORY } from '../proposals/proposals-documents.mjs';
+import { LATER_DIRECTORY } from '../later/later-documents.mjs';
 import { KNOWLEDGE_BUNDLE_PATH, WORK_DIRECTORY } from '../core/config.mjs';
 
 const MODULE_ID = 'lanes-gate';
@@ -55,8 +55,8 @@ export default {
     if (misplacedPlanPath) {
       return denyDecision(MODULE_ID, `Work plans live in the main checkout, not in a worktree: write \`${join(sharedRoot, misplacedPlanPath)}\` instead of \`${misplacedPlanPath}\` here. The design gate, the approval and \`ai1 step-done\` only read it there.`);
     }
-    // Designing stays free: the work folder, the knowledge bundle and, with the proposals feature, proposals.
-    const designDirectories = [WORK_DIRECTORY, KNOWLEDGE_BUNDLE_PATH, isFeatureEnabled('proposals', config) && PROPOSALS_DIRECTORY].filter(Boolean);
+    // Designing stays free: the work folder, the knowledge bundle and, with the later feature, later entries.
+    const designDirectories = [WORK_DIRECTORY, KNOWLEDGE_BUNDLE_PATH, isFeatureEnabled('later', config) && LATER_DIRECTORY].filter(Boolean);
     const editedPaths = listEditedProjectPaths(hookInput, projectRoot)
       .filter((relativePath) => !designDirectories.some((designDirectory) => isPathInside(relativePath, designDirectory)));
     // An inline script (`python3 - <<EOF`, `node -e`) may write any file, and may only read.

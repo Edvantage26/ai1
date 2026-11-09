@@ -8,15 +8,15 @@ import { join } from 'node:path';
 import { KNOWN_FEATURE_IDS, isFeatureEnabled } from './features.mjs';
 import { splitRepoRules } from './repo-rules-config.mjs';
 
-// Everything ai1 writes in a repo lives under `.ai1/`: config, knowledge bundle, proposals, work plans.
+// Everything ai1 writes in a repo lives under `.ai1/`: config, knowledge bundle, later entries, work plans.
 export const AI1_DIRECTORY = '.ai1';
 export const CONFIG_RELATIVE_PATH = join(AI1_DIRECTORY, 'config.json');
 // The OKF knowledge bundle always lives here (a fixed path since v0.16.0; `knowledge` is retired).
 export const KNOWLEDGE_BUNDLE_PATH = `${AI1_DIRECTORY}/okf`;
 // Work plans and handoffs; ignores itself, never reaches git.
 export const WORK_DIRECTORY = `${AI1_DIRECTORY}/work`;
-// Proposals (feature `proposals`): undecided changes, one file each, versioned.
-export const PROPOSALS_DIRECTORY = `${AI1_DIRECTORY}/proposals`;
+// Later (feature `later`): undecided changes noted down for later, one file each, versioned.
+export const LATER_DIRECTORY = `${AI1_DIRECTORY}/later`;
 export const AI1_PLUGIN_ID = 'ai1@ai1';
 export const SCHEMA_URL = 'https://raw.githubusercontent.com/Edvantage26/ai1/main/schema/ai1.schema.json';
 export const SUPPORTED_CONFIG_VERSION = 1;
@@ -33,11 +33,15 @@ const DEFAULT_CONFIG = {
   rules: [],
 };
 
-// Names retired by a rename (v0.18.0: rfc -> proposals). Not aliased: they are ignored with a notice
-// until `ai1 init` rewrites them (renameRetiredIds).
-const RENAMED_FEATURE_IDS = { rfc: 'proposals' };
-const RENAMED_MODULE_IDS = { 'rfc-brief': 'proposals-brief', 'rfc-recall': 'proposals-recall', 'rfc-upkeep': 'proposals-upkeep' };
-export const RETIRED_PROPOSALS_DIRECTORY = `${AI1_DIRECTORY}/rfc`;
+// Names retired by a rename (v0.18.0: rfc -> proposals; v0.24.0: proposals -> later). Not aliased:
+// they are ignored with a notice until `ai1 init` rewrites them (renameRetiredIds).
+const RENAMED_FEATURE_IDS = { rfc: 'later', proposals: 'later' };
+const RENAMED_MODULE_IDS = {
+  'rfc-brief': 'later-brief', 'rfc-recall': 'later-recall', 'rfc-upkeep': 'later-upkeep',
+  'proposals-brief': 'later-brief', 'proposals-recall': 'later-recall', 'proposals-upkeep': 'later-upkeep',
+};
+export const RETIRED_RFC_DIRECTORY = `${AI1_DIRECTORY}/rfc`;
+export const RETIRED_PROPOSALS_DIRECTORY = `${AI1_DIRECTORY}/proposals`;
 
 // The config with retired feature and module ids renamed (when both names are set, the new one wins).
 export function renameRetiredIds(rawConfig) {
@@ -55,15 +59,15 @@ export function renameRetiredIds(rawConfig) {
   return { ...rawConfig, features: renameKeys(rawConfig.features, RENAMED_FEATURE_IDS), modules: renameKeys(rawConfig.modules, RENAMED_MODULE_IDS) };
 }
 
-// What still uses a retired name: config keys, or the old proposals folder on disk.
+// What still uses a retired name: config keys, or an old folder on disk.
 function readRenamedNamesNotice(rawConfig, projectRoot) {
   const retiredNames = [
     ...Object.keys(rawConfig.features || {}).filter((featureId) => RENAMED_FEATURE_IDS[featureId]).map((featureId) => `features.${featureId}`),
     ...Object.keys(rawConfig.modules || {}).filter((moduleId) => RENAMED_MODULE_IDS[moduleId]).map((moduleId) => `modules.${moduleId}`),
-    ...(existsSync(join(projectRoot, RETIRED_PROPOSALS_DIRECTORY)) ? [`${RETIRED_PROPOSALS_DIRECTORY}/`] : []),
+    ...[RETIRED_RFC_DIRECTORY, RETIRED_PROPOSALS_DIRECTORY].filter((retiredDirectory) => existsSync(join(projectRoot, retiredDirectory))).map((retiredDirectory) => `${retiredDirectory}/`),
   ];
   if (!retiredNames.length) return null;
-  return `This repo still uses the old name rfc (${retiredNames.join(', ')}): ai1 renamed it to proposals in v0.18.0 and ignores the old names. Tell the person; /ai1:core-setup-repo (ai1 init) migrates it to .ai1/proposals/ and features.proposals.`;
+  return `This repo still uses an old name of the later feature (${retiredNames.join(', ')}): ai1 renamed rfc to proposals in v0.18.0 and proposals to later in v0.24.0, and ignores the old names. Tell the person; /ai1:core-setup-repo (ai1 init) migrates it to .ai1/later/ and features.later.`;
 }
 
 // Names this ai1 version does not know (fields, features, modules), e.g. from a repo set up with a

@@ -21,14 +21,14 @@ sources:
     resource: src/session/fork-host.mjs
     title: applyForkOpener
   - id: proposal-0001
-    resource: .ai1/proposals/0001-skill-customization.md
-    title: Proposal 0001
+    resource: .ai1/later/0001-skill-customization.md
+    title: Later 0001
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T11:59:45Z'
+  at: '2026-11-09T13:24:58Z'
 ---
 
-Built 2026-11-09 from proposal 0001 (phases 0-2); decision in
+Built 2026-11-09 from later 0001 (phases 0-2); decision in
 [skill customization decision](../decisions/skill-customization.md). A plugin skill runs from the
 user's cache and a project cannot replace or extend it (see
 [plugin layout](plugin-layout.md#what-a-project-can-change-in-a-plugin-skill)), so ai1 injects the
@@ -71,7 +71,7 @@ Nothing is loaded before the skill runs.
 `src/core/skill-customization-index.mjs` has one entry per skill folder; the coherence test fails
 when a folder has no entry, an entry has no folder, a customizable skill lacks the permission, a
 `## Fixed rules` bullet or the injection as last line, or an excluded one has them. Customizable:
-worktrees-plan-recipe, session-fork-conversation, proposals-write, lanes-design-before-code,
+worktrees-plan-recipe, session-fork-conversation, later-write, lanes-design-before-code,
 okf-maintain-knowledge, okf-tidy-claude-md, okf-visualize-bundle (project and person) and
 core-setup-repo (person only). Excluded, with the reason in the index: okf-backfill-from-history,
 core-report-issue, okf-validate-bundle, danger-write-rule, core-customize-skill.
@@ -93,7 +93,7 @@ core-report-issue, okf-validate-bundle, danger-write-rule, core-customize-skill.
   how a skill works, not when it triggers.
 - `CLAUDE_PLUGIN_OPTION_*` reaches hooks only; the CLI gets user values from the skill text.
 - Other `ai1 …` commands in skills still use `ai1` from PATH (same stale-PATH risk, outside this work).
-- Planned (proposal 0001 phases 3-4): the worktree recipe into `.ai1/skills/worktrees/`, and opening
+- Planned (later 0001 phases 3-4): the worktree recipe into `.ai1/skills/worktrees/`, and opening
   core-report-issue once its privacy check is in code.
 
 # Verified

@@ -89,15 +89,22 @@ test('schema lists every module, every user-facing feature and every danger rule
   assert.deepEqual([...schemaRuleIds].sort(), DANGER_RULES.map((dangerRule) => dangerRule.id).sort());
 });
 
-test('retired rfc names: ignored with one notice, never unknown nor an error; renameRetiredIds lets the new name win', () => {
+test('retired rfc and proposals names: ignored with one notice, never unknown nor an error; renameRetiredIds lets the new name win', () => {
   const oldNamesRepo = createTemporaryProject({ features: { rfc: true }, modules: { 'rfc-recall': false } });
   mkdirSync(join(oldNamesRepo, '.ai1', 'rfc'));
   const loadedConfig = loadHarnessConfig(oldNamesRepo, KNOWN_MODULE_IDS);
   assert.equal(loadedConfig.status, 'ok');
   assert.deepEqual(loadedConfig.unknownEntries, []);
-  assert.match(loadedConfig.notices[0], /old name rfc \(features\.rfc, modules\.rfc-recall, \.ai1\/rfc\/\).*renamed it to proposals.*\/ai1:core-setup-repo/);
-  assert.equal(isModuleEnabled({ id: 'proposals-brief', feature: 'proposals' }, loadedConfig.config), false, 'not aliased');
-  assert.deepEqual(loadHarnessConfig(createTemporaryProject({ features: { proposals: true } }), KNOWN_MODULE_IDS).notices, []);
-  assert.deepEqual(renameRetiredIds({ features: { rfc: true, okf: false }, modules: { 'rfc-upkeep': false } }), { features: { okf: false, proposals: true }, modules: { 'proposals-upkeep': false } });
-  assert.deepEqual(renameRetiredIds({ features: { rfc: true, proposals: false } }).features, { proposals: false }, 'both set: the new name wins');
+  assert.match(loadedConfig.notices[0], /old name of the later feature \(features\.rfc, modules\.rfc-recall, \.ai1\/rfc\/\).*proposals to later in v0\.24\.0.*\/ai1:core-setup-repo/);
+  assert.equal(isModuleEnabled({ id: 'later-brief', feature: 'later' }, loadedConfig.config), false, 'not aliased');
+  const proposalsRepo = createTemporaryProject({ features: { proposals: true }, modules: { 'proposals-upkeep': false } });
+  mkdirSync(join(proposalsRepo, '.ai1', 'proposals'));
+  const proposalsConfig = loadHarnessConfig(proposalsRepo, KNOWN_MODULE_IDS);
+  assert.deepEqual(proposalsConfig.unknownEntries, []);
+  assert.match(proposalsConfig.notices[0], /\(features\.proposals, modules\.proposals-upkeep, \.ai1\/proposals\/\)/);
+  assert.equal(isModuleEnabled({ id: 'later-brief', feature: 'later' }, proposalsConfig.config), false, 'not aliased');
+  assert.deepEqual(loadHarnessConfig(createTemporaryProject({ features: { later: true } }), KNOWN_MODULE_IDS).notices, []);
+  assert.deepEqual(renameRetiredIds({ features: { rfc: true, okf: false }, modules: { 'rfc-upkeep': false } }), { features: { okf: false, later: true }, modules: { 'later-upkeep': false } });
+  assert.deepEqual(renameRetiredIds({ features: { proposals: true }, modules: { 'proposals-recall': false } }), { features: { later: true }, modules: { 'later-recall': false } });
+  assert.deepEqual(renameRetiredIds({ features: { proposals: true, later: false } }).features, { later: false }, 'both set: the new name wins');
 });

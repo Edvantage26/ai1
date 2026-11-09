@@ -1,5 +1,5 @@
 ---
-proposal: 1
+number: 1
 title: "Customizable ai1 skills: project and user overlays"
 size: full
 status: implemented
@@ -8,7 +8,7 @@ updated: 2026-11-09
 decided: 2026-11-09
 ---
 
-# Proposal 0001: Customizable ai1 skills: project and user overlays
+# Later 0001: Customizable ai1 skills: project and user overlays
 
 | Field | Value |
 |---|---|

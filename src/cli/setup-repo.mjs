@@ -116,7 +116,8 @@ export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, disable
   if (disabledPluginIds.includes(AI1_PLUGIN_ID)) throw new Error(`${AI1_PLUGIN_ID} cannot be disabled by ai1 init`);
   const malformedPluginIds = disabledPluginIds.filter((pluginId) => !/^[^@\s]+@[^@\s]+$/.test(pluginId));
   if (malformedPluginIds.length) throw new Error(`not plugin ids (name@marketplace): ${malformedPluginIds.join(', ')}`);
-  if (enabledFeatureIds.includes('rfc')) throw new Error('the rfc feature is called proposals since v0.18.0: use --features ...,proposals');
+  const retiredFeatureId = ['rfc', 'proposals'].find((featureId) => enabledFeatureIds.includes(featureId));
+  if (retiredFeatureId) throw new Error(`the ${retiredFeatureId} feature is called later since v0.24.0: use --features ...,later`);
   const unknownFeatureIds = enabledFeatureIds.filter((featureId) => !KNOWN_FEATURE_IDS.includes(featureId));
   if (unknownFeatureIds.length) throw new Error(`unknown features: ${unknownFeatureIds.join(', ')}`);
   const legacyMigration = migrateLegacyLayout(repoRoot);
@@ -125,8 +126,7 @@ export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, disable
 
   mkdirSync(join(repoRoot, AI1_DIRECTORY), { recursive: true });
   const ai1ConfigPath = join(repoRoot, CONFIG_RELATIVE_PATH);
-  // `knowledge` is retired: the bundle was moved to .ai1/okf above, so the setting goes away.
-  // Retired names go away: `knowledge` (its bundle was moved above), rfc ids renamed to proposals.
+  // Retired names go away: `knowledge` (its bundle was moved above), rfc and proposals ids renamed to later.
   const { knowledge: retiredKnowledgeSetting, ...existingAi1Config } = renameRetiredIds(readJsonFile(ai1ConfigPath) || {});
   const chosenFeatures = Object.fromEntries(SELECTABLE_FEATURE_IDS.map((featureId) => [featureId, enabledFeatureIds.includes(featureId)]));
   const ai1Config = {

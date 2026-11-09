@@ -5,7 +5,7 @@ description: What a repo chooses in .ai1/config.json; each hook module belongs t
 tags: [features, config]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T13:25:52Z'
+  at: '2026-11-09T13:24:58Z'
 sources:
   - id: features-source
     resource: src/core/features.mjs
@@ -25,7 +25,7 @@ repo switches the single module off with `modules.<id>: false`.
 | `verify` | on | `verify-gate` (Stop), `test-guard` (PreToolUse Edit/Write/MultiEdit/Bash, see [test-guard](/guards/test-guard.md)), `fix-loop` (PostToolUse Edit/Write/MultiEdit) | `ai1 verify`, `ai1 step-done`, `/ai1:verify-debug-systematically`, see [verify feature](/features/verify.md) |
 | `lanes` | off | `lanes-brief` (SessionStart), `lanes-approval` (UserPromptSubmit), `lanes-gate` and `lanes-escalate` (PreToolUse Edit/Write/Bash) | `/ai1:lanes-design-before-code`, see [lanes feature](/features/lanes.md) |
 | `worktrees` | off | `worktree-brief` (SessionStart), `worktree-reminder` (UserPromptSubmit) | `/ai1:worktrees-plan-recipe`, `ai1 worktree`, see [worktrees feature](/features/worktrees.md) |
-| `proposals` | off | `proposals-brief` (SessionStart), `proposals-recall` (UserPromptSubmit), `proposals-upkeep` (Stop) | `/ai1:proposals-write`, `ai1 proposals`, see [proposals feature](/features/proposals.md) (called `rfc` until v0.17) |
+| `later` | off | `later-brief` (SessionStart), `later-recall` (UserPromptSubmit), `later-upkeep` (Stop) | `/ai1:later-write`, `ai1 later`, see [later feature](/features/later.md) (called `rfc` until v0.17 and `proposals` until v0.23) |
 | `design` | off | `design-brief` (SessionStart), `design-detect` (PostToolUse Edit/Write/MultiEdit) | see [design feature](/features/design.md) |
 | `core` | always on | `brief` (SessionStart), `issue-offer` (UserPromptSubmit) | `/ai1:core-report-issue`, see [issue report](/features/issue-report.md) |
 

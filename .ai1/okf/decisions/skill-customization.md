@@ -1,15 +1,15 @@
 ---
 type: Decision
 title: Skill customization - one mechanism, two scopes, customizable by default with justified exclusions
-description: Why ai1 skills are customized through overlays injected at load time, per project and per person, and which choices were taken (proposal 0001, 2026-11-09).
+description: Why ai1 skills are customized through overlays injected at load time, per project and per person, and which choices were taken (later 0001, 2026-11-09).
 tags: [decision, skills, customization]
 sources:
   - id: proposal-0001
-    resource: .ai1/proposals/0001-skill-customization.md
+    resource: .ai1/later/0001-skill-customization.md
     title: Customizable ai1 skills - project and user overlays
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T11:59:45Z'
+  at: '2026-11-09T13:24:58Z'
 ---
 
 Decided by the person on 2026-11-09; built the same day. How it works:
@@ -43,5 +43,5 @@ Decided by the person on 2026-11-09; built the same day. How it works:
 - Every new skill gets an index entry; customizable ones carry the frontmatter permission, fixed rules
   and the injection line.
 - `.ai1/skills/` is guarded by config-guard like `.ai1/config.json`.
-- Left for later (proposal phases 3-4): the worktree recipe into `.ai1/skills/worktrees/`, and
+- Left for later (later 0001 phases 3-4): the worktree recipe into `.ai1/skills/worktrees/`, and
   report-issue once its privacy check lives in code.

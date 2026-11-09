@@ -5,7 +5,7 @@ description: PreToolUse guard that confirms or refuses shell commands that destr
 tags: [guard, hooks, bash]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T09:20:51Z'
+  at: '2026-11-09T13:24:58Z'
 ---
 
 Source: `src/guards/danger.mjs`. Runs on `Bash` tool calls when the `danger` feature is on (on by default).
@@ -24,7 +24,7 @@ and each simple command is checked against the rules.
 | `git-worktree-remove` | ask | `git worktree remove --force`, or a worktree with ignored files |
 | `ai1-worktree-drop` | ask | `ai1 worktree drop` |
 | `ai1-worktree-finish` | ask | `ai1 worktree finish`: the person decides when a branch is integrated |
-| `ai1-proposals-new` | ask | `ai1 proposals new`: only the person decides that something becomes a proposal ([proposals](../features/proposals.md)) |
+| `ai1-later-new` | ask | `ai1 later new`: only the person decides that something is noted down for later ([later](../features/later.md)) |
 | `rm-recursive-force` | ask / deny | `rm -r` outside regenerable dirs (`node_modules`, `dist`, `/tmp/...`); deny on `/`, `~`, `$HOME` |
 | `find-delete` | ask | `find ... -delete` unless every search root is a regenerable dir |
 | `file-truncate` | ask | `truncate` to a size that can cut the file (not `-s +N`) |

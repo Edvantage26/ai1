@@ -32,10 +32,10 @@ const noEnvironment = {};
 
 test('no overlay: the heading, "none yet" and the footer that offers to customize', () => {
   const projectRoot = createTemporaryProject();
-  const { exitCode, printedText } = skillContextOutput(['proposals-write'], { workingDirectory: projectRoot, environment: noEnvironment, homeDirectory: createUserHome('proposals') });
+  const { exitCode, printedText } = skillContextOutput(['later-write'], { workingDirectory: projectRoot, environment: noEnvironment, homeDirectory: createUserHome('later') });
   assert.equal(exitCode, 0);
   assert.ok(printedText.startsWith(CUSTOMIZATION_HEADING));
-  assert.match(printedText, /None yet for this project \(\.ai1\/skills\/proposals\/overlay\.md\)/);
+  assert.match(printedText, /None yet for this project \(\.ai1\/skills\/later\/overlay\.md\)/);
   assert.match(printedText, /\/ai1:core-customize-skill/);
   assert.match(printedText, /Fixed rules of the skill above win/);
 });
@@ -98,16 +98,16 @@ test('inside a linked worktree the branch overlay wins, else the main checkout o
   const mainRoot = createTemporaryProject();
   const runGit = (gitArguments, cwd = mainRoot) => execFileSync('git', gitArguments, { cwd, stdio: 'ignore' });
   runGit(['init', '-q', '-b', 'main']);
-  writeProjectOverlay(mainRoot, 'proposals', 'from main');
+  writeProjectOverlay(mainRoot, 'later', 'from main');
   runGit(['add', '.']);
   runGit(['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'init']);
   const worktreeRoot = join(mkdtempSync(join(tmpdir(), 'ai1-wt-')), 'wt');
   runGit(['worktree', 'add', '-q', '-b', 'wt/x', worktreeRoot]);
-  const options = { workingDirectory: join(worktreeRoot, '.ai1'), environment: noEnvironment, homeDirectory: createUserHome('proposals') };
-  writeProjectOverlay(worktreeRoot, 'proposals', 'from the branch');
-  assert.equal(resolveSkillOverlays('proposals-write', options).project.text, 'from the branch');
+  const options = { workingDirectory: join(worktreeRoot, '.ai1'), environment: noEnvironment, homeDirectory: createUserHome('later') };
+  writeProjectOverlay(worktreeRoot, 'later', 'from the branch');
+  assert.equal(resolveSkillOverlays('later-write', options).project.text, 'from the branch');
   execFileSync('rm', ['-rf', join(worktreeRoot, '.ai1', 'skills')]);
-  const fromMain = resolveSkillOverlays('proposals-write', { ...options, workingDirectory: worktreeRoot });
+  const fromMain = resolveSkillOverlays('later-write', { ...options, workingDirectory: worktreeRoot });
   assert.equal(fromMain.project.text, 'from main');
   assert.equal(fromMain.project.fromMainCheckout, true);
   assert.match(renderSkillContext(fromMain), /from the main checkout/);

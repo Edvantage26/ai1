@@ -4,7 +4,7 @@
 
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { CONFIG_RELATIVE_PATH, KNOWLEDGE_BUNDLE_PATH, WORK_DIRECTORY, PROPOSALS_DIRECTORY, RETIRED_PROPOSALS_DIRECTORY } from './config.mjs';
+import { CONFIG_RELATIVE_PATH, KNOWLEDGE_BUNDLE_PATH, WORK_DIRECTORY, LATER_DIRECTORY, RETIRED_RFC_DIRECTORY, RETIRED_PROPOSALS_DIRECTORY } from './config.mjs';
 import { readJsonFileIfValid } from './json-file.mjs';
 
 export const LEGACY_CONFIG_PATH = join('.claude', 'jig.json');
@@ -37,10 +37,12 @@ export function planLegacyMigration(repoRoot) {
   if (configuredBundlePath && configuredBundlePath !== KNOWLEDGE_BUNDLE_PATH && existsSync(join(repoRoot, configuredBundlePath))) {
     moves.push({ from: configuredBundlePath, to: KNOWLEDGE_BUNDLE_PATH });
   }
-  if (legacyConfig?.features?.rfc === true && existsSync(join(repoRoot, LEGACY_RFC_PATH))) moves.push({ from: LEGACY_RFC_PATH, to: PROPOSALS_DIRECTORY });
-  // ai1 before v0.18.0 kept proposals in .ai1/rfc/ (feature rfc).
-  if (!moves.some((plannedMove) => plannedMove.to === PROPOSALS_DIRECTORY) && existsSync(join(repoRoot, RETIRED_PROPOSALS_DIRECTORY))) {
-    moves.push({ from: RETIRED_PROPOSALS_DIRECTORY, to: PROPOSALS_DIRECTORY });
+  if (legacyConfig?.features?.rfc === true && existsSync(join(repoRoot, LEGACY_RFC_PATH))) moves.push({ from: LEGACY_RFC_PATH, to: LATER_DIRECTORY });
+  // ai1 before v0.18.0 kept them in .ai1/rfc/ (feature rfc), before v0.24.0 in .ai1/proposals/ (feature proposals).
+  for (const retiredDirectory of [RETIRED_RFC_DIRECTORY, RETIRED_PROPOSALS_DIRECTORY]) {
+    if (!moves.some((plannedMove) => plannedMove.to === LATER_DIRECTORY) && existsSync(join(repoRoot, retiredDirectory))) {
+      moves.push({ from: retiredDirectory, to: LATER_DIRECTORY });
+    }
   }
   if (existsSync(join(repoRoot, LEGACY_WORK_PATH))) moves.push({ from: LEGACY_WORK_PATH, to: WORK_DIRECTORY });
   const conflicts = moves.filter((plannedMove) => existsSync(join(repoRoot, plannedMove.to))).map((plannedMove) => plannedMove.to);

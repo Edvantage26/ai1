@@ -11,7 +11,7 @@ several sessions often work on ai1 at once, and two of them committing and relea
 
 ## When
 
-- **Any change to files** (code, skills, tests, README, `.ai1/okf/`, proposals): in a worktree. If
+- **Any change to files** (code, skills, tests, README, `.ai1/okf/`, `.ai1/later/`): in a worktree. If
   the session is not in one, create it before the first edit and tell the person its name in one
   line ("Trabajo en el worktree `fix-brief-text`."). No need to ask first.
 - Questions, reviews and research without edits: fine in the main checkout.

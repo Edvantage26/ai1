@@ -29,9 +29,9 @@ export const MODULE_INDEX = [
   { id: 'fix-loop', event: 'PostToolUse', feature: 'verify', toolNames: ['Edit', 'Write', 'MultiEdit'], modulePath: '../verify/fix-loop.mjs' },
   { id: 'worktree-brief', event: 'SessionStart', feature: 'worktrees', modulePath: '../worktrees/worktree-brief.mjs' },
   { id: 'worktree-reminder', event: 'UserPromptSubmit', feature: 'worktrees', modulePath: '../worktrees/worktree-reminder.mjs' },
-  { id: 'proposals-brief', event: 'SessionStart', feature: 'proposals', modulePath: '../proposals/proposals-brief.mjs' },
-  { id: 'proposals-recall', event: 'UserPromptSubmit', feature: 'proposals', modulePath: '../proposals/proposals-recall.mjs' },
-  { id: 'proposals-upkeep', event: 'Stop', feature: 'proposals', modulePath: '../proposals/proposals-upkeep.mjs' },
+  { id: 'later-brief', event: 'SessionStart', feature: 'later', modulePath: '../later/later-brief.mjs' },
+  { id: 'later-recall', event: 'UserPromptSubmit', feature: 'later', modulePath: '../later/later-recall.mjs' },
+  { id: 'later-upkeep', event: 'Stop', feature: 'later', modulePath: '../later/later-upkeep.mjs' },
 ];
 
 export const KNOWN_MODULE_IDS = MODULE_INDEX.map((moduleEntry) => moduleEntry.id);

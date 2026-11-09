@@ -1,5 +1,5 @@
 ---
-proposal: 6
+number: 6
 title: Repo-declared block and warn rules
 size: idea
 status: implemented
@@ -8,7 +8,7 @@ updated: 2026-11-09
 decided: 2026-11-09
 ---
 
-# Proposal 0006: Repo-declared block and warn rules
+# Later 0006: Repo-declared block and warn rules
 
 ## Problem
 

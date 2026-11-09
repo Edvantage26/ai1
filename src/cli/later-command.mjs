@@ -1,11 +1,11 @@
-// `ai1 proposals ...`: the only way proposal files get numbered, moved between statuses and indexed, so the
+// `ai1 later ...`: the only way later entry files get numbered, moved between statuses and indexed, so the
 // agent never does it by hand. Reads the okf feature from .ai1/config.json (defaults when the repo
 // has none) to word the index and check bundle citations.
 
 import { loadHarnessConfig } from '../core/config.mjs';
-import { createProposal, setProposalStatus, writeProposalIndex, checkProposals, listProposals, resolveCitingBundle, resolveKnowledgePath, PROPOSALS_DIRECTORY } from '../proposals/proposals-documents.mjs';
+import { createLaterEntry, setLaterEntryStatus, writeLaterIndex, checkLaterEntries, listLaterEntries, resolveCitingBundle, resolveKnowledgePath, LATER_DIRECTORY } from '../later/later-documents.mjs';
 
-export const PROPOSALS_USAGE = 'ai1 proposals new <slug> [--idea] [--title "<title>"] | ai1 proposals set <number> <status> [--by <number>] | ai1 proposals index | ai1 proposals check';
+export const LATER_USAGE = 'ai1 later new <slug> [--idea] [--title "<title>"] | ai1 later set <number> <status> [--by <number>] | ai1 later index | ai1 later check';
 
 const OPTIONS_WITH_VALUE = new Set(['--title', '--by']);
 
@@ -26,12 +26,12 @@ function loadRepoConfig(repoRoot) {
 }
 
 // Prints the result and returns the exit code.
-export function runProposalCommand(repoRoot, commandArguments, { readOption }) {
+export function runLaterCommand(repoRoot, commandArguments, { readOption }) {
   const [subcommandName, firstArgument, secondArgument] = listPositionalArguments(commandArguments);
   const config = loadRepoConfig(repoRoot);
   const knowledgePath = resolveKnowledgePath(config);
   if (subcommandName === 'new') {
-    const { relativePath, indexPath } = createProposal(repoRoot, {
+    const { relativePath, indexPath } = createLaterEntry(repoRoot, {
       slug: firstArgument, title: readOption('--title'), size: commandArguments.includes('--idea') ? 'idea' : 'full', knowledgePath,
     });
     console.log(`created ${relativePath}`);
@@ -39,25 +39,25 @@ export function runProposalCommand(repoRoot, commandArguments, { readOption }) {
     return 0;
   }
   if (subcommandName === 'set') {
-    if (!firstArgument || !secondArgument) throw new Error('usage: ai1 proposals set <number> <status> [--by <number>]');
-    const { relativePath, indexPath } = setProposalStatus(repoRoot, firstArgument, secondArgument, { supersededBy: readOption('--by'), knowledgePath });
+    if (!firstArgument || !secondArgument) throw new Error('usage: ai1 later set <number> <status> [--by <number>]');
+    const { relativePath, indexPath } = setLaterEntryStatus(repoRoot, firstArgument, secondArgument, { supersededBy: readOption('--by'), knowledgePath });
     console.log(`${relativePath}: status ${secondArgument}`);
     console.log(`updated ${indexPath}`);
     return 0;
   }
   if (subcommandName === 'index') {
-    console.log(`wrote ${writeProposalIndex(repoRoot, knowledgePath)}`);
+    console.log(`wrote ${writeLaterIndex(repoRoot, knowledgePath)}`);
     return 0;
   }
   if (subcommandName === 'check') {
-    const proposalProblems = checkProposals(repoRoot, { knowledgePath, bundleDirectory: resolveCitingBundle(repoRoot, config) });
-    if (!proposalProblems.length) {
-      console.log(`ai1: ${listProposals(repoRoot).length} proposal(s) in ${PROPOSALS_DIRECTORY}/, all consistent`);
+    const laterProblems = checkLaterEntries(repoRoot, { knowledgePath, bundleDirectory: resolveCitingBundle(repoRoot, config) });
+    if (!laterProblems.length) {
+      console.log(`ai1: ${listLaterEntries(repoRoot).length} later entr(y/ies) in ${LATER_DIRECTORY}/, all consistent`);
       return 0;
     }
-    for (const proposalProblem of proposalProblems) console.error(`- ${proposalProblem}`);
+    for (const laterProblem of laterProblems) console.error(`- ${laterProblem}`);
     return 1;
   }
-  console.log(`usage: ${PROPOSALS_USAGE}`);
+  console.log(`usage: ${LATER_USAGE}`);
   return subcommandName ? 1 : 0;
 }

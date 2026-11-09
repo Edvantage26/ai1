@@ -1,5 +1,5 @@
 ---
-proposal: {{number}}
+number: {{number}}
 title: {{title}}
 size: full
 status: draft
@@ -7,20 +7,20 @@ created: {{date}}
 updated: {{date}}
 ---
 
-# Proposal {{padded_number}}: {{title}}
+# Later {{padded_number}}: {{title}}
 
 <!-- The title says what is proposed, not the topic. Replace every comment; when a section does not
 apply, write one line saying why instead of deleting it, so readers know it was considered.
-Readable alone in 10 minutes: long detail goes to .ai1/proposals/{{padded_number}}-<slug>/ and is linked. -->
+Readable alone in 10 minutes: long detail goes to .ai1/later/{{padded_number}}-<slug>/ and is linked. -->
 
 | Field | Value |
 |---|---|
-| **Champion** | <!-- who pushes the proposal --> |
+| **Champion** | <!-- who pushes it --> |
 | **Decides** | <!-- person(s) or team --> |
 | **Consulted** | <!-- who must give an opinion --> |
 | **Impact** | <!-- High / Medium / Low, and one sentence why --> |
 | **Deadline** | <!-- YYYY-MM-DD or "none" --> |
-| **Related** | <!-- proposals, bundle concepts, issues --> |
+| **Related** | <!-- later entries, bundle concepts, issues --> |
 
 ## Summary
 
@@ -58,7 +58,7 @@ decided. Someone who reads only this knows what it is about and where it stands.
 | 1 | | High / Medium / Low | |
 
 <!-- High = backed by data; Medium = reasonable but unverified; Low = uncertain. When an assumption
-falls, the proposal is reviewed. -->
+falls, the entry is reviewed. -->
 
 ## Decision criteria
 
@@ -101,8 +101,8 @@ falls, the proposal is reviewed. -->
 
 ## Design of the recommended option
 
-<!-- Just enough to understand the proposal. Sizing, tables, configurations and diagrams go to
-.ai1/proposals/{{padded_number}}-<slug>/ and are linked from here. -->
+<!-- Just enough to understand the change. Sizing, tables, configurations and diagrams go to
+.ai1/later/{{padded_number}}-<slug>/ and are linked from here. -->
 
 ## Phases
 
@@ -110,7 +110,7 @@ falls, the proposal is reviewed. -->
 |---|---|---|---|
 | 0 | <!-- checks that validate the assumptions --> | | |
 
-## Risks of the proposal
+## Risks of the change
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
@@ -134,10 +134,10 @@ falls, the proposal is reviewed. -->
 
 ## How to resume
 
-<!-- For each dated figure in this proposal, how to redo it today (command, query, tool, bundle concept),
+<!-- For each dated figure in this entry, how to redo it today (command, query, tool, bundle concept),
 and what to check before continuing: fixed risks, changed tool versions, fallen assumptions. -->
 
-| Fact | Value in the proposal (date) | How to refresh it |
+| Fact | Value in the entry (date) | How to refresh it |
 |---|---|---|
 | | | |
 

@@ -1,5 +1,5 @@
 ---
-proposal: {{number}}
+number: {{number}}
 title: {{title}}
 size: idea
 status: draft
@@ -7,10 +7,10 @@ created: {{date}}
 updated: {{date}}
 ---
 
-# Proposal {{padded_number}}: {{title}}
+# Later {{padded_number}}: {{title}}
 
-<!-- An idea is a one-page proposal: enough for someone, months from now, to understand what was proposed and
-why. Replace every comment. When it is about to be decided, grow it to a full proposal: set `size: full`
+<!-- An idea is one page: enough for someone, months from now, to understand what was noted down and
+why. Replace every comment. When it is about to be decided, grow it to a full entry: set `size: full`
 and add the missing sections from the full template. -->
 
 ## Problem
@@ -20,7 +20,7 @@ its date and source instead of copying it. -->
 
 ## Idea
 
-<!-- The proposal in a few lines, and the alternatives seen so far, doing nothing included. -->
+<!-- The idea in a few lines, and the alternatives seen so far, doing nothing included. -->
 
 ## Why it matters
 

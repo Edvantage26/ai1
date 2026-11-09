@@ -120,7 +120,7 @@ export function isPlanApproved(workPlan, approvals) {
 }
 
 // `.ai1/work/.gitignore` with `*` keeps plans out of git without touching the repo's own .gitignore
-// (the rest of `.ai1/` - config, bundle, proposals - is committed).
+// (the rest of `.ai1/` - config, bundle, later entries - is committed).
 export function ensureWorkDirectoryIgnored(projectRoot) {
   const workDirectory = join(projectRoot, WORK_DIRECTORY);
   const ignorePath = join(workDirectory, '.gitignore');
