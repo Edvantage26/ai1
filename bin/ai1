@@ -14,6 +14,7 @@
 //   ai1 claude-md [--json]                       where the repo's CLAUDE.md files drift from the OKF bundle (src/okf/okf-claude-md-check.mjs)
 //   ai1 log [--session <id>] [--since <hours>] [--all] [--json]  what ai1's modules decided here (or in every repo, --all) (src/cli/log-command.mjs)
 //   ai1 skill-context <skill> | --list [--json]  a skill's project and user customization, injected when it loads (src/cli/skill-context-command.mjs)
+//   ai1 walkthrough <add|build|serve|stop|list|destination|save>  the storyboard of a visual change (see src/cli/walkthrough-command.mjs)
 // Run from anywhere inside the repo; files are written at the repo root.
 
 import { findRepoRoot, describeRepo, setupRepo } from '../src/cli/setup-repo.mjs';
@@ -21,6 +22,7 @@ import { findMainCheckout } from '../src/core/project-roots.mjs';
 import { runWorktreeCli, WORKTREE_USAGE } from '../src/cli/worktree-cli.mjs';
 import { readVerifyCommands, runVerifyCommands, recordStepDone, describeScenarioCoverage, closePlan } from '../src/cli/verify-run.mjs';
 import { runLaterCommand, LATER_USAGE } from '../src/cli/later-command.mjs';
+import { runWalkthroughCommand, WALKTHROUGH_USAGE } from '../src/cli/walkthrough-command.mjs';
 import { runForkCommand, FORK_USAGE } from '../src/cli/fork-command.mjs';
 import { runIssueCommand, ISSUE_USAGE } from '../src/cli/issue-command.mjs';
 import { runLogCommand } from '../src/cli/log-command.mjs';
@@ -152,12 +154,15 @@ try {
     process.exitCode = runIssueCommand(repoRoot, commandArguments, { readOption });
   } else if (commandName === 'later') {
     process.exitCode = runLaterCommand(repoRoot, commandArguments, { readOption });
+  } else if (commandName === 'walkthrough') {
+    process.exitCode = runWalkthroughCommand(repoRoot, commandArguments, { readOption });
   } else {
     console.log(`usage: ai1 status [--json] | ai1 init --features okf,danger [--verify "<command>" ...] [--disable-plugins a@x,b@y] [--deny-credentials] [--report-errors ask|auto|off] [--json] | ai1 verify | ai1 step-done <slug> "<step>" | ai1 plan-done <slug> | ai1 claude-md [--json] | ai1 log [--session <id>] [--since <hours>] [--all] [--json] | ${LATER_USAGE}`);
     console.log(WORKTREE_USAGE);
     console.log(FORK_USAGE);
     console.log(ISSUE_USAGE);
     console.log(SKILL_CONTEXT_USAGE);
+    console.log(WALKTHROUGH_USAGE);
     process.exitCode = commandName ? 1 : 0;
   }
 } catch (commandError) {
