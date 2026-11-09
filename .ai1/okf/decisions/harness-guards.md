@@ -21,7 +21,7 @@ sources:
     title: Repo-declared block and warn rules
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T09:20:51Z'
+  at: '2026-11-09T09:41:28Z'
 ---
 
 Context: a survey of popular skills and hook packs ([prior art](prior-art.md), 2026-11-09) checked
@@ -55,6 +55,10 @@ accepted the five proposals and asked to build them all.
 
 # Consequences
 
-- The real-session check could not run (`claude -p` OAuth expired); the hook entry point was driven
-  with Claude Code payloads instead (ask, ask, deny, allow as designed).
+- The real-session check could not run from the agent: `claude -p` launched from a Claude Code Bash
+  call fails with "OAuth session expired and could not be refreshed" even while the person's own
+  `claude` logs in fine - the sandboxed shell cannot refresh the token in `~/.claude/.credentials.json`.
+  A live check is for the person to run in their terminal (`claude --plugin-dir <repo>` in a scratch
+  repo). Instead, `bin/ai1-hook.mjs` was driven with Claude Code PreToolUse payloads on stdin (plus
+  `CLAUDE_PROJECT_DIR` and a temporary `CLAUDE_PLUGIN_DATA`): ask, ask, deny, allow as designed.
 - Shared helper `src/core/tool-call-paths.mjs`: the files a tool call may change, by kind.
