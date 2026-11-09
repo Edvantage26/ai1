@@ -145,6 +145,8 @@
                       "ai1-worktree-finish",
                       "ai1-proposals-new",
                       "rm-recursive-force",
+                      "find-delete",
+                      "file-truncate",
                       "sql-destructive",
                       "docker-destructive",
                       "disk-destroy"
@@ -188,6 +190,22 @@
           ]
         },
         "okf-recall": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "okf-claude-md": {
           "oneOf": [
             {
               "type": "boolean"

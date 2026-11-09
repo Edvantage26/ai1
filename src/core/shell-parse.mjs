@@ -1,11 +1,18 @@
 // Splits a shell command line into the simple commands it actually runs, so guards can reason
 // about `git push --force` whether it arrives alone, chained with `&&`, behind `sudo`, with env
-// assignments in front, or wrapped in `bash -c "..."`.
+// assignments in front, wrapped in `bash -c "..."` or `eval`, fed through `xargs`, or run by
+// `find -exec`.
 // It is a guard helper, not a shell: it aims to never miss an obvious dangerous command, and
 // accepts that an exotic construction may slip through.
 
 const COMMAND_SEPARATORS = new Set(['&&', '||', ';', '|', '&', '\n']);
-const WRAPPER_COMMANDS = new Set(['sudo', 'doas', 'nohup', 'time', 'nice', 'exec', 'command', 'builtin']);
+// Commands that run the rest of the line, with the options of each that take a separate value.
+const WRAPPER_OPTIONS_WITH_VALUE = new Map([
+  ['sudo', ['-u', '-g']], ['doas', ['-u']], ['nohup', []], ['time', []], ['nice', ['-n']],
+  ['exec', []], ['command', []], ['builtin', []],
+  ['xargs', ['-I', '-n', '-L', '-P', '-s', '-d', '-E', '-a']],
+]);
+const FIND_EXEC_ACTIONS = new Set(['-exec', '-execdir', '-ok', '-okdir']);
 const SHELL_COMMANDS = new Set(['bash', 'sh', 'zsh', 'dash']);
 const ENV_ASSIGNMENT = /^[A-Za-z_][A-Za-z0-9_]*=/;
 const MAX_UNWRAP_DEPTH = 3;
@@ -74,20 +81,35 @@ function stripCommandPrefixes(commandWords) {
     const commandWord = commandWords[firstWordIndex];
     if (ENV_ASSIGNMENT.test(commandWord)) firstWordIndex += 1;
     else if (commandWord === 'env') firstWordIndex += 1;
-    else if (WRAPPER_COMMANDS.has(commandWord)) {
+    else if (WRAPPER_OPTIONS_WITH_VALUE.has(commandWord)) {
+      const optionsWithValue = WRAPPER_OPTIONS_WITH_VALUE.get(commandWord);
       firstWordIndex += 1;
-      // Skip wrapper options such as `sudo -u user` or `nice -n 10`.
+      // Skip wrapper options such as `sudo -u user`, `nice -n 10` or `xargs -I {}`.
       while (commandWords[firstWordIndex]?.startsWith('-')) {
         const wrapperOption = commandWords[firstWordIndex];
-        firstWordIndex += ['-u', '-g', '-n'].includes(wrapperOption) ? 2 : 1;
+        firstWordIndex += optionsWithValue.includes(wrapperOption) ? 2 : 1;
       }
     } else break;
   }
   return commandWords.slice(firstWordIndex);
 }
 
+// The commands `find` runs with `-exec cmd ... ;` (or `+`), as word lists.
+function findExecCommands(findWords) {
+  const execCommands = [];
+  for (let wordIndex = 1; wordIndex < findWords.length; wordIndex += 1) {
+    if (!FIND_EXEC_ACTIONS.has(findWords[wordIndex])) continue;
+    const execEndIndex = findWords.findIndex((findWord, endIndex) => endIndex > wordIndex && (findWord === ';' || findWord === '+'));
+    const execWords = findWords.slice(wordIndex + 1, execEndIndex < 0 ? findWords.length : execEndIndex);
+    if (execWords.length) execCommands.push(execWords);
+    wordIndex = execEndIndex < 0 ? findWords.length : execEndIndex;
+  }
+  return execCommands;
+}
+
 // Returns [{ words: [...], text: 'simple command' }] for every simple command, including the ones
-// inside `bash -c "..."`. Command substitutions (`$(...)`, backticks) are not expanded.
+// inside `bash -c "..."`, `eval ...` and `find -exec ...`. Command substitutions (`$(...)`,
+// backticks) are not expanded.
 export function splitSimpleCommands(commandLine, unwrapDepth = 0) {
   const simpleCommands = [];
   let commandWords = [];
@@ -102,7 +124,16 @@ export function splitSimpleCommands(commandLine, unwrapDepth = 0) {
       simpleCommands.push(...splitSimpleCommands(meaningfulWords[shellScriptIndex + 1], unwrapDepth + 1));
       return;
     }
+    if (meaningfulWords[0] === 'eval' && unwrapDepth < MAX_UNWRAP_DEPTH) {
+      simpleCommands.push(...splitSimpleCommands(meaningfulWords.slice(1).join(' '), unwrapDepth + 1));
+      return;
+    }
     simpleCommands.push({ words: meaningfulWords, text: meaningfulWords.join(' ') });
+    if (baseName(meaningfulWords[0]) === 'find') {
+      for (const execWords of findExecCommands(meaningfulWords)) {
+        simpleCommands.push({ words: execWords, text: execWords.join(' ') });
+      }
+    }
   };
   for (const shellToken of tokenizeShell(commandLine)) {
     if (COMMAND_SEPARATORS.has(shellToken)) closeCommand();

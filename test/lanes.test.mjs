@@ -116,6 +116,27 @@ test('lanes-gate: shell writes to code are refused too, reads are not', () => {
   assert.equal(useTool(projectRoot, options, 'Bash', { command: 'echo step >> .ai1/work/billing/progress.md' }), null);
 });
 
+test('lanes-gate: inline interpreter scripts ask while the design waits, and pass once approved', () => {
+  const projectRoot = createLanesRepo();
+  const options = hookOptions();
+  startSession(projectRoot, options);
+  writePlan(projectRoot, 'billing', 'ready');
+  const inlineScript = "python3 - <<'EOF'\nopen('src/app.js', 'w').write('x')\nEOF";
+  const askedScript = useTool(projectRoot, options, 'Bash', { command: inlineScript });
+  assert.equal(askedScript.hookSpecificOutput.permissionDecision, 'ask');
+  assert.match(askedScript.hookSpecificOutput.permissionDecisionReason, /inline script/);
+  assert.equal(useTool(projectRoot, options, 'Bash', { command: 'node -e "console.log(1)"' }).hookSpecificOutput.permissionDecision, 'ask');
+  sendPrompt(projectRoot, options, 'aprobado');
+  assert.equal(useTool(projectRoot, options, 'Bash', { command: inlineScript }), null);
+});
+
+test('lanes-gate: inline scripts pass when no design waits', () => {
+  const projectRoot = createLanesRepo();
+  const options = hookOptions();
+  startSession(projectRoot, options);
+  assert.equal(useTool(projectRoot, options, 'Bash', { command: 'python3 -c "print(1)"' }), null);
+});
+
 test('lanes-gate: a plan written in the file as approved, without the person, still blocks', () => {
   const projectRoot = createLanesRepo();
   const options = hookOptions();

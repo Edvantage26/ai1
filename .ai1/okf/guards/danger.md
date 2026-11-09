@@ -5,14 +5,14 @@ description: PreToolUse guard that confirms or refuses shell commands that destr
 tags: [guard, hooks, bash]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T07:36:47Z'
+  at: '2026-11-09T08:09:21Z'
 ---
 
 Source: `src/guards/danger.mjs`. Runs on `Bash` tool calls when the `danger` feature is on (on by default).
 
 Commands are split with `src/core/shell-parse.mjs` (chains `&&`/`||`/`;`/`|`, env assignments,
-`sudo`/`nohup` wrappers, `bash -c`/`-lc` scripts), and each simple command is checked against the
-rules.
+`sudo`/`nohup`/`xargs` wrappers, `bash -c`/`-lc` scripts, `eval`, and the commands of `find -exec`),
+and each simple command is checked against the rules.
 
 | Rule | Action | Matches |
 |---|---|---|
@@ -26,6 +26,8 @@ rules.
 | `ai1-worktree-finish` | ask | `ai1 worktree finish`: the person decides when a branch is integrated |
 | `ai1-proposals-new` | ask | `ai1 proposals new`: only the person decides that something becomes a proposal ([proposals](../features/proposals.md)) |
 | `rm-recursive-force` | ask / deny | `rm -r` outside regenerable dirs (`node_modules`, `dist`, `/tmp/...`); deny on `/`, `~`, `$HOME` |
+| `find-delete` | ask | `find ... -delete` unless every search root is a regenerable dir |
+| `file-truncate` | ask | `truncate` to a size that can cut the file (not `-s +N`) |
 | `sql-destructive` | ask | `DROP`, `TRUNCATE`, `DELETE FROM x` without `WHERE` |
 | `docker-destructive` | ask | `system prune`, `volume rm/prune`, `compose down -v` |
 | `disk-destroy` | deny | `mkfs*`, `dd of=/dev/...` |

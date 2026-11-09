@@ -90,6 +90,9 @@ one at a time, in this order, and do it only after a yes (the person may leave a
   `/ai1:worktrees-plan-recipe` (it investigates stack, heavy folders, env, ports and checks, and asks
   only what the repo cannot answer).
 - `okf` and there is no bundle yet: create one with `/ai1:okf-maintain-knowledge` (produce mode).
+- `okf` and there is a bundle: run `ai1 claude-md`. If it reports findings, offer
+  `/ai1:okf-tidy-claude-md`; when the migration listed CLAUDE.md among the files with old paths,
+  make it one offer (the skill fixes those paths too).
 - `design` and the bundle has no concept of type `Product` or `DesignSystem`: capture who the
   product is for and its tone; palette, typefaces, type scale, spacing and radii (read from the code
   first, ask only what it does not say).

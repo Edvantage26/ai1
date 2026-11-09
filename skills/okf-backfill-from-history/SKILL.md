@@ -220,6 +220,10 @@ is billed at the frontier rate on every following turn, and the routing exists t
      deterministic estimate of git events whose full diff exceeds the default cap:
      `jq -r 'select(.skip==null and .source=="git") | [.files[]|.add+.del] | add' events.jsonl | awk '$1>300' | wc -l`
 
+8. **Offer to tidy CLAUDE.md** (only where the `ai1` CLI is on the PATH): run `ai1 claude-md`. If it
+   reports findings, add one line to the report offering `/ai1:okf-tidy-claude-md` to move what
+   CLAUDE.md repeats or should hold into the new bundle; do not tidy without a yes.
+
 ## 3. Skip rules
 
 Events matching a rule below are marked `skip: <rule-id>` and skipped during

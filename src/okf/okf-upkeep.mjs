@@ -20,6 +20,7 @@ import { readSessionBase, listFilesChangedSinceBase } from '../core/session-base
 import { isFeatureEnabled } from '../core/features.mjs';
 import { PROPOSALS_DIRECTORY } from '../proposals/proposals-documents.mjs';
 import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
+import { integratedFileMatcher } from '../worktrees/worktree-integrations.mjs';
 
 const MODULE_ID = 'okf-upkeep';
 const MAX_VALIDATION_BLOCKS_PER_SESSION = 3;
@@ -137,6 +138,7 @@ export default {
     // may have written: uncommitted changes from before it, or another session's in the same folder,
     // are not this session's knowledge. Without a transcript the dates alone decide.
     const sessionMayHaveWritten = !transcriptScan || transcriptScan.sessionMayHaveWritten;
+    const isKnowledgeCheckedIntegration = integratedFileMatcher(projectRoot, 'knowledge_checked');
     const pendingFiles = (sessionMayHaveWritten ? listSessionChangedFiles(projectRoot, baseHead, bundleRelativePath, isFeatureEnabled('proposals', config) ? [PROPOSALS_DIRECTORY] : []) : [])
       .map((changedPath) => {
         const absolutePath = join(projectRoot, changedPath);
@@ -146,7 +148,9 @@ export default {
         return { path: changedPath, isDeleted: false, modifiedMilliseconds, signature: `${changedPath}:${Math.floor(modifiedMilliseconds)}` };
       })
       .filter((pendingFile) => pendingFile.isDeleted
-        || (pendingFile.modifiedMilliseconds >= sessionStartMilliseconds && pendingFile.modifiedMilliseconds > bundleUpdatedMilliseconds));
+        || (pendingFile.modifiedMilliseconds >= sessionStartMilliseconds && pendingFile.modifiedMilliseconds > bundleUpdatedMilliseconds))
+      // Brought in by `ai1 worktree finish` after its OKF checks, and untouched since.
+      .filter((pendingFile) => !isKnowledgeCheckedIntegration(pendingFile.path, pendingFile.isDeleted ? null : pendingFile.modifiedMilliseconds));
     // A deletion has no date to compare with the bundle, so it would stay pending forever and ride
     // along every later reminder: it is mentioned once per session and then dropped.
     const deletionsRemindedPath = sessionStatePath(stateDirectory, hookInput.session_id, projectRoot, 'deletions');

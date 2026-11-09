@@ -10,6 +10,7 @@
 //   ai1 worktree <create|list|run|finish|drop>  worktrees from the project recipe (see src/cli/worktree-cli.mjs)
 //   ai1 fork <full|brief|brief-path|host>        a new conversation from this one (see src/cli/fork-command.mjs)
 //   ai1 issue <env|url>                          facts and a prefilled link for a bug report on ai1 (see src/cli/issue-command.mjs)
+//   ai1 claude-md [--json]                       where the repo's CLAUDE.md files drift from the OKF bundle (src/okf/okf-claude-md-check.mjs)
 // Run from anywhere inside the repo; files are written at the repo root.
 
 import { findRepoRoot, describeRepo, setupRepo } from '../src/cli/setup-repo.mjs';
@@ -20,6 +21,10 @@ import { runProposalCommand, PROPOSALS_USAGE } from '../src/cli/proposals-comman
 import { runForkCommand, FORK_USAGE } from '../src/cli/fork-command.mjs';
 import { runIssueCommand, ISSUE_USAGE } from '../src/cli/issue-command.mjs';
 import { describeOverlap } from '../src/core/plugin-overlaps.mjs';
+import { resolveBundleDirectory, readBundleIndex } from '../src/okf/okf-bundle.mjs';
+import { buildFileMap } from '../src/okf/okf-file-map.mjs';
+import { checkClaudeMdFiles, formatClaudeMdReport } from '../src/okf/okf-claude-md-check.mjs';
+import { KNOWLEDGE_BUNDLE_PATH } from '../src/core/config.mjs';
 
 const [commandName, ...commandArguments] = process.argv.slice(2);
 
@@ -104,6 +109,11 @@ try {
     } else {
       console.log(`ai1: verify green (${verifyCommands.join(', ')})`);
     }
+  } else if (commandName === 'claude-md') {
+    const bundleDirectory = resolveBundleDirectory(repoRoot);
+    if (readBundleIndex(bundleDirectory) === null) throw new Error(`no OKF bundle at ${KNOWLEDGE_BUNDLE_PATH}/: nothing to compare CLAUDE.md with`);
+    const claudeMdReports = checkClaudeMdFiles(repoRoot, bundleDirectory, buildFileMap(bundleDirectory, KNOWLEDGE_BUNDLE_PATH));
+    console.log(wantsJson ? JSON.stringify(claudeMdReports, null, 2) : formatClaudeMdReport(claudeMdReports));
   } else if (commandName === 'fork') {
     process.exitCode = runForkCommand(repoRoot, commandArguments, { readOption });
   } else if (commandName === 'issue') {
@@ -111,7 +121,7 @@ try {
   } else if (commandName === 'proposals') {
     process.exitCode = runProposalCommand(repoRoot, commandArguments, { readOption });
   } else {
-    console.log(`usage: ai1 status [--json] | ai1 init --features okf,danger [--verify "<command>" ...] [--disable-plugins a@x,b@y] [--json] | ai1 verify | ai1 step-done <slug> "<step>" | ${PROPOSALS_USAGE}`);
+    console.log(`usage: ai1 status [--json] | ai1 init --features okf,danger [--verify "<command>" ...] [--disable-plugins a@x,b@y] [--json] | ai1 verify | ai1 step-done <slug> "<step>" | ai1 claude-md [--json] | ${PROPOSALS_USAGE}`);
     console.log(WORKTREE_USAGE);
     console.log(FORK_USAGE);
     console.log(ISSUE_USAGE);

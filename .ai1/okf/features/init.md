@@ -5,7 +5,7 @@ description: Sets up ai1 in a repo - asks the features, writes .ai1/config.json 
 tags: [init, cli, setup]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T08:28:20Z'
+  at: '2026-11-09T08:32:34Z'
 sources:
   - id: setup-repo
     resource: src/cli/setup-repo.mjs
@@ -74,5 +74,5 @@ sources:
   proposed as is. Then asks which overlapping plugins to disable in this repo, runs `ai1 init`, shows what
   each enabled feature gives and how to use it, and offers, one at a time, each feature's own setup:
   the worktree recipe (`/ai1:worktrees-plan-recipe`) when missing, the bundle
-  (`/ai1:okf-maintain-knowledge`) when there is none, the Product and DesignSystem concepts for
-  design. Then tells the person to commit and restart. It never commits.
+  (`/ai1:okf-maintain-knowledge`) when there is none, `/ai1:okf-tidy-claude-md` when there is one and
+  `ai1 claude-md` reports findings, the Product and DesignSystem concepts for design. Then tells the person to commit and restart. It never commits.

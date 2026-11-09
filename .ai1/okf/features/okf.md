@@ -1,11 +1,11 @@
 ---
 type: Component
 title: okf feature
-description: Project knowledge in an OKF bundle - index at session start, related concepts per message and per file read or edited, upkeep reminder at stop, OKF toolkit skills.
+description: Project knowledge in an OKF bundle - index at session start, CLAUDE.md drift hint, related concepts per message and per file read or edited, upkeep reminder at stop, OKF toolkit skills.
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T07:24:06Z'
+  at: '2026-11-09T08:23:20Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -31,6 +31,15 @@ sources:
   - id: okf-file-map
     resource: src/okf/okf-file-map.mjs
     title: File to concept map
+  - id: okf-claude-md
+    resource: src/okf/okf-claude-md.mjs
+    title: SessionStart CLAUDE.md drift hint
+  - id: okf-claude-md-check
+    resource: src/okf/okf-claude-md-check.mjs
+    title: CLAUDE.md drift check (hook and ai1 claude-md)
+  - id: okf-tidy-claude-md
+    resource: skills/okf-tidy-claude-md/SKILL.md
+    title: /ai1:okf-tidy-claude-md skill
 ---
 
 # What it does
@@ -38,6 +47,44 @@ sources:
 - **okf-index (SessionStart):** reads `.ai1/okf/index.md`, injects it (up to
   12,000 characters) with the maintenance rules, and records the HEAD at session start in the
   session state. Without a bundle it suggests creating one with `/ai1:okf-maintain-knowledge`.
+- **okf-claude-md (SessionStart, since v0.20.0):** the repo's CLAUDE.md files are loaded whole in
+  every session while the bundle is read on demand, so knowledge piled up in CLAUDE.md costs tokens
+  every time and drifts from the concepts. A deterministic check (`src/okf/okf-claude-md-check.mjs`,
+  no LLM) reads every CLAUDE.md of the repo (`git ls-files --cached --others --exclude-standard`,
+  minus deleted files and the bundle; not `~/.claude/CLAUDE.md` nor `CLAUDE.local.md`), splits it into
+  sections by `#`-`###` headings outside fences, and reports:
+  - `too-long`: over 80 lines or 6,000 characters;
+  - `duplicates-concept`: a section of >= 6 non-blank lines that holds at least 3, and 60%, of a
+    concept's title/tags/description keywords (keywords in >= 20% of the concepts ignored: `hooks`,
+    `repo`... matched every section), or cites a path the concept has as `resource`/`sources` (body
+    citations would make overview concepts match everything);
+  - `knowledge-without-concept`: a section of >= 12 non-blank lines that overlaps no concept;
+  - `stale-reference`: a backticked path (with a `/` and an extension or a trailing `/`; not
+    absolute, `~`, `@/`, placeholders) or a relative link that exists neither from the CLAUDE.md's
+    folder, nor the repo root, nor as the end of a repo file path (`app/main.py` written for a
+    `backend/` subproject). After the bundle moved from `.okf/` to `.ai1/okf/`, old `.okf/` paths show
+    here.
+  The hook adds one line (~70 words) with counts per kind and the offer of `/ai1:okf-tidy-claude-md`,
+  only when the findings differ from the last ones told for this repo (fingerprint in
+  `<state>/<hash(git common dir)>.claude-md`, shared by its worktrees; state files expire after 7
+  days, so an unresolved drift is told again at most weekly). No findings, or the same ones: silence,
+  zero tokens. `ai1 claude-md [--json]` prints the full report (file, section line range, kind,
+  concept). The skill does what needs judgement, only on request: compares flagged sections with
+  their concepts (contradictions included, checked against the code), proposes a CLAUDE.md under ~40
+  lines (what the repo is, rules for every task, commands, pointer to the bundle) and, per moved
+  section, the concept edit; applies after a yes, then validates.
+  The best moment to offer it is when the bundle is created, since it is usually written from
+  CLAUDE.md and the overlap is largest then, while the hint would only come at the next session start.
+  So the three skills that set up OKF end by running `ai1 claude-md` and offering the skill in one
+  line when there are findings: `/ai1:okf-maintain-knowledge` (produce, new bundle),
+  `/ai1:okf-backfill-from-history` (Finalize) and `/ai1:core-setup-repo` (joined with its offer to fix
+  old paths after a migration). If the person declines, the hint repeats once at the next session
+  start (the CLI does not write the hint's fingerprint: its state folder may differ from the hook's).
+  Measured (2026-11-09) on five real repos with 46-842-line CLAUDE.md files: check 30-140 ms. A
+  scratch copy of one of them: the SessionStart entry point told the hint once and nothing on the
+  second start; a subagent following the skill produced a 38-line CLAUDE.md and a destination per
+  section, and its feedback added the line ranges, the deleted-files rule and the "read the
+  destination concept" step. Not yet run in a live `claude` session (headless auth was unavailable).
 - **okf-recall (UserPromptSubmit):** on every message from the person, ranks the bundle concepts
   against it (keywords without accents, 6-letter prefixes so plurals match; weights: title/tags 3,
   description/path 2, body 1, body words present in >40% of concepts ignored) and adds the top 5
@@ -73,7 +120,8 @@ sources:
   about 0.03 ms. Writing `resource` or `sources` in a concept is how a repo makes it show up.
 - **okf-upkeep (Stop):** blocks finishing when the session left knowledge newer than the last
   bundle update: repo files changed since the session's base HEAD (tracked diff + untracked)
-  modified after the session started and after the newest bundle file, or project memories (`~/.claude/projects/<path>/memory/*.md`,
+  modified after the session started and after the newest bundle file (except files `ai1 worktree
+  finish` brought in after its OKF checks and untouched since, see [worktrees](worktrees.md)), or project memories (`~/.claude/projects/<path>/memory/*.md`,
   not `MEMORY.md`) written **by this session**: the hook reads the session transcript
   (`transcript_path`, Write/Edit calls; incremental scan with the byte offset in the session state,
   ~0.5 s once on a 33 MB transcript, then ~0.15 s per stop) and, without a transcript, the memory's
@@ -130,7 +178,8 @@ sources:
 # Skills and agents
 
 From the [OKF toolkit](../packs/okf-pack.md): `/ai1:okf-maintain-knowledge`, `/ai1:okf-validate-bundle`, `/ai1:okf-visualize-bundle`,
-`/ai1:okf-backfill-from-history`, and the agents `bundle-weaver` and `event-analyzer`.
+`/ai1:okf-backfill-from-history`, and the agents `bundle-weaver` and `event-analyzer`. Written in
+ai1: `/ai1:okf-tidy-claude-md` (see okf-claude-md above).
 
 # Coexistence with a standalone OKF setup
 
