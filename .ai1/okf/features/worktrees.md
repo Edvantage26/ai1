@@ -5,7 +5,7 @@ description: A worktree per change (any edit to the repo files, created before t
 tags: [worktrees, git, skills, cli, hooks]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T08:23:20Z'
+  at: '2026-11-09T09:25:46Z'
 sources:
   - id: worktree-create
     resource: src/worktrees/worktree-create.mjs
@@ -114,6 +114,13 @@ verify, okf, design, guards) and a **shared root** (the main checkout: `.ai1/wor
   `claude -w` and subagent worktrees get the recipe's light worktree on heavy repos.
 - `finish` stops (does not auto-commit) when the base checkout has uncommitted docs the branch also changes.
 - `share` gives no read-only protection yet; the project skill must say not to edit shared paths.
+- Lifecycle points: only `pre-finish` runs project commands inside an operation. There is no
+  `pre-create` (to refuse a base that lacks something the build needs), `post-create` or `pre-drop`,
+  and a project script cannot record state that `list` or `finish` read (such as "last build OK at
+  this commit", needed to require a build before integrating). Found on 2026-11-09 checking the
+  private reference skill against the engine; everything else it does maps to the recipe, `commands`
+  and project scripts.
+- Windows: `share` links are junctions (`worktree-disk.mjs`); no ACLs, and the suite does not run on Windows.
 
 # Verified
 
