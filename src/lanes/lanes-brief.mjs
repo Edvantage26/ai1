@@ -10,7 +10,7 @@ import { allowDecision, contextDecision } from '../core/hook-io.mjs';
 import { recordSessionBaseHead, readSessionBase } from '../core/session-base.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
 import {
-  listWorkPlans, isPlanFinished, readApprovals, isPlanApproved, ensureWorkDirectoryIgnored,
+  listWorkPlans, isPlanFinished, isSessionPlan, readSessionPlanSlugs, readApprovals, isPlanApproved, ensureWorkDirectoryIgnored,
 } from './lanes-work.mjs';
 import { WORK_DIRECTORY } from '../core/config.mjs';
 
@@ -64,8 +64,9 @@ export default {
     const isAfterCompaction = hookInput.source === 'compact';
     const sessionBase = isAfterCompaction ? readSessionBase(hookInput, sharedRoot, environment) : null;
     const unfinishedPlans = listWorkPlans(sharedRoot).filter((workPlan) => !isPlanFinished(workPlan));
-    const plansToRestore = isAfterCompaction && sessionBase
-      ? unfinishedPlans.filter((workPlan) => workPlan.modifiedMilliseconds >= sessionBase.sessionStartMilliseconds)
+    const sessionPlanSlugs = isAfterCompaction ? readSessionPlanSlugs(hookInput, sharedRoot, environment) : null;
+    const plansToRestore = isAfterCompaction && (sessionBase || sessionPlanSlugs)
+      ? unfinishedPlans.filter((workPlan) => isSessionPlan(workPlan, sessionBase?.sessionStartMilliseconds, sessionPlanSlugs))
       : [];
     const contextParts = [buildLanesRecipe(config.verify, isFeatureEnabled('worktrees', config))];
     const approvals = readApprovals(sharedRoot, environment);

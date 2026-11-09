@@ -5,7 +5,7 @@ description: Work lanes by task size - quick, plan or deep - with a hook-enforce
 tags: [lanes, workflow, hooks, skills, approval]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T08:15:25Z'
+  at: '2026-11-09T08:30:31Z'
 sources:
   - id: lanes-work
     resource: src/lanes/lanes-work.mjs
@@ -53,13 +53,25 @@ gate is a hook block; plans live in a local ignored folder.
 | Module | Event | What it enforces |
 |---|---|---|
 | `lanes-brief` | SessionStart | Injects the lane recipe (byte-stable, skipped on `resume`), lists unfinished plans, and after `compact` restores the active plans with the last 15 lines of `progress.md`. Records the session base HEAD and writes `.ai1/work/.gitignore` (`*`). |
-| `lanes-approval` | UserPromptSubmit | When a plan has `status: ready` and the person sends a short plain yes (`aprobado`, `adelante`, `ok`, `go ahead`... with no `pero`/`but`/`no`, at most 120 chars), records the approval in ai1's state dir (outside the repo) and sets `status: approved`. |
-| `lanes-gate` | PreToolUse (Edit, Write, MultiEdit, NotebookEdit, Bash) | While a plan touched in this session is `draft`/`ready`, or not approved by the person, refuses writes to project files outside `.ai1/work/`, the knowledge bundle and, with the [proposals feature](proposals.md), `.ai1/proposals/`. Shell writes come from `src/core/shell-writes.mjs`; an inline interpreter script (`python3 - <<EOF`, `node -e`), whose writes it cannot tell, asks the person instead. |
+| `lanes-approval` | UserPromptSubmit | When a plan of this session has `status: ready` and the person sends a short plain yes (`aprobado`, `adelante`, `ok`, `go ahead`... with no `pero`/`but`/`no`, at most 120 chars), records the approval in ai1's state dir (outside the repo) and sets `status: approved`. |
+| `lanes-gate` | PreToolUse (Edit, Write, MultiEdit, NotebookEdit, Bash) | While a plan of this session is `draft`/`ready`, or not approved by the person, refuses writes to project files outside `.ai1/work/`, the knowledge bundle and, with the [proposals feature](proposals.md), `.ai1/proposals/`. Shell writes come from `src/core/shell-writes.mjs`; an inline interpreter script (`python3 - <<EOF`, `node -e`), whose writes it cannot tell, asks the person instead. |
 | `lanes-escalate` | PreToolUse (same tools) | With no active plan, once per session, asks the person when the session's changes pass `max_files` (6) or `max_lines` (300), options under `modules.lanes-escalate`. |
 
 Plan statuses: `draft` -> `ready` (agent asks) -> `approved` (only via the person) -> `done` or
 `abandoned`. Setting `ready` again requires a new approval. Plans from earlier sessions never block;
 they are listed at startup.
+
+**Whose plan it is (since v0.20.2):** plans live in the main checkout's `.ai1/work/`, shared by every
+session open on the repo. A plan is this session's when the session's transcript shows a call that
+wrote its `plan.md` (Write/Edit/MultiEdit on it, or a shell command naming it that is not read-only;
+`readSessionPlanSlugs` in `src/lanes/lanes-work.mjs`, incremental scan, state `<session>-<hash>.lanes-plans`).
+The gate, the escalation check, the approval and the post-compaction restore only look at this
+session's plans: another session's draft does not block, and a yes here never approves a design
+another session has waiting. Without a transcript in the hook input, the old rule applies (a plan
+modified since the session started). Before: that rule was the only one, and on 2026-11-09 a long
+session was refused every code edit by another session's new draft (`prod-guard`), with "mark it
+`abandoned`" as the only way out offered - which would have broken the other session's work; a yes
+could also have approved the other session's `ready` plan.
 
 # Limits
 
@@ -70,11 +82,8 @@ they are listed at startup.
 - The "plan" lane has no file and no gate; it relies on the conversation.
 - The approval store is outside the repo but not tamper-proof against a determined agent; the brief
   tells the agent not to work around hooks.
-- A plan counts as "this session's" when it was modified after the session started
-  (`findUnapprovedPlan` in `src/lanes/lanes-gate.mjs`), not when this session wrote it. Seen
-  2026-11-09: a long session was refused every code edit by another session's new draft
-  (`prod-guard`); the suggested way out, marking the plan `abandoned`, would break the other session.
-  Fix pending: attribute plans by the session's own writes (transcript, as `session-writes.mjs` does).
+- A subagent's own edits to a plan are not in the parent transcript; a plan written only by a
+  subagent is not the parent session's until the parent touches it.
 
 # Verified
 

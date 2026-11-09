@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { runHookEvent } from '../src/core/dispatcher.mjs';
 import { listShellWriteTargets } from '../src/core/shell-writes.mjs';
 import { isApprovalMessage } from '../src/lanes/lanes-approval.mjs';
+import { listPlanSlugsWrittenBy } from '../src/lanes/lanes-work.mjs';
 import { createTemporaryProject } from './helpers.mjs';
 
 function runGit(projectRoot, gitArguments) {
@@ -232,4 +233,60 @@ test('listShellWriteTargets: redirects, tee, in-place edits, copies and inline s
   assert.deepEqual(listShellWriteTargets('cat a.js; grep -rn x src; npm test').targetPaths, []);
   assert.equal(listShellWriteTargets("python3 - <<'EOF'\nprint(1)\nEOF").runsInlineScript, true);
   assert.equal(listShellWriteTargets('python3 tool.py --check').runsInlineScript, false);
+});
+
+// A transcript whose tool calls are `toolUses` ({ name, input }), for a session with that id.
+function writeTranscript(options, sessionId, toolUses) {
+  const transcriptPath = join(options.homeDirectory, `${sessionId}.jsonl`);
+  const transcriptLines = toolUses.map((toolUse, toolIndex) => JSON.stringify({ type: 'assistant', message: { content: [{ type: 'tool_use', id: `${sessionId}-${toolIndex}`, ...toolUse }] } }));
+  writeFileSync(transcriptPath, `${transcriptLines.join('\n')}\n`);
+  return transcriptPath;
+}
+
+function runAs(sessionId, transcriptPath, eventName, projectRoot, options, extraInput) {
+  return runHookEvent(eventName, { session_id: sessionId, cwd: projectRoot, transcript_path: transcriptPath, ...extraInput }, options);
+}
+
+test('lanes: another session\'s new draft does not block this session, and its own draft does', () => {
+  const projectRoot = createLanesRepo();
+  const options = hookOptions();
+  const longTranscript = writeTranscript(options, 'long-session', [{ name: 'Read', input: { file_path: join(projectRoot, 'src', 'app.js') } }]);
+  runAs('long-session', longTranscript, 'SessionStart', projectRoot, options, { source: 'startup' });
+  const otherPlanPath = writePlan(projectRoot, 'prod-guard', 'draft');
+  writeTranscript(options, 'other-session', [{ name: 'Write', input: { file_path: otherPlanPath, content: '...' } }]);
+  const editByLongSession = { tool_name: 'Edit', tool_input: editCode(projectRoot) };
+  assert.equal(runAs('long-session', longTranscript, 'PreToolUse', projectRoot, options, editByLongSession), null);
+  const ownPlanPath = writePlan(projectRoot, 'billing', 'draft');
+  writeTranscript(options, 'long-session', [
+    { name: 'Read', input: { file_path: join(projectRoot, 'src', 'app.js') } },
+    { name: 'Write', input: { file_path: ownPlanPath, content: '...' } },
+  ]);
+  assert.match(runAs('long-session', longTranscript, 'PreToolUse', projectRoot, options, editByLongSession).hookSpecificOutput.permissionDecisionReason, /billing\/plan\.md/);
+});
+
+test('lanes-approval: a yes approves this session\'s ready design, never another session\'s', () => {
+  const projectRoot = createLanesRepo();
+  const options = hookOptions();
+  const otherPlanPath = writePlan(projectRoot, 'prod-guard', 'ready');
+  const thisTranscript = writeTranscript(options, 'this-session', [{ name: 'Read', input: { file_path: otherPlanPath } }]);
+  runAs('this-session', thisTranscript, 'SessionStart', projectRoot, options, { source: 'startup' });
+  assert.equal(runAs('this-session', thisTranscript, 'UserPromptSubmit', projectRoot, options, { prompt: 'ok' }), null);
+  assert.match(readFileSync(otherPlanPath, 'utf8'), /status: ready/);
+  const ownPlanPath = writePlan(projectRoot, 'billing', 'ready');
+  writeTranscript(options, 'this-session', [
+    { name: 'Read', input: { file_path: otherPlanPath } },
+    { name: 'Write', input: { file_path: ownPlanPath, content: '...' } },
+    { name: 'Bash', input: { command: `sed -i 's/^status: draft$/status: ready/' ${ownPlanPath}` } },
+  ]);
+  assert.match(runAs('this-session', thisTranscript, 'UserPromptSubmit', projectRoot, options, { prompt: 'ok' }).hookSpecificOutput.additionalContext, /billing\/plan\.md/);
+  assert.match(readFileSync(otherPlanPath, 'utf8'), /status: ready/);
+});
+
+test('listPlanSlugsWrittenBy: writes to a plan count, reading it does not', () => {
+  const planPath = '/repo/.ai1/work/billing/plan.md';
+  assert.deepEqual(listPlanSlugsWrittenBy({ name: 'Edit', input: { file_path: planPath } }), ['billing']);
+  assert.deepEqual(listPlanSlugsWrittenBy({ name: 'Bash', input: { command: `sed -i 's/a/b/' ${planPath}` } }), ['billing']);
+  assert.deepEqual(listPlanSlugsWrittenBy({ name: 'Bash', input: { command: `cat ${planPath}` } }), []);
+  assert.deepEqual(listPlanSlugsWrittenBy({ name: 'Read', input: { file_path: planPath } }), []);
+  assert.deepEqual(listPlanSlugsWrittenBy({ name: 'Write', input: { file_path: '/repo/.ai1/work/billing/progress.md' } }), []);
 });

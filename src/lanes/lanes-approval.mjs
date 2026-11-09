@@ -4,7 +4,7 @@
 // design is still a draft does not count. The approval is recorded by this hook, not by the agent.
 
 import { allowDecision, contextDecision } from '../core/hook-io.mjs';
-import { listWorkPlans, recordApproval, writePlanStatus } from './lanes-work.mjs';
+import { listWorkPlans, readSessionPlanSlugs, recordApproval, writePlanStatus } from './lanes-work.mjs';
 
 const MODULE_ID = 'lanes-approval';
 const MAX_APPROVAL_CHARACTERS = 120;
@@ -28,8 +28,12 @@ export default {
   feature: 'lanes',
   description: 'Records the person\'s approval of a deep-lane design marked ready.',
   run({ hookInput, projectRoot, sharedRoot = projectRoot, environment }) {
-    const readyPlan = listWorkPlans(sharedRoot).find((workPlan) => workPlan.status === 'ready');
-    if (!readyPlan || !isApprovalMessage(hookInput.prompt)) return allowDecision();
+    if (!isApprovalMessage(hookInput.prompt)) return allowDecision();
+    // A yes in this session approves this session's design, never one another session has waiting.
+    const sessionPlanSlugs = readSessionPlanSlugs(hookInput, sharedRoot, environment);
+    const readyPlan = listWorkPlans(sharedRoot)
+      .find((workPlan) => workPlan.status === 'ready' && (!sessionPlanSlugs || sessionPlanSlugs.has(workPlan.slug)));
+    if (!readyPlan) return allowDecision();
     recordApproval(sharedRoot, environment, readyPlan.relativePath);
     writePlanStatus(readyPlan.planPath, 'approved');
     return contextDecision(MODULE_ID, [

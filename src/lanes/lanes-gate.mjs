@@ -8,7 +8,7 @@ import { allowDecision, askDecision, denyDecision } from '../core/hook-io.mjs';
 import { readSessionBase } from '../core/session-base.mjs';
 import { listShellWriteTargets } from '../core/shell-writes.mjs';
 import {
-  listActivePlans, readApprovals, isPlanApproved, UNAPPROVED_STATUSES,
+  listActivePlans, readApprovals, isPlanApproved, readSessionPlanSlugs, UNAPPROVED_STATUSES,
 } from './lanes-work.mjs';
 import { projectRelativePath } from '../core/project-paths.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
@@ -35,8 +35,8 @@ function isPathInside(relativePath, directoryPath) {
   return relativePath === directoryPrefix || relativePath.startsWith(`${directoryPrefix}/`);
 }
 
-export function findUnapprovedPlan(projectRoot, sessionStartMilliseconds, approvals) {
-  return listActivePlans(projectRoot, sessionStartMilliseconds)
+export function findUnapprovedPlan(projectRoot, sessionStartMilliseconds, approvals, sessionPlanSlugs = null) {
+  return listActivePlans(projectRoot, sessionStartMilliseconds, sessionPlanSlugs)
     .find((workPlan) => UNAPPROVED_STATUSES.has(workPlan.status) || !isPlanApproved(workPlan, approvals));
 }
 
@@ -55,7 +55,8 @@ export default {
     const runsInlineScript = hookInput.tool_name === 'Bash' && listShellWriteTargets(hookInput.tool_input?.command).runsInlineScript;
     if (editedPaths.length === 0 && !runsInlineScript) return allowDecision();
     const sessionBase = readSessionBase(hookInput, sharedRoot, environment);
-    const unapprovedPlan = findUnapprovedPlan(sharedRoot, sessionBase?.sessionStartMilliseconds, readApprovals(sharedRoot, environment));
+    const unapprovedPlan = findUnapprovedPlan(sharedRoot, sessionBase?.sessionStartMilliseconds, readApprovals(sharedRoot, environment),
+      readSessionPlanSlugs(hookInput, sharedRoot, environment));
     if (!unapprovedPlan) return allowDecision();
     if (editedPaths.length === 0) {
       return askDecision(MODULE_ID, `Deep lane: the design \`${unapprovedPlan.relativePath}\` is not approved yet and this inline script may write project files. Confirm only if it just reads; edits wait for the approval.`);
