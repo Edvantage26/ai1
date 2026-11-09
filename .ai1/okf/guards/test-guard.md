@@ -5,16 +5,16 @@ description: PreToolUse guard that asks the person before the agent skips, empti
 tags: [guard, hooks, verify, tests]
 resource: src/verify/test-guard.mjs
 sources:
-  - id: proposal-0002
-    resource: .ai1/proposals/0002-test-weakening-guard.md
-    title: Proposal 0002
+  - id: proposal-0003
+    resource: .ai1/proposals/0003-test-weakening-guard.md
+    title: Proposal 0003
 generated:
   by: claude-code/claude-opus-5-5
   at: '2026-11-09T09:20:51Z'
 ---
 
 Feature `verify` (on by default), PreToolUse on Edit, Write, MultiEdit and Bash. Built 2026-11-09
-from proposal 0002; decision in [harness guards](../decisions/harness-guards.md).
+from proposal 0003; decision in [harness guards](../decisions/harness-guards.md).
 
 # Why
 

@@ -8,16 +8,16 @@ sources:
   - id: tool-call-paths
     resource: src/core/tool-call-paths.mjs
     title: Files a tool call may change (file tools and shell)
-  - id: proposal-0001
-    resource: .ai1/proposals/0001-config-guard.md
-    title: Proposal 0001
+  - id: proposal-0002
+    resource: .ai1/proposals/0002-config-guard.md
+    title: Proposal 0002
 generated:
   by: claude-code/claude-opus-5-5
   at: '2026-11-09T09:20:51Z'
 ---
 
 Feature `danger` (on by default); switch it off alone with `modules.config-guard: false`. Built
-2026-11-09 from proposal 0001; decision in [harness guards](../decisions/harness-guards.md).
+2026-11-09 from proposal 0002; decision in [harness guards](../decisions/harness-guards.md).
 
 # Why
 

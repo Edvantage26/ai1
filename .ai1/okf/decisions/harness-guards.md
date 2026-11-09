@@ -1,23 +1,23 @@
 ---
 type: Decision
 title: Harness guards - close the cheap ways round ai1 and measure its cost
-description: Decisions behind config-guard, test-guard, repo-rules, credential deny rules and the decision log (proposals 0001-0005, 2026-11-09).
+description: Decisions behind config-guard, test-guard, repo-rules, credential deny rules and the decision log (proposals 0002-0006, 2026-11-09).
 tags: [decision, guards, verify, config]
 sources:
-  - id: proposal-0001
-    resource: .ai1/proposals/0001-config-guard.md
-    title: Guard the harness configuration from the agent
   - id: proposal-0002
-    resource: .ai1/proposals/0002-test-weakening-guard.md
-    title: Detect weakened, skipped or deleted tests
+    resource: .ai1/proposals/0002-config-guard.md
+    title: Guard the harness configuration from the agent
   - id: proposal-0003
-    resource: .ai1/proposals/0003-credential-deny-rules.md
-    title: Offer credential deny rules in the setup assistant
+    resource: .ai1/proposals/0003-test-weakening-guard.md
+    title: Detect weakened, skipped or deleted tests
   - id: proposal-0004
-    resource: .ai1/proposals/0004-hook-decision-log.md
-    title: Local log of hook decisions
+    resource: .ai1/proposals/0004-credential-deny-rules.md
+    title: Offer credential deny rules in the setup assistant
   - id: proposal-0005
-    resource: .ai1/proposals/0005-repo-rules.md
+    resource: .ai1/proposals/0005-hook-decision-log.md
+    title: Local log of hook decisions
+  - id: proposal-0006
+    resource: .ai1/proposals/0006-repo-rules.md
     title: Repo-declared block and warn rules
 generated:
   by: claude-code/claude-opus-5-5

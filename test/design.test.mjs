@@ -208,7 +208,9 @@ test('design-brief: points to the bundle concepts of type Product and DesignSyst
   const contextText = startSessionContext(projectRoot);
   assert.match(contextText, /Design: UI in this repo/);
   assert.match(contextText, /`\.ai1\/okf\/design\/system\.md`, `PRODUCT\.md`/);
-  assert.doesNotMatch(contextText, /api\.md/);
+  const designBriefText = contextText.slice(contextText.indexOf('Design: UI in this repo')).split('\n\n')[0];
+  assert.match(designBriefText, /system\.md/);
+  assert.doesNotMatch(designBriefText, /api\.md/);
 });
 
 test('design-brief: asks for the context when there is none, and mentions Impeccable only when installed', () => {

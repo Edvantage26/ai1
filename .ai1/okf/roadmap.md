@@ -28,7 +28,7 @@ Order changed on 2026-10-30: build the generic structure in ai1 first, then prov
 2g. **Session fork** (done 2026-11-09, v0.14): `/ai1:session-fork-conversation` and `ai1 fork`, a
    full or brief fork of the conversation opened natively per host. See
    [session fork](features/session-fork.md).
-2h. **Harness guards** (done 2026-11-09, v0.21.0, proposals 0001-0005): [config-guard](guards/config-guard.md),
+2h. **Harness guards** (done 2026-11-09, v0.21.0, proposals 0002-0006): [config-guard](guards/config-guard.md),
    [test-guard](guards/test-guard.md), [repo-rules](guards/repo-rules.md) with `/ai1:danger-write-rule`,
    credential deny rules in `ai1 init`, and the [decision log](architecture/decision-log.md) with `ai1 log`.
    See [harness guards](decisions/harness-guards.md).

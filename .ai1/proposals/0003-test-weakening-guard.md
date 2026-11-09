@@ -1,5 +1,5 @@
 ---
-proposal: 2
+proposal: 3
 title: Detect weakened, skipped or deleted tests
 size: idea
 status: implemented
@@ -8,7 +8,7 @@ updated: 2026-11-09
 decided: 2026-11-09
 ---
 
-# Proposal 0002: Detect weakened, skipped or deleted tests
+# Proposal 0003: Detect weakened, skipped or deleted tests
 
 ## Problem
 

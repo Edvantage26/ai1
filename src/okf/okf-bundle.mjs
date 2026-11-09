@@ -3,8 +3,9 @@
 // modules say the same thing.
 
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { basename, join, relative } from 'node:path';
+import { basename, dirname, join, relative } from 'node:path';
 import { listMarkdownFiles } from '../core/markdown-files.mjs';
+import { tryGit } from '../core/git.mjs';
 import { splitFrontmatter, readFrontmatterField } from '../core/frontmatter.mjs';
 import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
 
@@ -54,6 +55,54 @@ export function listBundleConcepts(bundleDirectory) {
       bodyText,
     };
   });
+}
+
+// The page that describes the whole project: overview.md at the bundle root, or the root index.md
+// when the bundle has no overview.
+export function overviewFileName(bundleDirectory) {
+  return existsSync(join(bundleDirectory, 'overview.md')) ? 'overview.md' : 'index.md';
+}
+
+// A concept is a page of the bundle other than an index.md, a log.md or the root overview.md.
+// Path relative to the bundle.
+export function isConceptPath(bundleFilePath) {
+  return bundleFilePath.endsWith('.md') && !['index.md', 'log.md'].includes(basename(bundleFilePath))
+    && bundleFilePath !== 'overview.md';
+}
+
+const MARKDOWN_LINK_PATTERN = /\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+const URI_SCHEME_PATTERN = /^[a-z][a-z0-9+.-]*:/i;
+
+// Concepts (the root overview.md included) that no index.md of the bundle links to: nobody finds
+// them by browsing from the index. A link starting with `/` is relative to the bundle root.
+export function listConceptsMissingFromIndex(bundleDirectory) {
+  const linkedPaths = new Set();
+  for (const indexPath of listMarkdownFiles(bundleDirectory).filter((markdownPath) => basename(markdownPath) === 'index.md')) {
+    for (const [, linkTarget] of readFileSync(indexPath, 'utf8').matchAll(MARKDOWN_LINK_PATTERN)) {
+      const targetPath = linkTarget.split('#')[0];
+      if (!targetPath || URI_SCHEME_PATTERN.test(targetPath)) continue;
+      const targetDirectory = targetPath.startsWith('/') ? bundleDirectory : dirname(indexPath);
+      linkedPaths.add(relative(bundleDirectory, join(targetDirectory, targetPath)));
+    }
+  }
+  return listConceptFiles(bundleDirectory)
+    .map((conceptPath) => relative(bundleDirectory, conceptPath))
+    .filter((conceptPath) => !linkedPaths.has(conceptPath))
+    .sort();
+}
+
+// Concepts that still exist and changed in commits after the last one that touched the overview:
+// the overview may not describe them yet. [] without git or when the overview was never committed.
+export function listConceptsChangedSinceOverview(projectRoot, bundleRelativePath) {
+  const overviewRepoPath = `${bundleRelativePath}/${overviewFileName(join(projectRoot, bundleRelativePath))}`;
+  const overviewLastCommit = tryGit(projectRoot, ['log', '-1', '--format=%H', '--', overviewRepoPath]);
+  if (!overviewLastCommit) return [];
+  const changedOutput = tryGit(projectRoot, ['log', '--format=', '--name-only', `${overviewLastCommit}..HEAD`, '--', bundleRelativePath]) || '';
+  const bundlePrefix = `${bundleRelativePath}/`;
+  return [...new Set(changedOutput.split('\n'))]
+    .filter((changedPath) => changedPath.startsWith(bundlePrefix) && isConceptPath(changedPath.slice(bundlePrefix.length))
+      && existsSync(join(projectRoot, changedPath)))
+    .sort();
 }
 
 export function buildMaintenanceRules(bundleRelativePath, specVersion) {

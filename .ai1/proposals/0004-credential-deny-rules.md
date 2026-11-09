@@ -1,5 +1,5 @@
 ---
-proposal: 3
+proposal: 4
 title: Offer credential deny rules in the setup assistant
 size: idea
 status: implemented
@@ -8,7 +8,7 @@ updated: 2026-11-09
 decided: 2026-11-09
 ---
 
-# Proposal 0003: Offer credential deny rules in the setup assistant
+# Proposal 0004: Offer credential deny rules in the setup assistant
 
 ## Problem
 
