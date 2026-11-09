@@ -16,7 +16,7 @@ sources:
     title: Proposal 0006
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T09:20:51Z'
+  at: '2026-11-09T09:39:25Z'
 ---
 
 Feature `danger` (on by default), PreToolUse on Edit, Write, MultiEdit, NotebookEdit and Bash.
@@ -50,5 +50,11 @@ shows the JSON and adds it with Edit after a yes - where [config-guard](config-g
 person once more (that prompt is the final approval). It offers to remove the CLAUDE.md line it
 replaces. Anthropic's `hookify` plugin does the same per person (`.claude/hookify.*.local.md`); ai1
 rules are versioned with the repo.
+
+This repo uses it on itself (2026-11-09): `no-npm-dependencies` (deny adding dependencies to
+`package.json`) and `no-git-permission-grants` (deny writing a `Bash(git commit|push ...)` permission in
+the plugin's code, skills, templates, hooks or schema), plus the credential deny rules from
+`ai1 init --deny-credentials`. A rule against internal hostnames was left out: its pattern would have
+to name them in a committed file of a public repo; repo rules have no local, uncommitted layer.
 
 Tests: `test/repo-rules.test.mjs`.

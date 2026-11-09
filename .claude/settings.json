@@ -9,5 +9,21 @@
         "repo": "Edvantage26/ai1"
       }
     }
+  },
+  "permissions": {
+    "deny": [
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
+      "Read(~/.ssh/id_*)",
+      "Read(~/.aws/**)",
+      "Read(~/.gnupg/**)",
+      "Read(~/.kube/**)",
+      "Read(~/.config/gh/**)",
+      "Read(~/.docker/config.json)",
+      "Read(~/.netrc)",
+      "Read(~/.git-credentials)",
+      "Read(~/.npmrc)",
+      "Read(~/.pypirc)"
+    ]
   }
 }

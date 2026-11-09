@@ -14,5 +14,23 @@
   "trunk": "main",
   "verify": [
     "npm test"
+  ],
+  "rules": [
+    {
+      "id": "no-npm-dependencies",
+      "on": "edit",
+      "paths": ["package.json"],
+      "pattern": "\"(?:dev|peer|optional|bundle)?[dD]ependencies\"\\s*:",
+      "action": "deny",
+      "message": "ai1 ships with zero npm dependencies (CLAUDE.md, decisions/principles.md): use Node built-ins, or vendor the code with its license in THIRD-PARTY.md."
+    },
+    {
+      "id": "no-git-permission-grants",
+      "on": "edit",
+      "paths": ["src/**", "skills/**", "templates/**", "hooks/**", "bin/**", "schema/**"],
+      "pattern": "Bash\\(\\s*git\\s+(?:commit|push)",
+      "action": "deny",
+      "message": "the plugin never grants git commit/push permissions (CLAUDE.md): the person commits; the danger guard and worktree finish ask instead."
+    }
   ]
 }
