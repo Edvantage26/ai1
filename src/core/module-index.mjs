@@ -31,6 +31,7 @@ export const MODULE_INDEX = [
   { id: 'worktree-reminder', event: 'UserPromptSubmit', feature: 'worktrees', modulePath: '../worktrees/worktree-reminder.mjs' },
   { id: 'later-brief', event: 'SessionStart', feature: 'later', modulePath: '../later/later-brief.mjs' },
   { id: 'later-recall', event: 'UserPromptSubmit', feature: 'later', modulePath: '../later/later-recall.mjs' },
+  { id: 'walkthrough-reminder', event: 'Stop', feature: 'walkthrough', modulePath: '../walkthrough/walkthrough-reminder.mjs' },
   { id: 'later-upkeep', event: 'Stop', feature: 'later', modulePath: '../later/later-upkeep.mjs' },
 ];
 

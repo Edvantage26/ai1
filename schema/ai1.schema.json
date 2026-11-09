@@ -417,6 +417,29 @@
             }
           ]
         },
+        "walkthrough-reminder": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "ignore": {
+                  "type": "array",
+                  "description": "Globs of UI files that never need a storyboard (e.g. \"src/emails/**\").",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          ]
+        },
         "design-brief": {
           "oneOf": [
             {

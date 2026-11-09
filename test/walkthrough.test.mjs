@@ -1,13 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { addCapture, readStoryboard, resolveStoryboardSlug, stepIdFromCaption, storyboardDirectory } from '../src/walkthrough/walkthrough-storyboard.mjs';
 import { buildStoryboard, renderStoryboardSummary } from '../src/walkthrough/walkthrough-build.mjs';
 import { findChromeBinary, printStoryboardPdf } from '../src/walkthrough/walkthrough-pdf.mjs';
 import { stopStoryboardServer } from '../src/walkthrough/walkthrough-serve.mjs';
+import { runHookEvent } from '../src/core/dispatcher.mjs';
 import { createTemporaryProject } from './helpers.mjs';
 
 const AI1_CLI = fileURLToPath(new URL('../bin/ai1', import.meta.url));
@@ -273,4 +275,44 @@ test('publish destinations come from the customization, offered and published on
   assert.match(withOverlay.stdout, /hand steps\.json to my task tracker skill/);
   const withoutOverlay = spawnSync(process.execPath, [AI1_CLI, 'skill-context', 'walkthrough-record-flow'], { cwd: projectRoot, encoding: 'utf8', env: { ...process.env, HOME: join(projectRoot, 'nobody'), XDG_CONFIG_HOME: '' } });
   assert.match(withoutOverlay.stdout, /None yet for this project \(\.ai1\/skills\/walkthrough\/overlay\.md\)/);
+});
+
+test('walkthrough-reminder: UI changed and no storyboard after it reminds once; a build or an ignore glob silences it [walkthrough:S5]', () => {
+  const projectRoot = createUiRepo();
+  const hookOptions = {
+    environment: { CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'ai1-data-')) },
+    homeDirectory: mkdtempSync(join(tmpdir(), 'ai1-home-')),
+    reportInternalError: (errorMessage) => { throw new Error(errorMessage); },
+  };
+  const stopSession = () => runHookEvent('Stop', { session_id: 'session-1', cwd: projectRoot }, hookOptions);
+  runHookEvent('SessionStart', { session_id: 'session-1', cwd: projectRoot, source: 'startup' }, hookOptions);
+  assert.equal(stopSession(), null, 'nothing changed');
+  writeFileSync(join(projectRoot, 'README.md'), 'docs only\n');
+  assert.equal(stopSession(), null, 'not a UI file');
+
+  writeFileSync(join(projectRoot, 'app.css'), 'body{color:#222}\n');
+  const stopOutput = stopSession();
+  assert.equal(stopOutput.decision, 'block');
+  assert.match(stopOutput.reason, /ai1\/walkthrough-reminder: Walkthrough: this session changed UI files \(`app\.css`\)[\s\S]*\/ai1:walkthrough-record-flow[\s\S]*why not/);
+  assert.equal(stopSession(), null, 'the same files are reminded once');
+
+  writeFileSync(join(projectRoot, 'Button.tsx'), 'export const Button = () => null;\n');
+  assert.equal(stopSession().decision, 'block', 'new UI files remind again');
+  const storyboardPath = storyboardDirectory(projectRoot, 'ui');
+  addCapture(storyboardPath, 'ui', { caption: 'Home', imageFile: writeScreenshot(projectRoot, 'shot.png') });
+  buildStoryboard(storyboardPath);
+  writeFileSync(join(projectRoot, 'Card.tsx'), 'export const Card = () => null;\n');
+  const futureMilliseconds = Date.now() / 1000 + 5;
+  utimesSync(join(storyboardPath, 'index.html'), futureMilliseconds, futureMilliseconds);
+  assert.equal(stopSession(), null, 'a storyboard built after the changes');
+
+  const ignoringRoot = createTemporaryProject({ features: { walkthrough: true }, modules: { 'walkthrough-reminder': { ignore: ['emails/**'] } } });
+  runGit(ignoringRoot, ['init', '-q', '-b', 'main']);
+  writeFileSync(join(ignoringRoot, 'seed.txt'), 'x\n');
+  runGit(ignoringRoot, ['add', '.']);
+  runGit(ignoringRoot, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'init']);
+  runHookEvent('SessionStart', { session_id: 'session-2', cwd: ignoringRoot, source: 'startup' }, hookOptions);
+  mkdirSync(join(ignoringRoot, 'emails'));
+  writeFileSync(join(ignoringRoot, 'emails', 'welcome.html'), '<p>hi</p>\n');
+  assert.equal(runHookEvent('Stop', { session_id: 'session-2', cwd: ignoringRoot }, hookOptions), null, 'ignored by the repo');
 });
