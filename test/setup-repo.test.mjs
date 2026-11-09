@@ -5,7 +5,8 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { setupRepo, describeRepo, detectTrunkBranch, findOtherOkfPlugins } from '../src/cli/setup-repo.mjs';
+import { setupRepo, describeRepo, findOtherOkfPlugins } from '../src/cli/setup-repo.mjs';
+import { detectTrunkBranch } from '../src/core/git.mjs';
 import { AI1_PLUGIN_ID, loadHarnessConfig } from '../src/core/config.mjs';
 
 const AI1_CLI = fileURLToPath(new URL('../bin/ai1', import.meta.url));

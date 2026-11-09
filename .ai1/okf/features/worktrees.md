@@ -5,7 +5,7 @@ description: A worktree per change (any edit to the repo files, created before t
 tags: [worktrees, git, skills, cli, hooks]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T07:25:04Z'
+  at: '2026-11-09T07:48:56Z'
 sources:
   - id: worktree-create
     resource: src/worktrees/worktree-create.mjs
@@ -70,6 +70,18 @@ of the name in `port.range`, skipping other worktrees' ports and listening ports
 into `port.env_file` keeping other lines, never installs anything, and records state in
 `<git-common-dir>/ai1-worktrees/<name>.json`. Links it makes are added to `info/exclude` when a
 directory pattern (`data/`) does not cover a symlink.
+
+# The base
+
+`base` in the recipe: `current` (the main checkout's branch), `trunk` or a branch name. `trunk` is the
+repo's main branch whatever its name: `trunk` of `.ai1/config.json` when the repo sets it, else
+detected like `ai1 init` does (`detectTrunkBranch` in `src/core/git.mjs`: origin/HEAD, else main or
+master, else the current branch); no branch name is written in the code (decided by the person on
+2026-11-09: integrate into the local main branch, whatever it is called). `create` refuses a base that
+does not exist locally (naming origin/HEAD when it differs) and warns when a configured trunk differs
+from origin/HEAD (a main branch renamed on the remote). Each worktree records its base; `finish`
+integrates into that one. `current` is not the default: a main checkout left on a feature branch would
+receive the work.
 
 # finish
 

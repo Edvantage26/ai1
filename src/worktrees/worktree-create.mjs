@@ -9,7 +9,7 @@ import { dirname, join, resolve } from 'node:path';
 import { loadHarnessConfig } from '../core/config.mjs';
 import { matchesAnyGlob } from '../core/path-glob.mjs';
 import { loadRecipe } from './worktree-recipe.mjs';
-import { runGit, tryGit } from '../core/git.mjs';
+import { runGit, tryGit, detectTrunkBranch, readOriginHeadBranch } from '../core/git.mjs';
 import {
   findRepository, validateWorktreeName, readWorktreeState, writeWorktreeState, listWorktreeStates,
 } from './worktree-state.mjs';
@@ -25,11 +25,13 @@ export function loadRecipeOrFail(mainRoot) {
   return loadedRecipe;
 }
 
+// `trunk`: the repo's main branch, whatever its name - `trunk` of .ai1/config.json when the repo sets
+// it, else detected (origin/HEAD, main or master, the current branch); never a name written here.
 export function resolveBaseBranch(mainRoot, recipe, requestedBase) {
   const baseSetting = requestedBase || recipe.base;
   if (baseSetting === 'trunk') {
     const loadedConfig = loadHarnessConfig(mainRoot);
-    return loadedConfig.status === 'ok' ? loadedConfig.config.trunk : 'main';
+    return loadedConfig.status === 'ok' && loadedConfig.trunkConfigured ? loadedConfig.config.trunk : detectTrunkBranch(mainRoot);
   }
   if (baseSetting !== 'current') return baseSetting;
   return tryGit(mainRoot, ['symbolic-ref', '--quiet', '--short', 'HEAD']) || runGit(mainRoot, ['rev-parse', 'HEAD']).trim();
@@ -152,7 +154,17 @@ export function createWorktree(startDirectory, worktreeName, options = {}) {
   const worktreePath = resolve(mainRoot, recipe.location, worktreeName);
   if (existsSync(worktreePath)) throw new Error(`${worktreePath} already exists`);
   const baseBranch = resolveBaseBranch(mainRoot, recipe, options.base);
-  const baseCommit = runGit(mainRoot, ['rev-parse', '--verify', `${baseBranch}^{commit}`]).trim();
+  const isTrunkBase = (options.base || recipe.base) === 'trunk';
+  const originHeadBranch = isTrunkBase ? readOriginHeadBranch(mainRoot) : null;
+  const baseCommit = tryGit(mainRoot, ['rev-parse', '--verify', '--quiet', `${baseBranch}^{commit}`]);
+  if (!baseCommit) {
+    const originHint = originHeadBranch && originHeadBranch !== baseBranch ? ` (origin/HEAD points to ${originHeadBranch})` : '';
+    throw new Error(`the base ${baseBranch} does not exist in this repo${originHint}: set "trunk" in .ai1/config.json to the main branch, or pass --base`);
+  }
+  // A main branch renamed on the remote (master -> main) leaves a stale trunk behind: say so.
+  const baseWarnings = originHeadBranch && originHeadBranch !== baseBranch
+    ? [`the base is ${baseBranch} (trunk in .ai1/config.json) but origin/HEAD points to ${originHeadBranch}; if the main branch was renamed, update trunk`]
+    : [];
 
   const heavyEntries = describeHeavyEntries(mainRoot, recipe);
   const heavyPaths = heavyEntries.map((heavyEntry) => heavyEntry.path);
@@ -226,7 +238,7 @@ export function createWorktree(startDirectory, worktreeName, options = {}) {
     return {
       ...worktreeState,
       size_bytes: measurePathBytes(worktreePath),
-      warnings: [...warnings, ...shareOnTrackedWarnings],
+      warnings: [...warnings, ...baseWarnings, ...shareOnTrackedWarnings],
     };
   } catch (creationError) {
     tryGit(mainRoot, ['worktree', 'remove', '--force', worktreePath]);

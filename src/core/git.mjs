@@ -23,3 +23,19 @@ export function listIgnoredPaths(checkoutPath) {
   const ignoredOutput = tryGit(checkoutPath, ['ls-files', '--others', '--ignored', '--exclude-standard', '--directory']);
   return ignoredOutput === null ? null : ignoredOutput.split('\n').filter(Boolean);
 }
+
+// The branch origin/HEAD points to (the remote's default branch, as this clone knows it), or null.
+export function readOriginHeadBranch(repoRoot) {
+  return tryGit(repoRoot, ['symbolic-ref', '--short', 'refs/remotes/origin/HEAD'])?.replace(/^origin\//, '') || null;
+}
+
+// The repo's main branch, whatever its name: origin/HEAD when the clone knows it, else main or
+// master if present, else the current branch.
+export function detectTrunkBranch(repoRoot) {
+  const originHeadBranch = readOriginHeadBranch(repoRoot);
+  if (originHeadBranch) return originHeadBranch;
+  for (const candidateBranch of ['main', 'master']) {
+    if (tryGit(repoRoot, ['rev-parse', '--verify', '--quiet', `refs/heads/${candidateBranch}`])) return candidateBranch;
+  }
+  return tryGit(repoRoot, ['branch', '--show-current']) || 'main';
+}
