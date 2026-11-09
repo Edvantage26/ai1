@@ -14,7 +14,7 @@ export function buildProposalRecipe(knowledgePath) {
   return [
     `Proposals: large changes and future features that are not decided yet live in \`${PROPOSALS_DIRECTORY}/\` (one file each, index in \`${PROPOSALS_DIRECTORY}/${PROPOSALS_INDEX_FILE}\`).`,
     `- A proposal is not the system: never describe a proposed design in ${bundleText} as if it were real; only what is decided or built goes there.`,
-    '- Never create a proposal on your own. Create one when the person asks for it. Offer one only when, while working on one subject, a clearly different one comes up (a new feature or change unrelated to the task at hand): offer in one line to save it as a proposal ("¿lo guardo como propuesta y seguimos con lo de ahora?") and create it only after a yes. Never offer for details, steps or follow-ups of the current subject. Then load /ai1:proposals-write.',
+    '- Never create a proposal on your own. Create one when the person asks for it. When, while working on one subject, a clearly different one comes up (a new feature or change unrelated to the task at hand), offer in one line three ways and let the person choose: do it here, in this conversation; fork it into a new conversation (/ai1:session-fork-conversation); or save it as a proposal for later ("Esto es otro tema: ¿lo hacemos aquí, lo abro en un fork o lo guardo como propuesta?"). Act only on the way the person picks; a yes to a question that bundles several things is not a pick. Never offer for details, steps or follow-ups of the current subject. For a proposal, load /ai1:proposals-write.',
     '- Create and change proposals with `ai1 proposals new` and `ai1 proposals set`; never number, rename or index them by hand.',
   ].join('\n');
 }
