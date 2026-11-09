@@ -6,7 +6,20 @@ description: Core — Report a problem with ai1 itself (a hook that blocks or mi
 # Report an issue on ai1
 
 The issue goes to **github.com/Edvantage26/ai1, a public repo**: whatever you publish is visible to
-anyone and stays indexed even if deleted. Never create it without the person's yes to the exact text.
+anyone and stays indexed even if deleted. Never create it without the person's yes to the exact text,
+except in auto mode below.
+
+## Auto mode (`AI1_REPORT_ERRORS=auto`)
+
+Only when the `issue-offer` hook says the person chose automatic reports of ai1's own errors:
+
+1. `ai1 issue auto-body` prints the title (first line) and the body. Use them **exactly**: they hold
+   only versions, OS, features and the errors' module, class and plugin file:line. Add nothing - no
+   description, no context from the session or the repo. Anything more needs the normal flow below.
+2. Look for a duplicate (step 2): if the same module and error are already reported, comment instead
+   (`gh issue comment <n> -R Edvantage26/ai1 --body "Seen again on ai1 <version>."`).
+3. Otherwise create it (step 5, `--label bug`), with the body written to a file first.
+4. Tell the person in one line what was filed or commented, with the link.
 
 Only for problems with ai1 (its hooks, skills, `ai1` CLI, config). A bug in the person's own code
 or in Claude Code is not an ai1 issue: say so instead.

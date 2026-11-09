@@ -5,7 +5,7 @@ description: Report a problem with ai1 as an issue on the public Edvantage26/ai1
 tags: [core, issues, feedback, github]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T12:10:02Z'
+  at: '2026-11-09T12:14:40Z'
 ---
 
 Module `core`: a skill, a CLI command and the `issue-offer` hook, no entry needed in `.ai1/config.json`,
@@ -25,6 +25,21 @@ itself it offers to fix it here instead. Only real errors: judgement calls (asks
 approving, slow modules) are never shown in other repos; they go to the [retro](retro.md) of the ai1 repo.
 `ai1 issue env` lists the pending errors ("ai1 errors in this repo") for the reproduction.
 
+# Report mode per person: `AI1_REPORT_ERRORS`
+
+How each person wants ai1's own errors reported, in their `~/.claude/settings.json` `env` (Claude
+Code passes it to hooks; never in a repo): `ask` (default, the one-line offer), `auto` or `off`
+(silent; errors are still logged). `/ai1:core-setup-repo` asks it once per person and writes it with
+`ai1 init --report-errors ask|auto|off`; `ai1 status` shows it.
+
+**Auto mode** files the report without asking, which is safe only because the content is fixed:
+`ai1 issue auto-body` builds the title (`ai1 error: <module> - <signature>`) and the body from
+`ai1 issue env` - versions, OS, host, features and the errors' module, class and plugin file:line -
+with nothing from the session, the repo or its code, and the skill adds nothing to it. A duplicate
+gets a "seen again on <version>" comment; the agent tells the person the link. Any report that needs
+a description (a misfire, steps) still goes through the person's yes to the exact text. ai1's
+author runs with `auto` (decided 2026-11-09). An unknown value means `ask`.
+
 # Flow
 
 1. `ai1 issue env` prints ai1, Claude Code and Node versions, OS, host (`detectForkHost` of the
@@ -41,6 +56,6 @@ approving, slow modules) are never shown in other repos; they go to the [retro](
 
 # Decisions
 
-- The agent never publishes without approval of the exact text, and the skill only reports ai1's own
-  problems, not the person's code or Claude Code.
+- The agent never publishes without approval of the exact text, except the fixed-facts auto report
+  a person opted into, and the skill only reports ai1's own problems, not the person's code or Claude Code.
 - Hooks suggest the skill only for ai1's own errors, never for misfires (those need judgement).

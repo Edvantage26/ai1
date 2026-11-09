@@ -6,8 +6,8 @@ import { join } from 'node:path';
 import { dispatchHookEvent } from '../src/core/hook-dispatch.mjs';
 import { ALL_MODULES } from '../src/core/registry.mjs';
 import { readPendingErrors, recordPendingErrors } from '../src/core/pending-errors.mjs';
-import { readPluginVersion } from '../src/core/issue-offer.mjs';
-import { collectIssueEnvironment, formatIssueEnvironment } from '../src/cli/issue-command.mjs';
+import { readPluginVersion, readReportMode } from '../src/core/issue-offer.mjs';
+import { collectIssueEnvironment, formatIssueEnvironment, buildAutomaticReport } from '../src/cli/issue-command.mjs';
 import { createTemporaryProject, bashPayload } from './helpers.mjs';
 
 const pluginDataEnvironment = () => ({ CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'ai1-data-')) });
@@ -70,4 +70,28 @@ test('ai1 issue env lists the pending errors without any repo path', () => {
   const environmentText = formatIssueEnvironment(issueEnvironment);
   assert.match(environmentText, /- ai1 errors in this repo:\n {2}- `throws-on-purpose`: TypeError at test\/issue-offer\.test\.mjs:\d+ \(1x/);
   assert.ok(!environmentText.includes(projectRoot));
+});
+
+test('issue-offer: AI1_REPORT_ERRORS=off is silent, auto asks to file the fixed-facts report now', () => {
+  const projectRoot = createTemporaryProject({ version: 1 });
+  const environment = pluginDataEnvironment();
+  failOnce(projectRoot, environment);
+  assert.equal(sendPrompt(projectRoot, { ...environment, AI1_REPORT_ERRORS: 'off' }), null);
+  const autoText = sendPrompt(projectRoot, { ...environment, AI1_REPORT_ERRORS: 'auto' }).hookSpecificOutput.additionalContext;
+  assert.match(autoText, /chose to report ai1's own errors automatically.*exactly as `ai1 issue auto-body` prints them, nothing added/);
+  assert.equal(readReportMode({ AI1_REPORT_ERRORS: 'sometimes' }), 'ask', 'an unknown value means ask');
+});
+
+test('ai1 issue auto-body: fixed facts only, null without errors', () => {
+  const homeDirectory = mkdtempSync(join(tmpdir(), 'ai1-home-'));
+  const projectRoot = createTemporaryProject({ version: 1 });
+  const environment = { CLAUDE_PLUGIN_DATA: join(homeDirectory, 'data') };
+  const collect = () => collectIssueEnvironment(projectRoot, { environment, homeDirectory, runCommand: () => ({ status: 0, stdout: '2.1.300 (Claude Code)' }) });
+  assert.equal(buildAutomaticReport(collect()), null);
+  failOnce(projectRoot, environment);
+  const automaticReport = buildAutomaticReport(collect());
+  assert.match(automaticReport.title, /^ai1 error: throws-on-purpose - TypeError at test\/issue-offer\.test\.mjs:\d+$/);
+  assert.match(automaticReport.body, /nothing from the session, the repo or its code/);
+  assert.match(automaticReport.body, /- Claude Code: 2\.1\.300/);
+  assert.ok(!automaticReport.body.includes(projectRoot) && !automaticReport.body.includes('private detail'));
 });

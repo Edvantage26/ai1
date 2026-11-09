@@ -183,3 +183,16 @@ test('setupRepo adds the credential deny rules once, keeping existing ones; desc
   setupRepo(withoutFlag, { enabledFeatureIds: ['danger'] });
   assert.equal(JSON.parse(readFileSync(join(withoutFlag, '.claude', 'settings.json'), 'utf8')).permissions, undefined);
 });
+
+test('setupRepo writes the report preference in the user settings only; describeRepo reads it', () => {
+  const repoRoot = mkdtempSync(join(tmpdir(), 'ai1-report-'));
+  const userSettingsPath = join(mkdtempSync(join(tmpdir(), 'ai1-user-')), '.claude', 'settings.json');
+  assert.equal(describeRepo(repoRoot, { userSettingsPath }).reportErrors, null);
+  mkdirSync(join(userSettingsPath, '..'), { recursive: true });
+  writeFileSync(userSettingsPath, JSON.stringify({ env: { OTHER: '1' }, model: 'x' }));
+  setupRepo(repoRoot, { enabledFeatureIds: ['danger'], reportErrors: 'auto', userSettingsPath });
+  assert.deepEqual(JSON.parse(readFileSync(userSettingsPath, 'utf8')), { env: { OTHER: '1', AI1_REPORT_ERRORS: 'auto' }, model: 'x' });
+  assert.equal(describeRepo(repoRoot, { userSettingsPath }).reportErrors, 'auto');
+  assert.ok(!readFileSync(join(repoRoot, '.claude', 'settings.json'), 'utf8').includes('AI1_REPORT_ERRORS'), 'never in the repo');
+  assert.throws(() => setupRepo(repoRoot, { enabledFeatureIds: [], reportErrors: 'always', userSettingsPath }), /must be ask, auto, off/);
+});

@@ -1,6 +1,8 @@
 // `ai1 issue`: the facts a bug report on the ai1 repo needs, for /ai1:core-report-issue.
 //   env [--json]                          ai1, Claude Code, Node, OS, host and this repo's features (no paths)
 //   url --title "<t>" --body-file <f>     a prefilled "new issue" link, for when `gh` cannot create it
+//   auto-body [--json]                    title and body of an automatic report of ai1's own errors:
+//                                         fixed facts only (env + error signatures), safe to publish unread
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -14,7 +16,7 @@ import { listStateDirectoriesToRead } from '../core/decision-log.mjs';
 import { readPendingErrorsFrom } from '../core/pending-errors.mjs';
 import { findMainCheckout } from '../core/project-roots.mjs';
 
-export const ISSUE_USAGE = 'usage: ai1 issue env [--json] | url --title "<t>" --body-file <body.md>';
+export const ISSUE_USAGE = 'usage: ai1 issue env [--json] | url --title "<t>" --body-file <body.md> | auto-body [--json]';
 export const ISSUE_REPOSITORY = AI1_MARKETPLACE.source.repo;
 // GitHub rejects longer "new issue" URLs; past it the link carries only the title.
 const MAX_ISSUE_URL_LENGTH = 8000;
@@ -55,6 +57,22 @@ export function formatIssueEnvironment(issueEnvironment) {
   ].join('\n');
 }
 
+// The automatic report (AI1_REPORT_ERRORS=auto): built only from facts that hold nothing private -
+// versions, OS, host, features and the errors' module, class and plugin file:line. null without errors.
+export function buildAutomaticReport(issueEnvironment) {
+  const [firstError, ...otherErrors] = issueEnvironment.pendingErrors || [];
+  if (!firstError) return null;
+  return {
+    title: `ai1 error: ${firstError.module} - ${firstError.error}${otherErrors.length ? ` (+${otherErrors.length} more)` : ''}`,
+    body: [
+      'Automatic report of an error in ai1 itself (`AI1_REPORT_ERRORS=auto`). It holds only the facts below; nothing from the session, the repo or its code.',
+      '',
+      '## Environment',
+      formatIssueEnvironment(issueEnvironment),
+    ].join('\n'),
+  };
+}
+
 export function buildNewIssueUrl(issueTitle, issueBody) {
   const newIssueBaseUrl = `https://github.com/${ISSUE_REPOSITORY}/issues/new`;
   const fullUrl = `${newIssueBaseUrl}?${new URLSearchParams({ title: issueTitle, body: issueBody })}`;
@@ -68,6 +86,15 @@ export function runIssueCommand(repoRoot, commandArguments, { readOption, enviro
   if (subcommandName === 'env') {
     const issueEnvironment = collectIssueEnvironment(repoRoot, { environment, runCommand });
     writeOutput(wantsJson ? JSON.stringify(issueEnvironment, null, 2) : formatIssueEnvironment(issueEnvironment));
+    return 0;
+  }
+  if (subcommandName === 'auto-body') {
+    const automaticReport = buildAutomaticReport(collectIssueEnvironment(repoRoot, { environment, runCommand }));
+    if (!automaticReport) {
+      writeOutput('ai1 issue auto-body: no ai1 errors recorded in this repo; nothing to report.');
+      return 1;
+    }
+    writeOutput(wantsJson ? JSON.stringify(automaticReport, null, 2) : `${automaticReport.title}\n\n${automaticReport.body}`);
     return 0;
   }
   if (subcommandName === 'url') {

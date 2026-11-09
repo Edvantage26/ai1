@@ -74,10 +74,16 @@ commands Claude Code recognises (`cat`, `head`, redirects), not scripts that ope
 and that they go in the committed `.claude/settings.json`, so they apply to the whole team. `.env`
 files are not included.
 
+Unless `reportErrors` is already set (it is per person, so it carries across repos), ask once how
+ai1's own errors (a hook that crashes, never a misfire) should be reported to the ai1 maintainers:
+**ask each time** (recommended), **automatically** (an issue with only versions, OS and the error's
+module and plugin file:line, nothing from their work, filed without asking) or **never**. It goes to
+their user settings (`~/.claude/settings.json`), not to the repo.
+
 ## 4. Write the configuration
 
 ```bash
-ai1 init --features <comma-separated ids> [--verify "<command>" ...] [--disable-plugins <ids picked in step 3>] [--deny-credentials]
+ai1 init --features <comma-separated ids> [--verify "<command>" ...] [--disable-plugins <ids picked in step 3>] [--deny-credentials] [--report-errors ask|auto|off]
 ```
 
 Pass `--features ""` to turn every optional feature off. Report what the command printed,

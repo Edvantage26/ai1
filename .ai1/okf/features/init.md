@@ -5,7 +5,7 @@ description: Sets up ai1 in a repo - asks the features, writes .ai1/config.json 
 tags: [init, cli, setup]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T09:20:51Z'
+  at: '2026-11-09T12:14:40Z'
 sources:
   - id: setup-repo
     resource: src/cli/setup-repo.mjs
@@ -46,6 +46,9 @@ sources:
     `~/.git-credentials`, `~/.npmrc`, `~/.pypirc`. Claude Code applies them to its file tools and the
     shell file commands it recognises, not to scripts that open files themselves. `.env` files are
     left out on purpose ([harness guards](../decisions/harness-guards.md)).
+  - `~/.claude/settings.json` (the person's user settings, written only with `--report-errors
+    ask|auto|off`): `env.AI1_REPORT_ERRORS`, how ai1's own errors are reported
+    ([issue report](issue-report.md)); asked once per person by the setup skill, shown by `ai1 status`.
   - `.claude/settings.local.json` (personal, not committed) **of the main checkout**, even when init
     runs in a worktree: since Claude Code v2.1.211 that is the local file a worktree session reads (a
     copy left in the worktree is still read, below it); on Windows it stays next to

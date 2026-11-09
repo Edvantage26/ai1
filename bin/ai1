@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // ai1 CLI. On the Bash PATH while the plugin is enabled.
 //   ai1 status [--json]                         what this repo runs, and the available features
-//   ai1 init --features okf,danger [--verify "npm test" ...] [--disable-plugins a@x,b@y] [--deny-credentials] [--json]
+//   ai1 init --features okf,danger [--verify "npm test" ...] [--disable-plugins a@x,b@y] [--deny-credentials] [--report-errors ask|auto|off] [--json]
 //   ai1 verify                                  run the repo's verify commands, stop at the first failure
 //   ai1 step-done <slug> "<step>"               ai1 verify, then log the step in .ai1/work/<slug>/progress.md
 //   ai1 proposals new <slug> [--idea] [--title "..."] create .ai1/proposals/NNNN-<slug>.md with the next number
@@ -69,6 +69,7 @@ try {
         console.log(`old layout to migrate (ai1 init does it): ${[...legacyMigration.moves.map((plannedMove) => `${plannedMove.from} -> ${plannedMove.to}`), ...legacyMigration.settingsFiles.map((settingsPath) => `${settingsPath}: jig@jig -> ai1@ai1`)].join(', ')}${legacyMigration.conflicts.length ? ` (blocked: ${legacyMigration.conflicts.join(', ')} already exist)` : ''}`);
       }
       const { worktreeRecipe } = repoDescription;
+      console.log(`ai1's own errors: ${repoDescription.reportErrors || 'ask (not chosen yet; ai1 init --report-errors ask|auto|off)'}`);
       console.log(`credential deny rules: ${repoDescription.credentialDenyRules.present}/${repoDescription.credentialDenyRules.total} in .claude/settings.json${repoDescription.credentialDenyRules.present < repoDescription.credentialDenyRules.total ? ' (ai1 init --deny-credentials adds them)' : ''}`);
       console.log(`worktree recipe: ${worktreeRecipe.status}${worktreeRecipe.errors.length ? ` (${worktreeRecipe.errors.join('; ')})` : ''}${worktreeRecipe.warnings.length ? ` (${worktreeRecipe.warnings.join('; ')})` : ''}`);
       for (const featureStatus of repoDescription.features) {
@@ -94,6 +95,7 @@ try {
       verifyCommands: verifyCommands.length ? verifyCommands : undefined,
       disabledPluginIds: splitList(readOption('--disable-plugins')),
       denyCredentials: commandArguments.includes('--deny-credentials'),
+      reportErrors: readOption('--report-errors'),
     });
     if (wantsJson) console.log(JSON.stringify(setupResult, null, 2));
     else {
@@ -105,6 +107,7 @@ try {
       console.log(`wrote ${setupResult.settingsPath}`);
       console.log(`features: ${Object.entries(setupResult.features).map(([featureId, isEnabled]) => `${featureId}=${isEnabled ? 'on' : 'off'}`).join(', ')}`);
       if (setupResult.disabledPlugins.length) console.log(`disabled for you in this repo (overlap with ai1), in ${setupResult.localSettingsPath}: ${setupResult.disabledPlugins.join(', ')}${setupResult.gitignoreUpdated ? ' (added to .gitignore)' : ''}`);
+      if (setupResult.reportErrors) console.log(`ai1's own errors: ${setupResult.reportErrors} (env.AI1_REPORT_ERRORS in your user settings, ~/.claude/settings.json)`);
       if (setupResult.addedDenyRules.length) console.log(`added ${setupResult.addedDenyRules.length} credential deny rules to ${setupResult.settingsPath} (permissions.deny)`);
       if (setupResult.features.okf && !setupResult.hasKnowledgeBundle) console.log(`no OKF bundle at ${setupResult.knowledge}/ yet: create it with /ai1:okf-maintain-knowledge (produce mode)`);
       console.log(`Commit ${legacyMigration.moves.length ? 'the moves, ' : ''}.ai1/config.json and .claude/settings.json, then restart the Claude Code session.`);
@@ -137,7 +140,7 @@ try {
   } else if (commandName === 'proposals') {
     process.exitCode = runProposalCommand(repoRoot, commandArguments, { readOption });
   } else {
-    console.log(`usage: ai1 status [--json] | ai1 init --features okf,danger [--verify "<command>" ...] [--disable-plugins a@x,b@y] [--deny-credentials] [--json] | ai1 verify | ai1 step-done <slug> "<step>" | ai1 claude-md [--json] | ai1 log [--session <id>] [--since <hours>] [--all] [--json] | ${PROPOSALS_USAGE}`);
+    console.log(`usage: ai1 status [--json] | ai1 init --features okf,danger [--verify "<command>" ...] [--disable-plugins a@x,b@y] [--deny-credentials] [--report-errors ask|auto|off] [--json] | ai1 verify | ai1 step-done <slug> "<step>" | ai1 claude-md [--json] | ai1 log [--session <id>] [--since <hours>] [--all] [--json] | ${PROPOSALS_USAGE}`);
     console.log(WORKTREE_USAGE);
     console.log(FORK_USAGE);
     console.log(ISSUE_USAGE);

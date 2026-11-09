@@ -6,7 +6,8 @@
 
 import { tryGit, detectTrunkBranch } from '../core/git.mjs';
 import { splitRepoRules } from '../core/repo-rules-config.mjs';
-import { readJsonFile, writeJsonFile } from '../core/json-file.mjs';
+import { REPORT_MODES } from '../core/issue-offer.mjs';
+import { readJsonFile, readJsonFileIfValid, writeJsonFile } from '../core/json-file.mjs';
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -88,6 +89,8 @@ export function describeRepo(repoRoot, { userSettingsPath = DEFAULT_USER_SETTING
     // The repo's own guard rules (`rules`): how many run, and why the others are ignored.
     repoRules: describeRepoRules(ai1Config),
     credentialDenyRules: { present: countCredentialDenyRules(readJsonFile(join(repoRoot, '.claude', 'settings.json'))), total: CREDENTIAL_DENY_RULES.length },
+    // Per person, not per repo: how ai1's own errors are reported (null = not chosen yet, means ask).
+    reportErrors: readJsonFileIfValid(userSettingsPath)?.env?.AI1_REPORT_ERRORS ?? null,
     legacyMigration: planLegacyMigration(repoRoot),
     // Against every feature, not only the enabled ones: the setup skill keeps those that overlap with
     // the features the person picks.
@@ -106,7 +109,10 @@ export function describeRepo(repoRoot, { userSettingsPath = DEFAULT_USER_SETTING
 // disabledPluginIds: plugins the person chose to switch off in this repo (from describeRepo's
 // overlappingPlugins); ai1 never picks them by itself.
 // denyCredentials: add CREDENTIAL_DENY_RULES to the committed settings (existing rules are kept).
-export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, disabledPluginIds = [], denyCredentials = false }) {
+// reportErrors: the person's choice for ai1's own errors (ask | auto | off), written as
+// `env.AI1_REPORT_ERRORS` in their user settings - personal, never in the repo.
+export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, disabledPluginIds = [], denyCredentials = false, reportErrors, userSettingsPath = DEFAULT_USER_SETTINGS_PATH }) {
+  if (reportErrors !== undefined && !REPORT_MODES.includes(reportErrors)) throw new Error(`--report-errors must be ${REPORT_MODES.join(', ')}`);
   if (disabledPluginIds.includes(AI1_PLUGIN_ID)) throw new Error(`${AI1_PLUGIN_ID} cannot be disabled by ai1 init`);
   const malformedPluginIds = disabledPluginIds.filter((pluginId) => !/^[^@\s]+@[^@\s]+$/.test(pluginId));
   if (malformedPluginIds.length) throw new Error(`not plugin ids (name@marketplace): ${malformedPluginIds.join(', ')}`);
@@ -157,9 +163,17 @@ export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, disable
     writeJsonFile(localSettingsPath, localSettings);
   }
 
+  if (reportErrors !== undefined) {
+    const userSettings = readJsonFile(userSettingsPath) || {};
+    userSettings.env = { ...userSettings.env, AI1_REPORT_ERRORS: reportErrors };
+    mkdirSync(dirname(userSettingsPath), { recursive: true });
+    writeJsonFile(userSettingsPath, userSettings);
+  }
+
   return {
     ai1ConfigPath,
     settingsPath,
+    reportErrors: reportErrors ?? null,
     localSettingsPath: disabledPlugins.length ? localSettingsPath : null,
     gitignoreUpdated,
     features: chosenFeatures,
