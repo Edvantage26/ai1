@@ -1,6 +1,6 @@
 ---
 name: proposals-write
-description: Proposals — Write and manage proposals - large changes and future features that are NOT decided yet - in .ai1/proposals/, with honest options, criteria, assumptions, phases and how to resume them; when one is accepted or rejected, carry its decisions to the knowledge bundle. Use when the person asks for a proposal ("escribe una propuesta", "guárdalo como propuesta", "apúntalo para más adelante", "write a proposal", "save this for later"), says yes to your one-line offer to save something as a proposal, or asks to update, accept, reject or resume one. Never create a proposal on your own. Not for recording facts or decisions already taken (that is /ai1:okf-maintain-knowledge) nor for planning how to build something already accepted (that is a plan or /ai1:lanes-design-before-code).
+description: Proposals — Write and manage proposals - large changes and future features that are NOT decided yet - in .ai1/proposals/, with honest options, criteria, assumptions, phases and how to resume them; when one is accepted or rejected, carry its decisions to the knowledge bundle. Use when the person asks for a proposal ("escribe una propuesta", "guárdalo como propuesta", "apúntalo para más adelante", "write a proposal", "save this for later"), picks "proposal" in your one-line offer (here, fork or proposal) for a different subject, or asks to update, accept, reject or resume one. Never create a proposal on your own. Not for recording facts or decisions already taken (that is /ai1:okf-maintain-knowledge) nor for planning how to build something already accepted (that is a plan or /ai1:lanes-design-before-code).
 ---
 
 # Proposals: changes that are not the system yet
@@ -10,12 +10,22 @@ description: Proposals — Write and manage proposals - large changes and future
 Never create a proposal on your own initiative. Create one when the person asks for it.
 
 Offer one only in this situation: the conversation is about one subject and a clearly different one
-comes up (a new feature or change unrelated to the task at hand). Then offer in one line to save it
-as a proposal, so the current work goes on ("¿lo guardo como propuesta y seguimos con lo de
-ahora?" / "Save this as a proposal and carry on?"), and create it only after a yes; if the answer is
-no or there is none, drop it. Do not offer for details, steps, follow-ups or improvements of the
+comes up (a new feature or change unrelated to the task at hand). Then offer in one line three ways
+and let the person choose ("Esto es otro tema: ¿lo hacemos aquí, lo abro en un fork o lo guardo como
+propuesta?" / "This is a different subject: do it here, fork it, or save it as a proposal?"):
+
+- **here**: it is done in this conversation (after the current task, unless the person says now);
+- **fork**: a new conversation takes it, with /ai1:session-fork-conversation (brief mode, usually,
+  so it starts with only the context it needs);
+- **proposal**: it is saved for later with this skill.
+
+Act only on the way the person picks; if there is no answer, carry on with the current task and drop it. Do not offer for details, steps, follow-ups or improvements of the
 subject being worked on: those belong to the current task. Updating, accepting or rejecting an
 existing proposal follows the person's request too.
+
+A yes to a question that bundles several things is not a yes to the proposal: ask about it on its own.
+`ai1 proposals new` also asks the person in the permission prompt (danger rule `ai1-proposals-new`);
+if they refuse, do not create the file another way.
 
 ## What a proposal is
 

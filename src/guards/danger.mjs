@@ -146,6 +146,13 @@ export const DANGER_RULES = [
     },
   },
   {
+    id: 'ai1-proposals-new',
+    check(commandWords) {
+      if (baseName(commandWords[0]) !== 'ai1' || commandWords[1] !== 'proposals' || commandWords[2] !== 'new') return null;
+      return { action: 'ask', why: 'ai1 proposals new creates a proposal: only the person decides that something becomes one.' };
+    },
+  },
+  {
     id: 'rm-recursive-force',
     check(commandWords) {
       if (baseName(commandWords[0]) !== 'rm') return null;

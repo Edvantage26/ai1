@@ -146,7 +146,9 @@ test('proposals-brief: the recipe and the open proposals; silent on resume; off 
   setProposalStatus(projectRoot, 2, 'rejected');
   const contextText = startSession(projectRoot, hookOptions()).hookSpecificOutput.additionalContext;
   assert.match(contextText, /Proposals: large changes .* live in `\.ai1\/proposals\/`/);
-  assert.match(contextText, /Never create a proposal on your own\. Create one when the person asks for it\. Offer one only when, while working on one subject, a clearly different one comes up.* create it only after a yes\. Never offer for details/);
+  assert.match(contextText, /Never create a proposal on your own\. Create one when the person asks for it\. When, while working on one subject, a clearly different one comes up/);
+  assert.match(contextText, /three ways .* do it here, in this conversation; fork it into a new conversation \(\/ai1:session-fork-conversation\); or save it as a proposal for later/);
+  assert.match(contextText, /Act only on the way the person picks; a yes to a question that bundles several things is not a pick\. Never offer for details/);
   assert.match(contextText, /load \/ai1:proposals-write/);
   assert.match(contextText, /0001 "Guard writes to production" \(idea, draft\)/);
   assert.doesNotMatch(contextText, /Old idea/, 'rejected proposals are not open');

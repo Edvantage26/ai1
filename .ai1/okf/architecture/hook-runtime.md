@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T07:54:49Z'
+  at: '2026-11-09T08:00:33Z'
 ---
 
 # Flow
@@ -30,14 +30,15 @@ generated:
    (`src/core/registry.mjs`), for tests and in-process callers.
 4. `src/core/hook-io.mjs` combines decisions (deny/block > ask > context > allow) and prints the
    JSON each event expects (PreToolUse `permissionDecision`, Stop `decision: block`,
-   SessionStart, UserPromptSubmit and PostToolUse `additionalContext`).
+   SessionStart, UserPromptSubmit and PostToolUse `additionalContext`). A `notice` never competes:
+   it is added as `systemMessage` (shown to the person, not the agent) to whatever was decided.
 
 # Module contract
 
 `{ id, event, feature, description, toolNames?, run(moduleContext) -> decision }`, where
 `moduleContext` has `hookInput`, `config`, `projectRoot` (tree root), `sharedRoot`, `environment`, `homeDirectory`, `enabledModules` and `moduleOptions`
 (`modules.<id>` from .ai1/config.json minus `enabled`). Decisions: `allow`, `ask`, `deny`, `block`,
-`context`. A reason always says how to carry on.
+`context`, `notice`. A reason always says how to carry on.
 
 Adding a module = one file (with its `feature`) + one line in `src/core/module-index.mjs` (id, event,
 feature, toolNames, path) + its entry in the schema. `test/dispatcher.test.mjs` fails if the index and
@@ -82,7 +83,7 @@ paths), `session-state.mjs` (per-session state files, `readStateJson`, and `clai
 loop guard - the same findings block once, at most N blocks per session - of okf-upkeep and
 proposals-upkeep), `project-paths.mjs` (tool paths relative to the project root; used by lanes and design),
 `frontmatter.mjs` (read and write flat YAML frontmatter; okf, lanes and proposals), `git.mjs` (`runGit`,
-`tryGit`, `listIgnoredPaths`; every module and the CLI), `json-file.mjs` (`readJsonFile` throws on
+`tryGit`, `listIgnoredPaths`, `readOriginHeadBranch`, `detectTrunkBranch`; every module and the CLI), `json-file.mjs` (`readJsonFile` throws on
 invalid JSON for files about to be rewritten, `readJsonFileIfValid`, `writeJsonFile`),
 `markdown-files.mjs` (recursive markdown listing), `legacy-layout.mjs` (detection of the old `jig`
 layout, so core never imports `src/cli/`). Paths under `.ai1/` (`KNOWLEDGE_BUNDLE_PATH`,

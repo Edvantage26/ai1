@@ -3,10 +3,10 @@
 // Modules never write to stdout themselves: they return decisions, and this file turns the
 // combined decision into the shape each event expects.
 
-export const DECISION_KINDS = ['allow', 'ask', 'deny', 'block', 'context'];
+export const DECISION_KINDS = ['allow', 'ask', 'deny', 'block', 'context', 'notice'];
 
 // Higher rank wins when several modules decide on the same event.
-const DECISION_RANK = { allow: 0, context: 0, ask: 1, block: 2, deny: 2 };
+const DECISION_RANK = { allow: 0, context: 0, notice: 0, ask: 1, block: 2, deny: 2 };
 
 export function allowDecision() {
   return { kind: 'allow' };
@@ -30,6 +30,12 @@ export function contextDecision(moduleId, text) {
   return { kind: 'context', moduleId, text };
 }
 
+// Any event: a message shown to the person (`systemMessage`), not to the agent; it never blocks
+// and rides along whatever the other modules decided.
+export function noticeDecision(moduleId, text) {
+  return { kind: 'notice', moduleId, text };
+}
+
 export async function readHookInput(inputStream = process.stdin) {
   let rawInput = '';
   for await (const inputChunk of inputStream) rawInput += inputChunk;
@@ -39,21 +45,29 @@ export async function readHookInput(inputStream = process.stdin) {
 
 export function combineDecisions(moduleDecisions) {
   const meaningfulDecisions = moduleDecisions.filter((decision) => decision && decision.kind !== 'allow');
+  const noticeTexts = meaningfulDecisions.filter((decision) => decision.kind === 'notice').map((decision) => `ai1/${decision.moduleId}: ${decision.text}`);
+  const withNotice = (combinedDecision) => (noticeTexts.length ? { ...combinedDecision, notice: noticeTexts.join('\n') } : combinedDecision);
   const contextTexts = meaningfulDecisions.filter((decision) => decision.kind === 'context').map((decision) => decision.text);
-  const blockingDecisions = meaningfulDecisions.filter((decision) => decision.kind !== 'context');
+  const blockingDecisions = meaningfulDecisions.filter((decision) => !['context', 'notice'].includes(decision.kind));
   if (blockingDecisions.length === 0) {
-    return contextTexts.length ? { kind: 'context', text: contextTexts.join('\n\n') } : allowDecision();
+    return withNotice(contextTexts.length ? { kind: 'context', text: contextTexts.join('\n\n') } : allowDecision());
   }
   const highestRank = Math.max(...blockingDecisions.map((decision) => DECISION_RANK[decision.kind]));
   const winningDecisions = blockingDecisions.filter((decision) => DECISION_RANK[decision.kind] === highestRank);
-  return {
+  return withNotice({
     kind: winningDecisions[0].kind,
     reason: winningDecisions.map((decision) => `ai1/${decision.moduleId}: ${decision.reason}`).join('\n'),
-  };
+  });
 }
 
 // Returns the object to print, or null when there is nothing to say (plain exit 0 = allow).
 export function buildHookOutput(eventName, combinedDecision) {
+  const decisionOutput = buildDecisionOutput(eventName, combinedDecision);
+  if (!combinedDecision.notice) return decisionOutput;
+  return { ...decisionOutput, systemMessage: combinedDecision.notice };
+}
+
+function buildDecisionOutput(eventName, combinedDecision) {
   if (combinedDecision.kind === 'allow') return null;
   if (eventName === 'PreToolUse' && ['ask', 'deny'].includes(combinedDecision.kind)) {
     return {

@@ -19,7 +19,7 @@ Skills are named `/ai1:<module>-<what it does>`, e.g. `/ai1:okf-validate-bundle`
 A repo set up with the old name (`jig`: `.claude/jig.json`, `.okf/`, `docs/rfc/`, `.jig/work/`) is
 moved to `.ai1/` by `/ai1:core-setup-repo`, with `git mv` so history follows.
 
-> **Status: early (v0.18.0).** Per-repo features, the `okf` feature (project knowledge) and the
+> **Status: early (v0.19.1).** Per-repo features, the `okf` feature (project knowledge) and the
 > `danger` guard work, are tested and verified in real sessions. The `lanes`, `design`, `verify`,
 > `proposals` and `worktrees` features are new and tested, not yet tried in live sessions. Everything marked *planned* does not exist yet.
 
@@ -94,13 +94,13 @@ runs the `ai1` CLI, so the result is merged and validated, not improvised).
 | `design` | off | For repos with a frontend. At session start: read the product and design-system context (OKF concepts of type `Product` / `DesignSystem`, or Impeccable's `PRODUCT.md` / `DESIGN.md`), avoid the generic AI look, keep a quality floor. After every edit to a UI file, 26 deterministic rules (overused fonts, purple gradients, glows, gradient text, low contrast, skipped headings, tiny text, placeholder images...) report what that edit introduced. Points to [Impeccable](https://github.com/pbakaus/impeccable) commands when it is installed |
 | `verify` | on | You cannot get a "done" while code changed after the last passing run of the `verify` commands (run in full: a filtered run does not count). Docs and harness config are exempt. `ai1 verify` runs them; `ai1 step-done` logs a deep-lane step only when they pass |
 | `lanes` | off | Sizes each task: quick ones are done directly, medium ones get a short plan, complex or risky ones get questions and a design (`/ai1:lanes-design-before-code`) that you approve before any code is edited. Restores progress after a compaction |
-| `proposals` | off | Large changes and future features, not decided yet, in `.ai1/proposals/NNNN-<slug>.md` (versioned, apart from the knowledge bundle because a proposal is not the system). The agent creates one only when you ask for it, or after you say yes to its one-line offer. Two sizes: a one-page *idea* and a *full* proposal (criteria before options, "do nothing" always an option, assumptions, phases, how to resume). Open proposals listed at session start and related ones recalled on each message; when a proposal is accepted, a hook asks for its decisions to be recorded in the OKF bundle. `/ai1:proposals-write`, `ai1 proposals new\|set\|index\|check`. Called `rfc` until v0.17: `ai1 init` migrates `.ai1/rfc/` and `features.rfc` |
+| `proposals` | off | Large changes and future features, not decided yet, in `.ai1/proposals/NNNN-<slug>.md` (versioned, apart from the knowledge bundle because a proposal is not the system). The agent creates one only when you ask for it. When a clearly different subject comes up mid-task, it offers in one line to do it here, fork it into a new conversation, or save it as a proposal, and acts on what you pick. Two sizes: a one-page *idea* and a *full* proposal (criteria before options, "do nothing" always an option, assumptions, phases, how to resume). Open proposals listed at session start and related ones recalled on each message; when a proposal is accepted, a hook asks for its decisions to be recorded in the OKF bundle. `/ai1:proposals-write`, `ai1 proposals new\|set\|index\|check`. Called `rfc` until v0.17: `ai1 init` migrates `.ai1/rfc/` and `features.rfc` |
 
 With `proposals` on, an idea goes: `ai1 proposals new <slug> --idea` (next number, index updated) → it grows into
 a full proposal when it is about to be decided → `ai1 proposals set <n> accepted` and its decisions become OKF
 concepts that cite it → built (with `lanes`, a deep plan with `proposal: <n>`) → `ai1 proposals set <n> implemented`.
 
-| `worktrees` | off | Each significant change is done in its own git worktree, made the way your project needs. The first time, `/ai1:worktrees-plan-recipe` studies the repo (heavy folders, env files, ports, where builds write, existing worktree tools), proposes a recipe, and once you approve it saves it as the project skill `.claude/skills/worktree/` (`SKILL.md` + `recipe.json`, committed). Modes: `full`, `light` (heavy folders shared, regenerated or left out) and `auto`, which picks full when it fits on that machine's disk. Each worktree gets its env files and its own port; the agent keeps telling you which worktree it is working in. `ai1 worktree create\|list\|run\|finish\|drop` |
+| `worktrees` | off | Every change to the repo files is done in its own worktree, which the agent creates before the first edit, made the way your project needs. The first time, `/ai1:worktrees-plan-recipe` studies the repo (heavy folders, env files, ports, where builds write, existing worktree tools), proposes a recipe, and once you approve it saves it as the project skill `.claude/skills/worktree/` (`SKILL.md` + `recipe.json`, committed). Modes: `full`, `light` (heavy folders shared, regenerated or left out) and `auto`, which picks full when it fits on that machine's disk. Each worktree gets its env files and its own port; the agent keeps telling you which worktree it is working in. `ai1 worktree create\|list\|run\|finish\|drop` |
 
 With `worktrees` on: `ai1 worktree create feat-x` → the agent enters it (EnterWorktree) and runs the
 setup it prints → works and commits there, starting each progress report with the worktree's name →
@@ -159,7 +159,9 @@ wiring. Internal errors never block the agent; a matched rule does.
 Requirements: **Node 18+** (hooks and the `ai1` CLI) and **Python 3.9+** (the OKF toolkit scripts),
 nothing else: no `uv`, no `pip install`, no network. PyYAML ships inside the plugin
 (`vendor/`). Python 3.9+ comes with most Linux distributions and with the macOS
-command line tools (the ones that provide `git`).
+command line tools (the ones that provide `git`); on Windows install it from python.org (ai1 tries
+`python3`, `python` and `py -3`). Without Python the hooks still work: only the OKF bundle check is
+off, and ai1 says so once per session.
 
 ## Development
 

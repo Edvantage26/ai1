@@ -29,14 +29,14 @@ export const FEATURES = [
   },
   {
     id: 'worktrees',
-    title: 'A worktree per significant change',
-    description: 'Each significant change is done in its own worktree, made the way this project needs (modes full/light/auto by disk, copied env, shared or regenerated heavy folders, a port per worktree, named commands, checked integration). The recipe is planned once with the person (/ai1:worktrees-plan-recipe) and saved as the project skill .claude/skills/worktree/. The agent keeps saying which worktree it works in. Adds `ai1 worktree`.',
+    title: 'A worktree per change',
+    description: 'Every change to the repo files is done in a worktree (created before the first edit), made the way this project needs (modes full/light/auto by disk, copied env, shared or regenerated heavy folders, a port per worktree, named commands, checked integration). The recipe is planned once with the person (/ai1:worktrees-plan-recipe) and saved as the project skill .claude/skills/worktree/. The agent keeps saying which worktree it works in. Adds `ai1 worktree`.',
     enabledByDefault: false,
   },
   {
     id: 'proposals',
     title: 'Proposals for undecided changes',
-    description: 'Proposals for large changes and future features live in .ai1/proposals/ (one versioned file each, idea or full size), apart from the knowledge bundle because they are not the system. Created only when the person asks for one, or says yes to a one-line offer the agent makes when a clearly different subject comes up mid-task. Lists the open ones at session start, points to the related ones on each message, and when the session touched them checks they are consistent and that accepted ones are recorded in the bundle. Skill /ai1:proposals-write; `ai1 proposals new|set|index|check`.',
+    description: 'Proposals for large changes and future features live in .ai1/proposals/ (one versioned file each, idea or full size), apart from the knowledge bundle because they are not the system. Created only when the person asks for one, or picks it in the one-line offer the agent makes when a clearly different subject comes up mid-task (do it here, fork the conversation, or save it as a proposal). Lists the open ones at session start, points to the related ones on each message, and when the session touched them checks they are consistent and that accepted ones are recorded in the bundle. Skill /ai1:proposals-write; `ai1 proposals new|set|index|check`.',
     enabledByDefault: false,
   },
   {

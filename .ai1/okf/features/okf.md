@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index at session start, CLAUDE
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T07:54:49Z'
+  at: '2026-11-09T08:00:33Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -47,7 +47,7 @@ sources:
 - **okf-index (SessionStart):** reads `.ai1/okf/index.md`, injects it (up to
   12,000 characters) with the maintenance rules, and records the HEAD at session start in the
   session state. Without a bundle it suggests creating one with `/ai1:okf-maintain-knowledge`.
-- **okf-claude-md (SessionStart, since v0.19.0):** the repo's CLAUDE.md files are loaded whole in
+- **okf-claude-md (SessionStart, since v0.20.0):** the repo's CLAUDE.md files are loaded whole in
   every session while the bundle is read on demand, so knowledge piled up in CLAUDE.md costs tokens
   every time and drifts from the concepts. A deterministic check (`src/okf/okf-claude-md-check.mjs`,
   no LLM) reads every CLAUDE.md of the repo (`git ls-files --cached --others --exclude-standard`,
@@ -144,7 +144,9 @@ sources:
   block. It also runs when `stop_hook_active` is set (the agent was just asked to update the
   bundle), which is exactly when it matters; the upkeep reminder itself is not repeated then.
   Loop guards: the same errors are reported once, and at most 3 validation blocks per session.
-  Without `python3` it fails open (message on stderr).
+  It tries `python3`, `python` and `py -3` (Windows) in order. Without a Python 3 it fails open and
+  tells the person once per session (`systemMessage`, never blocking); before 2026-11-09 only stderr
+  said it, so on Windows the gate was off without anyone knowing.
 - **Rules given to the agent:** update the concept and `generated: { by: claude-code/<model>, at }`
   with the real current UTC time; `log.md` only for lifecycle events; validate with `/ai1:okf-validate-bundle`
   and fix errors. On a v0.1 bundle: legacy warnings are expected, the agent must not migrate the

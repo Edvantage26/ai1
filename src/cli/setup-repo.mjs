@@ -4,7 +4,7 @@
 // Overrides that only make sense on this machine (switching off the person's own standalone OKF
 // plugin) go to .claude/settings.local.json, which is personal and kept out of git.
 
-import { tryGit } from '../core/git.mjs';
+import { tryGit, detectTrunkBranch } from '../core/git.mjs';
 import { readJsonFile, writeJsonFile } from '../core/json-file.mjs';
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -21,16 +21,6 @@ export const AI1_MARKETPLACE = { source: { source: 'github', repo: 'Edvantage26/
 
 export function findRepoRoot(startDirectory) {
   return tryGit(startDirectory, ['rev-parse', '--show-toplevel']) || startDirectory;
-}
-
-// origin/HEAD when the clone knows it, else main or master if present, else the current branch.
-export function detectTrunkBranch(repoRoot) {
-  const originHead = tryGit(repoRoot, ['symbolic-ref', '--short', 'refs/remotes/origin/HEAD']);
-  if (originHead) return originHead.replace(/^origin\//, '');
-  for (const candidateBranch of ['main', 'master']) {
-    if (tryGit(repoRoot, ['rev-parse', '--verify', '--quiet', `refs/heads/${candidateBranch}`])) return candidateBranch;
-  }
-  return tryGit(repoRoot, ['branch', '--show-current']) || 'main';
 }
 
 // Another enabled plugin that also ships OKF skills (e.g. a standalone `okf@...`) would duplicate

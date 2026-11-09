@@ -5,7 +5,7 @@ description: PreToolUse guard that confirms or refuses shell commands that destr
 tags: [guard, hooks, bash]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T04:00:04Z'
+  at: '2026-11-09T07:36:47Z'
 ---
 
 Source: `src/guards/danger.mjs`. Runs on `Bash` tool calls when the `danger` feature is on (on by default).
@@ -21,6 +21,10 @@ rules.
 | `git-force-push` | ask | `--force`, `-f`, `--force-with-lease`, `+refspec` |
 | `git-clean` | ask | `git clean -f` (not `-n`) |
 | `git-discard-changes` | ask | `checkout -- / .`, `restore` (not `--staged`), `stash drop/clear`, `branch -D` |
+| `git-worktree-remove` | ask | `git worktree remove --force`, or a worktree with ignored files |
+| `ai1-worktree-drop` | ask | `ai1 worktree drop` |
+| `ai1-worktree-finish` | ask | `ai1 worktree finish`: the person decides when a branch is integrated |
+| `ai1-proposals-new` | ask | `ai1 proposals new`: only the person decides that something becomes a proposal ([proposals](../features/proposals.md)) |
 | `rm-recursive-force` | ask / deny | `rm -r` outside regenerable dirs (`node_modules`, `dist`, `/tmp/...`); deny on `/`, `~`, `$HOME` |
 | `sql-destructive` | ask | `DROP`, `TRUNCATE`, `DELETE FROM x` without `WHERE` |
 | `docker-destructive` | ask | `system prune`, `volume rm/prune`, `compose down -v` |

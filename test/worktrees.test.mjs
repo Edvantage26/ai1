@@ -328,7 +328,7 @@ test('worktree-brief: points to /ai1:worktrees-plan-recipe without a recipe, giv
   writeFileSync(join(mainRoot, '.ai1', 'config.json'), JSON.stringify({ features: { okf: false, worktrees: true, lanes: true } }));
   const options = hookOptions(mainRoot);
   const mainContext = contextOf(runHookEvent('SessionStart', { session_id: 's', cwd: mainRoot, source: 'startup' }, options));
-  assert.match(mainContext, /Worktrees: do each significant change[\s\S]*ai1 worktree create <name>/);
+  assert.match(mainContext, /Worktrees: any change to the files of this repo happens in a worktree, never in the main checkout[\s\S]*create one before the first edit[\s\S]*ai1 worktree create <name>/);
   assert.match(mainContext, /plan and deep tasks are built in their own worktree/);
   assert.doesNotMatch(mainContext, /This session works in/);
   assert.equal(mainContext, contextOf(runHookEvent('SessionStart', { session_id: 's', cwd: mainRoot, source: 'startup' }, options)), 'byte-stable');
@@ -366,4 +366,24 @@ test('ports are stable per name and skip taken ones; env files keep other lines'
   writeFileSync(envPath, '# comment\nexport PORT=1\nOTHER=x\n');
   writeEnvVariables(envPath, { PORT: '12345', NEW_VAR: 'y' });
   assert.equal(readFileSync(envPath, 'utf8'), '# comment\nPORT=12345\nOTHER=x\nNEW_VAR=y\n');
+});
+
+test('base trunk: the main branch is detected whatever its name, checked, and a stale trunk is reported', () => {
+  const trunkRecipe = { ...TEST_RECIPE, base: 'trunk' };
+  const developRepo = createRecipeRepo(trunkRecipe);
+  runGit(developRepo, ['branch', '-m', 'main', 'develop']);
+  assert.equal(createWorktree(developRepo, 'no-config', { mode: 'light', diskSpace: PLENTY_OF_DISK }).base, 'develop', 'no .ai1/config.json: detected');
+  mkdirSync(join(developRepo, '.ai1'), { recursive: true });
+  writeFileSync(join(developRepo, '.ai1', 'config.json'), JSON.stringify({ version: 1 }));
+  assert.equal(createWorktree(developRepo, 'no-trunk', { mode: 'light', diskSpace: PLENTY_OF_DISK }).base, 'develop', 'a config without trunk: detected, not "main"');
+
+  writeFileSync(join(developRepo, '.ai1', 'config.json'), JSON.stringify({ version: 1, trunk: 'master' }));
+  assert.throws(() => createWorktree(developRepo, 'missing-base', { mode: 'light', diskSpace: PLENTY_OF_DISK }), /the base master does not exist in this repo: set "trunk"/);
+
+  runGit(developRepo, ['branch', 'master']);
+  runGit(developRepo, ['update-ref', 'refs/remotes/origin/develop', 'develop']);
+  runGit(developRepo, ['symbolic-ref', 'refs/remotes/origin/HEAD', 'refs/remotes/origin/develop']);
+  const staleTrunk = createWorktree(developRepo, 'stale-trunk', { mode: 'light', diskSpace: PLENTY_OF_DISK });
+  assert.equal(staleTrunk.base, 'master', 'the configured trunk wins');
+  assert.ok(staleTrunk.warnings.some((warningText) => /base is master .* but origin\/HEAD points to develop/.test(warningText)));
 });

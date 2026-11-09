@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runHookEvent } from '../src/core/dispatcher.mjs';
 import { shellCommandWritesBundle } from '../src/okf/okf-session-scan.mjs';
+import { runBundleValidator } from '../src/okf/okf-validator.mjs';
 import { createTemporaryProject } from './helpers.mjs';
 
 const V01_INDEX = "---\nokf_version: '0.1'\n---\n\n# Demo bundle\n\n* [Overview](overview.md)\n";
@@ -294,13 +295,25 @@ test('validation: at most three validation blocks per session', () => {
   assert.equal(stopSession(projectRoot, options, { stop_hook_active: true }), null);
 });
 
-test('validation: without python3 it fails open', () => {
+test('validation: without Python it fails open and tells the person once per session', () => {
   const projectRoot = createRepoWithBundle();
   const options = hookOptions();
   options.environment.AI1_PYTHON = 'python3-that-does-not-exist';
   startSession(projectRoot, options);
   writeFileSync(join(projectRoot, '.ai1', 'okf', 'broken.md'), BROKEN_CONCEPT);
-  assert.equal(stopSession(projectRoot, options), null);
+  const firstStop = stopSession(projectRoot, options);
+  assert.equal(firstStop.decision, undefined, 'never blocks');
+  assert.match(firstStop.systemMessage, /^ai1\/okf-upkeep: the OKF bundle was not validated: .*python3-that-does-not-exist not found.*Install Python 3\.9\+/);
+  assert.equal(stopSession(projectRoot, options), null, 'said once');
+});
+
+test('validation: the next interpreter is tried when one is missing', () => {
+  const projectRoot = createRepoWithBundle();
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'broken.md'), BROKEN_CONCEPT);
+  const validation = runBundleValidator(join(projectRoot, '.ai1', 'okf'), {}, [['python-that-does-not-exist'], ['python3', '-S']]);
+  assert.equal(validation.ran, true);
+  assert.equal(validation.errors.length, 1);
+  assert.match(runBundleValidator(join(projectRoot, '.ai1', 'okf'), {}, [['missing-one'], ['missing-two']]).reason, /missing-one not found; missing-two not found/);
 });
 
 test('okf-upkeep: a deleted file is asked about once, not on every stop', () => {

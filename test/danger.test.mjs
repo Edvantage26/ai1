@@ -44,6 +44,8 @@ const EXPECTED_DECISIONS = [
   ['git worktree remove -f ../feature', 'ask'],
   ['ai1 worktree drop feature --confirm', 'ask'],
   ['ai1 worktree finish feature', 'ask'],
+  ['ai1 proposals new prod-guard --idea --title "Guard production writes"', 'ask'],
+  ['ai1 proposals set 1 accepted', 'allow'],
   ['git worktree list', 'allow'],
   ['ai1 worktree list', 'allow'],
   // Bypassing safety or wiping everything: refused.

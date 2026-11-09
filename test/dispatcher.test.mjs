@@ -5,7 +5,7 @@ import { ALL_MODULES } from '../src/core/registry.mjs';
 import { MODULE_INDEX, loadModulesForEvent } from '../src/core/module-index.mjs';
 import { dispatchHookEvent } from '../src/core/hook-dispatch.mjs';
 import { KNOWN_FEATURE_IDS } from '../src/core/features.mjs';
-import { allowDecision, askDecision } from '../src/core/hook-io.mjs';
+import { allowDecision, askDecision, blockDecision, noticeDecision, combineDecisions, buildHookOutput } from '../src/core/hook-io.mjs';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createTemporaryProject, bashPayload } from './helpers.mjs';
@@ -142,4 +142,11 @@ test('dispatchHookEvent lists every enabled module but runs only the loaded ones
   const briefText = dispatchHookEvent('SessionStart', { cwd: projectRoot }, { ...quietOptions, runnableModules: [briefModule] }).hookSpecificOutput.additionalContext;
   assert.match(briefText, /Hooks enforcing them: .*danger.*verify-gate/, 'the brief names modules that were not loaded');
   assert.doesNotMatch(briefText, /Craft: keep the code growing/, 'craft-brief was not loaded, so it did not run');
+});
+
+test('a notice reaches the person as systemMessage and rides along a block', () => {
+  const noticeOnly = buildHookOutput('Stop', combineDecisions([allowDecision(), noticeDecision('okf-upkeep', 'no Python')]));
+  assert.deepEqual(noticeOnly, { systemMessage: 'ai1/okf-upkeep: no Python' });
+  const withBlock = buildHookOutput('Stop', combineDecisions([noticeDecision('okf-upkeep', 'no Python'), blockDecision('verify-gate', 'run npm test')]));
+  assert.deepEqual(withBlock, { decision: 'block', reason: 'ai1/verify-gate: run npm test', systemMessage: 'ai1/okf-upkeep: no Python' });
 });

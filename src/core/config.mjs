@@ -158,6 +158,8 @@ export function loadHarnessConfig(projectRoot, knownModuleIds = []) {
     configPath,
     unknownEntries: listUnknownConfigEntries(rawConfig, knownModuleIds),
     notices: configNotices,
+    // Whether the repo sets `trunk` (otherwise the default 'main' is a guess: see detectTrunkBranch).
+    trunkConfigured: typeof rawConfig.trunk === 'string',
     config: { ...DEFAULT_CONFIG, ...supportedConfig, features: { ...rawConfig.features }, modules: { ...rawConfig.modules } },
   };
 }

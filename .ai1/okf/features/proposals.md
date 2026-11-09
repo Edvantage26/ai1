@@ -5,7 +5,7 @@ description: Proposals - large changes and future features not decided yet - in 
 tags: [proposals, roadmap, hooks, cli, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T06:44:40Z'
+  at: '2026-11-09T07:43:47Z'
 sources:
   - id: proposals-documents
     resource: src/proposals/proposals-documents.mjs
@@ -55,13 +55,19 @@ The lifecycle it fills:
 # Creation: only on request or acceptance
 
 The agent never creates a proposal on its own initiative: it creates one when the person asks for
-it. It offers one only when, while working on one subject, a clearly different one comes up (a new
-feature or change unrelated to the task at hand): one line ("¿lo guardo como propuesta y seguimos con
-lo de ahora?"), created only after a yes. Never for details, steps or follow-ups of the current
-subject (decided by the person on 2026-11-09). Said in the brief and in the skill. Decision (2026-11-09): **text only, no hook**, because friction must be
-proportional to risk and a proposal is a versioned markdown file that is cheap to delete; a consent
-hook (detect the request or the yes, gate `ai1 proposals new`) was designed and dropped. It comes
-back only if the agent breaks the rule in practice.
+it. When, while working on one subject, a clearly different one comes up (a new feature or change
+unrelated to the task at hand), it offers in one line three ways and the person picks: do it here, in
+this conversation; fork it into a new one ([session fork](session-fork.md)); or save it as a proposal
+("Esto es otro tema: ¿lo hacemos aquí, lo abro en un fork o lo guardo como propuesta?"). Never for
+details, steps or follow-ups of the current subject (decided by the person on 2026-11-09; the three
+ways the same day, replacing a proposal-only offer). Said in the brief and in the skill; the offer
+lives in the proposals feature, so with it off the agent does not make it.
+`ai1 proposals new` also asks the person through the [danger guard](../guards/danger.md) (rule
+`ai1-proposals-new`, an `ask` in the permission prompt), so a proposal is never created on the agent's
+reading of an answer. Decided by the person on 2026-11-09, replacing the earlier "text only, no hook"
+decision of the same day: an agent read an "ok, go ahead" to a question that bundled a code change and
+a proposal as a yes to both. Only creation asks; `set`, `index` and `check` do not. Writing a proposal
+file with Write/Edit is not gated (the skill forbids numbering by hand).
 
 # Files
 
@@ -124,4 +130,5 @@ names, and `RFC NNNN` -> `Proposal NNNN` only for numbers of moved proposals (ne
   refusal of `rfc` (setup tests) and the migration (legacy-migration tests: move, names, bundle,
   plans, config, log untouched, refusal).
 - This repo migrated with the new `ai1 init` on 2026-11-09: proposals 0001-0003 moved with `git mv`,
-  config renamed, `ai1 proposals check` clean.
+  config renamed, `ai1 proposals check` clean. The same day the person removed all of them (the
+  roadmap keeps the items, without proposals); git history keeps the files.
