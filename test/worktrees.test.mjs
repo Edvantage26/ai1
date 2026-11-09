@@ -278,6 +278,8 @@ test('finish runs pre-finish and moves a base that is not checked out anywhere',
   assert.match(finishResult.steps.join('\n'), /pre-finish passed[\s\S]*release moved/);
   assert.equal(runGit(mainRoot, ['log', '--format=%s', '-1', 'release']).trim(), 'change fix.js');
   assert.equal(existsSync(join(mainRoot, 'fix.js')), false, 'main is untouched');
+  assert.match(finishResult.steps.at(-1), /worktree and branch .* removed/);
+  assert.equal(runGit(mainRoot, ['branch', '--list', finishResult.steps.at(-1).match(/branch (\S+) removed/)[1]]).trim(), '', 'the branch is really gone although main has another HEAD');
 });
 
 test('finish asks for the knowledge bundle when the branch changes code without touching it', () => {

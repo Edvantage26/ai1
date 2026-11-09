@@ -239,6 +239,9 @@ test('ai1 rfc CLI: new, set, index and check from inside the repo', () => {
   assert.match(runCli(['index']), /wrote \.ai1\/rfc\/README\.md/);
   assert.match(runCli(['check']), /all consistent/);
   assert.throws(() => runCli(['new', 'Nope']), (cliError) => cliError.status === 1 && /lowercase words/.test(cliError.stderr));
+  assert.match(runCli(['new', '--title', 'Options first', '--idea', 'options-first']), /created \.ai1\/rfc\/0002-options-first\.md/, 'options before the slug');
+  assert.match(readFileSync(join(projectRoot, '.ai1', 'rfc', '0002-options-first.md'), 'utf8'), /^title: Options first$/m);
+  assert.match(runCli(['set', '--by', '1', '2', 'superseded']), /0002-options-first\.md: status superseded/, 'options before the positionals of set');
 });
 
 test('createRfc writes titles with $ patterns as they are', () => {

@@ -18,12 +18,24 @@ function baseHeadStatePath(hookInput, projectRoot, environment) {
   return sessionStatePath(resolveStateDirectory(environment), hookInput.session_id, projectRoot, 'base');
 }
 
+let expiredStateRemoved = false;
+
+// Several SessionStart modules call this (each can be switched off alone); the base is written once
+// and expired state is cleaned once per hook run. Never throws: an unwritable state directory must
+// not cost the caller its brief (readSessionBase records the base later, when it can).
 export function recordSessionBaseHead(hookInput, projectRoot, environment) {
-  removeExpiredStateFiles(resolveStateDirectory(environment));
-  const baseHeadPath = baseHeadStatePath(hookInput, projectRoot, environment);
-  if (readStateText(baseHeadPath) === null) {
-    const gitHead = readGitHead(projectRoot);
-    if (gitHead) writeStateText(baseHeadPath, gitHead);
+  try {
+    if (!expiredStateRemoved) {
+      removeExpiredStateFiles(resolveStateDirectory(environment));
+      expiredStateRemoved = true;
+    }
+    const baseHeadPath = baseHeadStatePath(hookInput, projectRoot, environment);
+    if (readStateText(baseHeadPath) === null) {
+      const gitHead = readGitHead(projectRoot);
+      if (gitHead) writeStateText(baseHeadPath, gitHead);
+    }
+  } catch (stateError) {
+    process.stderr.write(`ai1: could not record the session base: ${stateError.message}\n`);
   }
 }
 

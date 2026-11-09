@@ -4,6 +4,8 @@ import { runHookEvent } from '../src/core/dispatcher.mjs';
 import { ALL_MODULES } from '../src/core/registry.mjs';
 import { KNOWN_FEATURE_IDS } from '../src/core/features.mjs';
 import { allowDecision, askDecision } from '../src/core/hook-io.mjs';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { createTemporaryProject, bashPayload } from './helpers.mjs';
 
 const quietOptions = { environment: {}, reportInternalError: () => {} };
@@ -51,6 +53,23 @@ test('session brief describes features, hooks and verify', () => {
   assert.match(briefText, /- danger:/);
   assert.doesNotMatch(briefText, /- okf:/);
   assert.match(briefText, /`npm test`/);
+});
+
+test('an unwritable state directory does not cost the session its brief', () => {
+  const projectRoot = createTemporaryProject({ verify: ['npm test'], features: { okf: true } });
+  mkdirSync(join(projectRoot, '.ai1', 'okf'));
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'index.md'), '---\nokf_version: "0.2"\n---\n# Bundle\n');
+  const notADirectory = join(projectRoot, 'state-is-a-file');
+  writeFileSync(notADirectory, '');
+  const originalStderrWrite = process.stderr.write;
+  process.stderr.write = () => true;
+  try {
+    const briefText = runHookEvent('SessionStart', { cwd: projectRoot, session_id: 's' }, { ...quietOptions, environment: { CLAUDE_PLUGIN_DATA: notADirectory } }).hookSpecificOutput.additionalContext;
+    assert.match(briefText, /ai1 harness is active/);
+    assert.match(briefText, /--- \.ai1\/okf\/index\.md ---/);
+  } finally {
+    process.stderr.write = originalStderrWrite;
+  }
 });
 
 test('a failing module fails open and the others still decide', () => {

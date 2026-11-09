@@ -1,11 +1,24 @@
 // `ai1 rfc ...`: the only way RFC files get numbered, moved between statuses and indexed, so the
-// agent never does it by hand. Reads the knowledge path and the okf feature from .ai1/config.json
-// (defaults when the repo has none) to word the index and check bundle citations.
+// agent never does it by hand. Reads the okf feature from .ai1/config.json (defaults when the repo
+// has none) to word the index and check bundle citations.
 
 import { loadHarnessConfig } from '../core/config.mjs';
 import { createRfc, setRfcStatus, writeRfcIndex, checkRfcs, listRfcs, resolveCitingBundle, resolveKnowledgePath, RFC_DIRECTORY } from '../rfc/rfc-documents.mjs';
 
 export const RFC_USAGE = 'ai1 rfc new <slug> [--idea] [--title "<title>"] | ai1 rfc set <number> <status> [--by <number>] | ai1 rfc index | ai1 rfc check';
+
+const OPTIONS_WITH_VALUE = new Set(['--title', '--by']);
+
+// The arguments that are not options nor option values, so `new --title "X" my-slug` finds the slug.
+function listPositionalArguments(commandArguments) {
+  const positionalArguments = [];
+  for (let argumentIndex = 0; argumentIndex < commandArguments.length; argumentIndex += 1) {
+    const commandArgument = commandArguments[argumentIndex];
+    if (OPTIONS_WITH_VALUE.has(commandArgument)) argumentIndex += 1;
+    else if (!commandArgument.startsWith('--')) positionalArguments.push(commandArgument);
+  }
+  return positionalArguments;
+}
 
 function loadRepoConfig(repoRoot) {
   const loadedConfig = loadHarnessConfig(repoRoot);
@@ -14,7 +27,7 @@ function loadRepoConfig(repoRoot) {
 
 // Prints the result and returns the exit code.
 export function runRfcCommand(repoRoot, commandArguments, { readOption }) {
-  const [subcommandName, firstArgument, secondArgument] = commandArguments;
+  const [subcommandName, firstArgument, secondArgument] = listPositionalArguments(commandArguments);
   const config = loadRepoConfig(repoRoot);
   const knowledgePath = resolveKnowledgePath(config);
   if (subcommandName === 'new') {

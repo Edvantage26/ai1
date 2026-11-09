@@ -126,8 +126,13 @@ export function finishWorktree(startDirectory, worktreeName, options = {}) {
   const removedIgnoredPaths = (listIgnoredPaths(worktreeState.path) || [])
     .filter((ignoredPath) => !matchesAnyGlob(ignoredPath.replace(/\/$/, ''), recreatablePaths));
   removeWorktreeCheckout(mainRoot, worktreeState);
-  tryGit(mainRoot, ['branch', '-d', worktreeState.branch]);
+  // `git branch -d` checks against the main checkout's HEAD, which need not be the base (a base not
+  // checked out anywhere moves with update-ref): the branch is deleted when the base contains it.
+  const isBranchInBase = isAncestor(mainRoot, worktreeState.branch, worktreeState.base);
+  const isBranchDeleted = isBranchInBase && tryGit(mainRoot, ['branch', '-D', worktreeState.branch]) !== null;
   removeWorktreeState(commonDirectory, worktreeName);
-  steps.push(`worktree and branch ${worktreeState.branch} removed`);
+  steps.push(isBranchDeleted
+    ? `worktree and branch ${worktreeState.branch} removed`
+    : `worktree removed; branch ${worktreeState.branch} kept because git could not delete it (check it and delete it by hand)`);
   return { name: worktreeName, base: worktreeState.base, steps, notes: knowledgeCheck.notes, removed_ignored: removedIgnoredPaths };
 }
