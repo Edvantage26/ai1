@@ -184,6 +184,9 @@ test('isApprovalMessage: short plain yes only', () => {
   for (const approval of ['aprobado', 'Sí, adelante', 'ok', 'LGTM', 'go ahead', 'dale', 'perfecto, apruebo']) assert.equal(isApprovalMessage(approval), true, approval);
   for (const notApproval of ['no', 'espera', 'ok but use postgres', 'cambia el paso 3', '', 'explícame mejor el enfoque B']) assert.equal(isApprovalMessage(notApproval), false, notApproval);
   assert.equal(isApprovalMessage(`ok ${'x'.repeat(200)}`), false, 'long messages are not a plain yes');
+  // Seen on 2026-11-09: a question with a conditional "si" approved a design.
+  for (const notApproval of ['o que si hay un error proponga enviar un issue, eso cuadraria?', 'y si lo hacemos en dos pasos', 'ok?', '¿vale así?']) assert.equal(isApprovalMessage(notApproval), false, notApproval);
+  for (const approval of ['si', 'sí', 'si adelante con todo', 'Sí, aprobado']) assert.equal(isApprovalMessage(approval), true, approval);
 });
 
 test('lanes-gate: finished plans and plans from earlier sessions do not block', () => {

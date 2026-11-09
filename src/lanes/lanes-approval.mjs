@@ -8,18 +8,21 @@ import { listWorkPlans, readSessionPlanSlugs, recordApproval, writePlanStatus } 
 
 const MODULE_ID = 'lanes-approval';
 const MAX_APPROVAL_CHARACTERS = 120;
-const APPROVAL_WORDS = /\b(aprobad[oa]|apruebo|aprueba|apruebalo|aprobar|adelante|dale|vale|ok|okay|si|perfecto|listo|approved?|lgtm|go ahead|proceed|yes|sounds good)\b/;
+const APPROVAL_WORDS = /\b(aprobad[oa]|apruebo|aprueba|apruebalo|aprobar|adelante|dale|vale|ok|okay|perfecto|listo|approved?|lgtm|go ahead|proceed|yes|sounds good)\b/;
+// "si" is a yes only when it opens the message ("si", "sí, adelante"); inside a sentence it is the
+// conditional "if" ("que si hay un error...").
+const LEADING_YES = /^si\b/;
 const RESERVATION_WORDS = /\b(no|pero|cambia|cambiar|antes|espera|falta|duda|aunque|but|change|wait|before|instead|not)\b/;
 
 export function normalizePrompt(promptText) {
   return String(promptText || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 }
 
-// A short message that says yes and puts no condition on it.
+// A short message that says yes and puts no condition on it. A question never approves: it asks.
 export function isApprovalMessage(promptText) {
   const normalizedPrompt = normalizePrompt(promptText);
-  if (!normalizedPrompt || normalizedPrompt.length > MAX_APPROVAL_CHARACTERS) return false;
-  return APPROVAL_WORDS.test(normalizedPrompt) && !RESERVATION_WORDS.test(normalizedPrompt);
+  if (!normalizedPrompt || normalizedPrompt.length > MAX_APPROVAL_CHARACTERS || normalizedPrompt.includes('?')) return false;
+  return (APPROVAL_WORDS.test(normalizedPrompt) || LEADING_YES.test(normalizedPrompt)) && !RESERVATION_WORDS.test(normalizedPrompt);
 }
 
 export default {
