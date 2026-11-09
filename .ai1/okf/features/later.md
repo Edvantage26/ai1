@@ -1,7 +1,7 @@
 ---
 type: Component
 title: later feature
-description: Later - large changes and future features not decided yet, noted down for later in .ai1/later/ (one file each, called by its number, "later 0003"), apart from the bundle; created only on request or when the person picks it in an offer; brief, recall and a Stop check that accepted ones are carried to the bundle; /ai1:later-write and ai1 later. Called rfc until v0.17 and proposals until v0.23.
+description: Later - large changes and future features not decided yet, noted down for later in .ai1/later/ (one file each, called by its number, "later 0003"), apart from the bundle; created only on request or when the person picks it in an offer; brief, recall and a Stop check that accepted ones are carried to the bundle; /ai1:later-write and ai1 later. Called rfc until v0.17 and proposals until v0.24.
 tags: [later, proposals, roadmap, hooks, cli, skills]
 generated:
   by: claude-code/claude-opus-5-5
@@ -43,7 +43,7 @@ called by its number ("later 0003"); there is no noun for it in conversation, so
 trigger it.
 
 - `rfc` until v0.17: IETF jargon, collides with real uses ("RFC 3339").
-- `proposals` from v0.18.0 to v0.23: renamed to **later** on 2026-11-09 (v0.24.0, decided by the
+- `proposals` from v0.18.0 to v0.24: renamed to **later** on 2026-11-09 (v0.25.0, decided by the
   person). "Propuesta" is what the agent and the person say all the time about the agent's own
   suggestions: "acepto la propuesta" or "hazme una propuesta" loaded `/ai1:proposals-write`, whose
   description listed "accept" as a trigger, and the agent wrote a proposal file instead of building or
@@ -146,14 +146,14 @@ the rename); move it to `.../skills/later/` by hand.
 
 # Verified
 
-- `npm test` (2026-11-09, v0.24.0): 16 tests in `test/later.test.mjs` (numbering, templates, slug and
+- `npm test` (2026-11-09, v0.25.0): 16 tests in `test/later.test.mjs` (numbering, templates, slug and
   title rules, statuses and History, every check, index preserving hand-written text, brief with the
   creation rule, the "propuesta" rule and the offer wording, recall, upkeep blocks and the plan
   reminder, okf-upkeep exclusion, lanes-gate, CLI end to end with options in any order, the skill
   description excluding "propuesta"), plus the retired-name notices and renaming for rfc and proposals
   (config tests), the init refusal of both (setup tests) and both migrations (legacy-migration tests:
   move, names, bundle, plans, config, log untouched, refusal).
-- This repo migrated on 2026-11-09 with the v0.24.0 migration (`migrateLegacyLayout`): entries
+- This repo migrated on 2026-11-09 with the v0.25.0 migration (`migrateLegacyLayout`): entries
   0001-0006 moved with `git mv` to `.ai1/later/`, fields, headings, index and bundle references
   rewritten, `ai1 later check` clean; `features.proposals` -> `features.later` by hand in
   `.ai1/config.json` to keep its formatting.

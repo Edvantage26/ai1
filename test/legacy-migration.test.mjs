@@ -194,7 +194,7 @@ function createProposalsFeatureRepo() {
   return repoRoot;
 }
 
-test('ai1 init renames the proposals feature of ai1 < 0.24 to later: folder, names, bundle, plans and config', () => {
+test('ai1 init renames the proposals feature of ai1 < 0.25 to later: folder, names, bundle, plans and config', () => {
   const repoRoot = createProposalsFeatureRepo();
   assert.deepEqual(planLegacyMigration(repoRoot).moves, [{ from: '.ai1/proposals', to: '.ai1/later' }]);
   assert.equal(describeRepo(repoRoot).features.find((featureStatus) => featureStatus.id === 'later').enabled, true, 'status reads features.proposals as later');

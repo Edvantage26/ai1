@@ -95,7 +95,7 @@ test('retired rfc and proposals names: ignored with one notice, never unknown no
   const loadedConfig = loadHarnessConfig(oldNamesRepo, KNOWN_MODULE_IDS);
   assert.equal(loadedConfig.status, 'ok');
   assert.deepEqual(loadedConfig.unknownEntries, []);
-  assert.match(loadedConfig.notices[0], /old name of the later feature \(features\.rfc, modules\.rfc-recall, \.ai1\/rfc\/\).*proposals to later in v0\.24\.0.*\/ai1:core-setup-repo/);
+  assert.match(loadedConfig.notices[0], /old name of the later feature \(features\.rfc, modules\.rfc-recall, \.ai1\/rfc\/\).*proposals to later in v0\.25\.0.*\/ai1:core-setup-repo/);
   assert.equal(isModuleEnabled({ id: 'later-brief', feature: 'later' }, loadedConfig.config), false, 'not aliased');
   const proposalsRepo = createTemporaryProject({ features: { proposals: true }, modules: { 'proposals-upkeep': false } });
   mkdirSync(join(proposalsRepo, '.ai1', 'proposals'));

@@ -117,7 +117,7 @@ export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, disable
   const malformedPluginIds = disabledPluginIds.filter((pluginId) => !/^[^@\s]+@[^@\s]+$/.test(pluginId));
   if (malformedPluginIds.length) throw new Error(`not plugin ids (name@marketplace): ${malformedPluginIds.join(', ')}`);
   const retiredFeatureId = ['rfc', 'proposals'].find((featureId) => enabledFeatureIds.includes(featureId));
-  if (retiredFeatureId) throw new Error(`the ${retiredFeatureId} feature is called later since v0.24.0: use --features ...,later`);
+  if (retiredFeatureId) throw new Error(`the ${retiredFeatureId} feature is called later since v0.25.0: use --features ...,later`);
   const unknownFeatureIds = enabledFeatureIds.filter((featureId) => !KNOWN_FEATURE_IDS.includes(featureId));
   if (unknownFeatureIds.length) throw new Error(`unknown features: ${unknownFeatureIds.join(', ')}`);
   const legacyMigration = migrateLegacyLayout(repoRoot);

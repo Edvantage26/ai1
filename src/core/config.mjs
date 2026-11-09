@@ -33,7 +33,7 @@ const DEFAULT_CONFIG = {
   rules: [],
 };
 
-// Names retired by a rename (v0.18.0: rfc -> proposals; v0.24.0: proposals -> later). Not aliased:
+// Names retired by a rename (v0.18.0: rfc -> proposals; v0.25.0: proposals -> later). Not aliased:
 // they are ignored with a notice until `ai1 init` rewrites them (renameRetiredIds).
 const RENAMED_FEATURE_IDS = { rfc: 'later', proposals: 'later' };
 const RENAMED_MODULE_IDS = {
@@ -67,7 +67,7 @@ function readRenamedNamesNotice(rawConfig, projectRoot) {
     ...[RETIRED_RFC_DIRECTORY, RETIRED_PROPOSALS_DIRECTORY].filter((retiredDirectory) => existsSync(join(projectRoot, retiredDirectory))).map((retiredDirectory) => `${retiredDirectory}/`),
   ];
   if (!retiredNames.length) return null;
-  return `This repo still uses an old name of the later feature (${retiredNames.join(', ')}): ai1 renamed rfc to proposals in v0.18.0 and proposals to later in v0.24.0, and ignores the old names. Tell the person; /ai1:core-setup-repo (ai1 init) migrates it to .ai1/later/ and features.later.`;
+  return `This repo still uses an old name of the later feature (${retiredNames.join(', ')}): ai1 renamed rfc to proposals in v0.18.0 and proposals to later in v0.25.0, and ignores the old names. Tell the person; /ai1:core-setup-repo (ai1 init) migrates it to .ai1/later/ and features.later.`;
 }
 
 // Names this ai1 version does not know (fields, features, modules), e.g. from a repo set up with a

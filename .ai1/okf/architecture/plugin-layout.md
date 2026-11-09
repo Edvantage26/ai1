@@ -37,7 +37,7 @@ the folder carries the full name. Each description starts with its module.
 # What ai1 writes in a repo
 
 All under `.ai1/` (constants in `src/core/config.mjs`): `config.json` (the
-[contract](harness-contract.md)), `okf/` (the bundle, a fixed path since v0.16.0), `later/` (called `rfc/` until v0.17 and `proposals/` until v0.23) and `work/`, which ignores
+[contract](harness-contract.md)), `okf/` (the bundle, a fixed path since v0.16.0), `later/` (called `rfc/` until v0.17 and `proposals/` until v0.24) and `work/`, which ignores
 itself with its own `.gitignore`. `.ai1/skills/<feature>/overlay.md` holds the project's skill customizations
 ([skill customization](skill-customization.md)). Outside it only `.claude/settings.json` (Claude Code reads it
 there), the worktree recipe `.claude/skills/worktree/` (must be a project skill) and session state
@@ -46,7 +46,7 @@ in `${CLAUDE_PLUGIN_DATA}` or `~/.cache/ai1`.
 `ai1 init` first migrates the layout of the former name `jig` (`.claude/jig.json`, `.okf/`,
 `docs/rfc/` when the rfc feature was on, `.jig/work/`, `jig@jig` in settings), and a bundle at the
 path of the retired `knowledge` setting, with `git mv`,
-and `.ai1/rfc/` of ai1 before v0.18.0 or `.ai1/proposals/` before v0.24.0 (renamed to later, see the
+and `.ai1/rfc/` of ai1 before v0.18.0 or `.ai1/proposals/` before v0.25.0 (renamed to later, see the
 [later feature](../features/later.md)), rewriting links inside the moved bundle and later entries; it refuses if a target exists
 (`src/cli/legacy-migration.mjs`). A session in an old layout is told to run `/ai1:core-setup-repo`.
 

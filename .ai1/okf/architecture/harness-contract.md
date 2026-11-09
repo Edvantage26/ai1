@@ -33,9 +33,9 @@ bundle to `.ai1/okf/` with `git mv` (the same migration as the old `jig` layout)
 setting; `--knowledge` is refused. The schema keeps the field as `deprecated`, so editors flag it
 without an error on configs that still carry `.ai1/okf`.
 
-# Retired: the `rfc` (v0.18.0) and `proposals` (v0.24.0) features and modules
+# Retired: the `rfc` (v0.18.0) and `proposals` (v0.25.0) features and modules
 
-`rfc` was renamed to `proposals` in v0.18.0, and `proposals` to `later` in v0.24.0 (see the
+`rfc` was renamed to `proposals` in v0.18.0, and `proposals` to `later` in v0.25.0 (see the
 [later feature](/features/later.md)). Not aliased: `features.rfc`, `features.proposals`,
 `modules.rfc-*`, `modules.proposals-*` and a `.ai1/rfc/` or `.ai1/proposals/` folder give one notice
 at session start and are ignored; `ai1 init` renames them (`renameRetiredIds` in `src/core/config.mjs`, the folder move in the

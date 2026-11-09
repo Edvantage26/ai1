@@ -38,7 +38,7 @@ export function planLegacyMigration(repoRoot) {
     moves.push({ from: configuredBundlePath, to: KNOWLEDGE_BUNDLE_PATH });
   }
   if (legacyConfig?.features?.rfc === true && existsSync(join(repoRoot, LEGACY_RFC_PATH))) moves.push({ from: LEGACY_RFC_PATH, to: LATER_DIRECTORY });
-  // ai1 before v0.18.0 kept them in .ai1/rfc/ (feature rfc), before v0.24.0 in .ai1/proposals/ (feature proposals).
+  // ai1 before v0.18.0 kept them in .ai1/rfc/ (feature rfc), before v0.25.0 in .ai1/proposals/ (feature proposals).
   for (const retiredDirectory of [RETIRED_RFC_DIRECTORY, RETIRED_PROPOSALS_DIRECTORY]) {
     if (!moves.some((plannedMove) => plannedMove.to === LATER_DIRECTORY) && existsSync(join(repoRoot, retiredDirectory))) {
       moves.push({ from: retiredDirectory, to: LATER_DIRECTORY });

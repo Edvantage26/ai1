@@ -5,7 +5,7 @@
 //   .claude/jig.json -> .ai1/config.json     .okf/ -> .ai1/okf/ (when it is the repo's bundle)
 //   docs/rfc/ -> .ai1/later/ (when the rfc feature was on)     .jig/work/ -> .ai1/work/
 //   the bundle path of the retired `knowledge` setting (e.g. docs/kb/) -> .ai1/okf/
-//   .ai1/rfc/ (the rfc feature before v0.18.0) or .ai1/proposals/ (before v0.24.0) -> .ai1/later/, with
+//   .ai1/rfc/ (the rfc feature before v0.18.0) or .ai1/proposals/ (before v0.25.0) -> .ai1/later/, with
 //   the old names in the moved files, the bundle and the work plans renamed (field, index markers,
 //   `RFC NNNN` / `Proposal NNNN` of moved numbers)
 // Links and repo paths inside the moved bundle and later entries are rewritten; other files that still
@@ -76,12 +76,12 @@ function rewriteMovedMarkdown(fileText, oldFilePath, newFilePath, moves) {
   }, linkedText);
 }
 
-// The frontmatter field `rfc:` (before v0.18.0) or `proposal:` (before v0.24.0) renamed to `fieldName`.
+// The frontmatter field `rfc:` (before v0.18.0) or `proposal:` (before v0.25.0) renamed to `fieldName`.
 function renameNumberField(fileText, fieldName) {
   return fileText.replace(/^(---\r?\n(?:[^\n]*\n)*?)(?:rfc|proposal):(?=[ \t])/, `$1${fieldName}:`);
 }
 
-// The names of ai1 before v0.24.0 (rfc before v0.18.0, then proposals), renamed to later. In every
+// The names of ai1 before v0.25.0 (rfc before v0.18.0, then proposals), renamed to later. In every
 // file: `RFC NNNN` and `Proposal NNNN` become `Later NNNN` only for numbers of moved entries (so
 // "RFC 3339" or a proposal of something else is never touched), and the skill and CLI names. In the
 // entry files themselves also the frontmatter field (`number:`), the index markers and heading, and

@@ -30,7 +30,7 @@ layout (ai1 was called jig, and OKF bundles live in `.okf/` by convention). `ai1
 `.ai1/work/`, a bundle at a custom path from the retired `knowledge` setting -> `.ai1/okf/`, and
 `jig@jig` -> `ai1@ai1` in the settings. Tracked paths move with `git mv`; links
 inside the moved bundle and later entries are rewritten. A repo that used the `rfc` feature of ai1
-before v0.18.0 (`.ai1/rfc/`, `features.rfc`) or the `proposals` feature before v0.24.0
+before v0.18.0 (`.ai1/rfc/`, `features.rfc`) or the `proposals` feature before v0.25.0
 (`.ai1/proposals/`, `features.proposals`) gets it renamed to `later` the same way. Show the person the list and ask before step 4.
 If `legacyMigration.conflicts` is not empty, the targets already exist: stop and tell the person.
 

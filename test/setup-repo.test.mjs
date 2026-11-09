@@ -153,8 +153,8 @@ test('the ai1 CLI runs init and status from a subdirectory', () => {
 
 test('init refuses the retired rfc feature id with the new name', () => {
   const repoRoot = mkdtempSync(join(tmpdir(), 'ai1-setup-'));
-  assert.throws(() => setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'rfc'] }), /the rfc feature is called later since v0\.24\.0/);
-  assert.throws(() => setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'proposals'] }), /the proposals feature is called later since v0\.24\.0/);
+  assert.throws(() => setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'rfc'] }), /the rfc feature is called later since v0\.25\.0/);
+  assert.throws(() => setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'proposals'] }), /the proposals feature is called later since v0\.25\.0/);
 });
 
 test('describeRepo lists the active repo rules and why the others are ignored', () => {
