@@ -12,6 +12,7 @@
 //   ai1 issue <env|url>                          facts and a prefilled link for a bug report on ai1 (see src/cli/issue-command.mjs)
 //   ai1 claude-md [--json]                       where the repo's CLAUDE.md files drift from the OKF bundle (src/okf/okf-claude-md-check.mjs)
 //   ai1 log [--session <id>] [--since <hours>] [--json]  what ai1's modules decided here: runs, time, context added (src/cli/log-command.mjs)
+//   ai1 skill-context <skill> | --list [--json]  a skill's project and user customization, injected when it loads (src/cli/skill-context-command.mjs)
 // Run from anywhere inside the repo; files are written at the repo root.
 
 import { findRepoRoot, describeRepo, setupRepo } from '../src/cli/setup-repo.mjs';
@@ -22,6 +23,7 @@ import { runProposalCommand, PROPOSALS_USAGE } from '../src/cli/proposals-comman
 import { runForkCommand, FORK_USAGE } from '../src/cli/fork-command.mjs';
 import { runIssueCommand, ISSUE_USAGE } from '../src/cli/issue-command.mjs';
 import { runLogCommand } from '../src/cli/log-command.mjs';
+import { runSkillContextCommand, SKILL_CONTEXT_USAGE } from '../src/cli/skill-context-command.mjs';
 import { describeOverlap } from '../src/core/plugin-overlaps.mjs';
 import { resolveBundleDirectory, readBundleIndex } from '../src/okf/okf-bundle.mjs';
 import { buildFileMap } from '../src/okf/okf-file-map.mjs';
@@ -44,10 +46,14 @@ function readRepeatedOption(optionName) {
 }
 
 const wantsJson = commandArguments.includes('--json');
+
 const repoRoot = findRepoRoot(process.cwd());
 
 try {
-  if (commandName === 'worktree') {
+  if (commandName === 'skill-context') {
+    // Runs inside a skill's `!` injection: never throws and always exits 0 (see the command).
+    process.exitCode = runSkillContextCommand(commandArguments);
+  } else if (commandName === 'worktree') {
     const cliResult = runWorktreeCli(process.cwd(), commandArguments);
     console.log(cliResult.output);
     process.exitCode = cliResult.exitCode;
@@ -135,6 +141,7 @@ try {
     console.log(WORKTREE_USAGE);
     console.log(FORK_USAGE);
     console.log(ISSUE_USAGE);
+    console.log(SKILL_CONTEXT_USAGE);
     process.exitCode = commandName ? 1 : 0;
   }
 } catch (commandError) {
