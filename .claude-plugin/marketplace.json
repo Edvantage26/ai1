@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Marketplace for ai1, a configurable harness for coding agents.",
-    "version": "0.23.0"
+    "version": "0.24.0"
   },
   "plugins": [
     {
