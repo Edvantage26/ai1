@@ -6,7 +6,8 @@ import { MODULE_INDEX, loadModulesForEvent } from '../src/core/module-index.mjs'
 import { dispatchHookEvent } from '../src/core/hook-dispatch.mjs';
 import { KNOWN_FEATURE_IDS } from '../src/core/features.mjs';
 import { allowDecision, askDecision, blockDecision, noticeDecision, combineDecisions, buildHookOutput } from '../src/core/hook-io.mjs';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createTemporaryProject, bashPayload } from './helpers.mjs';
 
@@ -63,6 +64,21 @@ test('session brief: a feature with its own session-start text gets only its tit
   assert.match(briefText, /^- craft: Code craft rules$/m, 'craft explains itself in craft-brief');
   assert.match(briefText, /^- danger: Confirms or refuses shell commands/m, 'danger has no brief of its own');
   assert.match(briefText, /Craft: keep the code growing in order/, 'the craft brief still comes');
+});
+
+test('session brief warns about enabled plugins that overlap with an enabled feature', () => {
+  const projectRoot = createTemporaryProject({ features: { lanes: true, okf: false } });
+  const homeDirectory = mkdtempSync(join(tmpdir(), 'ai1-home-'));
+  mkdirSync(join(homeDirectory, '.claude'));
+  writeFileSync(join(homeDirectory, '.claude', 'settings.json'), JSON.stringify({ enabledPlugins: { 'superpowers@official': true, 'okf@x': true, 'feature-dev@official': true } }));
+  const briefText = runHookEvent('SessionStart', { cwd: projectRoot }, { ...quietOptions, homeDirectory }).hookSpecificOutput.additionalContext;
+  assert.match(briefText, /Plugins that overlap with ai1 are enabled here: superpowers@official overlaps with lanes/);
+  assert.doesNotMatch(briefText, /okf@x/, 'okf is off in this repo');
+  assert.doesNotMatch(briefText, /feature-dev/, 'warn-only overlaps stay out of the brief');
+  mkdirSync(join(projectRoot, '.claude'), { recursive: true });
+  writeFileSync(join(projectRoot, '.claude', 'settings.local.json'), JSON.stringify({ enabledPlugins: { 'superpowers@official': false } }));
+  const briefAfterDisabling = runHookEvent('SessionStart', { cwd: projectRoot }, { ...quietOptions, homeDirectory }).hookSpecificOutput.additionalContext;
+  assert.doesNotMatch(briefAfterDisabling, /Plugins that overlap/);
 });
 
 test('an unwritable state directory does not cost the session its brief', () => {

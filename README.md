@@ -83,8 +83,12 @@ Each repo picks its features; you do not need to write the file by hand:
 /ai1:core-setup-repo
 ```
 
-asks which features to enable and writes `.ai1/config.json` and `.claude/settings.json` (it
-runs the `ai1` CLI, so the result is merged and validated, not improvised).
+reads the project and proposes a configuration: each feature on or off with the reason and the
+evidence it found (a frontend turns design on, migrations or auth folders turn lanes on, a test
+script becomes the verify command...). You adjust it, it writes `.ai1/config.json` and
+`.claude/settings.json` (through the `ai1` CLI, so the result is merged and validated, not
+improvised), and then offers each enabled feature's own setup: the worktree recipe, the knowledge
+bundle, the design context.
 
 | Feature | Default | What it does |
 |---|---|---|
@@ -198,8 +202,13 @@ Then run `/ai1:core-setup-repo` in each repo. It commits nothing; commit `.ai1/c
 }
 ```
 
-If you already use a standalone OKF plugin (`okf@...`), `ai1 init` disables it for you in that repo,
-in `.claude/settings.local.json` (personal, git-ignored), so the OKF skills are not listed twice.
+Some plugins do part of ai1's job: a standalone OKF plugin (`okf@...`, the same skills listed twice),
+`jig@...` (ai1's old name, hooks twice) and Superpowers (`superpowers@...`, its session start forces
+its own planning, worktree, TDD and verification skills on every task, competing with lanes,
+worktrees and verify); `feature-dev@...` only gets a warning. `/ai1:core-setup-repo` lists the ones
+you have enabled, says why each overlaps and asks which to disable in that repo only, in
+`.claude/settings.local.json` (personal, git-ignored; `ai1 init --disable-plugins`). It disables
+nothing you did not pick. While one that should be disabled stays enabled, the session start says so.
 
 ## Credits
 

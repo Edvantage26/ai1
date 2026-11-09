@@ -1,20 +1,22 @@
 // Writes the per-repo harness: .ai1/config.json (features and contract) and
 // .claude/settings.json (enables ai1 for whoever opens the repo). Both files are merged with what
 // already exists, so running it again only changes what the person chose.
-// Overrides that only make sense on this machine (switching off the person's own standalone OKF
-// plugin) go to .claude/settings.local.json, which is personal and kept out of git.
+// Overrides that only make sense on this machine (switching off plugins of the person that overlap
+// with ai1, see src/core/plugin-overlaps.mjs) go to .claude/settings.local.json, personal and kept out of git.
 
 import { tryGit, detectTrunkBranch } from '../core/git.mjs';
 import { readJsonFile, writeJsonFile } from '../core/json-file.mjs';
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { FEATURES, KNOWN_FEATURE_IDS, isFeatureEnabled } from '../core/features.mjs';
 import { validateHarnessConfig, listUnknownConfigEntries, SUPPORTED_CONFIG_VERSION, SCHEMA_URL, AI1_DIRECTORY, AI1_PLUGIN_ID, CONFIG_RELATIVE_PATH, KNOWLEDGE_BUNDLE_PATH, renameRetiredIds } from '../core/config.mjs';
 import { KNOWN_MODULE_IDS } from '../core/module-index.mjs';
 import { findMainCheckout } from '../core/project-roots.mjs';
 import { loadRecipe } from '../worktrees/worktree-recipe.mjs';
 import { migrateLegacyLayout } from './legacy-migration.mjs';
+import { readEnabledPlugins, findOverlappingPlugins, localSettingsPathFor } from '../core/plugin-overlaps.mjs';
+import { recommendFeatures } from './feature-recommendations.mjs';
 import { planLegacyMigration, readLegacyConfig } from '../core/legacy-layout.mjs';
 
 export const AI1_MARKETPLACE = { source: { source: 'github', repo: 'Edvantage26/ai1' } };
@@ -23,13 +25,9 @@ export function findRepoRoot(startDirectory) {
   return tryGit(startDirectory, ['rev-parse', '--show-toplevel']) || startDirectory;
 }
 
-// Another enabled plugin that also ships OKF skills (e.g. a standalone `okf@...`) would duplicate
-// /okf:* and /ai1:* in this repo, so ai1 switches it off here when the okf feature is on.
-export function findOtherOkfPlugins(userSettings) {
-  return Object.entries(userSettings?.enabledPlugins || {})
-    .filter(([pluginId, isEnabled]) => isEnabled && /^okf@/.test(pluginId))
-    .map(([pluginId]) => pluginId);
-}
+const DEFAULT_USER_SETTINGS_PATH = join(homedir(), '.claude', 'settings.json');
+const SELECTABLE_FEATURES = FEATURES.filter((featureDefinition) => !featureDefinition.alwaysOn);
+const SELECTABLE_FEATURE_IDS = SELECTABLE_FEATURES.map((featureDefinition) => featureDefinition.id);
 
 // Makes sure the repo itself ignores .claude/settings.local.json before ai1 writes into it.
 // A rule from the person's global git excludes does not count: a teammate's clone would not have it.
@@ -51,29 +49,41 @@ function describeWorktreeRecipe(repoRoot) {
   return { status: loadedRecipe.status, path: loadedRecipe.recipePath, errors: loadedRecipe.errors ?? [], warnings: loadedRecipe.warnings ?? [] };
 }
 
-export function describeRepo(repoRoot) {
+export function describeRepo(repoRoot, { userSettingsPath = DEFAULT_USER_SETTINGS_PATH } = {}) {
   const ai1Config = readJsonFile(join(repoRoot, CONFIG_RELATIVE_PATH));
   // Before a migration, the features and trunk the repo had under the old name.
   const featureSourceConfig = renameRetiredIds(ai1Config ?? readLegacyConfig(repoRoot));
+  const hasKnowledgeBundle = existsSync(join(repoRoot, KNOWLEDGE_BUNDLE_PATH, 'index.md'));
+  const { recommendations, verifyCommands: detectedVerifyCommands } = recommendFeatures(repoRoot, { hasKnowledgeBundle });
   return {
     repoRoot,
     hasAi1Config: ai1Config !== null,
     trunk: featureSourceConfig?.trunk || detectTrunkBranch(repoRoot),
     knowledge: KNOWLEDGE_BUNDLE_PATH,
-    hasKnowledgeBundle: existsSync(join(repoRoot, KNOWLEDGE_BUNDLE_PATH, 'index.md')),
+    hasKnowledgeBundle,
+    detectedVerifyCommands,
     worktreeRecipe: describeWorktreeRecipe(repoRoot),
     legacyMigration: planLegacyMigration(repoRoot),
-    features: FEATURES.filter((featureDefinition) => !featureDefinition.alwaysOn).map((featureDefinition) => ({
+    // Against every feature, not only the enabled ones: the setup skill keeps those that overlap with
+    // the features the person picks.
+    overlappingPlugins: findOverlappingPlugins(readEnabledPlugins(repoRoot, userSettingsPath), SELECTABLE_FEATURE_IDS),
+    features: SELECTABLE_FEATURES.map((featureDefinition) => ({
       id: featureDefinition.id,
       title: featureDefinition.title,
       description: featureDefinition.description,
       enabledByDefault: featureDefinition.enabledByDefault,
       enabled: featureSourceConfig ? isFeatureEnabled(featureDefinition.id, { features: featureSourceConfig.features || {} }) : featureDefinition.enabledByDefault,
+      recommendation: recommendations[featureDefinition.id],
     })),
   };
 }
 
-export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, userSettingsPath = join(homedir(), '.claude', 'settings.json') }) {
+// disabledPluginIds: plugins the person chose to switch off in this repo (from describeRepo's
+// overlappingPlugins); ai1 never picks them by itself.
+export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, disabledPluginIds = [] }) {
+  if (disabledPluginIds.includes(AI1_PLUGIN_ID)) throw new Error(`${AI1_PLUGIN_ID} cannot be disabled by ai1 init`);
+  const malformedPluginIds = disabledPluginIds.filter((pluginId) => !/^[^@\s]+@[^@\s]+$/.test(pluginId));
+  if (malformedPluginIds.length) throw new Error(`not plugin ids (name@marketplace): ${malformedPluginIds.join(', ')}`);
   if (enabledFeatureIds.includes('rfc')) throw new Error('the rfc feature is called proposals since v0.18.0: use --features ...,proposals');
   const unknownFeatureIds = enabledFeatureIds.filter((featureId) => !KNOWN_FEATURE_IDS.includes(featureId));
   if (unknownFeatureIds.length) throw new Error(`unknown features: ${unknownFeatureIds.join(', ')}`);
@@ -86,8 +96,7 @@ export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, userSet
   // `knowledge` is retired: the bundle was moved to .ai1/okf above, so the setting goes away.
   // Retired names go away: `knowledge` (its bundle was moved above), rfc ids renamed to proposals.
   const { knowledge: retiredKnowledgeSetting, ...existingAi1Config } = renameRetiredIds(readJsonFile(ai1ConfigPath) || {});
-  const selectableFeatureIds = FEATURES.filter((featureDefinition) => !featureDefinition.alwaysOn).map((featureDefinition) => featureDefinition.id);
-  const chosenFeatures = Object.fromEntries(selectableFeatureIds.map((featureId) => [featureId, enabledFeatureIds.includes(featureId)]));
+  const chosenFeatures = Object.fromEntries(SELECTABLE_FEATURE_IDS.map((featureId) => [featureId, enabledFeatureIds.includes(featureId)]));
   const ai1Config = {
     $schema: SCHEMA_URL,
     version: SUPPORTED_CONFIG_VERSION,
@@ -106,11 +115,13 @@ export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, userSet
   projectSettings.enabledPlugins = { ...projectSettings.enabledPlugins, [AI1_PLUGIN_ID]: true };
   writeJsonFile(settingsPath, projectSettings);
 
-  const disabledPlugins = chosenFeatures.okf ? findOtherOkfPlugins(readJsonFile(userSettingsPath)) : [];
-  const localSettingsPath = join(claudeDirectory, 'settings.local.json');
+  const disabledPlugins = [...new Set(disabledPluginIds)];
+  // Where Claude Code reads it: the main checkout's root even when init runs in a worktree.
+  const localSettingsPath = localSettingsPathFor(repoRoot);
   let gitignoreUpdated = false;
   if (disabledPlugins.length) {
     gitignoreUpdated = ensureLocalSettingsIgnored(repoRoot);
+    mkdirSync(dirname(localSettingsPath), { recursive: true });
     const localSettings = readJsonFile(localSettingsPath) || {};
     localSettings.enabledPlugins = { ...localSettings.enabledPlugins };
     for (const otherPluginId of disabledPlugins) localSettings.enabledPlugins[otherPluginId] = false;

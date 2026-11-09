@@ -5,7 +5,8 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { setupRepo, describeRepo, findOtherOkfPlugins } from '../src/cli/setup-repo.mjs';
+import { setupRepo, describeRepo } from '../src/cli/setup-repo.mjs';
+import { findOverlappingPlugins, describeOverlap, readEnabledPlugins, localSettingsPathFor } from '../src/core/plugin-overlaps.mjs';
 import { detectTrunkBranch } from '../src/core/git.mjs';
 import { AI1_PLUGIN_ID, loadHarnessConfig } from '../src/core/config.mjs';
 
@@ -29,7 +30,7 @@ function writeUserSettings(enabledPlugins) {
 
 test('setup writes a valid .ai1/config.json and enables ai1 for the project', () => {
   const repoRoot = createGitRepo();
-  const setupResult = setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'danger'], userSettingsPath: writeUserSettings({}) });
+  const setupResult = setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'danger'] });
   assert.deepEqual(setupResult.features, { okf: true, danger: true, craft: false, lanes: false, worktrees: false, proposals: false, design: false, verify: false });
   const loadedConfig = loadHarnessConfig(repoRoot);
   assert.equal(loadedConfig.status, 'ok');
@@ -45,7 +46,7 @@ test('setup keeps existing settings and harness fields', () => {
   mkdirSync(join(repoRoot, '.claude'), { recursive: true });
   writeFileSync(join(repoRoot, '.claude', 'settings.json'), JSON.stringify({ permissions: { allow: ['Bash(ls)'] }, enabledPlugins: { 'other@x': true } }));
   writeFileSync(join(repoRoot, '.ai1', 'config.json'), JSON.stringify({ trunk: 'develop', verify: ['make test'], modules: { danger: { ignore_rules: ['git-clean'] } } }));
-  setupRepo(repoRoot, { enabledFeatureIds: ['danger'], userSettingsPath: writeUserSettings({}) });
+  setupRepo(repoRoot, { enabledFeatureIds: ['danger'] });
   const projectSettings = readJson(join(repoRoot, '.claude', 'settings.json'));
   assert.deepEqual(projectSettings.permissions, { allow: ['Bash(ls)'] });
   assert.equal(projectSettings.enabledPlugins['other@x'], true);
@@ -56,24 +57,67 @@ test('setup keeps existing settings and harness fields', () => {
   assert.deepEqual(ai1Config.features, { okf: false, danger: true, craft: false, lanes: false, worktrees: false, proposals: false, design: false, verify: false });
 });
 
-test('with okf on, a standalone okf plugin is switched off in the personal settings only', () => {
+test('status lists enabled plugins that overlap with ai1, applying local over project over user', () => {
   const repoRoot = createGitRepo();
-  const userSettingsPath = writeUserSettings({ 'okf@some-marketplace': true, 'okfish@x': true, 'okf@disabled': false });
-  const setupResult = setupRepo(repoRoot, { enabledFeatureIds: ['okf'], userSettingsPath });
-  assert.deepEqual(setupResult.disabledPlugins, ['okf@some-marketplace']);
-  assert.equal(readJson(join(repoRoot, '.claude', 'settings.local.json')).enabledPlugins['okf@some-marketplace'], false);
-  assert.equal(readJson(join(repoRoot, '.claude', 'settings.json')).enabledPlugins['okf@some-marketplace'], undefined, 'shared settings stay clean');
+  const userSettingsPath = writeUserSettings({ 'okf@some-marketplace': true, 'superpowers@official': true, 'feature-dev@official': true, 'jig@jig': true, 'okfish@x': true, 'playwright@official': true });
+  mkdirSync(join(repoRoot, '.claude'));
+  writeFileSync(join(repoRoot, '.claude', 'settings.json'), JSON.stringify({ enabledPlugins: { 'jig@jig': false } }));
+  writeFileSync(join(repoRoot, '.claude', 'settings.local.json'), JSON.stringify({ enabledPlugins: { 'feature-dev@official': false } }));
+  const overlappingPlugins = describeRepo(repoRoot, { userSettingsPath }).overlappingPlugins;
+  assert.deepEqual(overlappingPlugins.map((overlappingPlugin) => [overlappingPlugin.pluginId, overlappingPlugin.action, overlappingPlugin.features]), [
+    ['okf@some-marketplace', 'disable', ['okf']],
+    ['superpowers@official', 'disable', ['lanes', 'worktrees', 'verify', 'craft']],
+  ]);
+});
+
+test('findOverlappingPlugins keeps only the overlaps with the given features', () => {
+  assert.deepEqual(findOverlappingPlugins(['superpowers@x', 'okf@y'], ['danger']), []);
+  assert.deepEqual(findOverlappingPlugins(['superpowers@x'], ['verify']).map((overlappingPlugin) => overlappingPlugin.features), [['verify']]);
+  assert.deepEqual(findOverlappingPlugins(['jig@jig'], []).map((overlappingPlugin) => overlappingPlugin.features), [null], 'the old ai1 overlaps whatever is enabled');
+  assert.match(describeOverlap(findOverlappingPlugins(['jig@jig'], [])[0]), /^jig@jig overlaps with ai1: it is ai1 under its old name/);
+});
+
+test('init switches off only the plugins the person chose, in the personal settings', () => {
+  const repoRoot = createGitRepo();
+  const setupResult = setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'lanes'], disabledPluginIds: ['superpowers@official'] });
+  assert.deepEqual(setupResult.disabledPlugins, ['superpowers@official']);
+  assert.equal(readJson(join(repoRoot, '.claude', 'settings.local.json')).enabledPlugins['superpowers@official'], false);
+  assert.equal(readJson(join(repoRoot, '.claude', 'settings.json')).enabledPlugins['superpowers@official'], undefined, 'shared settings stay clean');
   assert.equal(setupResult.gitignoreUpdated, true);
   assert.match(readFileSync(join(repoRoot, '.gitignore'), 'utf8'), /^\.claude\/settings\.local\.json$/m);
   execFileSync('git', ['-C', repoRoot, 'check-ignore', '-q', '.claude/settings.local.json']);
-  assert.equal(setupRepo(repoRoot, { enabledFeatureIds: ['okf'], userSettingsPath }).gitignoreUpdated, false, 'not appended twice');
-  const repoWithoutOkf = createGitRepo();
-  assert.deepEqual(setupRepo(repoWithoutOkf, { enabledFeatureIds: ['danger'], userSettingsPath }).disabledPlugins, []);
+  assert.equal(setupRepo(repoRoot, { enabledFeatureIds: ['okf'], disabledPluginIds: ['okf@x'] }).gitignoreUpdated, false, 'not appended twice');
+  const repoWithoutChoice = createGitRepo();
+  const resultWithoutChoice = setupRepo(repoWithoutChoice, { enabledFeatureIds: ['okf'] });
+  assert.deepEqual(resultWithoutChoice.disabledPlugins, [], 'nothing is switched off unless chosen');
+  assert.equal(resultWithoutChoice.localSettingsPath, null);
+});
+
+test('in a worktree, plugins are disabled and read where Claude Code reads them: the main checkout', () => {
+  const repoRoot = createGitRepo();
+  const worktreePath = join(mkdtempSync(join(tmpdir(), 'ai1-wt-')), 'feature');
+  execFileSync('git', ['-C', repoRoot, 'worktree', 'add', '-q', '-b', 'feature', worktreePath]);
+  const setupResult = setupRepo(worktreePath, { enabledFeatureIds: ['lanes'], disabledPluginIds: ['superpowers@official'] });
+  assert.equal(setupResult.localSettingsPath, localSettingsPathFor(worktreePath));
+  assert.equal(readJson(join(repoRoot, '.claude', 'settings.local.json')).enabledPlugins['superpowers@official'], false);
+  const userSettingsPath = writeUserSettings({ 'superpowers@official': true });
+  assert.deepEqual(readEnabledPlugins(worktreePath, userSettingsPath), [AI1_PLUGIN_ID], 'the main checkout\'s local file applies in the worktree');
+  mkdirSync(join(worktreePath, '.claude'), { recursive: true });
+  writeFileSync(join(worktreePath, '.claude', 'settings.local.json'), JSON.stringify({ enabledPlugins: { 'superpowers@official': true } }));
+  assert.deepEqual(readEnabledPlugins(worktreePath, userSettingsPath), [AI1_PLUGIN_ID], 'a copy left in the worktree is below the main checkout\'s');
+  assert.equal(localSettingsPathFor(worktreePath, 'win32'), join(worktreePath, '.claude', 'settings.local.json'), 'Windows keeps it next to settings.json');
+});
+
+test('init refuses to disable ai1 itself or a malformed plugin id', () => {
+  const repoRoot = createGitRepo();
+  assert.throws(() => setupRepo(repoRoot, { enabledFeatureIds: ['okf'], disabledPluginIds: [AI1_PLUGIN_ID] }), /cannot be disabled/);
+  assert.throws(() => setupRepo(repoRoot, { enabledFeatureIds: ['okf'], disabledPluginIds: ['superpowers'] }), /not plugin ids/);
+  assert.equal(describeRepo(repoRoot).hasAi1Config, false);
 });
 
 test('unknown features are refused and nothing is written', () => {
   const repoRoot = createGitRepo();
-  assert.throws(() => setupRepo(repoRoot, { enabledFeatureIds: ['teleport'], userSettingsPath: writeUserSettings({}) }), /unknown features: teleport/);
+  assert.throws(() => setupRepo(repoRoot, { enabledFeatureIds: ['teleport'] }), /unknown features: teleport/);
   assert.equal(describeRepo(repoRoot).hasAi1Config, false);
 });
 
@@ -82,17 +126,12 @@ test('trunk detection prefers origin/HEAD, then main/master, then the current br
   assert.equal(detectTrunkBranch(createGitRepo('develop')), 'develop');
 });
 
-test('findOtherOkfPlugins only returns enabled okf@ plugins', () => {
-  assert.deepEqual(findOtherOkfPlugins({ enabledPlugins: { 'okf@a': true, 'okf@b': false, 'ai1@ai1': true } }), ['okf@a']);
-  assert.deepEqual(findOtherOkfPlugins(null), []);
-});
-
 test('status reports defaults before setup and choices after it', () => {
   const repoRoot = createGitRepo();
   const beforeSetup = describeRepo(repoRoot);
   assert.equal(beforeSetup.hasAi1Config, false);
   assert.deepEqual(beforeSetup.features.map((featureStatus) => [featureStatus.id, featureStatus.enabled]), [['okf', true], ['danger', true], ['craft', true], ['lanes', false], ['worktrees', false], ['proposals', false], ['design', false], ['verify', true]]);
-  setupRepo(repoRoot, { enabledFeatureIds: ['okf'], userSettingsPath: writeUserSettings({}) });
+  setupRepo(repoRoot, { enabledFeatureIds: ['okf'] });
   const afterSetup = describeRepo(repoRoot);
   assert.deepEqual(afterSetup.features.map((featureStatus) => [featureStatus.id, featureStatus.enabled]), [['okf', true], ['danger', false], ['craft', false], ['lanes', false], ['worktrees', false], ['proposals', false], ['design', false], ['verify', false]]);
 });

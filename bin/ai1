@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // ai1 CLI. On the Bash PATH while the plugin is enabled.
 //   ai1 status [--json]                         what this repo runs, and the available features
-//   ai1 init --features okf,danger [--verify "npm test" ...] [--json]
+//   ai1 init --features okf,danger [--verify "npm test" ...] [--disable-plugins a@x,b@y] [--json]
 //   ai1 verify                                  run the repo's verify commands, stop at the first failure
 //   ai1 step-done <slug> "<step>"               ai1 verify, then log the step in .ai1/work/<slug>/progress.md
 //   ai1 proposals new <slug> [--idea] [--title "..."] create .ai1/proposals/NNNN-<slug>.md with the next number
@@ -19,6 +19,7 @@ import { readVerifyCommands, runVerifyCommands, recordStepDone } from '../src/cl
 import { runProposalCommand, PROPOSALS_USAGE } from '../src/cli/proposals-command.mjs';
 import { runForkCommand, FORK_USAGE } from '../src/cli/fork-command.mjs';
 import { runIssueCommand, ISSUE_USAGE } from '../src/cli/issue-command.mjs';
+import { describeOverlap } from '../src/core/plugin-overlaps.mjs';
 
 const [commandName, ...commandArguments] = process.argv.slice(2);
 
@@ -57,7 +58,13 @@ try {
       const { worktreeRecipe } = repoDescription;
       console.log(`worktree recipe: ${worktreeRecipe.status}${worktreeRecipe.errors.length ? ` (${worktreeRecipe.errors.join('; ')})` : ''}${worktreeRecipe.warnings.length ? ` (${worktreeRecipe.warnings.join('; ')})` : ''}`);
       for (const featureStatus of repoDescription.features) {
-        console.log(`  [${featureStatus.enabled ? 'x' : ' '}] ${featureStatus.id}: ${featureStatus.title}${featureStatus.enabledByDefault ? ' (default on)' : ''}`);
+        const { recommendation } = featureStatus;
+        const recommendationText = recommendation.recommended === null ? 'ask' : recommendation.recommended ? 'recommended' : 'not recommended';
+        console.log(`  [${featureStatus.enabled ? 'x' : ' '}] ${featureStatus.id}: ${featureStatus.title}${featureStatus.enabledByDefault ? ' (default on)' : ''} - ${recommendationText}: ${recommendation.reason}${recommendation.evidence.length ? ` (${recommendation.evidence.join('; ')})` : ''}`);
+      }
+      if (repoDescription.detectedVerifyCommands.length) console.log(`detected verify commands: ${repoDescription.detectedVerifyCommands.join(', ')}`);
+      for (const overlappingPlugin of repoDescription.overlappingPlugins) {
+        console.log(`plugin overlap (${overlappingPlugin.action === 'disable' ? 'disable it here with ai1 init --disable-plugins' : 'only a warning'}): ${describeOverlap(overlappingPlugin)}`);
       }
     }
   } else if (commandName === 'init') {
@@ -65,9 +72,11 @@ try {
     const featureList = readOption('--features');
     if (featureList === undefined) throw new Error('--features is required, e.g. --features okf,danger (use --features "" for none)');
     const verifyCommands = readRepeatedOption('--verify');
+    const splitList = (listText) => (listText ?? '').split(',').map((listItem) => listItem.trim()).filter(Boolean);
     const setupResult = setupRepo(repoRoot, {
-      enabledFeatureIds: featureList.split(',').map((featureId) => featureId.trim()).filter(Boolean),
+      enabledFeatureIds: splitList(featureList),
       verifyCommands: verifyCommands.length ? verifyCommands : undefined,
+      disabledPluginIds: splitList(readOption('--disable-plugins')),
     });
     if (wantsJson) console.log(JSON.stringify(setupResult, null, 2));
     else {
@@ -78,7 +87,7 @@ try {
       console.log(`wrote ${setupResult.ai1ConfigPath}`);
       console.log(`wrote ${setupResult.settingsPath}`);
       console.log(`features: ${Object.entries(setupResult.features).map(([featureId, isEnabled]) => `${featureId}=${isEnabled ? 'on' : 'off'}`).join(', ')}`);
-      if (setupResult.disabledPlugins.length) console.log(`disabled for you in this repo (duplicate OKF skills), in ${setupResult.localSettingsPath}: ${setupResult.disabledPlugins.join(', ')}${setupResult.gitignoreUpdated ? ' (added to .gitignore)' : ''}`);
+      if (setupResult.disabledPlugins.length) console.log(`disabled for you in this repo (overlap with ai1), in ${setupResult.localSettingsPath}: ${setupResult.disabledPlugins.join(', ')}${setupResult.gitignoreUpdated ? ' (added to .gitignore)' : ''}`);
       if (setupResult.features.okf && !setupResult.hasKnowledgeBundle) console.log(`no OKF bundle at ${setupResult.knowledge}/ yet: create it with /ai1:okf-maintain-knowledge (produce mode)`);
       console.log(`Commit ${legacyMigration.moves.length ? 'the moves, ' : ''}.ai1/config.json and .claude/settings.json, then restart the Claude Code session.`);
     }
@@ -102,7 +111,7 @@ try {
   } else if (commandName === 'proposals') {
     process.exitCode = runProposalCommand(repoRoot, commandArguments, { readOption });
   } else {
-    console.log(`usage: ai1 status [--json] | ai1 init --features okf,danger [--verify "<command>" ...] [--json] | ai1 verify | ai1 step-done <slug> "<step>" | ${PROPOSALS_USAGE}`);
+    console.log(`usage: ai1 status [--json] | ai1 init --features okf,danger [--verify "<command>" ...] [--disable-plugins a@x,b@y] [--json] | ai1 verify | ai1 step-done <slug> "<step>" | ${PROPOSALS_USAGE}`);
     console.log(WORKTREE_USAGE);
     console.log(FORK_USAGE);
     console.log(ISSUE_USAGE);
