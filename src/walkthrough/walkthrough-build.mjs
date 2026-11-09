@@ -19,8 +19,10 @@ function findCapture(storyboardStep, variant, viewport) {
   return storyboardStep.captures.find((stepCapture) => stepCapture.variant === variant && stepCapture.viewport === viewport);
 }
 
-function renderCaptureCell(storyboardPath, stepCapture, cellLabel) {
-  if (!stepCapture) return `<figure class="shot shot-missing"><figcaption>${escapeHtml(cellLabel)}</figcaption><div class="missing">not captured</div></figure>`;
+const MISSING_CAPTURE_TEXTS = { new: { before: 'not in the base version' }, removed: { after: 'no longer in the flow' } };
+
+function renderCaptureCell(storyboardPath, stepCapture, cellLabel, missingText = 'not captured') {
+  if (!stepCapture) return `<figure class="shot shot-missing"><figcaption>${escapeHtml(cellLabel)}</figcaption><div class="missing">${missingText}</div></figure>`;
   const imageData = readImageBytes(storyboardPath, stepCapture.image).toString('base64');
   const mimeType = IMAGE_MIME_TYPES[extname(stepCapture.image).toLowerCase()] ?? 'image/png';
   return `<figure class="shot shot-${stepCapture.viewport}"><figcaption>${escapeHtml(cellLabel)}</figcaption><img alt="${escapeHtml(cellLabel)}" src="data:${mimeType};base64,${imageData}"></figure>`;
@@ -31,7 +33,9 @@ function renderStep(storyboardPath, storyboardStep, stepNumber, stepCount, hasBe
   const shownVariants = hasBefore ? ['before', 'after'] : ['after'];
   const capturedViewports = VIEWPORTS.filter((viewport) => storyboardStep.captures.some((stepCapture) => stepCapture.viewport === viewport));
   const viewportRows = capturedViewports.map((viewport) => {
-    const rowCells = shownVariants.map((variant) => renderCaptureCell(storyboardPath, findCapture(storyboardStep, variant, viewport), hasBefore ? `${variant} · ${viewport}` : viewport));
+    const rowCells = shownVariants.map((variant) => renderCaptureCell(
+      storyboardPath, findCapture(storyboardStep, variant, viewport), hasBefore ? `${variant} · ${viewport}` : viewport, MISSING_CAPTURE_TEXTS[change]?.[variant],
+    ));
     return `<div class="row row-${viewport} cols-${shownVariants.length}">${rowCells.join('')}</div>`;
   }).join('');
   return `<section class="step${change ? ` step-${change}` : ''}" id="step-${stepNumber}">
@@ -60,9 +64,11 @@ main{max-width:1400px;margin:0 auto;padding:24px}
 .missing{display:grid;place-items:center;min-height:120px;border:1px dashed var(--line);border-radius:6px;color:var(--muted);font-size:13px}
 body.slides .step{display:none;min-height:calc(100vh - 110px)}body.slides .step.current{display:block}
 .pager{display:none;gap:8px;align-items:center}body.slides .pager{display:flex}
+@page{size:A4 landscape;margin:10mm}
 @media print{.top{position:static;background:none;color:var(--ink);border-bottom:2px solid var(--ink)}.top button,.pager{display:none!important}
 body{background:#fff}main{padding:0;max-width:none}body.slides .step,.step{display:block!important;min-height:0;border:0;padding:0;break-after:page;page-break-after:always}
-.step:last-child{break-after:auto;page-break-after:auto}.shot img{max-height:80vh;width:auto;max-width:100%}}
+.step:last-child{break-after:auto;page-break-after:auto}.step-head{margin-bottom:6px}.row{break-inside:avoid;margin-top:6px}
+.shot img{max-height:34vh;width:auto;max-width:100%}.missing{min-height:60px}}
 `;
 
 const STORYBOARD_SCRIPT = `

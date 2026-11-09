@@ -6,8 +6,9 @@
 import { findMainCheckout } from '../core/project-roots.mjs';
 import { addCapture, resolveStoryboardSlug, storyboardDirectory } from '../walkthrough/walkthrough-storyboard.mjs';
 import { buildStoryboard } from '../walkthrough/walkthrough-build.mjs';
+import { printStoryboardPdf } from '../walkthrough/walkthrough-pdf.mjs';
 
-export const WALKTHROUGH_USAGE = 'ai1 walkthrough add --step "<caption>" --image <file> [--variant before|after] [--viewport desktop|mobile] [--detail "..."] [--id <step-id>] [--title "..."] [--base <branch>] | build  (all take --slug <name>)';
+export const WALKTHROUGH_USAGE = 'ai1 walkthrough add --step "<caption>" --image <file> [--variant before|after] [--viewport desktop|mobile] [--detail "..."] [--id <step-id>] [--title "..."] [--base <branch>] | build [--pdf]  (all take --slug <name>)';
 
 // Prints the result and returns the exit code.
 export function runWalkthroughCommand(treeRoot, commandArguments, { readOption }) {
@@ -34,6 +35,11 @@ export function runWalkthroughCommand(treeRoot, commandArguments, { readOption }
     console.log(`built ${buildResult.stepCount} steps: ${buildResult.htmlPath}`);
     console.log(`summary: ${buildResult.summaryPath}`);
     if (buildResult.warning) console.log(`warning: ${buildResult.warning}`);
+    if (commandArguments.includes('--pdf')) {
+      const printResult = printStoryboardPdf(storyboardPath, buildResult.htmlPath);
+      if (printResult.pdfPath) console.log(`pdf: ${printResult.pdfPath}`);
+      else console.log(`pdf not written: ${printResult.error}. Print ${buildResult.htmlPath} to ${storyboardPath}/walkthrough.pdf with your browser tool (print media, one step per page).`);
+    }
     return 0;
   }
   console.log(`usage: ${WALKTHROUGH_USAGE}`);

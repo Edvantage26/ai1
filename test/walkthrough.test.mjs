@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { addCapture, readStoryboard, resolveStoryboardSlug, stepIdFromCaption, storyboardDirectory } from '../src/walkthrough/walkthrough-storyboard.mjs';
 import { buildStoryboard, renderStoryboardSummary } from '../src/walkthrough/walkthrough-build.mjs';
+import { findChromeBinary, printStoryboardPdf } from '../src/walkthrough/walkthrough-pdf.mjs';
 import { createTemporaryProject } from './helpers.mjs';
 
 const AI1_CLI = fileURLToPath(new URL('../bin/ai1', import.meta.url));
@@ -119,4 +120,35 @@ test('build without steps says how to add them', () => {
   assert.equal(buildRun.status, 1);
   assert.match(buildRun.stderr, /ai1 walkthrough add/);
   assert.equal(existsSync(join(storyboardDirectory(projectRoot, 'empty'), 'index.html')), false);
+});
+
+test('build --pdf finds Chrome in Playwright\'s cache, prints one PDF, and fails open without one [walkthrough:S6]', () => {
+  const projectRoot = createUiRepo();
+  const fakeCache = join(projectRoot, 'ms-playwright');
+  mkdirSync(join(fakeCache, 'chromium-1200', 'chrome-linux64'), { recursive: true });
+  mkdirSync(join(fakeCache, 'chromium-999', 'chrome-linux'), { recursive: true });
+  writeFileSync(join(fakeCache, 'chromium-1200', 'chrome-linux64', 'chrome'), '');
+  writeFileSync(join(fakeCache, 'chromium-999', 'chrome-linux', 'chrome'), '');
+  if (process.platform === 'linux') {
+    assert.equal(findChromeBinary({ PATH: '', PLAYWRIGHT_BROWSERS_PATH: fakeCache }), join(fakeCache, 'chromium-1200', 'chrome-linux64', 'chrome'), 'newest build first');
+  }
+  assert.equal(findChromeBinary({ PATH: '', PLAYWRIGHT_BROWSERS_PATH: join(projectRoot, 'none') }), null);
+
+  const storyboardPath = storyboardDirectory(projectRoot, 'pdf');
+  addCapture(storyboardPath, 'pdf', { caption: 'Home', imageFile: writeScreenshot(projectRoot, 'shot.png') });
+  const { htmlPath } = buildStoryboard(storyboardPath);
+  assert.match(printStoryboardPdf(storyboardPath, htmlPath, { chromeBinary: null }).error, /no Chrome or Chromium/);
+  assert.match(printStoryboardPdf(storyboardPath, htmlPath, { chromeBinary: join(projectRoot, 'not-a-browser') }).error, /could not print/);
+
+  const failOpenRun = spawnSync(process.execPath, [AI1_CLI, 'walkthrough', 'build', '--slug', 'pdf', '--pdf'], {
+    cwd: projectRoot, encoding: 'utf8', env: { ...process.env, PATH: '', PLAYWRIGHT_BROWSERS_PATH: join(projectRoot, 'none') },
+  });
+  assert.equal(failOpenRun.status, 0, 'a missing browser never fails the build');
+  assert.match(failOpenRun.stdout, /pdf not written: no Chrome[\s\S]*with your browser tool/);
+
+  const realChrome = findChromeBinary();
+  if (realChrome) {
+    const printResult = printStoryboardPdf(storyboardPath, htmlPath, { chromeBinary: realChrome });
+    if (printResult.pdfPath) assert.equal(readFileSync(printResult.pdfPath).subarray(0, 5).toString(), '%PDF-');
+  }
 });
