@@ -43,6 +43,18 @@ export function writeStateText(statePath, stateText) {
   writeFileSync(statePath, stateText);
 }
 
+// Loop guard for Stop blocks: true, and recorded, when these findings may block the agent again -
+// they differ from the last set that blocked and fewer than `maxBlocksPerSession` blocks happened.
+// The same findings are reported once; a stubborn problem stops blocking after the cap.
+export function claimStopBlock(statePath, findingsText, maxBlocksPerSession) {
+  const [previousFingerprint, previousCountText] = (readStateText(statePath) || '').split(':');
+  const previousCount = Number(previousCountText) || 0;
+  const findingsFingerprint = shortHash(findingsText);
+  if (findingsFingerprint === previousFingerprint || previousCount >= maxBlocksPerSession) return false;
+  writeStateText(statePath, `${findingsFingerprint}:${previousCount + 1}`);
+  return true;
+}
+
 export function stateModifiedMilliseconds(statePath) {
   return existsSync(statePath) ? statSync(statePath).mtimeMs : null;
 }

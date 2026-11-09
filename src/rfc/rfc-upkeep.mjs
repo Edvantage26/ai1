@@ -9,7 +9,7 @@ import { readFileSync } from 'node:fs';
 import { allowDecision, blockDecision } from '../core/hook-io.mjs';
 import { splitFrontmatter, readFrontmatterField } from '../core/frontmatter.mjs';
 import { readSessionBase, listFilesChangedSinceBase } from '../core/session-base.mjs';
-import { resolveStateDirectory, sessionStatePath, readStateText, writeStateText, shortHash } from '../core/session-state.mjs';
+import { resolveStateDirectory, sessionStatePath, claimStopBlock } from '../core/session-state.mjs';
 import { listWorkPlans } from '../lanes/lanes-work.mjs';
 import { checkRfcs, listRfcs, findRfc, resolveCitingBundle, resolveKnowledgePath, RFC_DIRECTORY } from './rfc-documents.mjs';
 
@@ -58,11 +58,7 @@ export default {
     ];
     if (!rfcProblems.length) return allowDecision();
     const checkedPath = sessionStatePath(resolveStateDirectory(environment), hookInput.session_id, projectRoot, 'rfc-checked');
-    const [previousFingerprint, previousCountText] = (readStateText(checkedPath) || '').split(':');
-    const previousCount = Number(previousCountText) || 0;
-    const problemsFingerprint = shortHash(rfcProblems.join('\n'));
-    if (problemsFingerprint === previousFingerprint || previousCount >= MAX_BLOCKS_PER_SESSION) return allowDecision();
-    writeStateText(checkedPath, `${problemsFingerprint}:${previousCount + 1}`);
+    if (!claimStopBlock(checkedPath, rfcProblems.join('\n'), MAX_BLOCKS_PER_SESSION)) return allowDecision();
     return blockDecision(MODULE_ID, buildRfcUpkeepReminder(rfcProblems));
   },
 };

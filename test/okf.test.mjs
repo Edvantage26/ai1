@@ -5,7 +5,7 @@ import { mkdirSync, mkdtempSync, writeFileSync, utimesSync, existsSync, readdirS
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runHookEvent } from '../src/core/dispatcher.mjs';
-import { shellCommandWritesBundle } from '../src/okf/okf-upkeep.mjs';
+import { shellCommandWritesBundle } from '../src/okf/okf-session-scan.mjs';
 import { createTemporaryProject } from './helpers.mjs';
 
 const V01_INDEX = "---\nokf_version: '0.1'\n---\n\n# Demo bundle\n\n* [Overview](overview.md)\n";
@@ -345,7 +345,7 @@ test('memories: without transcript or origin, a memory does not count', () => {
 });
 
 test('memories: the transcript scan is incremental and picks up appended writes', async () => {
-  const { listMemoryFilesWrittenBySession } = await import('../src/okf/okf-upkeep.mjs');
+  const { listMemoryFilesWrittenBySession } = await import('../src/okf/okf-session-scan.mjs');
   const options = hookOptions();
   const memoryDirectory = join(options.homeDirectory, 'memory');
   const firstPath = join(memoryDirectory, 'first.md');

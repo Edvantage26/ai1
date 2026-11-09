@@ -6,36 +6,28 @@
 //      the validator itself, because asking the agent to validate proved unreliable in field tests.
 //      Warnings never block; a missing python3 fails open.
 
-import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { allowDecision, blockDecision } from '../core/hook-io.mjs';
-import { listShellWriteTargets } from '../core/shell-writes.mjs';
-import { readNewTranscriptEvents, eventContentBlocks } from '../core/transcript-scan.mjs';
-import {
-  resolveStateDirectory, sessionStatePath, readStateText, writeStateText, shortHash, readStateJson,
-} from '../core/session-state.mjs';
+import { resolveStateDirectory, sessionStatePath, readStateText, writeStateText, shortHash, claimStopBlock } from '../core/session-state.mjs';
 import {
   resolveBundleDirectory, readBundleIndex, readBundleSpecVersion, newestModificationMilliseconds, buildMaintenanceRules,
 } from './okf-bundle.mjs';
 import { loadFileMap, findConceptsForFile } from './okf-file-map.mjs';
+import { memoryDirectoriesFor, scanSessionTranscript, loadScanState, listRecentMemories } from './okf-session-scan.mjs';
+import { runBundleValidator, buildValidationReminder } from './okf-validator.mjs';
 import { readSessionBase, listFilesChangedSinceBase } from '../core/session-base.mjs';
-import { splitFrontmatter } from '../core/frontmatter.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
 import { RFC_DIRECTORY } from '../rfc/rfc-documents.mjs';
 import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
 
 const MODULE_ID = 'okf-upkeep';
-const BUNDLED_VALIDATOR_SCRIPT = fileURLToPath(new URL('../../skills/okf-validate-bundle/scripts/okf_validate.py', import.meta.url));
-const VALIDATOR_TIMEOUT_MILLISECONDS = 10000;
 const MAX_VALIDATION_BLOCKS_PER_SESSION = 3;
-const MAX_LISTED_ERRORS = 15;
 const MAX_LISTED_FILES = 20;
 const MAX_LISTED_AFFECTED_CONCEPTS = 5;
 // Harness configuration is not project knowledge: editing it never asks for a concept update.
 const IGNORED_PATHS = new Set(['.claude/settings.json', '.claude/settings.local.json', '.ai1/config.json']);
+const INVESTIGATION_CALLS_BEFORE_REMINDER = 10;
 
 // `ignoredDirectories`: folders whose changes are not system knowledge (RFC drafts, when the rfc
 // feature is on: rfc-upkeep handles them, and a proposal must not be written into the bundle).
@@ -43,79 +35,6 @@ export function listSessionChangedFiles(projectRoot, baseHead, bundleRelativePat
   const ignoredPrefixes = [bundleRelativePath, ...ignoredDirectories].map((directoryPath) => `${directoryPath.replace(/\/+$/, '')}/`);
   return listFilesChangedSinceBase(projectRoot, baseHead)
     .filter((changedPath) => !ignoredPrefixes.some((ignoredPrefix) => changedPath.startsWith(ignoredPrefix)) && !IGNORED_PATHS.has(changedPath));
-}
-
-// Claude Code stores auto-memory under ~/.claude/projects/<path with / and . as ->/memory.
-export function memoryDirectoriesFor(directoryPaths, homeDirectory = homedir()) {
-  return [...new Set(directoryPaths.filter(Boolean))]
-    .map((directoryPath) => join(homeDirectory, '.claude', 'projects', directoryPath.replace(/[/.]/g, '-'), 'memory'));
-}
-
-const MEMORY_WRITING_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit']);
-const INVESTIGATION_TOOLS = new Set(['Bash', 'WebFetch', 'WebSearch']);
-const INVESTIGATION_CALLS_BEFORE_REMINDER = 10;
-
-function isInvestigationTool(toolName) {
-  return INVESTIGATION_TOOLS.has(toolName) || String(toolName).startsWith('mcp__');
-}
-
-// True when a shell word names the bundle or a path inside it (relative or absolute).
-function namesBundlePath(shellWord, bundleName) {
-  const bundlePath = String(shellWord).replace(/^\.\//, '').replace(/\/+$/, '');
-  return bundlePath === bundleName || bundlePath.startsWith(`${bundleName}/`) || bundlePath.includes(`/${bundleName}/`)
-    || bundlePath.endsWith(`/${bundleName}`);
-}
-
-// Whether a Bash command writes to the bundle: an edit made with the shell (`cat >> .ai1/okf/x.md`,
-// `sed -i`, `tee`, `mv`, an inline python/node script naming a bundle file) counts as updating it,
-// just like Write/Edit. Reading the bundle (validator, cat, grep) never counts.
-export function shellCommandWritesBundle(commandLine, bundleRelativePath = KNOWLEDGE_BUNDLE_PATH) {
-  const bundleName = String(bundleRelativePath).replace(/^\.\//, '').replace(/\/+$/, '');
-  const commandText = String(commandLine || '');
-  if (!commandText.includes(bundleName)) return false;
-  const { targetPaths, runsInlineScript } = listShellWriteTargets(commandText);
-  if (targetPaths.some((targetPath) => namesBundlePath(targetPath, bundleName))) return true;
-  const namesBundleFile = new RegExp(`(^|[\\s'"=/(])${bundleName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/\\S`).test(commandText);
-  return runsInlineScript && namesBundleFile;
-}
-
-// One incremental pass over the session transcript (see core/transcript-scan.mjs). It collects
-//   - `paths`: memory files this session wrote (Write/Edit), and
-//   - `investigationCalls`: investigation tool calls (shell, MCP, web) since the session last
-//     edited the bundle, reset to 0 by any bundle edit.
-// Returns null when the transcript is not available.
-export function scanSessionTranscript(transcriptPath, { memoryDirectories, bundleRelativePath }, scanState = { offset: 0, paths: [], investigationCalls: 0 }) {
-  const newTranscript = readNewTranscriptEvents(transcriptPath, scanState);
-  if (!newTranscript) return null;
-  const writtenMemoryPaths = new Set(newTranscript.restarted ? [] : scanState.paths || []);
-  let investigationCalls = newTranscript.restarted ? 0 : scanState.investigationCalls || 0;
-  const bundleMarker = `/${String(bundleRelativePath || KNOWLEDGE_BUNDLE_PATH).replace(/^\.\//, '').replace(/\/+$/, '')}/`;
-  for (const transcriptEvent of newTranscript.events) {
-    for (const contentBlock of eventContentBlocks(transcriptEvent, 'tool_use')) {
-      const toolPath = contentBlock?.input?.file_path;
-      if (MEMORY_WRITING_TOOLS.has(contentBlock.name) && typeof toolPath === 'string') {
-        if (memoryDirectories.some((memoryDirectory) => toolPath.startsWith(`${memoryDirectory}/`))) writtenMemoryPaths.add(toolPath);
-        if (toolPath.includes(bundleMarker)) investigationCalls = 0;
-      } else if (contentBlock.name === 'Bash' && shellCommandWritesBundle(contentBlock?.input?.command, bundleRelativePath)) {
-        investigationCalls = 0;
-      } else if (isInvestigationTool(contentBlock.name)) {
-        investigationCalls += 1;
-      }
-    }
-  }
-  scanState.paths = [...writtenMemoryPaths];
-  scanState.investigationCalls = investigationCalls;
-  return { memoryPaths: writtenMemoryPaths, investigationCalls };
-}
-
-// Kept for callers that only need the memory files.
-export function listMemoryFilesWrittenBySession(transcriptPath, memoryDirectories, scanState) {
-  const transcriptScan = scanSessionTranscript(transcriptPath, { memoryDirectories, bundleRelativePath: KNOWLEDGE_BUNDLE_PATH }, scanState);
-  return transcriptScan ? transcriptScan.memoryPaths : null;
-}
-
-function loadScanState(scanStatePath) {
-  return { offset: 0, paths: [], investigationCalls: 0, ...readStateJson(scanStatePath) };
 }
 
 export function buildInvestigationReminder(bundleRelativePath, investigationCalls) {
@@ -127,35 +46,6 @@ export function buildInvestigationReminder(bundleRelativePath, investigationCall
     '  - ways of working: procedures, steps or queries that worked and should be repeated.',
     'Keep it short and factual; do not copy raw output. If nothing is worth keeping, say so in one line and finish.',
   ].join('\n');
-}
-
-function readMemoryOriginSession(memoryFilePath) {
-  const { frontmatterText } = splitFrontmatter(readFileSync(memoryFilePath, 'utf8'));
-  const originMatch = frontmatterText && /^\s*originSessionId:\s*['"]?([\w-]+)['"]?\s*$/m.exec(frontmatterText);
-  return originMatch ? originMatch[1] : null;
-}
-
-// Only memories this session wrote count: other sessions open on the same repo write to the same
-// memory folder, and their knowledge is theirs to move to the bundle. The transcript says which
-// files this session wrote; without it, the frontmatter's originSessionId decides.
-function listRecentMemories(memoryDirectories, sessionStartMilliseconds, bundleUpdatedMilliseconds, sessionId, sessionWrittenMemoryPaths) {
-  const recentMemories = [];
-  for (const memoryDirectory of memoryDirectories) {
-    if (!existsSync(memoryDirectory)) continue;
-    for (const memoryFileName of readdirSync(memoryDirectory)) {
-      if (!memoryFileName.endsWith('.md') || memoryFileName === 'MEMORY.md') continue;
-      const memoryFilePath = join(memoryDirectory, memoryFileName);
-      const isWrittenBySession = sessionWrittenMemoryPaths
-        ? sessionWrittenMemoryPaths.has(memoryFilePath)
-        : readMemoryOriginSession(memoryFilePath) === sessionId;
-      if (!isWrittenBySession) continue;
-      const memoryMilliseconds = statSync(memoryFilePath).mtimeMs;
-      if (memoryMilliseconds >= sessionStartMilliseconds && memoryMilliseconds > bundleUpdatedMilliseconds) {
-        recentMemories.push({ name: memoryFileName, modifiedMilliseconds: memoryMilliseconds });
-      }
-    }
-  }
-  return recentMemories;
 }
 
 export function buildUpkeepReminder(bundleRelativePath, specVersion, pendingFiles, pendingMemories, affectedConceptPaths = []) {
@@ -199,38 +89,6 @@ function listAffectedConcepts({ projectRoot, bundleDirectory, stateDirectory, se
   }
 }
 
-// Runs the bundled OKF validator. Returns { ran: true, errors } or { ran: false, reason }.
-// AI1_PYTHON / AI1_OKF_VALIDATOR override the interpreter and the script (used by tests).
-export function runBundleValidator(bundleDirectory, environment = process.env) {
-  const pythonCommand = environment.AI1_PYTHON || 'python3';
-  const validatorScript = environment.AI1_OKF_VALIDATOR || BUNDLED_VALIDATOR_SCRIPT;
-  let validatorOutput;
-  try {
-    validatorOutput = execFileSync(pythonCommand, [validatorScript, bundleDirectory, '--json'], {
-      encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: VALIDATOR_TIMEOUT_MILLISECONDS,
-    });
-  } catch (validatorFailure) {
-    // The validator exits non-zero when the bundle has errors; its JSON is still on stdout.
-    validatorOutput = validatorFailure.stdout;
-    if (!validatorOutput) return { ran: false, reason: validatorFailure.code === 'ENOENT' ? `${pythonCommand} not found` : String(validatorFailure.message).split('\n')[0] };
-  }
-  try {
-    const validationReport = JSON.parse(validatorOutput);
-    return { ran: true, errors: Array.isArray(validationReport.errors) ? validationReport.errors : [] };
-  } catch {
-    return { ran: false, reason: 'validator output is not JSON' };
-  }
-}
-
-export function buildValidationReminder(bundleRelativePath, validationErrors) {
-  return [
-    `OKF: the bundle at ${bundleRelativePath}/ was changed in this session and the validator reports ${validationErrors.length} ERROR(s) (warnings are not shown and do not block):`,
-    ...validationErrors.slice(0, MAX_LISTED_ERRORS).map((validationError) => `  - ${validationError}`),
-    ...(validationErrors.length > MAX_LISTED_ERRORS ? [`  - ... and ${validationErrors.length - MAX_LISTED_ERRORS} more (run /ai1:okf-validate-bundle ${bundleRelativePath})`] : []),
-    'Fix every error, then finish.',
-  ].join('\n');
-}
-
 function checkBundleValidity({ hookInput, projectRoot, stateDirectory, bundleDirectory, bundleRelativePath, environment }) {
   const validation = runBundleValidator(bundleDirectory, environment);
   if (!validation.ran) {
@@ -238,13 +96,8 @@ function checkBundleValidity({ hookInput, projectRoot, stateDirectory, bundleDir
     return allowDecision();
   }
   if (!validation.errors.length) return allowDecision();
-  // Never loop: the same errors are reported once, and at most a few times per session overall.
   const validatedPath = sessionStatePath(stateDirectory, hookInput.session_id, projectRoot, 'validated');
-  const [previousFingerprint, previousCountText] = (readStateText(validatedPath) || '').split(':');
-  const previousCount = Number(previousCountText) || 0;
-  const errorsFingerprint = shortHash(validation.errors.join('\n'));
-  if (errorsFingerprint === previousFingerprint || previousCount >= MAX_VALIDATION_BLOCKS_PER_SESSION) return allowDecision();
-  writeStateText(validatedPath, `${errorsFingerprint}:${previousCount + 1}`);
+  if (!claimStopBlock(validatedPath, validation.errors.join('\n'), MAX_VALIDATION_BLOCKS_PER_SESSION)) return allowDecision();
   return blockDecision(MODULE_ID, buildValidationReminder(bundleRelativePath, validation.errors));
 }
 
