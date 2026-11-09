@@ -5,7 +5,7 @@ description: What ai1 is, the four pieces of a harness, and what exists today.
 tags: [overview, harness]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T22:32:23Z'
+  at: '2026-11-09T04:00:04Z'
 ---
 
 # What it is
@@ -28,19 +28,32 @@ git-ignored `work/`); see [plugin layout](architecture/plugin-layout.md).
 The frame is generic; each repo describes itself in `.ai1/config.json`
 (see [contract](architecture/harness-contract.md)).
 
+# Why it exists
+
+Born from professionalizing an internal document-processing backend, where the rules ("never write
+to prod", "run the regression test before calling a change done", "keep the knowledge bundle
+updated") existed only as text in `CLAUDE.md`. The same rules apply to many other repos with a
+similar stack, and almost none enforce them. Prior art and what was taken from it:
+[prior art](decisions/prior-art.md).
+
 # Status
 
-v0.2.0 (2026-10-31): per-repo [features](architecture/features.md) chosen with
-[/ai1:core-setup-repo](features/init.md); the [okf feature](features/okf.md) (index, upkeep, OKF toolkit from
-the [OKF toolkit](packs/okf-pack.md)) and the [danger guard](guards/danger.md), both on by default.
-Verified in real Claude Code sessions. Next steps in the [roadmap](roadmap.md).
+v0.14.1 (2026-11-09). Per-repo [features](architecture/features.md) chosen with
+[/ai1:core-setup-repo](features/init.md). On by default: the [okf feature](features/okf.md) (index,
+recall, upkeep and the [OKF toolkit](packs/okf-pack.md)), the [danger guard](guards/danger.md), the
+[craft rules](features/craft.md) and the [verify gate](features/verify.md). Opt-in:
+[lanes](features/lanes.md), [rfc](features/rfc.md), [design](features/design.md) and
+[worktrees](features/worktrees.md). Plus the [session fork](features/session-fork.md) skill and CLI.
+Next steps in the [roadmap](roadmap.md).
 
 # Code map
 
 - `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`: see [plugin layout](architecture/plugin-layout.md).
-- `bin/ai1-hook.mjs`, `src/`: hook runtime and modules; `src/okf/`: okf feature.
-- `bin/ai1`, `src/cli/`, `skills/core-setup-repo/`: setup CLI and `/ai1:core-setup-repo`.
+- `bin/ai1-hook.mjs`, `src/core/`: hook runtime (see [hook runtime](architecture/hook-runtime.md)).
+- `src/<feature>/`: one folder per feature (`okf`, `guards`, `craft`, `verify`, `lanes`, `rfc`,
+  `design`, `worktrees`, `session`, `context` for the brief).
+- `bin/ai1`, `src/cli/`, `skills/core-setup-repo/`: the CLI (`status`, `init`, `verify`, `step-done`,
+  `rfc`, `worktree`, `fork`) and `/ai1:core-setup-repo`.
 - `skills/okf-*/`, `agents/`, `vendor/`: OKF toolkit, owned by ai1 (see [OKF toolkit](packs/okf-pack.md)).
 - `schema/ai1.schema.json`, `templates/config.json`: the per-repo contract.
-- `test/`: `npm test` (node:test, no dependencies).
-- [PROJECT.md](https://github.com/Edvantage26/ai1/blob/main/PROJECT.md): full spec.
+- `test/`: `npm test` (node:test suite, plus the Python tests of the OKF toolkit in `test/okf-toolkit/`).

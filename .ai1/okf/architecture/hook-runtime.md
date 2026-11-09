@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T22:15:28Z'
+  at: '2026-11-09T04:00:04Z'
 ---
 
 # Flow
@@ -23,8 +23,8 @@ generated:
    the worktree has none.
    - Missing: ai1 is inactive; only a one-line note at SessionStart.
    - Invalid: inactive; SessionStart tells the agent why.
-3. It picks the modules for the event (`src/core/registry.mjs`), filtered by profile, per-repo
-   switches and `toolNames`, and runs each one.
+3. It picks the modules for the event (`src/core/registry.mjs`), filtered by feature, per-repo
+   module switches and `toolNames`, and runs each one.
 4. `src/core/hook-io.mjs` combines decisions (deny/block > ask > context > allow) and prints the
    JSON each event expects (PreToolUse `permissionDecision`, Stop `decision: block`,
    SessionStart, UserPromptSubmit and PostToolUse `additionalContext`).
@@ -60,6 +60,8 @@ decide. Garbage input makes the entry point exit 0 with no output.
 | `lanes-gate`, `lanes-escalate` | PreToolUse (Edit, Write, MultiEdit, NotebookEdit, Bash) | lanes |
 | `design-brief` | SessionStart | design |
 | `design-detect` | PostToolUse (Edit, Write, MultiEdit) | design |
+| `worktree-brief` | SessionStart | worktrees |
+| `worktree-reminder` | UserPromptSubmit | worktrees |
 | `rfc-brief` | SessionStart | rfc |
 | `rfc-recall` | UserPromptSubmit | rfc |
 | `rfc-upkeep` | Stop | rfc |
@@ -73,11 +75,12 @@ state files), `project-paths.mjs` (tool paths relative to the project root; used
 The bundle reader `listBundleConcepts` (`src/okf/okf-bundle.mjs`) is shared by okf-recall and design-brief;
 the keyword scoring of okf-recall (`buildKeywordCatalog`, `rankConceptsForPrompt`) by rfc-recall.
 
-See [features](features.md), [okf feature](/features/okf.md), [lanes feature](/features/lanes.md), [craft feature](/features/craft.md), [design feature](/features/design.md), [verify feature](/features/verify.md), [rfc feature](/features/rfc.md), [danger guard](/guards/danger.md).
+See [features](features.md), [okf feature](/features/okf.md), [lanes feature](/features/lanes.md), [craft feature](/features/craft.md), [design feature](/features/design.md), [verify feature](/features/verify.md), [rfc feature](/features/rfc.md), [worktrees feature](/features/worktrees.md), [danger guard](/guards/danger.md).
 
 # Verified
 
-- `npm test`: 94 tests on 2026-10-31 (65 on 2026-10-30) (parser, rules, config, dispatcher, entry point, manifests).
+- `npm test`: 240 Node tests plus 107 Python tests of the OKF toolkit on 2026-11-09 (94 on 2026-10-31,
+  65 on 2026-10-30).
 - Real Claude Code sessions with `--plugin-dir` (2026-10-30): SessionStart brief injected;
   `git reset --hard` stopped by `ask` (headless = refused, work kept); `git commit --no-verify`
   refused by `deny`. Headless `claude -p` on the dev server needs the account wrapper for auth.

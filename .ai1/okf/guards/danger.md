@@ -5,10 +5,10 @@ description: PreToolUse guard that confirms or refuses shell commands that destr
 tags: [guard, hooks, bash]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T22:15:28Z'
+  at: '2026-11-09T04:00:04Z'
 ---
 
-Source: `src/guards/danger.mjs`. Runs on `Bash` tool calls in every profile.
+Source: `src/guards/danger.mjs`. Runs on `Bash` tool calls when the `danger` feature is on (on by default).
 
 Commands are split with `src/core/shell-parse.mjs` (chains `&&`/`||`/`;`/`|`, env assignments,
 `sudo`/`nohup` wrappers, `bash -c`/`-lc` scripts), and each simple command is checked against the

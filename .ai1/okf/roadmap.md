@@ -5,7 +5,7 @@ description: Phases from proving ai1 in a real repo to the doctor command.
 tags: [roadmap]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T22:15:28Z'
+  at: '2026-11-09T04:00:04Z'
 ---
 
 Order changed on 2026-10-30: build the generic structure in ai1 first, then prove it in real repos.
@@ -24,10 +24,13 @@ Order changed on 2026-10-30: build the generic structure in ai1 first, then prov
    recipe planned once (`/ai1:worktrees-plan-recipe`), engine `ai1 worktree`, brief and reminder. Phase 2 (planned):
    shared read-only caches per version, `writable`, build slots and locks, `WorktreeCreate` hook for
    heavy repos. See [worktrees feature](features/worktrees.md).
+2g. **Session fork** (done 2026-11-09, v0.14): `/ai1:session-fork-conversation` and `ai1 fork`, a
+   full or brief fork of the conversation opened natively per host. See
+   [session fork](features/session-fork.md).
 3. **`prod` and `secrets` guards**, driven by .ai1/config.json (MCP tools writing to production, shell
    patterns, secrets in staged files). Proposal (draft): `.ai1/rfc/0001-prod-and-secrets-guards.md`.
 4. **`verify` Stop gate** (done 2026-11-08): see [verify feature](features/verify.md).
-5. **`ai1 doctor`**: audit a repo against its features. Proposal (draft): `.ai1/rfc/0002-ai1-doctor.md`.
+5. **`ai1 doctor`**: audit a repo against its features. Proposal (draft): `.ai1/rfc/0002-jig-doctor.md`.
 6. **Method skills and reviewers**: `ftd`, `verify`, `review`, finding verifier. Proposal (draft):
    `.ai1/rfc/0003-method-skills-and-reviewers.md`.
 

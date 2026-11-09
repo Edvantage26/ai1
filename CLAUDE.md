@@ -1,8 +1,8 @@
 # CLAUDE.md
 
 `ai1` is a **public** Claude Code plugin (and its own marketplace) that gives any repo guardrails, a
-verification gate and project memory, configured per repo with `.ai1/config.json`. Full spec and
-phases in [PROJECT.md](PROJECT.md).
+verification gate and project memory, configured per repo with `.ai1/config.json`. The spec,
+decisions and roadmap live in the OKF bundle (`.ai1/okf/`); there is no PROJECT.md in this repo.
 
 ## Knowledge (OKF)
 
