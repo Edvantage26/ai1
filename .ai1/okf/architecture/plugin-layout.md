@@ -5,7 +5,7 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T13:24:58Z'
+  at: '2026-11-09T14:30:58Z'
 ---
 
 # Layout
@@ -70,6 +70,15 @@ OKF validator; commit, annotated tag `vX.Y.Z`, push `main` and the tag. Then
 `claude plugin marketplace update ai1` and `claude plugin update ai1@ai1 --scope user` (and
 `--scope project` per repo that installs it), and restart Claude Code: a running session keeps the
 hooks it started with.
+Run from inside this repo, `claude plugin update ai1@ai1` without `--scope` updates only the project
+install of this repo; the user install, used by every other repo, stays on the old version (seen on
+2026-11-09 with v0.26.0). Check with `claude plugin list`.
+
+To check a release end to end, run a fresh session on a throwaway clone with its remote removed
+(`git clone` into `/tmp`, `git remote remove origin`): a Paseo agent in the mode to test, with a task
+that used to trigger the behaviour, then read its transcript and its entries in the decision log
+(`ai1 log --all`, or the session's lines in the state `decisions-*.jsonl`). `claude -p` works too
+while its OAuth session is valid.
 
 # What a project can change in a plugin skill
 
