@@ -1,7 +1,7 @@
 ---
 name: session-fork-conversation
 description: Session — Fork the current conversation into a new one, opened where the person works (Paseo agent, VS Code, terminal, Claude Desktop). Two modes - full (a copy of the whole conversation, to explore another line without losing this one) and brief (a clean conversation that only gets a written handoff with the context it needs). Use when the person says "haz un fork", "forkea la conversación", "bifurca", "abre otra conversación para...", "lanza otro agente con...", "pásale esto a una sesión nueva", "fork this", "branch this conversation", "start a new session for X with only the context it needs".
-allowed-tools: Bash(ai1 skill-context *)
+allowed-tools: Bash("${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context *)
 ---
 
 # Fork the conversation
@@ -105,6 +105,6 @@ paste. Do not keep working on the forked line here unless the person asks.
 
 ## Customization
 
-This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `ai1 skill-context session-fork-conversation` and apply what it prints.
+This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context session-fork-conversation` and apply what it prints.
 
-!`ai1 skill-context session-fork-conversation`
+!`"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context session-fork-conversation`

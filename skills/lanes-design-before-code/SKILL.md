@@ -1,7 +1,7 @@
 ---
 name: lanes-design-before-code
 description: Lanes — Use when a task is in the deep lane - the goal is unclear, there are design choices with trade-offs, it touches a risky area (auth, data, money, migrations, public API), or it will take hours - or when the person says "piénsalo bien", "think it through", "dale una vuelta" or asks for a design before code.
-allowed-tools: Bash(ai1 skill-context *)
+allowed-tools: Bash("${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context *)
 ---
 
 # Deep lane: understand, design, get approval, then build
@@ -96,6 +96,6 @@ folder is scratch.
 
 ## Customization
 
-This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `ai1 skill-context lanes-design-before-code` and apply what it prints.
+This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context lanes-design-before-code` and apply what it prints.
 
-!`ai1 skill-context lanes-design-before-code`
+!`"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context lanes-design-before-code`

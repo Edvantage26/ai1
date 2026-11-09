@@ -144,15 +144,15 @@ test('every skill folder is in the customization index, and each SKILL.md matche
     const skillText = readFileSync(join(skillsDirectory, skillFolder, 'SKILL.md'), 'utf8');
     const frontmatterText = /^---\n([\s\S]*?)\n---/.exec(skillText)?.[1] ?? '';
     const allowedToolsLine = /^allowed-tools:(.*)$/m.exec(frontmatterText)?.[1] ?? '';
-    const injectionLine = `!\`ai1 skill-context ${skillFolder}\``;
+    const injectionLine = `!\`"\${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context ${skillFolder}\``;
     const lastLine = skillText.trimEnd().split('\n').at(-1);
     if (SKILL_CUSTOMIZATION_INDEX[skillFolder].customizable) {
-      assert.ok(allowedToolsLine.includes('Bash(ai1 skill-context *)'), `${skillFolder}: allowed-tools must pre-approve Bash(ai1 skill-context *)`);
+      assert.ok(allowedToolsLine.includes('Bash("${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context *)'), `${skillFolder}: allowed-tools must pre-approve the plugin's own ai1 skill-context`);
       assert.match(skillText, /\n## Fixed rules\n+- /, `${skillFolder}: needs a "## Fixed rules" section with at least one bullet`);
       assert.equal(lastLine, injectionLine, `${skillFolder}: the last line must be ${injectionLine}`);
     } else {
-      assert.ok(!allowedToolsLine.includes('ai1 skill-context'), `${skillFolder}: not customizable, so no skill-context permission`);
-      assert.ok(!skillText.includes('!`ai1 skill-context'), `${skillFolder}: not customizable, so no skill-context injection`);
+      assert.ok(!allowedToolsLine.includes('skill-context'), `${skillFolder}: not customizable, so no skill-context permission`);
+      assert.ok(!/!`[^`]*ai1" skill-context/.test(skillText), `${skillFolder}: not customizable, so no skill-context injection`);
       assert.ok(SKILL_CUSTOMIZATION_INDEX[skillFolder].reason, `${skillFolder}: an excluded skill says why`);
     }
   }

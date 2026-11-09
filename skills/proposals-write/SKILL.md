@@ -1,7 +1,7 @@
 ---
 name: proposals-write
 description: Proposals — Write and manage proposals - large changes and future features that are NOT decided yet - in .ai1/proposals/, with honest options, criteria, assumptions, phases and how to resume them; when one is accepted or rejected, carry its decisions to the knowledge bundle. Use when the person asks for a proposal ("escribe una propuesta", "guárdalo como propuesta", "apúntalo para más adelante", "write a proposal", "save this for later"), picks "proposal" in your one-line offer (here, fork or proposal) for a different subject, or asks to update, accept, reject or resume one. Never create a proposal on your own. Not for recording facts or decisions already taken (that is /ai1:okf-maintain-knowledge) nor for planning how to build something already accepted (that is a plan or /ai1:lanes-design-before-code).
-allowed-tools: Bash(ai1 skill-context *)
+allowed-tools: Bash("${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context *)
 ---
 
 # Proposals: changes that are not the system yet
@@ -132,6 +132,6 @@ subject. Nothing of the design.
 
 ## Customization
 
-This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `ai1 skill-context proposals-write` and apply what it prints.
+This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context proposals-write` and apply what it prints.
 
-!`ai1 skill-context proposals-write`
+!`"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context proposals-write`

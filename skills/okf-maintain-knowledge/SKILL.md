@@ -10,7 +10,7 @@ description: >-
   "capture this as a concept", or any work in a repo that has an OKF bundle.
 user-invocable: true
 argument-hint: "[produce|maintain|consume] [path]"
-allowed-tools: Read Write Edit Grep Glob Bash Bash(ai1 skill-context *)
+allowed-tools: Read Write Edit Grep Glob Bash Bash("${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context *)
 ---
 
 # Open Knowledge Format (OKF) skill
@@ -170,6 +170,6 @@ if you only want §11 conformance gated.
 
 ## Customization
 
-This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `ai1 skill-context okf-maintain-knowledge` and apply what it prints.
+This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context okf-maintain-knowledge` and apply what it prints.
 
-!`ai1 skill-context okf-maintain-knowledge`
+!`"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context okf-maintain-knowledge`

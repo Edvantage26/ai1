@@ -9,7 +9,7 @@ description: >-
   está desfasado", "tidy CLAUDE.md", "move CLAUDE.md into the bundle".
 user-invocable: true
 argument-hint: "[path/to/CLAUDE.md]"
-allowed-tools: Bash(ai1 skill-context *)
+allowed-tools: Bash("${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context *)
 ---
 
 # Tidy CLAUDE.md into the bundle
@@ -77,6 +77,6 @@ content: every line that leaves CLAUDE.md lands in a concept, or is listed as re
 
 ## Customization
 
-This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `ai1 skill-context okf-tidy-claude-md` and apply what it prints.
+This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context okf-tidy-claude-md` and apply what it prints.
 
-!`ai1 skill-context okf-tidy-claude-md`
+!`"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context okf-tidy-claude-md`
