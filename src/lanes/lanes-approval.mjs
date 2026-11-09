@@ -8,7 +8,7 @@ import { listWorkPlans, readSessionPlanSlugs, recordApproval, writePlanStatus } 
 
 const MODULE_ID = 'lanes-approval';
 const MAX_APPROVAL_CHARACTERS = 120;
-const APPROVAL_WORDS = /\b(aprobad[oa]|apruebo|aprueba|apruebalo|aprobar|adelante|dale|vale|ok|okay|perfecto|listo|approved?|lgtm|go ahead|proceed|yes|sounds good)\b/;
+const APPROVAL_WORDS = /\b(aprobad[oa]|apruebo|aprueba|apruebalo|aprobar|adelante|dale|vale|ok|okay|perfecto|listo|acepto|aceptad[oa]|approved?|accept(?:ed)?|lgtm|go ahead|proceed|yes|sounds good)\b/;
 // "si" is a yes only when it opens the message ("si", "sí, adelante"); inside a sentence it is the
 // conditional "if" ("que si hay un error...").
 const LEADING_YES = /^si\b/;

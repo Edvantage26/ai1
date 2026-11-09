@@ -187,6 +187,9 @@ test('isApprovalMessage: short plain yes only', () => {
   // Seen on 2026-11-09: a question with a conditional "si" approved a design.
   for (const notApproval of ['o que si hay un error proponga enviar un issue, eso cuadraria?', 'y si lo hacemos en dos pasos', 'ok?', '¿vale así?']) assert.equal(isApprovalMessage(notApproval), false, notApproval);
   for (const approval of ['si', 'sí', 'si adelante con todo', 'Sí, aprobado']) assert.equal(isApprovalMessage(approval), true, approval);
+  // "acepto la propuesta" answers the agent's own proposal: a yes, never a request to note it down for later.
+  for (const approval of ['acepto la propuesta', 'Aceptado', 'accepted']) assert.equal(isApprovalMessage(approval), true, approval);
+  for (const notApproval of ['acepto, pero cambia el paso 2', '¿acepto así?']) assert.equal(isApprovalMessage(notApproval), false, notApproval);
 });
 
 test('lanes-gate: finished plans and plans from earlier sessions do not block', () => {
