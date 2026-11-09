@@ -1,18 +1,17 @@
-// The storyboard of a change: `.ai1/work/<slug>/walkthrough/` in the main checkout (git-ignored), with
+// The storyboard of a change: `.ai1/walkthroughs/<slug>/` in the main checkout (git-ignored), with
 // `steps.json` (the contract every publisher reads) and the copied screenshots in `images/`.
 // The agent captures with whatever browser tool it has; ai1 only receives the image files.
 
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { basename, dirname, extname, join, resolve, sep } from 'node:path';
 import { tryGit } from '../core/git.mjs';
-import { WORK_DIRECTORY } from '../core/config.mjs';
+import { WALKTHROUGHS_DIRECTORY } from '../core/config.mjs';
 import { readGitDirectories } from '../core/project-roots.mjs';
 import { readJsonFileIfValid, writeJsonFile } from '../core/json-file.mjs';
-import { listWorkPlans, isPlanFinished } from '../lanes/lanes-work.mjs';
+import { ensureDirectoryIgnoredByItself, listWorkPlans, isPlanFinished } from '../lanes/lanes-work.mjs';
 import { listWorktreeStates } from '../worktrees/worktree-state.mjs';
 
 export const STORYBOARD_VERSION = 1;
-export const STORYBOARD_FOLDER_NAME = 'walkthrough';
 export const STEPS_FILE_NAME = 'steps.json';
 export const IMAGES_FOLDER_NAME = 'images';
 export const VARIANTS = ['before', 'after'];
@@ -22,7 +21,7 @@ const BEFORE_WORKTREE_SUFFIX = '-before';
 const MAX_STEP_ID_LENGTH = 48;
 
 export function storyboardDirectory(mainRoot, slug) {
-  return join(mainRoot, WORK_DIRECTORY, slug, STORYBOARD_FOLDER_NAME);
+  return join(mainRoot, WALKTHROUGHS_DIRECTORY, slug);
 }
 
 // The worktree this checkout is, by its recorded state or its folder name; null in the main checkout.
@@ -74,6 +73,7 @@ export function addCapture(storyboardPath, slug, { caption, imageFile, variant =
   requireChoice('--variant', variant, VARIANTS);
   requireChoice('--viewport', viewport, VIEWPORTS);
 
+  ensureDirectoryIgnoredByItself(dirname(storyboardPath));
   const storyboard = readStoryboard(storyboardPath) ?? emptyStoryboard(slug);
   if (title) storyboard.title = title;
   if (base) storyboard.base = base;

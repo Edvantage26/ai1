@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { addCapture, readStoryboard, resolveStoryboardSlug, stepIdFromCaption, storyboardDirectory } from '../src/walkthrough/walkthrough-storyboard.mjs';
@@ -167,7 +167,7 @@ test('serve gives a local URL; stop, worktree finish and drop release it; the st
   testContext.after(() => ['flow', 'other'].forEach((slug) => stopStoryboardServer(projectRoot, slug)));
   mkdirSync(join(projectRoot, '.claude', 'skills', 'worktree'), { recursive: true });
   writeFileSync(join(projectRoot, '.claude', 'skills', 'worktree', 'recipe.json'), '{"version":1}\n');
-  writeFileSync(join(projectRoot, '.gitignore'), '.ai1/work/\n.claude/worktrees/\n*.png\n');
+  writeFileSync(join(projectRoot, '.gitignore'), '.claude/worktrees/\n*.png\n');
   runGit(projectRoot, ['add', '.']);
   runGit(projectRoot, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'recipe']);
   const createRun = runAi1(projectRoot, ['worktree', 'create', 'flow']);
@@ -233,4 +233,29 @@ test('closing deletes the residual screenshots add copied from, only unchanged u
   assert.ok(existsSync(join(storyboardPath, 'images', 'home-after-desktop.png')), 'the storyboard keeps its copy');
   assert.equal(readStoryboard(storyboardPath).steps[0].captures[0].source, undefined, 'a deleted source is forgotten');
   assert.match(runAi1(projectRoot, ['walkthrough', 'clean', '--slug', 'close']).stdout, /deleted 0/);
+});
+
+test('storyboards live in .ai1/walkthroughs/<slug>/, ignored by git, and work through a symlinked folder [walkthrough:S7]', async (testContext) => {
+  const projectRoot = createUiRepo();
+  testContext.after(() => stopStoryboardServer(projectRoot, 'linked'));
+  const screenshotPath = writeScreenshot(projectRoot, join('.ai1', 'shot.png'));
+  writeFileSync(join(projectRoot, '.ai1', '.gitignore'), 'shot.png\n');
+  runGit(projectRoot, ['add', '.ai1/.gitignore']);
+  runGit(projectRoot, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'ignore test shot']);
+  runAi1(projectRoot, ['walkthrough', 'add', '--slug', 'local', '--step', 'Home', '--image', screenshotPath]);
+  assert.equal(storyboardDirectory(projectRoot, 'local'), join(projectRoot, '.ai1', 'walkthroughs', 'local'));
+  assert.equal(readFileSync(join(projectRoot, '.ai1', 'walkthroughs', '.gitignore'), 'utf8'), '*\n');
+  assert.equal(execFileSync('git', ['-C', projectRoot, 'status', '--porcelain'], { encoding: 'utf8' }), '', 'nothing of it reaches git');
+
+  // The person's own tooling moves the folder to a synced one and leaves a symlink.
+  const syncedFolder = join(projectRoot, '..', `${projectRoot.split('/').pop()}-synced`);
+  execFileSync('mv', [join(projectRoot, '.ai1', 'walkthroughs'), syncedFolder]);
+  symlinkSync(syncedFolder, join(projectRoot, '.ai1', 'walkthroughs'));
+  runAi1(projectRoot, ['walkthrough', 'add', '--slug', 'linked', '--step', 'Home', '--image', writeScreenshot(projectRoot, join('.ai1', 'shot.png'))]);
+  assert.equal(runAi1(projectRoot, ['walkthrough', 'build', '--slug', 'linked']).status, 0);
+  assert.ok(existsSync(join(syncedFolder, 'linked', 'index.html')), 'written into the linked folder');
+  const serverUrl = /at (http:\S+)/.exec(runAi1(projectRoot, ['walkthrough', 'serve', '--slug', 'linked']).stdout)[1];
+  assert.equal(await fetchStatus(serverUrl), 200);
+  assert.match(runAi1(projectRoot, ['walkthrough', 'list']).stdout, /linked: 1 steps, built, at http[\s\S]*local: 1 steps/);
+  assert.match(runAi1(projectRoot, ['walkthrough', 'clean', '--slug', 'linked']).stdout, /deleted 1/);
 });

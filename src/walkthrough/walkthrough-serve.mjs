@@ -7,7 +7,7 @@ import { spawn } from 'node:child_process';
 import { existsSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { WORK_DIRECTORY } from '../core/config.mjs';
+import { WALKTHROUGHS_DIRECTORY } from '../core/config.mjs';
 import { readJsonFileIfValid } from '../core/json-file.mjs';
 import { readGitDirectories } from '../core/project-roots.mjs';
 import { listListeningPorts, pickWorktreePort, DEFAULT_PORT_RANGE } from '../worktrees/worktree-ports.mjs';
@@ -95,15 +95,15 @@ export function closeStoryboard(mainRoot, slug) {
     releasedUrl ? `storyboard server stopped (${releasedUrl})` : null,
     deleted.length ? `${deleted.length} residual screenshot(s) deleted` : null,
   ].filter(Boolean);
-  return closeParts.length ? `${closeParts.join(', ')}; the storyboard stays in ${WORK_DIRECTORY}/${slug}/walkthrough/` : null;
+  return closeParts.length ? `${closeParts.join(', ')}; the storyboard stays in ${WALKTHROUGHS_DIRECTORY}/${slug}/` : null;
 }
 
 // Every storyboard in the repo: { slug, steps, built, url }.
 export function listStoryboards(mainRoot) {
-  const workDirectory = join(mainRoot, WORK_DIRECTORY);
-  if (!existsSync(workDirectory)) return [];
+  const walkthroughsDirectory = join(mainRoot, WALKTHROUGHS_DIRECTORY);
+  if (!existsSync(walkthroughsDirectory)) return [];
   const listeningPorts = listListeningPorts();
-  return readdirSync(workDirectory).flatMap((slug) => {
+  return readdirSync(walkthroughsDirectory).flatMap((slug) => {
     const storyboardPath = storyboardDirectory(mainRoot, slug);
     const storyboard = readStoryboard(storyboardPath);
     if (!storyboard) return [];

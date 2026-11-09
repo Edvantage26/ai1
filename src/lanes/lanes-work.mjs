@@ -119,13 +119,16 @@ export function isPlanApproved(workPlan, approvals) {
   return Boolean(approvals[workPlan.relativePath]);
 }
 
-// `.ai1/work/.gitignore` with `*` keeps plans out of git without touching the repo's own .gitignore
-// (the rest of `.ai1/` - config, bundle, later entries - is committed).
-export function ensureWorkDirectoryIgnored(projectRoot) {
-  const workDirectory = join(projectRoot, WORK_DIRECTORY);
-  const ignorePath = join(workDirectory, '.gitignore');
+// A `.gitignore` with `*` inside a folder keeps it out of git without touching the repo's own
+// .gitignore (the rest of `.ai1/` - config, bundle, later entries - is committed).
+export function ensureDirectoryIgnoredByItself(directoryPath) {
+  const ignorePath = join(directoryPath, '.gitignore');
   if (existsSync(ignorePath)) return false;
-  mkdirSync(workDirectory, { recursive: true });
+  mkdirSync(directoryPath, { recursive: true });
   writeFileSync(ignorePath, '*\n');
   return true;
+}
+
+export function ensureWorkDirectoryIgnored(projectRoot) {
+  return ensureDirectoryIgnoredByItself(join(projectRoot, WORK_DIRECTORY));
 }
