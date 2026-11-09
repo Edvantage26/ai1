@@ -146,15 +146,20 @@ export function buildStructureReminder(bundleRelativePath, overviewPath, concept
 
 // After a clean validation: concepts this session changed (or deleted) without a look at the
 // overview, and concepts it changed that no index.md links to. Asked once per set of findings.
+// Bundle files `ai1 worktree finish` brought in after its OKF checks, and untouched since, are not
+// this session's changes (until 2026-11-09 they were, so every finish that brought concepts asked).
 function checkBundleStructure({ hookInput, projectRoot, stateDirectory, bundleDirectory, bundleRelativePath, baseHead, sessionStartMilliseconds }) {
   const bundlePrefix = `${bundleRelativePath}/`;
+  const isKnowledgeCheckedIntegration = integratedFileMatcher(projectRoot, 'knowledge_checked');
   const bundleFilesChangedInSession = listFilesChangedSinceBase(projectRoot, baseHead)
     .filter((changedPath) => changedPath.startsWith(bundlePrefix))
-    .map((changedPath) => changedPath.slice(bundlePrefix.length))
-    .filter((bundleFilePath) => {
-      const absolutePath = join(bundleDirectory, bundleFilePath);
-      return !existsSync(absolutePath) || statSync(absolutePath).mtimeMs >= sessionStartMilliseconds;
-    });
+    .filter((changedPath) => {
+      const absolutePath = join(projectRoot, changedPath);
+      if (!existsSync(absolutePath)) return !isKnowledgeCheckedIntegration(changedPath, null);
+      const modifiedMilliseconds = statSync(absolutePath).mtimeMs;
+      return modifiedMilliseconds >= sessionStartMilliseconds && !isKnowledgeCheckedIntegration(changedPath, modifiedMilliseconds);
+    })
+    .map((changedPath) => changedPath.slice(bundlePrefix.length));
   const conceptsChangedInSession = bundleFilesChangedInSession.filter(isConceptPath).sort();
   if (!conceptsChangedInSession.length) return allowDecision();
   const overviewReviewed = bundleFilesChangedInSession.some((bundleFilePath) => ['overview.md', 'index.md'].includes(bundleFilePath));

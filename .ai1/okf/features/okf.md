@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index and bundle health notes 
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T13:24:58Z'
+  at: '2026-11-09T13:35:53Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -181,7 +181,11 @@ sources:
   from the index of their folder the concepts it changed that no `index.md` links to. Once per set of
   findings, at most 3 per session, and never when `stop_hook_active` is set (it comes at the next
   ordinary stop): changing a concept to answer the upkeep reminder must not chain a second block.
-  While the validator reports errors, it waits for them to be fixed.
+  While the validator reports errors, it waits for them to be fixed. Bundle files `ai1 worktree
+  finish` brought in after its OKF checks, and untouched since (`knowledge_checked` in the
+  [worktrees](worktrees.md) integration record), are not this session's: until 2026-11-09 (v0.24.1)
+  every finish that brought concepts got this reminder, and its test passed only when the run took
+  under a second (it moved the bundle's dates a second back; found by an intermittent full-suite failure).
 - **Rules given to the agent:** update the concept and `generated: { by: claude-code/<model>, at }`
   with the real current UTC time; `log.md` only for lifecycle events; validate with `/ai1:okf-validate-bundle`
   and fix errors. On a v0.1 bundle: legacy warnings are expected, the agent must not migrate the

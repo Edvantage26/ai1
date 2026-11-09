@@ -417,9 +417,9 @@ test('finish records what it wrote into the base, so its Stop hooks do not ask a
   const baseHead = runGit(mainRoot, ['rev-parse', 'HEAD']).trim();
   finishCodeAndConcept(mainRoot, 'checked');
   const featureModified = statSync(join(mainRoot, 'feature.js')).mtimeMs;
-  // The fast-forward writes the bundle first: it ends up older than the code it describes.
-  const bundleDate = new Date(featureModified - 1000);
-  for (const bundleFile of ['index.md', 'feature.md', '']) utimesSync(join(mainRoot, '.ai1', 'okf', bundleFile), bundleDate, bundleDate);
+  // The bundle keeps the dates the fast-forward gave it, after the session started (as in real use:
+  // finish runs minutes into a session); until 2026-11-09 the test moved them a second back, so the
+  // overview check passed only when the run took under a second.
   assert.ok(integratedFileMatcher(mainRoot, 'verified')('feature.js', featureModified));
   assert.ok(integratedFileMatcher(mainRoot, 'knowledge_checked')('feature.js', featureModified));
   assert.deepEqual(listSessionChangedCode(mainRoot, { baseHead, sessionStartMilliseconds: 0 }, ['.ai1/**']), []);
@@ -429,6 +429,19 @@ test('finish records what it wrote into the base, so its Stop hooks do not ask a
   utimesSync(join(mainRoot, 'feature.js'), laterDate, laterDate);
   assert.deepEqual(listSessionChangedCode(mainRoot, { baseHead, sessionStartMilliseconds: 0 }, ['.ai1/**']).map((changedFile) => changedFile.relativePath), ['feature.js']);
   assert.match(runHookEvent('Stop', { session_id: 's', cwd: mainRoot }, options).reason, /okf-upkeep[\s\S]*feature\.js/);
+});
+
+test('a concept edited after finish brought it in counts as this session\'s change again: the overview check asks', () => {
+  const mainRoot = createCheckedRepo(['npm test']);
+  const options = { environment: { CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'ai1-data-')) }, homeDirectory: mkdtempSync(join(tmpdir(), 'ai1-home-')) };
+  runHookEvent('SessionStart', { session_id: 's', cwd: mainRoot, source: 'startup' }, options);
+  finishCodeAndConcept(mainRoot, 'checked');
+  assert.equal(runHookEvent('Stop', { session_id: 's', cwd: mainRoot }, options), null);
+  const conceptPath = join(mainRoot, '.ai1', 'okf', 'feature.md');
+  writeFileSync(conceptPath, `${readFileSync(conceptPath, 'utf8')}\nEdited after the integration.\n`);
+  const laterDate = new Date(Date.now() + 5000);
+  utimesSync(conceptPath, laterDate, laterDate);
+  assert.match(runHookEvent('Stop', { session_id: 's', cwd: mainRoot }, options)?.reason ?? '', /changed concepts of the bundle[\s\S]*feature\.md/);
 });
 
 test('finish does not vouch for the verify commands when pre-finish does not run them', () => {
