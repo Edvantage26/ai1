@@ -5,7 +5,7 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T06:53:04Z'
+  at: '2026-11-09T07:54:49Z'
 ---
 
 # Layout
@@ -28,7 +28,8 @@ Every skill is `/ai1:<module>-<what it does>` so its owner and purpose read from
 `core-setup-repo`, `core-report-issue` ([issue report](../features/issue-report.md)), `lanes-design-before-code`, `proposals-write`, `worktrees-plan-recipe`,
 `session-fork-conversation` ([session fork](../features/session-fork.md)), and
 from the OKF pack `okf-maintain-knowledge`, `okf-validate-bundle`, `okf-visualize-bundle`,
-`okf-backfill-from-history` (see [OKF toolkit](../packs/okf-pack.md)). Claude Code
+`okf-backfill-from-history` (see [OKF toolkit](../packs/okf-pack.md)), plus `okf-tidy-claude-md`
+written in ai1 ([okf feature](../features/okf.md)). Claude Code
 has no nested skill names, so the module is a prefix; it names a plugin skill by its folder, so
 the folder carries the full name. Each description starts with its module.
 

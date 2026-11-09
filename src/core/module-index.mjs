@@ -9,6 +9,7 @@
 export const MODULE_INDEX = [
   { id: 'brief', event: 'SessionStart', feature: 'core', modulePath: '../context/brief.mjs' },
   { id: 'okf-index', event: 'SessionStart', feature: 'okf', modulePath: '../okf/okf-index.mjs' },
+  { id: 'okf-claude-md', event: 'SessionStart', feature: 'okf', modulePath: '../okf/okf-claude-md.mjs' },
   { id: 'okf-recall', event: 'UserPromptSubmit', feature: 'okf', modulePath: '../okf/okf-recall.mjs' },
   { id: 'okf-file-context', event: 'PostToolUse', feature: 'okf', toolNames: ['Read', 'Edit', 'Write', 'MultiEdit'], modulePath: '../okf/okf-file-context.mjs' },
   { id: 'danger', event: 'PreToolUse', feature: 'danger', toolNames: ['Bash'], modulePath: '../guards/danger.mjs' },

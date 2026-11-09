@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T06:42:10Z'
+  at: '2026-11-09T07:54:49Z'
 ---
 
 # Flow
@@ -54,6 +54,7 @@ decide. Garbage input makes the entry point exit 0 with no output.
 |---|---|---|
 | `brief` | SessionStart | core (always on) |
 | `okf-index` | SessionStart | okf |
+| `okf-claude-md` | SessionStart | okf |
 | `okf-recall` | UserPromptSubmit | okf |
 | `okf-file-context` | PostToolUse (Read, Edit, Write, MultiEdit) | okf |
 | `danger` | PreToolUse (Bash) | danger |
@@ -90,7 +91,8 @@ okf-upkeep is split: `okf-session-scan.mjs` (transcript, memories, shell edits o
 `okf-validator.mjs` (the Python validator, also used by `ai1 worktree finish`).
 The bundle reader `listBundleConcepts` (`src/okf/okf-bundle.mjs`) is shared by okf-recall, design-brief
 and the file map; the file map (`src/okf/okf-file-map.mjs`, which concepts describe a file) by
-okf-file-context and okf-upkeep;
+okf-file-context, okf-upkeep and the CLAUDE.md check (`okf-claude-md-check.mjs`, used by
+okf-claude-md and `ai1 claude-md`, which also reuses `normalizeKeywords` and `readBodyCodePaths`);
 the keyword scoring of okf-recall (`buildKeywordCatalog`, `rankConceptsForPrompt`) by proposals-recall.
 
 See [features](features.md), [okf feature](/features/okf.md), [lanes feature](/features/lanes.md), [craft feature](/features/craft.md), [design feature](/features/design.md), [verify feature](/features/verify.md), [proposals feature](/features/proposals.md), [worktrees feature](/features/worktrees.md), [danger guard](/guards/danger.md).

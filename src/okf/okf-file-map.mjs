@@ -19,7 +19,7 @@ const INLINE_CODE_PATTERN = /`([^`\n]+)`/g;
 const FENCED_BLOCK_PATTERN = /^(```|~~~)[\s\S]*?^\1/gm;
 
 // `path:12`, `path#L12` and a leading `./` say where in the file, not which file.
-function stripLocation(citedText) {
+export function stripLocation(citedText) {
   return citedText.trim().replace(/#L\d+.*$/, '').replace(/:\d+(:\d+)?$/, '');
 }
 

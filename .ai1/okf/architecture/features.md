@@ -5,7 +5,7 @@ description: What a repo chooses in .ai1/config.json; each hook module belongs t
 tags: [features, config]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T06:17:09Z'
+  at: '2026-11-09T07:54:49Z'
 sources:
   - id: features-source
     resource: src/core/features.mjs
@@ -19,7 +19,7 @@ repo switches the single module off with `modules.<id>: false`.
 
 | Feature | Default | Modules | Ships |
 |---|---|---|---|
-| `okf` | on | `okf-index` (SessionStart), `okf-recall` (UserPromptSubmit), `okf-file-context` (PostToolUse Read/Edit/Write/MultiEdit), `okf-upkeep` (Stop) | OKF pack skills and agents, see [okf feature](/features/okf.md) |
+| `okf` | on | `okf-index` (SessionStart), `okf-claude-md` (SessionStart), `okf-recall` (UserPromptSubmit), `okf-file-context` (PostToolUse Read/Edit/Write/MultiEdit), `okf-upkeep` (Stop) | OKF pack skills and agents, see [okf feature](/features/okf.md) |
 | `danger` | on | `danger` (PreToolUse Bash) | see [danger guard](/guards/danger.md) |
 | `craft` | on | `craft-brief` (SessionStart) | see [craft feature](/features/craft.md) |
 | `verify` | on | `verify-gate` (Stop) | `ai1 verify`, `ai1 step-done`, see [verify feature](/features/verify.md) |

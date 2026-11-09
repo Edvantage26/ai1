@@ -5,7 +5,7 @@ description: What ai1 is, the four pieces of a harness, and what exists today.
 tags: [overview, harness]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T07:11:15Z'
+  at: '2026-11-09T07:54:49Z'
 ---
 
 # What it is
@@ -39,7 +39,7 @@ similar stack, and almost none enforce them. Prior art and what was taken from i
 # Status
 
 v0.18.0 (2026-11-09). Per-repo [features](architecture/features.md) chosen with
-[/ai1:core-setup-repo](features/init.md). On by default: the [okf feature](features/okf.md) (index,
+[/ai1:core-setup-repo](features/init.md). On by default: the [okf feature](features/okf.md) (index, CLAUDE.md drift hint,
 recall, upkeep and the [OKF toolkit](packs/okf-pack.md)), the [danger guard](guards/danger.md), the
 [craft rules](features/craft.md) and the [verify gate](features/verify.md). Opt-in:
 [lanes](features/lanes.md), [proposals](features/proposals.md), [design](features/design.md) and
@@ -53,7 +53,7 @@ Next steps in the [roadmap](roadmap.md).
 - `src/<feature>/`: one folder per feature (`okf`, `guards`, `craft`, `verify`, `lanes`, `proposals`,
   `design`, `worktrees`, `session`, `context` for the brief).
 - `bin/ai1`, `src/cli/`, `skills/core-setup-repo/`, `skills/core-report-issue/`: the CLI (`status`, `init`, `verify`, `step-done`,
-  `proposals`, `worktree`, `fork`, `issue`), `/ai1:core-setup-repo` and `/ai1:core-report-issue`.
-- `skills/okf-*/`, `agents/`, `vendor/`: OKF toolkit, owned by ai1 (see [OKF toolkit](packs/okf-pack.md)).
+  `proposals`, `worktree`, `fork`, `issue`, `claude-md`), `/ai1:core-setup-repo` and `/ai1:core-report-issue`.
+- `skills/okf-*/`, `agents/`, `vendor/`: OKF toolkit, owned by ai1 (see [OKF toolkit](packs/okf-pack.md)); `skills/okf-tidy-claude-md/` is ai1's own.
 - `schema/ai1.schema.json`, `templates/config.json`: the per-repo contract.
 - `test/`: `npm test` (node:test suite, plus the Python tests of the OKF toolkit in `test/okf-toolkit/`).
