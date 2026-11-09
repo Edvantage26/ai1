@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // ai1 CLI. On the Bash PATH while the plugin is enabled.
 //   ai1 status [--json]                         what this repo runs, and the available features
-//   ai1 init --features okf,danger [--verify "npm test" ...] [--knowledge .ai1/okf] [--json]
+//   ai1 init --features okf,danger [--verify "npm test" ...] [--json]
 //   ai1 verify                                  run the repo's verify commands, stop at the first failure
 //   ai1 step-done <slug> "<step>"               ai1 verify, then log the step in .ai1/work/<slug>/progress.md
 //   ai1 rfc new <slug> [--idea] [--title "..."] create .ai1/rfc/NNNN-<slug>.md with the next number
@@ -59,13 +59,13 @@ try {
       }
     }
   } else if (commandName === 'init') {
+    if (commandArguments.includes('--knowledge')) throw new Error('--knowledge is no longer supported: the knowledge bundle is always .ai1/okf/ (ai1 init moves an existing one there)');
     const featureList = readOption('--features');
     if (featureList === undefined) throw new Error('--features is required, e.g. --features okf,danger (use --features "" for none)');
     const verifyCommands = readRepeatedOption('--verify');
     const setupResult = setupRepo(repoRoot, {
       enabledFeatureIds: featureList.split(',').map((featureId) => featureId.trim()).filter(Boolean),
       verifyCommands: verifyCommands.length ? verifyCommands : undefined,
-      knowledgePath: readOption('--knowledge'),
     });
     if (wantsJson) console.log(JSON.stringify(setupResult, null, 2));
     else {
@@ -98,7 +98,7 @@ try {
   } else if (commandName === 'rfc') {
     process.exitCode = runRfcCommand(repoRoot, commandArguments, { readOption });
   } else {
-    console.log(`usage: ai1 status [--json] | ai1 init --features okf,danger [--verify "<command>" ...] [--knowledge <path>] [--json] | ai1 verify | ai1 step-done <slug> "<step>" | ${RFC_USAGE}`);
+    console.log(`usage: ai1 status [--json] | ai1 init --features okf,danger [--verify "<command>" ...] [--json] | ai1 verify | ai1 step-done <slug> "<step>" | ${RFC_USAGE}`);
     console.log(WORKTREE_USAGE);
     console.log(FORK_USAGE);
     process.exitCode = commandName ? 1 : 0;

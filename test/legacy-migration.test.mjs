@@ -63,7 +63,7 @@ test('ai1 init moves the old layout to .ai1/, keeps history and rewrites links',
   assert.equal(readFileSync(join(repoRoot, '.ai1/work/.gitignore'), 'utf8'), '*\n');
 
   const ai1Config = readJson(join(repoRoot, '.ai1/config.json'));
-  assert.equal(ai1Config.knowledge, '.ai1/okf');
+  assert.ok(!Object.hasOwn(ai1Config, 'knowledge'), 'the retired setting is removed');
   assert.equal(ai1Config.$schema, SCHEMA_URL);
   assert.deepEqual(ai1Config.verify, ['npm test'], 'fields of the old config are kept');
 
@@ -95,19 +95,36 @@ test('migration refuses when a target exists and moves nothing', () => {
   assert.ok(existsSync(join(repoRoot, '.okf/index.md')));
 });
 
-test('a repo without ai1 but with an .okf/ bundle gets it moved; a custom knowledge path stays', () => {
+test('a repo without ai1 but with an .okf/ bundle gets it moved; a custom knowledge path moves too', () => {
   const okfOnlyRepo = createLegacyRepo({ legacyConfig: null });
   assert.deepEqual(planLegacyMigration(okfOnlyRepo).moves.map((plannedMove) => plannedMove.from), ['.okf', '.jig/work'], 'docs/rfc is not ours without the old rfc feature');
   setupRepo(okfOnlyRepo, { enabledFeatureIds: ['okf'], userSettingsPath: writeUserSettings() });
   assert.ok(existsSync(join(okfOnlyRepo, '.ai1/okf/index.md')));
   assert.ok(existsSync(join(okfOnlyRepo, 'docs/rfc/0001-guard.md')));
-  assert.equal(readJson(join(okfOnlyRepo, '.ai1/config.json')).knowledge, '.ai1/okf');
+  assert.ok(!Object.hasOwn(readJson(join(okfOnlyRepo, '.ai1/config.json')), 'knowledge'));
 
   const customRepo = createLegacyRepo({ legacyConfig: { version: 1, features: { okf: true }, knowledge: 'docs/kb' } });
-  assert.deepEqual(planLegacyMigration(customRepo).moves.map((plannedMove) => plannedMove.from), ['.claude/jig.json', '.jig/work']);
+  writeRepoFile(customRepo, 'docs/kb/index.md', '---\nokf_version: "0.2"\n---\n# Custom bundle\n');
+  assert.deepEqual(planLegacyMigration(customRepo).moves.map((plannedMove) => plannedMove.from), ['.claude/jig.json', 'docs/kb', '.jig/work']);
   setupRepo(customRepo, { enabledFeatureIds: ['okf'], userSettingsPath: writeUserSettings() });
-  assert.equal(readJson(join(customRepo, '.ai1/config.json')).knowledge, 'docs/kb');
-  assert.ok(existsSync(join(customRepo, '.okf/index.md')));
+  assert.ok(!Object.hasOwn(readJson(join(customRepo, '.ai1/config.json')), 'knowledge'));
+  assert.match(readFileSync(join(customRepo, '.ai1/okf/index.md'), 'utf8'), /Custom bundle/);
+  assert.ok(existsSync(join(customRepo, '.okf/index.md')), '.okf/ was not the bundle: left alone');
+});
+
+test('ai1 init moves the bundle of a current config with a custom knowledge path and drops the setting', () => {
+  const repoRoot = mkdtempSync(join(tmpdir(), 'ai1-custom-'));
+  runGit(repoRoot, ['init', '-q', '-b', 'main']);
+  writeRepoFile(repoRoot, '.ai1/config.json', JSON.stringify({ version: 1, features: { okf: true }, knowledge: 'docs/kb/' }));
+  writeRepoFile(repoRoot, 'docs/kb/index.md', '---\nokf_version: "0.2"\n---\n# Bundle\n* [A](a.md)\n');
+  writeRepoFile(repoRoot, 'docs/kb/a.md', '---\ntype: Decision\n---\nA.\n');
+  setupRepo(repoRoot, { enabledFeatureIds: ['okf'], userSettingsPath: writeUserSettings() });
+  assert.ok(existsSync(join(repoRoot, '.ai1/okf/a.md')));
+  assert.ok(!existsSync(join(repoRoot, 'docs/kb')));
+  assert.ok(!Object.hasOwn(readJson(join(repoRoot, '.ai1/config.json')), 'knowledge'));
+  writeRepoFile(repoRoot, 'docs/kb/index.md', 'again');
+  writeRepoFile(repoRoot, '.ai1/config.json', JSON.stringify({ version: 1, features: { okf: true }, knowledge: 'docs/kb' }));
+  assert.throws(() => setupRepo(repoRoot, { enabledFeatureIds: ['okf'], userSettingsPath: writeUserSettings() }), /\.ai1\/okf already exist/, 'refuses when .ai1/okf exists');
 });
 
 test('session start in an old layout points to the migration', () => {

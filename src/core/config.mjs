@@ -10,11 +10,13 @@ import { KNOWN_FEATURE_IDS, isFeatureEnabled } from './features.mjs';
 // Everything ai1 writes in a repo lives under `.ai1/`: config, knowledge bundle, RFCs, work plans.
 export const AI1_DIRECTORY = '.ai1';
 export const CONFIG_RELATIVE_PATH = join(AI1_DIRECTORY, 'config.json');
-export const DEFAULT_KNOWLEDGE_PATH = join(AI1_DIRECTORY, 'okf');
+// The OKF knowledge bundle always lives here (a fixed path since v0.16.0; `knowledge` is retired).
+export const KNOWLEDGE_BUNDLE_PATH = `${AI1_DIRECTORY}/okf`;
 export const AI1_PLUGIN_ID = 'ai1@ai1';
 export const SCHEMA_URL = 'https://raw.githubusercontent.com/Edvantage26/ai1/main/schema/ai1.schema.json';
 export const SUPPORTED_CONFIG_VERSION = 1;
 
+// `knowledge` is retired, not unknown: it gets its own notice (see readRetiredKnowledgeNotice).
 const KNOWN_TOP_LEVEL_FIELDS = new Set(['$schema', 'version', 'features', 'trunk', 'verify', 'knowledge', 'modules']);
 
 const DEFAULT_CONFIG = {
@@ -22,7 +24,6 @@ const DEFAULT_CONFIG = {
   features: {},
   trunk: 'main',
   verify: [],
-  knowledge: DEFAULT_KNOWLEDGE_PATH,
   modules: {},
 };
 
@@ -70,9 +71,6 @@ export function validateHarnessConfig(rawConfig) {
       && rawConfig.verify.every((verifyCommand) => typeof verifyCommand === 'string' && verifyCommand.trim());
     if (!isListOfCommands) validationErrors.push('"verify" must be a list of non-empty command strings');
   }
-  if (rawConfig.knowledge !== undefined && rawConfig.knowledge !== null && typeof rawConfig.knowledge !== 'string') {
-    validationErrors.push('"knowledge" must be a path string or null');
-  }
   if (rawConfig.modules !== undefined) {
     if (rawConfig.modules === null || typeof rawConfig.modules !== 'object' || Array.isArray(rawConfig.modules)) {
       validationErrors.push('"modules" must be an object keyed by module id');
@@ -91,7 +89,20 @@ export function validateHarnessConfig(rawConfig) {
   return validationErrors;
 }
 
+// The bundle path was configurable until v0.15 (`knowledge`). The same path is ignored silently; any
+// other value (another path, or null) is ignored with a notice, never an error: an invalid config
+// would switch off the guards too.
+export function readRetiredKnowledgeNotice(rawConfig) {
+  if (!rawConfig || !Object.hasOwn(rawConfig, 'knowledge')) return null;
+  const configuredPath = typeof rawConfig.knowledge === 'string'
+    ? rawConfig.knowledge.split('\\').join('/').replace(/^\.\//, '').replace(/\/+$/, '')
+    : rawConfig.knowledge;
+  if (configuredPath === KNOWLEDGE_BUNDLE_PATH) return null;
+  return `${CONFIG_RELATIVE_PATH} sets "knowledge": ${JSON.stringify(rawConfig.knowledge)}, which ai1 no longer supports: the knowledge bundle is always ${KNOWLEDGE_BUNDLE_PATH}/ and the setting is ignored. Tell the person; /ai1:core-setup-repo (ai1 init) moves the bundle there and removes the setting.`;
+}
+
 // status: 'missing' (ai1 stays inactive), 'invalid' (errors listed), 'ok' (config merged with defaults).
+// `notices` are things to tell the person at session start (e.g. a retired setting).
 export function loadHarnessConfig(projectRoot, knownModuleIds = []) {
   const configPath = join(projectRoot, CONFIG_RELATIVE_PATH);
   if (!existsSync(configPath)) return { status: 'missing', configPath };
@@ -103,11 +114,14 @@ export function loadHarnessConfig(projectRoot, knownModuleIds = []) {
   }
   const validationErrors = validateHarnessConfig(rawConfig);
   if (validationErrors.length) return { status: 'invalid', configPath, errors: validationErrors };
+  const { knowledge: retiredKnowledgeSetting, ...supportedConfig } = rawConfig;
+  const retiredKnowledgeNotice = readRetiredKnowledgeNotice(rawConfig);
   return {
     status: 'ok',
     configPath,
     unknownEntries: listUnknownConfigEntries(rawConfig, knownModuleIds),
-    config: { ...DEFAULT_CONFIG, ...rawConfig, features: { ...rawConfig.features }, modules: { ...rawConfig.modules } },
+    notices: retiredKnowledgeNotice ? [retiredKnowledgeNotice] : [],
+    config: { ...DEFAULT_CONFIG, ...supportedConfig, features: { ...rawConfig.features }, modules: { ...rawConfig.modules } },
   };
 }
 

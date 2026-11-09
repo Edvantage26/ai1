@@ -18,14 +18,14 @@ import {
   resolveStateDirectory, sessionStatePath, readStateText, writeStateText, shortHash,
 } from '../core/session-state.mjs';
 import {
-  resolveBundleDirectory, normalizeBundlePath, readBundleIndex, readBundleSpecVersion, newestModificationMilliseconds, buildMaintenanceRules,
+  resolveBundleDirectory, readBundleIndex, readBundleSpecVersion, newestModificationMilliseconds, buildMaintenanceRules,
 } from './okf-bundle.mjs';
 import { loadFileMap, findConceptsForFile } from './okf-file-map.mjs';
 import { readSessionBase, listFilesChangedSinceBase } from '../core/session-base.mjs';
 import { splitFrontmatter } from '../core/frontmatter.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
 import { RFC_DIRECTORY } from '../rfc/rfc-documents.mjs';
-import { DEFAULT_KNOWLEDGE_PATH } from '../core/config.mjs';
+import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
 
 const MODULE_ID = 'okf-upkeep';
 const BUNDLED_VALIDATOR_SCRIPT = fileURLToPath(new URL('../../skills/okf-validate-bundle/scripts/okf_validate.py', import.meta.url));
@@ -69,7 +69,7 @@ function namesBundlePath(shellWord, bundleName) {
 // Whether a Bash command writes to the bundle: an edit made with the shell (`cat >> .ai1/okf/x.md`,
 // `sed -i`, `tee`, `mv`, an inline python/node script naming a bundle file) counts as updating it,
 // just like Write/Edit. Reading the bundle (validator, cat, grep) never counts.
-export function shellCommandWritesBundle(commandLine, bundleRelativePath = DEFAULT_KNOWLEDGE_PATH) {
+export function shellCommandWritesBundle(commandLine, bundleRelativePath = KNOWLEDGE_BUNDLE_PATH) {
   const bundleName = String(bundleRelativePath).replace(/^\.\//, '').replace(/\/+$/, '');
   const commandText = String(commandLine || '');
   if (!commandText.includes(bundleName)) return false;
@@ -89,7 +89,7 @@ export function scanSessionTranscript(transcriptPath, { memoryDirectories, bundl
   if (!newTranscript) return null;
   const writtenMemoryPaths = new Set(newTranscript.restarted ? [] : scanState.paths || []);
   let investigationCalls = newTranscript.restarted ? 0 : scanState.investigationCalls || 0;
-  const bundleMarker = `/${String(bundleRelativePath || DEFAULT_KNOWLEDGE_PATH).replace(/^\.\//, '').replace(/\/+$/, '')}/`;
+  const bundleMarker = `/${String(bundleRelativePath || KNOWLEDGE_BUNDLE_PATH).replace(/^\.\//, '').replace(/\/+$/, '')}/`;
   for (const transcriptEvent of newTranscript.events) {
     for (const contentBlock of eventContentBlocks(transcriptEvent, 'tool_use')) {
       const toolPath = contentBlock?.input?.file_path;
@@ -110,7 +110,7 @@ export function scanSessionTranscript(transcriptPath, { memoryDirectories, bundl
 
 // Kept for callers that only need the memory files.
 export function listMemoryFilesWrittenBySession(transcriptPath, memoryDirectories, scanState) {
-  const transcriptScan = scanSessionTranscript(transcriptPath, { memoryDirectories, bundleRelativePath: DEFAULT_KNOWLEDGE_PATH }, scanState);
+  const transcriptScan = scanSessionTranscript(transcriptPath, { memoryDirectories, bundleRelativePath: KNOWLEDGE_BUNDLE_PATH }, scanState);
   return transcriptScan ? transcriptScan.memoryPaths : null;
 }
 
@@ -186,9 +186,9 @@ export function buildUpkeepReminder(bundleRelativePath, specVersion, pendingFile
 
 // Concepts the file map says describe the pending files (deleted ones too: the map does not depend
 // on disk), minus those already edited in this session. A broken map only drops this line.
-function listAffectedConcepts({ config, projectRoot, bundleDirectory, stateDirectory, sessionStartMilliseconds }, pendingFiles) {
+function listAffectedConcepts({ projectRoot, bundleDirectory, stateDirectory, sessionStartMilliseconds }, pendingFiles) {
   try {
-    const fileMap = loadFileMap(bundleDirectory, normalizeBundlePath(config), projectRoot, stateDirectory);
+    const fileMap = loadFileMap(bundleDirectory, KNOWLEDGE_BUNDLE_PATH, projectRoot, stateDirectory);
     const affectedConceptPaths = new Set();
     for (const pendingFile of pendingFiles) {
       for (const conceptMatch of findConceptsForFile(fileMap, pendingFile.path)) {
@@ -258,8 +258,8 @@ export default {
   feature: 'okf',
   description: 'Asks to update the OKF bundle after file changes, new memories or a long run of investigation, and validates the bundle when the session changed it.',
   run({ hookInput, config, projectRoot, environment, homeDirectory }) {
-    const bundleRelativePath = config.knowledge || DEFAULT_KNOWLEDGE_PATH;
-    const bundleDirectory = resolveBundleDirectory(projectRoot, config);
+    const bundleRelativePath = KNOWLEDGE_BUNDLE_PATH;
+    const bundleDirectory = resolveBundleDirectory(projectRoot);
     const indexText = readBundleIndex(bundleDirectory);
     if (indexText === null) return allowDecision();
 
@@ -329,7 +329,7 @@ export default {
       writeStateText(scanStatePath, JSON.stringify(scanState));
     }
     const specVersion = readBundleSpecVersion(indexText);
-    const affectedConceptPaths = listAffectedConcepts({ config, projectRoot, bundleDirectory, stateDirectory, sessionStartMilliseconds }, pendingFilesToRemind);
+    const affectedConceptPaths = listAffectedConcepts({ projectRoot, bundleDirectory, stateDirectory, sessionStartMilliseconds }, pendingFilesToRemind);
     return blockDecision(MODULE_ID, buildUpkeepReminder(bundleRelativePath, specVersion, pendingFilesToRemind, pendingMemories, affectedConceptPaths));
   },
 };

@@ -12,6 +12,7 @@ import { join } from 'node:path';
 import { allowDecision, contextDecision } from '../core/hook-io.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
 import { resolveBundleDirectory, readBundleIndex, listBundleConcepts } from '../okf/okf-bundle.mjs';
+import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
 
 const MODULE_ID = 'design-brief';
 const DESIGN_CONCEPT_TYPES = new Set(['product', 'designsystem']);
@@ -20,10 +21,10 @@ const IMPECCABLE_CONTEXT_FILES = ['PRODUCT.md', 'DESIGN.md'];
 // Repo-relative paths of the files that hold the product and design-system context.
 export function listDesignContextFiles(projectRoot, config) {
   const contextFiles = [];
-  if (isFeatureEnabled('okf', config) && config.knowledge) {
-    const bundleDirectory = resolveBundleDirectory(projectRoot, config);
+  if (isFeatureEnabled('okf', config)) {
+    const bundleDirectory = resolveBundleDirectory(projectRoot);
     if (readBundleIndex(bundleDirectory) !== null) {
-      const bundleRelativePath = config.knowledge.replace(/^\.\//, '').replace(/\/+$/, '');
+      const bundleRelativePath = KNOWLEDGE_BUNDLE_PATH;
       contextFiles.push(...listBundleConcepts(bundleDirectory)
         .filter((bundleConcept) => DESIGN_CONCEPT_TYPES.has(bundleConcept.type.replace(/[\s_-]/g, '').toLowerCase()))
         .map((bundleConcept) => `${bundleRelativePath}/${bundleConcept.relativePath}`)
@@ -79,7 +80,7 @@ export default {
     if (hookInput.source === 'resume') return allowDecision();
     return contextDecision(MODULE_ID, buildDesignRecipe({
       contextFiles: listDesignContextFiles(projectRoot, config),
-      canRecordInBundle: isFeatureEnabled('okf', config) && Boolean(config.knowledge),
+      canRecordInBundle: isFeatureEnabled('okf', config),
       hasImpeccable: isImpeccableInstalled(projectRoot, homeDirectory),
     }));
   },

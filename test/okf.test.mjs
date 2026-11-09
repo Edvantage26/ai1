@@ -87,10 +87,12 @@ test('features.okf false turns both OKF modules off', () => {
   assert.equal(stopSession(projectRoot, options), null);
 });
 
-test('a custom knowledge path is honoured', () => {
+test('a retired custom knowledge path is ignored with a notice; the bundle stays .ai1/okf', () => {
   const projectRoot = createRepoWithBundle({ ai1Config: { knowledge: 'docs/kb' } });
-  const contextText = startSession(projectRoot, hookOptions()).hookSpecificOutput.additionalContext;
-  assert.match(contextText, /no bundle at `docs\/kb\/index\.md`/);
+  const options = { ...hookOptions(), reportInternalError: () => {} };
+  const contextText = startSession(projectRoot, options).hookSpecificOutput.additionalContext;
+  assert.match(contextText, /sets "knowledge": "docs\/kb", which ai1 no longer supports/);
+  assert.match(contextText, /--- \.ai1\/okf\/index\.md ---/);
 });
 
 test('okf-upkeep: nothing changed, nothing asked', () => {

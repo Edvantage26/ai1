@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { splitFrontmatter, readFrontmatterField, writeFrontmatterField } from '../core/frontmatter.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
 import { resolveBundleDirectory, readBundleIndex } from '../okf/okf-bundle.mjs';
+import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
 
 export const RFC_DIRECTORY = '.ai1/rfc';
 export const RFC_INDEX_FILE = 'README.md';
@@ -139,13 +140,13 @@ function listBundleFiles(directoryPath) {
 
 // Where the index and the brief say decisions live: the bundle path when the okf feature is on.
 export function resolveKnowledgePath(config) {
-  return isFeatureEnabled('okf', config) && config.knowledge ? config.knowledge : null;
+  return isFeatureEnabled('okf', config) ? KNOWLEDGE_BUNDLE_PATH : null;
 }
 
 // Bundle to check citations against: only when the okf feature is on and the bundle exists.
 export function resolveCitingBundle(projectRoot, config) {
-  if (!isFeatureEnabled('okf', config) || !config.knowledge) return null;
-  const bundleDirectory = resolveBundleDirectory(projectRoot, config);
+  if (!isFeatureEnabled('okf', config)) return null;
+  const bundleDirectory = resolveBundleDirectory(projectRoot);
   return readBundleIndex(bundleDirectory) === null ? null : bundleDirectory;
 }
 

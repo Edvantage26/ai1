@@ -12,6 +12,7 @@ import {
 import { projectRelativePath } from '../core/project-paths.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
 import { RFC_DIRECTORY } from '../rfc/rfc-documents.mjs';
+import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
 
 const MODULE_ID = 'lanes-gate';
 export const FILE_EDITING_TOOLS = ['Edit', 'Write', 'MultiEdit', 'NotebookEdit'];
@@ -46,7 +47,7 @@ export default {
   description: 'Refuses code edits while a deep-lane design of this session waits for the person\'s approval.',
   run({ hookInput, config, projectRoot, sharedRoot = projectRoot, environment }) {
     // Designing stays free: the work folder, the knowledge bundle and, with the rfc feature, RFCs.
-    const designDirectories = [WORK_DIRECTORY, config.knowledge, isFeatureEnabled('rfc', config) && RFC_DIRECTORY].filter(Boolean);
+    const designDirectories = [WORK_DIRECTORY, KNOWLEDGE_BUNDLE_PATH, isFeatureEnabled('rfc', config) && RFC_DIRECTORY].filter(Boolean);
     const editedPaths = listEditedProjectPaths(hookInput, projectRoot)
       .filter((relativePath) => !designDirectories.some((designDirectory) => isPathInside(relativePath, designDirectory)));
     if (editedPaths.length === 0) return allowDecision();

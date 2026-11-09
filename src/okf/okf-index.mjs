@@ -5,7 +5,7 @@
 import { contextDecision } from '../core/hook-io.mjs';
 import { recordSessionBaseHead } from '../core/session-base.mjs';
 import { resolveBundleDirectory, readBundleIndex, readBundleSpecVersion, buildMaintenanceRules } from './okf-bundle.mjs';
-import { DEFAULT_KNOWLEDGE_PATH } from '../core/config.mjs';
+import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
 
 const MODULE_ID = 'okf-index';
 const MAX_INDEX_CHARACTERS = 12000;
@@ -16,8 +16,8 @@ export default {
   feature: 'okf',
   description: 'Loads the OKF bundle index and its maintenance rules at session start.',
   run({ hookInput, config, projectRoot, environment }) {
-    const bundleRelativePath = config.knowledge || DEFAULT_KNOWLEDGE_PATH;
-    const indexText = readBundleIndex(resolveBundleDirectory(projectRoot, config));
+    const bundleRelativePath = KNOWLEDGE_BUNDLE_PATH;
+    const indexText = readBundleIndex(resolveBundleDirectory(projectRoot));
     if (indexText === null) {
       return contextDecision(MODULE_ID, `OKF is enabled for this repo but there is no bundle at \`${bundleRelativePath}/index.md\`. If the person wants one, create it with /ai1:okf-maintain-knowledge (produce mode).`);
     }

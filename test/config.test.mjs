@@ -47,7 +47,23 @@ test('load reports missing, invalid JSON and merges defaults', () => {
   assert.equal(loadedConfig.status, 'ok');
   assert.equal(loadedConfig.config.trunk, 'main');
   assert.deepEqual(loadedConfig.config.verify, []);
-  assert.equal(loadedConfig.config.knowledge, '.ai1/okf');
+  assert.equal(loadedConfig.config.knowledge, undefined);
+  assert.deepEqual(loadedConfig.notices, []);
+});
+
+test('the retired knowledge setting: the fixed path is silent, anything else is a notice, never an error', () => {
+  for (const samePath of ['.ai1/okf', './.ai1/okf/']) {
+    const loadedConfig = loadHarnessConfig(createTemporaryProject({ knowledge: samePath }));
+    assert.equal(loadedConfig.status, 'ok');
+    assert.deepEqual(loadedConfig.notices, [], samePath);
+    assert.deepEqual(loadedConfig.unknownEntries, []);
+  }
+  for (const otherSetting of ['docs/kb', null, 42]) {
+    const loadedConfig = loadHarnessConfig(createTemporaryProject({ knowledge: otherSetting }));
+    assert.equal(loadedConfig.status, 'ok', 'the guards keep working');
+    assert.equal(loadedConfig.config.knowledge, undefined);
+    assert.match(loadedConfig.notices[0], /"knowledge": .*no longer supports: the knowledge bundle is always \.ai1\/okf\/.*\/ai1:core-setup-repo/);
+  }
 });
 
 test('modules follow their feature; a single module can still be switched off', () => {

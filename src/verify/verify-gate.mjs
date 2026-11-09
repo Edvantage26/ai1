@@ -16,6 +16,7 @@ import { readSessionBase, listFilesChangedSinceBase } from '../core/session-base
 import { resolveStateDirectory, sessionStatePath, readStateText, writeStateText, shortHash } from '../core/session-state.mjs';
 import { baseName, splitSimpleCommands } from '../core/shell-parse.mjs';
 import { readNewTranscriptEvents, eventContentBlocks, TOOL_USE_MARKER, TOOL_RESULT_MARKER } from '../core/transcript-scan.mjs';
+import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
 
 const MODULE_ID = 'verify-gate';
 const MAX_BLOCKS_PER_SITUATION = 2;
@@ -151,7 +152,7 @@ export default {
     const sessionBase = readSessionBase(hookInput, projectRoot, environment);
     if (!sessionBase) return allowDecision();
     const ignoredPaths = [...DEFAULT_IGNORED_PATHS, ...(moduleOptions.ignore_paths || [])];
-    if (config.knowledge) ignoredPaths.push(`${config.knowledge.replace(/^\.\//, '').replace(/\/+$/, '')}/**`);
+    ignoredPaths.push(`${KNOWLEDGE_BUNDLE_PATH}/**`);
     const changedFiles = listSessionChangedCode(projectRoot, sessionBase, ignoredPaths);
     if (changedFiles.length === 0) return allowDecision();
 

@@ -15,14 +15,15 @@ ai1 status --json
 ```
 
 It returns the repo root, whether `.ai1/config.json` exists, the detected protected branch,
-the knowledge bundle path and whether a bundle exists, and every feature with `enabled` and
+the knowledge bundle path (always `.ai1/okf`) and whether a bundle exists, and every feature with `enabled` and
 `enabledByDefault`.
 
 If `legacyMigration.moves` or `legacyMigration.settingsFiles` is not empty, the repo has the old
 layout (ai1 was called jig, and OKF bundles live in `.okf/` by convention). `ai1 init` moves it to
 `.ai1/` before writing the configuration: `.claude/jig.json` -> `.ai1/config.json`, `.okf/` ->
 `.ai1/okf/`, `docs/rfc/` -> `.ai1/rfc/` (only when the rfc feature was on), `.jig/work/` ->
-`.ai1/work/`, and `jig@jig` -> `ai1@ai1` in the settings. Tracked paths move with `git mv`; links
+`.ai1/work/`, a bundle at a custom path from the retired `knowledge` setting -> `.ai1/okf/`, and
+`jig@jig` -> `ai1@ai1` in the settings. Tracked paths move with `git mv`; links
 inside the moved bundle and RFCs are rewritten. Show the person the list and ask before step 3.
 If `legacyMigration.conflicts` is not empty, the targets already exist: stop and tell the person.
 
@@ -38,7 +39,7 @@ If the person enables `okf`, also ask, only if the repo has a test or check comm
 ## 3. Write the configuration
 
 ```bash
-ai1 init --features <comma-separated ids> [--verify "<command>" ...] [--knowledge <path>]
+ai1 init --features <comma-separated ids> [--verify "<command>" ...]
 ```
 
 Pass `--features ""` to turn every optional feature off. Report what the command printed,

@@ -5,7 +5,7 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T04:16:07Z'
+  at: '2026-11-09T04:45:09Z'
 ---
 
 # Layout
@@ -35,13 +35,14 @@ the folder carries the full name. Each description starts with its module.
 # What ai1 writes in a repo
 
 All under `.ai1/` (constants in `src/core/config.mjs`): `config.json` (the
-[contract](harness-contract.md)), `okf/` (default bundle path), `rfc/` and `work/`, which ignores
+[contract](harness-contract.md)), `okf/` (the bundle, a fixed path since v0.16.0), `rfc/` and `work/`, which ignores
 itself with its own `.gitignore`. Outside it only `.claude/settings.json` (Claude Code reads it
 there), the worktree recipe `.claude/skills/worktree/` (must be a project skill) and session state
 in `${CLAUDE_PLUGIN_DATA}` or `~/.cache/ai1`.
 
 `ai1 init` first migrates the layout of the former name `jig` (`.claude/jig.json`, `.okf/`,
-`docs/rfc/` when the rfc feature was on, `.jig/work/`, `jig@jig` in settings) with `git mv`,
+`docs/rfc/` when the rfc feature was on, `.jig/work/`, `jig@jig` in settings), and a bundle at the
+path of the retired `knowledge` setting, with `git mv`,
 rewriting links inside the moved bundle and RFCs; it refuses if a target exists
 (`src/cli/legacy-migration.mjs`). A session in an old layout is told to run `/ai1:core-setup-repo`.
 

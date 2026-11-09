@@ -11,7 +11,8 @@ import { allowDecision, contextDecision } from '../core/hook-io.mjs';
 import { projectRelativePath } from '../core/project-paths.mjs';
 import { readSessionBase } from '../core/session-base.mjs';
 import { resolveStateDirectory, sessionStatePath, readStateText, writeStateText } from '../core/session-state.mjs';
-import { resolveBundleDirectory, normalizeBundlePath } from './okf-bundle.mjs';
+import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
+import { resolveBundleDirectory } from './okf-bundle.mjs';
 import { loadFileMap, findConceptsForFile } from './okf-file-map.mjs';
 
 const MODULE_ID = 'okf-file-context';
@@ -42,11 +43,11 @@ export default {
   toolNames: ['Read', 'Edit', 'Write', 'MultiEdit'],
   feature: 'okf',
   description: 'Names the bundle concept that describes each file the agent reads or edits, once per concept, so it reads it first and knows what to update.',
-  run({ hookInput, config, projectRoot, environment }) {
+  run({ hookInput, projectRoot, environment }) {
     const relativePath = projectRelativePath(projectRoot, hookInput.tool_input?.file_path, hookInput.cwd || projectRoot)?.split('\\').join('/');
     if (!relativePath) return allowDecision();
-    const bundleRelativePath = normalizeBundlePath(config);
-    const bundleDirectory = resolveBundleDirectory(projectRoot, config);
+    const bundleRelativePath = KNOWLEDGE_BUNDLE_PATH;
+    const bundleDirectory = resolveBundleDirectory(projectRoot);
     if (!existsSync(join(bundleDirectory, 'index.md'))) return allowDecision();
 
     const statePath = seenStatePath(hookInput, projectRoot, environment);

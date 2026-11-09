@@ -5,7 +5,7 @@ description: The per-repo file that makes generic hooks behave correctly in each
 tags: [config, contract, hooks]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T22:15:28Z'
+  at: '2026-11-09T04:45:09Z'
 ---
 
 Each repo commits `.ai1/config.json` (template in `templates/config.json`).
@@ -16,8 +16,21 @@ Each repo commits `.ai1/config.json` (template in `templates/config.json`).
 | `features.<id>` | `true`/`false` per [feature](features.md); omitted features use their default (`okf`, `danger`: on) |
 | `trunk` | Protected branch name; default `main` |
 | `verify` | Commands that must pass before the agent calls a change done |
-| `knowledge` | Path of the OKF bundle; default `.ai1/okf` |
 | `modules.<id>` | `true`/`false` to force a module on/off, or an options object (with optional `enabled`) |
+
+The OKF bundle is always `.ai1/okf/` (`KNOWLEDGE_BUNDLE_PATH` in `src/core/config.mjs`).
+
+# Retired: `knowledge` (v0.16.0)
+
+Until v0.15 the bundle path was configurable with `knowledge`. Decision (2026-11-09, by the
+person): fix it, because every module read it its own way (some normalized `./` and trailing `/`,
+some did not; `null` meant "default" for okf but "no bundle" for rfc, craft and lanes), it
+contradicted "everything ai1 writes lives under `.ai1/`", and no repo used another value. Now:
+`knowledge: ".ai1/okf"` is ignored silently; any other value (another path, `null`) is ignored with
+a notice at session start, never an error, so the guards keep working; `ai1 init` moves that
+bundle to `.ai1/okf/` with `git mv` (the same migration as the old `jig` layout) and removes the
+setting; `--knowledge` is refused. The schema keeps the field as `deprecated`, so editors flag it
+without an error on configs that still carry `.ai1/okf`.
 
 Schema: `schema/ai1.schema.json` (for editors). Validation at runtime is hand-written in
 `src/core/config.mjs`. Wrong types or an unsupported `version` make the file invalid and ai1

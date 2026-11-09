@@ -5,7 +5,7 @@ description: The OKF skills, agents and scripts, imported from okf-skills and ma
 tags: [okf, toolkit, third-party]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T22:32:23Z'
+  at: '2026-11-09T04:45:09Z'
 sources:
   - id: upstream
     resource: https://github.com/scaccogatto/okf-skills
@@ -23,7 +23,7 @@ Attribution in `THIRD-PARTY.md` and `licenses/`.
   `skills/okf-backfill-from-history/`, `agents/bundle-weaver.md`, `agents/event-analyzer.md`.
   Claude Code discovers `skills/` and `agents/` by default; `plugin.json` lists neither.
 - **Paths:** the skills default to `.okf/` but follow the bundle path the ai1 brief names
-  (`.ai1/okf/`); one skill reaches another's script with `${CLAUDE_SKILL_DIR}/../okf-validate-bundle/`.
+  (always `.ai1/okf/`); one skill reaches another's script with `${CLAUDE_SKILL_DIR}/../okf-validate-bundle/`.
 - **Runtime:** system `python3` (3.9+); PyYAML 6.0.3 vendored in `vendor/yaml/`, which the scripts
   find at the repo root (`parents[3]` of the script). No `uv`, `pip` or network.
 - **Tests:** `test/okf-toolkit/` (validator and backfill events, with fixtures) runs inside

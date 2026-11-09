@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index at session start, relate
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T04:34:49Z'
+  at: '2026-11-09T04:45:09Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -29,7 +29,7 @@ sources:
 
 # What it does
 
-- **okf-index (SessionStart):** reads `<knowledge>/index.md` (default `.ai1/okf`), injects it (up to
+- **okf-index (SessionStart):** reads `.ai1/okf/index.md`, injects it (up to
   12,000 characters) with the maintenance rules, and records the HEAD at session start in the
   session state. Without a bundle it suggests creating one with `/ai1:okf-maintain-knowledge`.
 - **okf-recall (UserPromptSubmit):** on every message from the person, ranks the bundle concepts

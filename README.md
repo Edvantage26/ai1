@@ -19,7 +19,7 @@ Skills are named `/ai1:<module>-<what it does>`, e.g. `/ai1:okf-validate-bundle`
 A repo set up with the old name (`jig`: `.claude/jig.json`, `.okf/`, `docs/rfc/`, `.jig/work/`) is
 moved to `.ai1/` by `/ai1:core-setup-repo`, with `git mv` so history follows.
 
-> **Status: early (v0.15.0).** Per-repo features, the `okf` feature (project knowledge) and the
+> **Status: early (v0.16.0).** Per-repo features, the `okf` feature (project knowledge) and the
 > `danger` guard work, are tested and verified in real sessions. The `lanes`, `design`, `verify`,
 > `rfc` and `worktrees` features are new and tested, not yet tried in live sessions. Everything marked *planned* does not exist yet.
 
@@ -57,7 +57,6 @@ that pile a fixed shape.
   "features": { "okf": true, "danger": true },
   "trunk": "main",
   "verify": ["npm test"],
-  "knowledge": ".ai1/okf",
   "modules": {
     "danger": { "ignore_rules": [] }
   }
@@ -67,7 +66,8 @@ that pile a fixed shape.
 Without this file ai1 stays inactive (the session start only mentions `/ai1:core-setup-repo`). If the file is
 invalid (wrong types), ai1 stays inactive and tells the agent why at session start. Names your ai1
 version does not know yet (a feature added in a newer release) are ignored with a warning; the rest
-of ai1 keeps working.
+of ai1 keeps working. The knowledge bundle is always `.ai1/okf/`; the former `knowledge` setting is
+ignored (with a notice when it named another path) and `ai1 init` moves that bundle there.
 
 | Level | Examples | Lives in |
 |---|---|---|

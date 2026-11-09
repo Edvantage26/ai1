@@ -5,15 +5,10 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { splitFrontmatter, readFrontmatterField } from '../core/frontmatter.mjs';
-import { DEFAULT_KNOWLEDGE_PATH } from '../core/config.mjs';
+import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
 
-export function resolveBundleDirectory(projectRoot, config) {
-  return join(projectRoot, config.knowledge || DEFAULT_KNOWLEDGE_PATH);
-}
-
-// The bundle path relative to the repo, with forward slashes, no leading `./` nor trailing `/`.
-export function normalizeBundlePath(config) {
-  return (config.knowledge || DEFAULT_KNOWLEDGE_PATH).split('\\').join('/').replace(/^\.\//, '').replace(/\/+$/, '');
+export function resolveBundleDirectory(projectRoot) {
+  return join(projectRoot, KNOWLEDGE_BUNDLE_PATH);
 }
 
 export function readBundleIndex(bundleDirectory) {

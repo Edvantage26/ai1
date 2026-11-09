@@ -15,7 +15,7 @@
     },
     "features": {
       "type": "object",
-      "description": "Features enabled in this repo. Omitted features use their default (okf, danger, craft and verify: on, lanes, design and rfc: off).",
+      "description": "Features enabled in this repo. Omitted features use their default (okf, danger, craft and verify: on, lanes, worktrees, design and rfc: off).",
       "additionalProperties": false,
       "properties": {
         "okf": {
@@ -76,12 +76,8 @@
       "description": "Commands that must pass before the agent calls a change done."
     },
     "knowledge": {
-      "type": [
-        "string",
-        "null"
-      ],
-      "default": ".ai1/okf",
-      "description": "Path of the OKF knowledge bundle (default .ai1/okf)."
+      "deprecated": true,
+      "description": "Retired in v0.16.0: the OKF knowledge bundle is always .ai1/okf/. A value of .ai1/okf is ignored; any other value is ignored with a notice at session start, and ai1 init moves that bundle to .ai1/okf/ and removes the setting."
     },
     "modules": {
       "type": "object",
@@ -425,7 +421,7 @@
                     "type": "string",
                     "minLength": 1
                   },
-                  "description": "Globs of changed files that do not need verification, added to the defaults (*.md, .claude/**, .ai1/**, the knowledge bundle)."
+                  "description": "Globs of changed files that do not need verification, added to the defaults (*.md, .claude/**, .ai1/**, the knowledge bundle .ai1/okf/**)."
                 }
               }
             }

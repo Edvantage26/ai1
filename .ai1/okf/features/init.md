@@ -5,7 +5,7 @@ description: Sets up ai1 in a repo - asks the features, writes .ai1/config.json 
 tags: [init, cli, setup]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T22:15:28Z'
+  at: '2026-11-09T04:45:09Z'
 sources:
   - id: setup-repo
     resource: src/cli/setup-repo.mjs
@@ -19,12 +19,14 @@ sources:
 ---
 
 - **CLI `ai1`** (`bin/`, on the Bash PATH while the plugin is enabled):
-  - `ai1 status [--json]`: repo root, harness present, trunk, knowledge path and bundle, features.
-  - `ai1 init --features okf,danger [--verify "<cmd>" ...] [--knowledge <path>] [--json]`.
+  - `ai1 status [--json]`: repo root, harness present, trunk, whether `.ai1/okf/` has a bundle, features.
+  - `ai1 init --features okf,danger [--verify "<cmd>" ...] [--json]` (`--knowledge` is refused since
+    v0.16.0: the bundle path is fixed, see the [contract](../architecture/harness-contract.md)).
 - **What init writes**, merging with existing files:
   - `.ai1/config.json`: `features` (every selectable feature, true/false), `trunk` (kept, else
-    detected: origin/HEAD, then main/master, then current branch), `verify`, `knowledge`; other
-    fields and `modules` are kept. The result is validated before writing.
+    detected: origin/HEAD, then main/master, then current branch), `verify`; other fields and
+    `modules` are kept, the retired `knowledge` is removed (its bundle moved to `.ai1/okf/` first).
+    The result is validated before writing.
   - `.claude/settings.json`: `extraKnownMarketplaces.ai1` (github `Edvantage26/ai1`) and
     `enabledPlugins["ai1@ai1"] = true`. Shared and committed.
   - `.claude/settings.local.json` (personal, not committed): with `okf` on, every enabled

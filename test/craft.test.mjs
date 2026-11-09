@@ -26,8 +26,8 @@ test('craft-brief: on by default, with the five rules', () => {
 });
 
 test('craft-brief: points reuse at the knowledge bundle when okf is on', () => {
-  const contextText = startSessionContext(createTemporaryProject({ features: { okf: true }, knowledge: 'docs/kb' }));
-  assert.match(contextText, /look in the code and the knowledge bundle \(`docs\/kb`\)/);
+  const contextText = startSessionContext(createTemporaryProject({ features: { okf: true } }));
+  assert.match(contextText, /look in the code and the knowledge bundle \(`\.ai1\/okf`\)/);
 });
 
 test('craft-brief: silent on resume and when the repo turns craft off', () => {

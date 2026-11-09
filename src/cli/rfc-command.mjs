@@ -2,14 +2,14 @@
 // agent never does it by hand. Reads the knowledge path and the okf feature from .ai1/config.json
 // (defaults when the repo has none) to word the index and check bundle citations.
 
-import { loadHarnessConfig, DEFAULT_KNOWLEDGE_PATH } from '../core/config.mjs';
+import { loadHarnessConfig } from '../core/config.mjs';
 import { createRfc, setRfcStatus, writeRfcIndex, checkRfcs, listRfcs, resolveCitingBundle, resolveKnowledgePath, RFC_DIRECTORY } from '../rfc/rfc-documents.mjs';
 
 export const RFC_USAGE = 'ai1 rfc new <slug> [--idea] [--title "<title>"] | ai1 rfc set <number> <status> [--by <number>] | ai1 rfc index | ai1 rfc check';
 
 function loadRepoConfig(repoRoot) {
   const loadedConfig = loadHarnessConfig(repoRoot);
-  return loadedConfig.status === 'ok' ? loadedConfig.config : { features: {}, knowledge: DEFAULT_KNOWLEDGE_PATH };
+  return loadedConfig.status === 'ok' ? loadedConfig.config : { features: {} };
 }
 
 // Prints the result and returns the exit code.

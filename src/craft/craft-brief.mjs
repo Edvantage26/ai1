@@ -7,12 +7,13 @@
 
 import { allowDecision, contextDecision } from '../core/hook-io.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
+import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
 
 const MODULE_ID = 'craft-brief';
 
 export function buildCraftRecipe(config) {
-  const reuseSources = isFeatureEnabled('okf', config) && config.knowledge
-    ? `the code and the knowledge bundle (\`${config.knowledge}\`)`
+  const reuseSources = isFeatureEnabled('okf', config)
+    ? `the code and the knowledge bundle (\`${KNOWLEDGE_BUNDLE_PATH}\`)`
     : 'the code';
   return [
     'Craft: keep the code growing in order.',

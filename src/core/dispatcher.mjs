@@ -45,6 +45,10 @@ export function runHookEvent(eventName, hookInput, { environment = process.env, 
       reportInternalError(`module ${moduleDefinition.id} failed: ${moduleError.stack || moduleError}`);
     }
   }
+  for (const configNotice of loadedConfig.notices) {
+    reportInternalError(configNotice);
+    if (eventName === 'SessionStart') moduleDecisions.push(contextDecision('setup', configNotice));
+  }
   if (loadedConfig.unknownEntries.length) {
     const unknownText = loadedConfig.unknownEntries.join(', ');
     reportInternalError(`${loadedConfig.configPath} mentions ${unknownText}, unknown to this ai1 version; ignored`);

@@ -4,6 +4,7 @@
 // them; nothing is committed. If any target already exists nothing moves.
 //   .claude/jig.json -> .ai1/config.json     .okf/ -> .ai1/okf/ (when it is the repo's bundle)
 //   docs/rfc/ -> .ai1/rfc/ (when the rfc feature was on)     .jig/work/ -> .ai1/work/
+//   the bundle path of the retired `knowledge` setting (e.g. docs/kb/) -> .ai1/okf/
 // Links and repo paths inside the moved bundle and RFCs are rewritten; other files that still
 // mention old paths are listed for the person, not edited: the docs an agent reads (markdown at the
 // root or one level down, and `.claude/`), not vendored or nested projects.
@@ -11,7 +12,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, posix, relative } from 'node:path';
-import { CONFIG_RELATIVE_PATH, DEFAULT_KNOWLEDGE_PATH, AI1_DIRECTORY, AI1_PLUGIN_ID, SCHEMA_URL } from '../core/config.mjs';
+import { CONFIG_RELATIVE_PATH, KNOWLEDGE_BUNDLE_PATH, AI1_DIRECTORY, AI1_PLUGIN_ID, SCHEMA_URL } from '../core/config.mjs';
 import { ensureWorkDirectoryIgnored } from '../lanes/lanes-work.mjs';
 
 const LEGACY_CONFIG_PATH = join('.claude', 'jig.json');
@@ -56,10 +57,15 @@ function settingsMentionLegacyPlugin(settingsJson) {
 export function planLegacyMigration(repoRoot) {
   const legacyConfig = readJsonFile(join(repoRoot, LEGACY_CONFIG_PATH));
   const currentConfig = readJsonFile(join(repoRoot, CONFIG_RELATIVE_PATH));
-  const configuredKnowledge = normalizeRelativePath((legacyConfig || currentConfig)?.knowledge || LEGACY_BUNDLE_PATH);
+  // The repo's bundle: the path the retired `knowledge` setting named (null = none), else `.okf/`.
+  const knowledgeSetting = (legacyConfig || currentConfig)?.knowledge;
+  const configuredBundlePath = typeof knowledgeSetting === 'string' ? normalizeRelativePath(knowledgeSetting)
+    : knowledgeSetting === null ? null : LEGACY_BUNDLE_PATH;
   const moves = [];
   if (existsSync(join(repoRoot, LEGACY_CONFIG_PATH))) moves.push({ from: LEGACY_CONFIG_PATH, to: CONFIG_RELATIVE_PATH });
-  if (configuredKnowledge === LEGACY_BUNDLE_PATH && existsSync(join(repoRoot, LEGACY_BUNDLE_PATH))) moves.push({ from: LEGACY_BUNDLE_PATH, to: DEFAULT_KNOWLEDGE_PATH });
+  if (configuredBundlePath && configuredBundlePath !== KNOWLEDGE_BUNDLE_PATH && existsSync(join(repoRoot, configuredBundlePath))) {
+    moves.push({ from: configuredBundlePath, to: KNOWLEDGE_BUNDLE_PATH });
+  }
   if (legacyConfig?.features?.rfc === true && existsSync(join(repoRoot, LEGACY_RFC_PATH))) moves.push({ from: LEGACY_RFC_PATH, to: join(AI1_DIRECTORY, 'rfc') });
   if (existsSync(join(repoRoot, LEGACY_WORK_PATH))) moves.push({ from: LEGACY_WORK_PATH, to: join(AI1_DIRECTORY, 'work') });
   const conflicts = moves.filter((plannedMove) => existsSync(join(repoRoot, plannedMove.to))).map((plannedMove) => plannedMove.to);
@@ -166,7 +172,7 @@ export function migrateLegacyLayout(repoRoot) {
   if (conflicts.length) throw new Error(`cannot migrate to ${AI1_DIRECTORY}/: ${conflicts.join(', ')} already exist(s); merge them by hand first`);
   const movedMarkdownFiles = [];
   for (const plannedMove of moves) {
-    if (plannedMove.from === LEGACY_BUNDLE_PATH || plannedMove.from === LEGACY_RFC_PATH) {
+    if (plannedMove.to === KNOWLEDGE_BUNDLE_PATH || plannedMove.from === LEGACY_RFC_PATH) {
       for (const markdownPath of listMarkdownFiles(join(repoRoot, plannedMove.from))) {
         const oldFilePath = relative(repoRoot, markdownPath).split('\\').join('/');
         movedMarkdownFiles.push({ oldFilePath, newFilePath: mapThroughMoves(oldFilePath, moves) });
@@ -184,7 +190,7 @@ export function migrateLegacyLayout(repoRoot) {
   const migratedConfig = moves.some((plannedMove) => plannedMove.from === LEGACY_CONFIG_PATH) && readJsonFile(join(repoRoot, CONFIG_RELATIVE_PATH));
   if (migratedConfig) {
     if (migratedConfig.$schema) migratedConfig.$schema = SCHEMA_URL;
-    if (normalizeRelativePath(migratedConfig.knowledge || LEGACY_BUNDLE_PATH) === LEGACY_BUNDLE_PATH) migratedConfig.knowledge = DEFAULT_KNOWLEDGE_PATH;
+    delete migratedConfig.knowledge;
     writeFileSync(join(repoRoot, CONFIG_RELATIVE_PATH), `${JSON.stringify(migratedConfig, null, 2)}\n`);
   }
   for (const settingsPath of settingsFiles) rewriteSettingsFile(join(repoRoot, settingsPath));

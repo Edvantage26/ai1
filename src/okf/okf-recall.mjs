@@ -6,7 +6,7 @@
 
 import { allowDecision, contextDecision } from '../core/hook-io.mjs';
 import { resolveBundleDirectory, readBundleIndex, listBundleConcepts } from './okf-bundle.mjs';
-import { DEFAULT_KNOWLEDGE_PATH } from '../core/config.mjs';
+import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
 
 const MODULE_ID = 'okf-recall';
 const MAX_SUGGESTED_CONCEPTS = 5;
@@ -105,8 +105,8 @@ export default {
   run({ hookInput, config, projectRoot }) {
     const promptText = hookInput.prompt;
     if (typeof promptText !== 'string' || promptText.trim().startsWith('/')) return allowDecision();
-    const bundleRelativePath = config.knowledge || DEFAULT_KNOWLEDGE_PATH;
-    const bundleDirectory = resolveBundleDirectory(projectRoot, config);
+    const bundleRelativePath = KNOWLEDGE_BUNDLE_PATH;
+    const bundleDirectory = resolveBundleDirectory(projectRoot);
     if (readBundleIndex(bundleDirectory) === null) return allowDecision();
     const rankedConcepts = rankConceptsForPrompt(promptText, buildConceptCatalog(bundleDirectory));
     if (!rankedConcepts.length) return allowDecision();

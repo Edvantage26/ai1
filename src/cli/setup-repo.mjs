@@ -9,7 +9,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } fr
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { FEATURES, KNOWN_FEATURE_IDS, isFeatureEnabled } from '../core/features.mjs';
-import { validateHarnessConfig, listUnknownConfigEntries, SUPPORTED_CONFIG_VERSION, SCHEMA_URL, AI1_DIRECTORY, AI1_PLUGIN_ID, CONFIG_RELATIVE_PATH, DEFAULT_KNOWLEDGE_PATH } from '../core/config.mjs';
+import { validateHarnessConfig, listUnknownConfigEntries, SUPPORTED_CONFIG_VERSION, SCHEMA_URL, AI1_DIRECTORY, AI1_PLUGIN_ID, CONFIG_RELATIVE_PATH, KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
 import { KNOWN_MODULE_IDS } from '../core/registry.mjs';
 import { findMainCheckout } from '../core/project-roots.mjs';
 import { loadRecipe } from '../worktrees/worktree-recipe.mjs';
@@ -79,13 +79,12 @@ export function describeRepo(repoRoot) {
   const ai1Config = readJsonFile(join(repoRoot, CONFIG_RELATIVE_PATH));
   // Before a migration, the features and trunk the repo had under the old name.
   const featureSourceConfig = ai1Config ?? readLegacyConfig(repoRoot);
-  const knowledgePath = ai1Config?.knowledge || DEFAULT_KNOWLEDGE_PATH;
   return {
     repoRoot,
     hasAi1Config: ai1Config !== null,
     trunk: featureSourceConfig?.trunk || detectTrunkBranch(repoRoot),
-    knowledge: knowledgePath,
-    hasKnowledgeBundle: existsSync(join(repoRoot, knowledgePath, 'index.md')),
+    knowledge: KNOWLEDGE_BUNDLE_PATH,
+    hasKnowledgeBundle: existsSync(join(repoRoot, KNOWLEDGE_BUNDLE_PATH, 'index.md')),
     worktreeRecipe: describeWorktreeRecipe(repoRoot),
     legacyMigration: planLegacyMigration(repoRoot),
     features: FEATURES.filter((featureDefinition) => !featureDefinition.alwaysOn).map((featureDefinition) => ({
@@ -98,7 +97,7 @@ export function describeRepo(repoRoot) {
   };
 }
 
-export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, knowledgePath, userSettingsPath = join(homedir(), '.claude', 'settings.json') }) {
+export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, userSettingsPath = join(homedir(), '.claude', 'settings.json') }) {
   const unknownFeatureIds = enabledFeatureIds.filter((featureId) => !KNOWN_FEATURE_IDS.includes(featureId));
   if (unknownFeatureIds.length) throw new Error(`unknown features: ${unknownFeatureIds.join(', ')}`);
   const legacyMigration = migrateLegacyLayout(repoRoot);
@@ -107,7 +106,8 @@ export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, knowled
 
   mkdirSync(join(repoRoot, AI1_DIRECTORY), { recursive: true });
   const ai1ConfigPath = join(repoRoot, CONFIG_RELATIVE_PATH);
-  const existingAi1Config = readJsonFile(ai1ConfigPath) || {};
+  // `knowledge` is retired: the bundle was moved to .ai1/okf above, so the setting goes away.
+  const { knowledge: retiredKnowledgeSetting, ...existingAi1Config } = readJsonFile(ai1ConfigPath) || {};
   const selectableFeatureIds = FEATURES.filter((featureDefinition) => !featureDefinition.alwaysOn).map((featureDefinition) => featureDefinition.id);
   const chosenFeatures = Object.fromEntries(selectableFeatureIds.map((featureId) => [featureId, enabledFeatureIds.includes(featureId)]));
   const ai1Config = {
@@ -117,7 +117,6 @@ export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, knowled
     features: chosenFeatures,
     trunk: existingAi1Config.trunk || detectTrunkBranch(repoRoot),
     verify: verifyCommands ?? existingAi1Config.verify ?? [],
-    knowledge: knowledgePath || existingAi1Config.knowledge || DEFAULT_KNOWLEDGE_PATH,
   };
   const validationErrors = [...validateHarnessConfig(ai1Config), ...listUnknownConfigEntries(ai1Config, KNOWN_MODULE_IDS).map((unknownEntry) => `unknown ${unknownEntry}`)];
   if (validationErrors.length) throw new Error(`resulting ${CONFIG_RELATIVE_PATH} is invalid: ${validationErrors.join('; ')}`);
@@ -147,8 +146,8 @@ export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, knowled
     gitignoreUpdated,
     features: chosenFeatures,
     trunk: ai1Config.trunk,
-    knowledge: ai1Config.knowledge,
-    hasKnowledgeBundle: existsSync(join(repoRoot, ai1Config.knowledge, 'index.md')),
+    knowledge: KNOWLEDGE_BUNDLE_PATH,
+    hasKnowledgeBundle: existsSync(join(repoRoot, KNOWLEDGE_BUNDLE_PATH, 'index.md')),
     disabledPlugins,
     legacyMigration,
   };

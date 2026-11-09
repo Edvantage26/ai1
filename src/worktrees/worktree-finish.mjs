@@ -7,7 +7,7 @@
 
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { loadHarnessConfig } from '../core/config.mjs';
+import { loadHarnessConfig, KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
 import { matchesAnyGlob } from '../core/path-glob.mjs';
 import { runBundleValidator } from '../okf/okf-upkeep.mjs';
@@ -50,8 +50,8 @@ function integrateBase(worktreePath, baseBranch, finishStrategy) {
 // OKF checks on what the branch changes against its base, when the okf feature is on there.
 export function checkBranchKnowledge(worktreePath, baseBranch, { acknowledgement, environment = process.env } = {}) {
   const loadedConfig = loadHarnessConfig(worktreePath);
-  if (loadedConfig.status !== 'ok' || !isFeatureEnabled('okf', loadedConfig.config) || !loadedConfig.config.knowledge) return { checked: false, notes: [] };
-  const bundleRelativePath = loadedConfig.config.knowledge.replace(/^\.\//, '').replace(/\/+$/, '');
+  if (loadedConfig.status !== 'ok' || !isFeatureEnabled('okf', loadedConfig.config)) return { checked: false, notes: [] };
+  const bundleRelativePath = KNOWLEDGE_BUNDLE_PATH;
   const bundleDirectory = join(worktreePath, bundleRelativePath);
   if (!existsSync(bundleDirectory)) return { checked: false, notes: [] };
   const changedPaths = runGit(worktreePath, ['diff', '--name-only', `${baseBranch}...HEAD`]).split('\n').filter(Boolean);

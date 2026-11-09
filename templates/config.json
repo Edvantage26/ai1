@@ -9,7 +9,6 @@
   "verify": [
     "npm test"
   ],
-  "knowledge": ".ai1/okf",
   "modules": {
     "danger": {
       "ignore_rules": []

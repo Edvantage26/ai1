@@ -14,6 +14,5 @@
   "trunk": "main",
   "verify": [
     "npm test"
-  ],
-  "knowledge": ".ai1/okf"
+  ]
 }
