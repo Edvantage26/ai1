@@ -5,7 +5,7 @@ description: What ai1 is, the four pieces of a harness, and what exists today.
 tags: [overview, harness]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T06:59:55Z'
+  at: '2026-11-09T07:11:15Z'
 ---
 
 # What it is
