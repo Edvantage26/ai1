@@ -143,6 +143,7 @@
                       "git-worktree-remove",
                       "ai1-worktree-drop",
                       "ai1-worktree-finish",
+                      "ai1-proposals-new",
                       "rm-recursive-force",
                       "sql-destructive",
                       "docker-destructive",

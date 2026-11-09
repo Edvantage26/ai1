@@ -17,6 +17,10 @@ no or there is none, drop it. Do not offer for details, steps, follow-ups or imp
 subject being worked on: those belong to the current task. Updating, accepting or rejecting an
 existing proposal follows the person's request too.
 
+A yes to a question that bundles several things is not a yes to the proposal: ask about it on its own.
+`ai1 proposals new` also asks the person in the permission prompt (danger rule `ai1-proposals-new`);
+if they refuse, do not create the file another way.
+
 ## What a proposal is
 
 A proposal is something that is not the system and may never be. It exists to think

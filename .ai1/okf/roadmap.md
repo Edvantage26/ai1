@@ -5,7 +5,7 @@ description: Phases from proving ai1 in a real repo to the doctor command.
 tags: [roadmap]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T07:25:04Z'
+  at: '2026-11-09T07:36:47Z'
 ---
 
 Order changed on 2026-10-30: build the generic structure in ai1 first, then prove it in real repos.
@@ -29,11 +29,10 @@ Order changed on 2026-10-30: build the generic structure in ai1 first, then prov
    full or brief fork of the conversation opened natively per host. See
    [session fork](features/session-fork.md).
 3. **`prod` and `secrets` guards**, driven by .ai1/config.json (MCP tools writing to production, shell
-   patterns, secrets in staged files). Proposal (draft): `.ai1/proposals/0001-prod-and-secrets-guards.md`.
+   patterns, secrets in staged files).
 4. **`verify` Stop gate** (done 2026-11-08): see [verify feature](features/verify.md).
-5. **`ai1 doctor`**: audit a repo against its features. Proposal (draft): `.ai1/proposals/0002-jig-doctor.md`.
-6. **Method skills and reviewers**: `ftd`, `verify`, `review`, finding verifier. Proposal (draft):
-   `.ai1/proposals/0003-method-skills-and-reviewers.md`.
+5. **`ai1 doctor`**: audit a repo against its features.
+6. **Method skills and reviewers**: `ftd`, `verify`, `review`, finding verifier.
 
 Not-yet-decided items live as proposals in `.ai1/proposals/` (index in `.ai1/proposals/README.md`); this roadmap only
 orders them. When one is accepted, its decisions become concepts in [decisions/](decisions/index.md).
