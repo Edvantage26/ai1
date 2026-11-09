@@ -5,7 +5,7 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T22:54:41Z'
+  at: '2026-11-09T04:16:07Z'
 ---
 
 # Layout
@@ -58,3 +58,17 @@ rewriting links inside the moved bundle and RFCs; it refuses if a target exists
 
 `plugin.json` and `marketplace.json` versions move together; releases are git tags. Validate with
 `claude plugin validate .` before tagging.
+
+Release steps: bump the version in `plugin.json`, `marketplace.json`, `package.json`, the README
+status line and the [overview](../overview.md) status; `npm test`, `claude plugin validate .` and the
+OKF validator; commit, annotated tag `vX.Y.Z`, push `main` and the tag. Then
+`claude plugin marketplace update ai1` and `claude plugin update ai1@ai1 --scope user` (and
+`--scope project` per repo that installs it), and restart Claude Code: a running session keeps the
+hooks it started with.
+
+# Dogfooding
+
+This repo enables ai1 like any other repo (`.ai1/config.json` + `.claude/settings.json`), so its
+sessions run the **published** version from `~/.claude/plugins/cache/ai1/ai1/<version>/`, not the
+working tree: a change here is not active until it is released and the plugin updated. To try
+unreleased hooks or skills, start a session with `claude --plugin-dir <path to this repo>`.

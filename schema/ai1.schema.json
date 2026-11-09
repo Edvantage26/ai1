@@ -201,6 +201,22 @@
             }
           ]
         },
+        "okf-file-context": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
         "craft-brief": {
           "oneOf": [
             {

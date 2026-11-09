@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T04:00:04Z'
+  at: '2026-11-09T04:33:27Z'
 ---
 
 # Flow
@@ -51,6 +51,7 @@ decide. Garbage input makes the entry point exit 0 with no output.
 | `brief` | SessionStart | core (always on) |
 | `okf-index` | SessionStart | okf |
 | `okf-recall` | UserPromptSubmit | okf |
+| `okf-file-context` | PostToolUse (Read, Edit, Write, MultiEdit) | okf |
 | `danger` | PreToolUse (Bash) | danger |
 | `okf-upkeep` | Stop | okf |
 | `craft-brief` | SessionStart | craft |
@@ -72,10 +73,20 @@ by `brief`; used by okf, lanes and verify), `transcript-scan.mjs` (incremental t
 okf-upkeep, verify-gate), `path-glob.mjs` (globs for .ai1/config.json paths), `session-state.mjs` (per-session
 state files), `project-paths.mjs` (tool paths relative to the project root; used by lanes and design),
 `frontmatter.mjs` (read and write flat YAML frontmatter; okf, lanes and rfc).
-The bundle reader `listBundleConcepts` (`src/okf/okf-bundle.mjs`) is shared by okf-recall and design-brief;
+The bundle reader `listBundleConcepts` (`src/okf/okf-bundle.mjs`) is shared by okf-recall, design-brief
+and the file map; the file map (`src/okf/okf-file-map.mjs`, which concepts describe a file) by
+okf-file-context and okf-upkeep;
 the keyword scoring of okf-recall (`buildKeywordCatalog`, `rankConceptsForPrompt`) by rfc-recall.
 
 See [features](features.md), [okf feature](/features/okf.md), [lanes feature](/features/lanes.md), [craft feature](/features/craft.md), [design feature](/features/design.md), [verify feature](/features/verify.md), [rfc feature](/features/rfc.md), [worktrees feature](/features/worktrees.md), [danger guard](/guards/danger.md).
+
+# Cost
+
+Measured 2026-11-09: about 120 ms per hook call, of which about 50 ms is importing every module in
+the registry (all are loaded on every event). Context injected with every feature on: about 8.7 KB
+at SessionStart (the `brief` repeats each feature description on top of each feature's own brief;
+`okf-index` grows with the bundle index, capped at 12,000 characters) and 0 to about 1 KB per
+message (`okf-recall`, `rfc-recall`, only when they match).
 
 # Verified
 

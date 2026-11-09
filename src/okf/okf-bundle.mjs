@@ -11,6 +11,11 @@ export function resolveBundleDirectory(projectRoot, config) {
   return join(projectRoot, config.knowledge || DEFAULT_KNOWLEDGE_PATH);
 }
 
+// The bundle path relative to the repo, with forward slashes, no leading `./` nor trailing `/`.
+export function normalizeBundlePath(config) {
+  return (config.knowledge || DEFAULT_KNOWLEDGE_PATH).split('\\').join('/').replace(/^\.\//, '').replace(/\/+$/, '');
+}
+
 export function readBundleIndex(bundleDirectory) {
   const indexPath = join(bundleDirectory, 'index.md');
   return existsSync(indexPath) ? readFileSync(indexPath, 'utf8') : null;
@@ -54,6 +59,7 @@ export function listBundleConcepts(bundleDirectory) {
       title: readFrontmatterField(frontmatterText, 'title'),
       description: readFrontmatterField(frontmatterText, 'description'),
       tags: readFrontmatterField(frontmatterText, 'tags'),
+      frontmatterText,
       bodyText,
     };
   });

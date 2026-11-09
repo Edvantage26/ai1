@@ -18,8 +18,9 @@ import {
   resolveStateDirectory, sessionStatePath, readStateText, writeStateText, shortHash,
 } from '../core/session-state.mjs';
 import {
-  resolveBundleDirectory, readBundleIndex, readBundleSpecVersion, newestModificationMilliseconds, buildMaintenanceRules,
+  resolveBundleDirectory, normalizeBundlePath, readBundleIndex, readBundleSpecVersion, newestModificationMilliseconds, buildMaintenanceRules,
 } from './okf-bundle.mjs';
+import { loadFileMap, findConceptsForFile } from './okf-file-map.mjs';
 import { readSessionBase, listFilesChangedSinceBase } from '../core/session-base.mjs';
 import { splitFrontmatter } from '../core/frontmatter.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
@@ -32,6 +33,7 @@ const VALIDATOR_TIMEOUT_MILLISECONDS = 10000;
 const MAX_VALIDATION_BLOCKS_PER_SESSION = 3;
 const MAX_LISTED_ERRORS = 15;
 const MAX_LISTED_FILES = 20;
+const MAX_LISTED_AFFECTED_CONCEPTS = 5;
 // Harness configuration is not project knowledge: editing it never asks for a concept update.
 const IGNORED_PATHS = new Set(['.claude/settings.json', '.claude/settings.local.json', '.ai1/config.json']);
 
@@ -160,12 +162,17 @@ function listRecentMemories(memoryDirectories, sessionStartMilliseconds, bundleU
   return recentMemories;
 }
 
-export function buildUpkeepReminder(bundleRelativePath, specVersion, pendingFiles, pendingMemories) {
+export function buildUpkeepReminder(bundleRelativePath, specVersion, pendingFiles, pendingMemories, affectedConceptPaths = []) {
   const reminderLines = [`OKF: this session left knowledge newer than the last update of ${bundleRelativePath}/.`];
   if (pendingFiles.length) {
     reminderLines.push('', 'Repo files changed after the last bundle update:');
     reminderLines.push(...pendingFiles.slice(0, MAX_LISTED_FILES).map((pendingFile) => `  - ${pendingFile.path}${pendingFile.isDeleted ? ' (deleted)' : ''}`));
     if (pendingFiles.length > MAX_LISTED_FILES) reminderLines.push(`  - ... and ${pendingFiles.length - MAX_LISTED_FILES} more`);
+  }
+  if (affectedConceptPaths.length) {
+    const listedConcepts = affectedConceptPaths.slice(0, MAX_LISTED_AFFECTED_CONCEPTS).map((conceptPath) => `\`${conceptPath}\``).join(', ');
+    const hiddenCount = affectedConceptPaths.length - MAX_LISTED_AFFECTED_CONCEPTS;
+    reminderLines.push(`Concepts that describe those files (probably affected): ${listedConcepts}${hiddenCount > 0 ? `, and ${hiddenCount} more` : ''}.`);
   }
   if (pendingMemories.length) {
     reminderLines.push('', 'Memories saved in this session and not reflected in the bundle:');
@@ -175,6 +182,25 @@ export function buildUpkeepReminder(bundleRelativePath, specVersion, pendingFile
   reminderLines.push('', ...buildMaintenanceRules(bundleRelativePath, specVersion));
   reminderLines.push('If nothing documented is affected, say so in one line and finish; you will not be asked again for this same set of changes.');
   return reminderLines.join('\n');
+}
+
+// Concepts the file map says describe the pending files (deleted ones too: the map does not depend
+// on disk), minus those already edited in this session. A broken map only drops this line.
+function listAffectedConcepts({ config, projectRoot, bundleDirectory, stateDirectory, sessionStartMilliseconds }, pendingFiles) {
+  try {
+    const fileMap = loadFileMap(bundleDirectory, normalizeBundlePath(config), projectRoot, stateDirectory);
+    const affectedConceptPaths = new Set();
+    for (const pendingFile of pendingFiles) {
+      for (const conceptMatch of findConceptsForFile(fileMap, pendingFile.path)) {
+        const conceptAbsolutePath = join(projectRoot, conceptMatch.repoPath);
+        const wasEditedInSession = existsSync(conceptAbsolutePath) && statSync(conceptAbsolutePath).mtimeMs >= sessionStartMilliseconds;
+        if (!wasEditedInSession) affectedConceptPaths.add(conceptMatch.repoPath);
+      }
+    }
+    return [...affectedConceptPaths];
+  } catch {
+    return [];
+  }
 }
 
 // Runs the bundled OKF validator. Returns { ran: true, errors } or { ran: false, reason }.
@@ -303,6 +329,7 @@ export default {
       writeStateText(scanStatePath, JSON.stringify(scanState));
     }
     const specVersion = readBundleSpecVersion(indexText);
-    return blockDecision(MODULE_ID, buildUpkeepReminder(bundleRelativePath, specVersion, pendingFilesToRemind, pendingMemories));
+    const affectedConceptPaths = listAffectedConcepts({ config, projectRoot, bundleDirectory, stateDirectory, sessionStartMilliseconds }, pendingFilesToRemind);
+    return blockDecision(MODULE_ID, buildUpkeepReminder(bundleRelativePath, specVersion, pendingFilesToRemind, pendingMemories, affectedConceptPaths));
   },
 };

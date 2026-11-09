@@ -10,6 +10,7 @@ import craftBriefContext from '../craft/craft-brief.mjs';
 import okfIndexContext from '../okf/okf-index.mjs';
 import okfUpkeepGate from '../okf/okf-upkeep.mjs';
 import okfRecallContext from '../okf/okf-recall.mjs';
+import okfFileContext from '../okf/okf-file-context.mjs';
 import lanesBriefContext from '../lanes/lanes-brief.mjs';
 import lanesApprovalContext from '../lanes/lanes-approval.mjs';
 import lanesGate from '../lanes/lanes-gate.mjs';
@@ -24,7 +25,7 @@ import rfcRecallContext from '../rfc/rfc-recall.mjs';
 import rfcUpkeepGate from '../rfc/rfc-upkeep.mjs';
 
 export const ALL_MODULES = [
-  briefContext, okfIndexContext, okfRecallContext, dangerGuard, okfUpkeepGate, craftBriefContext,
+  briefContext, okfIndexContext, okfRecallContext, okfFileContext, dangerGuard, okfUpkeepGate, craftBriefContext,
   lanesBriefContext, lanesApprovalContext, lanesGate, lanesEscalateGuard, designBriefContext, designDetectCheck,
   verifyGate, worktreeBriefContext, worktreeReminderContext, rfcBriefContext, rfcRecallContext, rfcUpkeepGate,
 ];

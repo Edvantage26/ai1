@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, writeFileSync, utimesSync, existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync, utimesSync, existsSync, readdirSync, readFileSync, statSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runHookEvent } from '../src/core/dispatcher.mjs';
@@ -113,6 +113,18 @@ test('okf-upkeep: a code change after the last bundle update blocks once', () =>
   assert.equal(stopSession(projectRoot, options), null, 'same pending set is not asked twice');
   writeFileSync(join(projectRoot, 'src', 'new_module.py'), 'x = 1\n');
   assert.equal(stopSession(projectRoot, options).decision, 'block', 'a new change asks again');
+});
+
+test('okf-upkeep: the reminder names the concepts that describe the changed files', () => {
+  const projectRoot = createRepoWithBundle();
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'app.md'), '---\ntype: Component\ntitle: App\nresource: src/app.py\n---\nThe app.\n');
+  setModifiedSeconds(join(projectRoot, '.ai1', 'okf', 'app.md'), 1_000_000);
+  const options = hookOptions();
+  startSession(projectRoot, options);
+  writeFileSync(join(projectRoot, 'src', 'app.py'), 'print(2)\n');
+  assert.match(stopSession(projectRoot, options).reason, /Concepts that describe those files \(probably affected\): `\.ai1\/okf\/app\.md`\./);
+  rmSync(join(projectRoot, 'src', 'app.py'));
+  assert.match(stopSession(projectRoot, options).reason, /- src\/app\.py \(deleted\)[\s\S]*probably affected\): `\.ai1\/okf\/app\.md`/, 'a deleted file still maps');
 });
 
 test('okf-upkeep: updating the bundle after the change clears it', () => {
