@@ -241,6 +241,25 @@ test('listShellWriteTargets: redirects, tee, in-place edits, copies and inline s
   assert.equal(listShellWriteTargets('python3 tool.py --check').runsInlineScript, false);
 });
 
+test('listShellWriteTargets: a cd earlier in the line moves the relative targets after it', () => {
+  assert.deepEqual(listShellWriteTargets("cd /repo && sed -i 's/a/b/' .ai1/work/x/plan.md").targetPaths, ['/repo/.ai1/work/x/plan.md']);
+  assert.deepEqual(listShellWriteTargets('echo a > before.txt; cd sub && cd deeper && echo b > after.txt').targetPaths, ['before.txt', 'sub/deeper/after.txt']);
+  assert.deepEqual(listShellWriteTargets('cd /repo && cp a.js /tmp/b.js').targetPaths, ['/tmp/b.js'], 'absolute targets stay');
+  assert.deepEqual(listShellWriteTargets('cd ~/x && touch a; cd $DIR && touch b').targetPaths, ['a', 'b'], 'unknown directories leave targets as written');
+});
+
+test('lanes-gate: from a worktree, cd to the main checkout and write its plan is not refused as a worktree plan', () => {
+  const mainRoot = createLanesRepo();
+  const worktreeRoot = join(mainRoot, '.claude', 'worktrees', 'feature');
+  runGit(mainRoot, ['worktree', 'add', '-q', '-b', 'feature', worktreeRoot]);
+  const options = hookOptions();
+  const runCommand = (commandLine) => runHookEvent('PreToolUse', {
+    session_id: 'session-1', cwd: worktreeRoot, tool_name: 'Bash', tool_input: { command: commandLine },
+  }, { ...options, environment: { ...options.environment, CLAUDE_PROJECT_DIR: mainRoot } });
+  assert.equal(runCommand(`cd ${mainRoot} && sed -i 's/a/b/' .ai1/work/feature/plan.md`), null);
+  assert.equal(runCommand("sed -i 's/a/b/' .ai1/work/feature/plan.md").hookSpecificOutput.permissionDecision, 'deny', 'without the cd it is the worktree plan');
+});
+
 // A transcript whose tool calls are `toolUses` ({ name, input }), for a session with that id.
 function writeTranscript(options, sessionId, toolUses) {
   const transcriptPath = join(options.homeDirectory, `${sessionId}.jsonl`);

@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T13:24:58Z'
+  at: '2026-11-09T13:53:43Z'
 ---
 
 # Flow
@@ -82,7 +82,7 @@ logged with an error signature and offered to the person as an issue ([issue rep
 | `later-upkeep` | Stop | later |
 
 Shared helpers in `src/core/`: `shell-parse.mjs` (split commands), `shell-writes.mjs` (files a shell
-command writes; used by okf-upkeep and lanes-gate), `session-base.mjs` (HEAD at session start, recorded
+command writes, with relative targets moved by an earlier `cd <dir>` in the line since 2026-11-09 - before, `cd /repo && sed -i ... .ai1/work/x/plan.md` from a worktree was refused as a worktree plan; used by okf-upkeep and lanes-gate), `session-base.mjs` (HEAD at session start, recorded
 by `brief`, okf-index and lanes-brief, never throws; used by okf, lanes and verify), `transcript-scan.mjs`
 (incremental transcript reader; okf-upkeep, verify-gate), `session-writes.mjs` (whether a tool call
 may change files: edits, subagents and shell commands not known to be read-only; okf-upkeep and
