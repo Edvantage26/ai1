@@ -10,6 +10,7 @@ import {
 } from './worktree-state.mjs';
 import { measurePathBytes } from './worktree-disk.mjs';
 import { loadRecipeOrFail } from './worktree-create.mjs';
+import { stopStoryboardServer } from '../walkthrough/walkthrough-serve.mjs';
 
 export function readStateOrFail(commonDirectory, worktreeName) {
   validateWorktreeName(worktreeName);
@@ -161,5 +162,6 @@ export function dropWorktree(startDirectory, worktreeName, { confirm = false, di
   if (existsSync(worktreeState.path)) rmSync(worktreeState.path, { recursive: true, force: true });
   tryGit(mainRoot, ['branch', '-D', worktreeState.branch]);
   removeWorktreeState(commonDirectory, worktreeName);
-  return { name: worktreeName, branch: worktreeState.branch, bundlePath, discarded: uncommittedPaths };
+  const releasedStoryboardUrl = stopStoryboardServer(mainRoot, worktreeName);
+  return { name: worktreeName, branch: worktreeState.branch, bundlePath, discarded: uncommittedPaths, released_storyboard_url: releasedStoryboardUrl };
 }

@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { addCapture, readStoryboard, resolveStoryboardSlug, stepIdFromCaption, storyboardDirectory } from '../src/walkthrough/walkthrough-storyboard.mjs';
 import { buildStoryboard, renderStoryboardSummary } from '../src/walkthrough/walkthrough-build.mjs';
 import { findChromeBinary, printStoryboardPdf } from '../src/walkthrough/walkthrough-pdf.mjs';
+import { stopStoryboardServer } from '../src/walkthrough/walkthrough-serve.mjs';
 import { createTemporaryProject } from './helpers.mjs';
 
 const AI1_CLI = fileURLToPath(new URL('../bin/ai1', import.meta.url));
@@ -151,4 +152,58 @@ test('build --pdf finds Chrome in Playwright\'s cache, prints one PDF, and fails
     const printResult = printStoryboardPdf(storyboardPath, htmlPath, { chromeBinary: realChrome });
     if (printResult.pdfPath) assert.equal(readFileSync(printResult.pdfPath).subarray(0, 5).toString(), '%PDF-');
   }
+});
+
+async function fetchStatus(serverUrl) {
+  try {
+    return (await fetch(serverUrl)).status;
+  } catch {
+    return 'down';
+  }
+}
+
+test('serve gives a local URL; stop, worktree finish and drop release it; the storyboard stays [walkthrough:S3]', async (testContext) => {
+  const projectRoot = createUiRepo();
+  testContext.after(() => ['flow', 'other'].forEach((slug) => stopStoryboardServer(projectRoot, slug)));
+  mkdirSync(join(projectRoot, '.claude', 'skills', 'worktree'), { recursive: true });
+  writeFileSync(join(projectRoot, '.claude', 'skills', 'worktree', 'recipe.json'), '{"version":1}\n');
+  writeFileSync(join(projectRoot, '.gitignore'), '.ai1/work/\n.claude/worktrees/\n*.png\n');
+  runGit(projectRoot, ['add', '.']);
+  runGit(projectRoot, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'recipe']);
+  const createRun = runAi1(projectRoot, ['worktree', 'create', 'flow']);
+  assert.equal(createRun.status, 0, createRun.stderr);
+  const worktreePath = join(projectRoot, '.claude', 'worktrees', 'flow');
+
+  assert.match(runAi1(worktreePath, ['walkthrough', 'serve']).stderr, /walkthrough build/, 'nothing to serve before a build');
+  runAi1(worktreePath, ['walkthrough', 'add', '--step', 'Home', '--image', writeScreenshot(projectRoot, 'shot.png')]);
+  runAi1(worktreePath, ['walkthrough', 'build']);
+  const serveRun = runAi1(worktreePath, ['walkthrough', 'serve']);
+  assert.equal(serveRun.status, 0, serveRun.stderr);
+  const serverUrl = /at (http:\/\/127\.0\.0\.1:\d+\/)/.exec(serveRun.stdout)[1];
+  assert.equal(await fetchStatus(serverUrl), 200);
+  assert.equal(await fetchStatus(`${serverUrl}server.json`), 404, 'the server record is not served');
+  assert.equal(await fetchStatus(`${serverUrl}..%2F..%2Fplan.md`), 404, 'nothing outside the storyboard');
+  assert.match(runAi1(worktreePath, ['walkthrough', 'serve']).stdout, /already serving flow/);
+  assert.match(runAi1(projectRoot, ['walkthrough', 'list']).stdout, /flow: 1 steps, built, at http/);
+
+  assert.match(runAi1(worktreePath, ['walkthrough', 'stop']).stdout, /stopped http/);
+  assert.equal(await fetchStatus(serverUrl), 'down');
+
+  runAi1(worktreePath, ['walkthrough', 'serve']);
+  writeFileSync(join(worktreePath, 'app.css'), 'body{color:red}\n');
+  runGit(worktreePath, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qam', 'red']);
+  const finishRun = runAi1(projectRoot, ['worktree', 'finish', 'flow']);
+  assert.equal(finishRun.status, 0, finishRun.stderr);
+  assert.match(finishRun.stdout, /storyboard server stopped/);
+  assert.match(runAi1(projectRoot, ['walkthrough', 'list']).stdout, /^flow: 1 steps, built\n?$/m, 'archived, no URL');
+  assert.ok(existsSync(join(storyboardDirectory(projectRoot, 'flow'), 'index.html')));
+
+  runAi1(projectRoot, ['worktree', 'create', 'other']);
+  const otherPath = join(projectRoot, '.claude', 'worktrees', 'other');
+  runAi1(otherPath, ['walkthrough', 'add', '--step', 'Home', '--image', join(projectRoot, 'shot.png')]);
+  runAi1(otherPath, ['walkthrough', 'build']);
+  const otherUrl = /at (http:\S+)/.exec(runAi1(otherPath, ['walkthrough', 'serve']).stdout)[1];
+  const dropRun = runAi1(projectRoot, ['worktree', 'drop', 'other', '--confirm']);
+  assert.match(dropRun.stdout, /storyboard server stopped/);
+  assert.equal(await fetchStatus(otherUrl), 'down');
 });

@@ -82,7 +82,7 @@ export function runWorktreeCli(workingDirectory, commandArguments) {
     if (!positionalArguments[0]) throw new Error('usage: ai1 worktree drop <name> --confirm [--discard-uncommitted]');
     return respond(dropWorktree(workingDirectory, positionalArguments[0], {
       confirm: restArguments.includes('--confirm'), discardUncommitted: restArguments.includes('--discard-uncommitted'),
-    }), (dropResult) => `worktree ${dropResult.name} dropped (branch ${dropResult.branch} deleted)${dropResult.bundlePath ? `; its commits are in ${dropResult.bundlePath} (git fetch <bundle> ${dropResult.branch})` : ''}`);
+    }), (dropResult) => `worktree ${dropResult.name} dropped (branch ${dropResult.branch} deleted)${dropResult.bundlePath ? `; its commits are in ${dropResult.bundlePath} (git fetch <bundle> ${dropResult.branch})` : ''}${dropResult.released_storyboard_url ? `; storyboard server stopped (${dropResult.released_storyboard_url})` : ''}`);
   }
   return { output: WORKTREE_USAGE, exitCode: subcommandName ? 1 : 0 };
 }
