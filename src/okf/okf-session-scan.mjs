@@ -49,6 +49,8 @@ export function shellCommandWritesBundle(commandLine, bundleRelativePath = KNOWL
 //   - `paths`: memory files this session wrote (Write/Edit), and
 //   - `investigationCalls`: investigation tool calls (shell, MCP, web) since the session last
 //     edited the bundle, reset to 0 by any bundle edit, and
+//   - `editedFilePaths`: other files (not memory, not the bundle) this session edited with
+//     Write/Edit since it last edited the bundle, and
 //   - `sessionMayHaveWritten`: some call may have changed files (core/session-writes; the repo's
 //     verify commands count as read-only).
 // Returns null when the transcript is not available.
@@ -56,6 +58,7 @@ export function scanSessionTranscript(transcriptPath, { memoryDirectories, bundl
   const newTranscript = readNewTranscriptEvents(transcriptPath, scanState);
   if (!newTranscript) return null;
   const writtenMemoryPaths = new Set(newTranscript.restarted ? [] : scanState.paths || []);
+  const editedFilePaths = new Set(newTranscript.restarted ? [] : scanState.editedPaths || []);
   let investigationCalls = newTranscript.restarted ? 0 : scanState.investigationCalls || 0;
   // State saved by a version without this flag: earlier writes are unknown, so assume them.
   let sessionMayHaveWritten = newTranscript.restarted ? false : scanState.sessionMayHaveWritten ?? true;
@@ -65,19 +68,27 @@ export function scanSessionTranscript(transcriptPath, { memoryDirectories, bundl
       if (toolUseMayWriteFiles(contentBlock, verifyCommands)) sessionMayHaveWritten = true;
       const toolPath = contentBlock?.input?.file_path;
       if (MEMORY_WRITING_TOOLS.has(contentBlock.name) && typeof toolPath === 'string') {
-        if (memoryDirectories.some((memoryDirectory) => toolPath.startsWith(`${memoryDirectory}/`))) writtenMemoryPaths.add(toolPath);
-        if (toolPath.includes(bundleMarker)) investigationCalls = 0;
+        const isMemoryPath = memoryDirectories.some((memoryDirectory) => toolPath.startsWith(`${memoryDirectory}/`));
+        if (isMemoryPath) writtenMemoryPaths.add(toolPath);
+        if (toolPath.includes(bundleMarker)) {
+          investigationCalls = 0;
+          editedFilePaths.clear();
+        } else if (!isMemoryPath) {
+          editedFilePaths.add(toolPath);
+        }
       } else if (contentBlock.name === 'Bash' && shellCommandWritesBundle(contentBlock?.input?.command, bundleRelativePath)) {
         investigationCalls = 0;
+        editedFilePaths.clear();
       } else if (isInvestigationTool(contentBlock.name)) {
         investigationCalls += 1;
       }
     }
   }
   scanState.paths = [...writtenMemoryPaths];
+  scanState.editedPaths = [...editedFilePaths];
   scanState.investigationCalls = investigationCalls;
   scanState.sessionMayHaveWritten = sessionMayHaveWritten;
-  return { memoryPaths: writtenMemoryPaths, investigationCalls, sessionMayHaveWritten };
+  return { memoryPaths: writtenMemoryPaths, editedFilePaths, investigationCalls, sessionMayHaveWritten };
 }
 
 // Kept for callers that only need the memory files.

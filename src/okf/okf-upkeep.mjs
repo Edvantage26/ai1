@@ -5,18 +5,25 @@
 //   2. the bundle was touched in this session and the OKF validator reports ERRORS. The hook runs
 //      the validator itself, because asking the agent to validate proved unreliable in field tests.
 //      Warnings never block; without Python it fails open and tells the person once per session.
+//   3. once the bundle validates, this session changed concepts without a look at the overview
+//      (overview.md or the root index.md), or changed concepts no index.md links to; asked once per
+//      set of findings, never right after another hook stop.
+//   4. no file or memory reminder is due but this session edited files and undid the change (an
+//      attempt tried and dropped leaves no diff): asks to record why it was dropped, once per set.
 
 import { existsSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { isAbsolute, join, relative } from 'node:path';
 import { allowDecision, blockDecision, noticeDecision } from '../core/hook-io.mjs';
 import { resolveStateDirectory, sessionStatePath, readStateText, writeStateText, shortHash, claimStopBlock } from '../core/session-state.mjs';
 import {
   resolveBundleDirectory, readBundleIndex, readBundleSpecVersion, newestModificationMilliseconds, buildMaintenanceRules,
+  isConceptPath, listConceptsMissingFromIndex, overviewFileName,
 } from './okf-bundle.mjs';
 import { loadFileMap, findConceptsForFile } from './okf-file-map.mjs';
 import { memoryDirectoriesFor, scanSessionTranscript, loadScanState, listRecentMemories } from './okf-session-scan.mjs';
 import { runBundleValidator, buildValidationReminder } from './okf-validator.mjs';
 import { readSessionBase, listFilesChangedSinceBase } from '../core/session-base.mjs';
+import { tryGit } from '../core/git.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
 import { PROPOSALS_DIRECTORY } from '../proposals/proposals-documents.mjs';
 import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
@@ -24,6 +31,8 @@ import { integratedFileMatcher } from '../worktrees/worktree-integrations.mjs';
 
 const MODULE_ID = 'okf-upkeep';
 const MAX_VALIDATION_BLOCKS_PER_SESSION = 3;
+const MAX_STRUCTURE_BLOCKS_PER_SESSION = 3;
+const MAX_DISCARDED_BLOCKS_PER_SESSION = 3;
 const MAX_LISTED_FILES = 20;
 const MAX_LISTED_AFFECTED_CONCEPTS = 5;
 // Harness configuration is not project knowledge: editing it never asks for a concept update.
@@ -47,6 +56,33 @@ export function buildInvestigationReminder(bundleRelativePath, investigationCall
     '  - ways of working: procedures, steps or queries that worked and should be repeated.',
     'Keep it short and factual; do not copy raw output. If nothing is worth keeping, say so in one line and finish.',
   ].join('\n');
+}
+
+// Files this session edited (Write/Edit, from the transcript) that show no change against the base
+// HEAD now: something tried and undone. Files outside the repo, under `.ai1/` or `.claude/`, and
+// files git ignores (their changes never show in a diff) are left out.
+export function listDiscardedEdits(projectRoot, baseHead, editedFilePaths) {
+  const changedPaths = new Set(listFilesChangedSinceBase(projectRoot, baseHead));
+  const candidatePaths = [...editedFilePaths]
+    .map((editedPath) => relative(projectRoot, editedPath))
+    .filter((repoPath) => repoPath && !repoPath.startsWith('..') && !isAbsolute(repoPath)
+      && !repoPath.startsWith('.ai1/') && !repoPath.startsWith('.claude/') && !changedPaths.has(repoPath));
+  if (!candidatePaths.length) return [];
+  const ignoredPaths = new Set((tryGit(projectRoot, ['check-ignore', '--', ...candidatePaths]) || '').split('\n'));
+  return candidatePaths.filter((repoPath) => !ignoredPaths.has(repoPath)).sort();
+}
+
+export function buildDiscardedAttemptReminder(bundleRelativePath, discardedPaths, affectedConceptPaths = []) {
+  const reminderLines = ['OKF: this session edited these files and then undid the change (no diff is left):'];
+  reminderLines.push(...discardedPaths.slice(0, MAX_LISTED_FILES).map((discardedPath) => `  - ${discardedPath}`));
+  if (affectedConceptPaths.length) {
+    reminderLines.push(`Concepts that describe those files: ${affectedConceptPaths.slice(0, MAX_LISTED_AFFECTED_CONCEPTS).map((conceptPath) => `\`${conceptPath}\``).join(', ')}.`);
+  }
+  reminderLines.push(
+    `If it was an approach tried and dropped, record in the matching concept of \`${bundleRelativePath}/\` what was tried and why it was dropped (what failed, what it would break), so nobody tries it again blind.`,
+    'If it was an accidental or trivial edit, say so in one line and finish; you will not be asked again for these same files.',
+  );
+  return reminderLines.join('\n');
 }
 
 export function buildUpkeepReminder(bundleRelativePath, specVersion, pendingFiles, pendingMemories, affectedConceptPaths = []) {
@@ -90,16 +126,60 @@ function listAffectedConcepts({ projectRoot, bundleDirectory, stateDirectory, se
   }
 }
 
-function checkBundleValidity({ hookInput, projectRoot, stateDirectory, bundleDirectory, bundleRelativePath, environment }) {
+export function buildStructureReminder(bundleRelativePath, overviewPath, conceptsWithoutOverviewReview, conceptsMissingFromIndex) {
+  const reminderLines = ['OKF: this session changed concepts of the bundle; check that the bundle still reads as a whole.'];
+  if (conceptsWithoutOverviewReview.length) {
+    const rootIndexPath = `${bundleRelativePath}/index.md`;
+    const overviewPages = overviewPath === rootIndexPath ? `\`${rootIndexPath}\`` : `\`${overviewPath}\` nor \`${rootIndexPath}\``;
+    reminderLines.push('', `Concepts changed without touching ${overviewPages}:`);
+    reminderLines.push(...conceptsWithoutOverviewReview.slice(0, MAX_LISTED_FILES).map((conceptPath) => `  - ${bundleRelativePath}/${conceptPath}`));
+    reminderLines.push('Check that the overview (what the project is, its scope, the map of its pieces) and the description in the root index.md still hold. If not, update them; if they do, say so in one line.');
+  }
+  if (conceptsMissingFromIndex.length) {
+    reminderLines.push('', 'Concepts no index.md links to (add each one to the index.md of its folder with a one-line description):');
+    reminderLines.push(...conceptsMissingFromIndex.map((conceptPath) => `  - ${bundleRelativePath}/${conceptPath}`));
+  }
+  return reminderLines.join('\n');
+}
+
+// After a clean validation: concepts this session changed (or deleted) without a look at the
+// overview, and concepts it changed that no index.md links to. Asked once per set of findings.
+function checkBundleStructure({ hookInput, projectRoot, stateDirectory, bundleDirectory, bundleRelativePath, baseHead, sessionStartMilliseconds }) {
+  const bundlePrefix = `${bundleRelativePath}/`;
+  const bundleFilesChangedInSession = listFilesChangedSinceBase(projectRoot, baseHead)
+    .filter((changedPath) => changedPath.startsWith(bundlePrefix))
+    .map((changedPath) => changedPath.slice(bundlePrefix.length))
+    .filter((bundleFilePath) => {
+      const absolutePath = join(bundleDirectory, bundleFilePath);
+      return !existsSync(absolutePath) || statSync(absolutePath).mtimeMs >= sessionStartMilliseconds;
+    });
+  const conceptsChangedInSession = bundleFilesChangedInSession.filter(isConceptPath).sort();
+  if (!conceptsChangedInSession.length) return allowDecision();
+  const overviewReviewed = bundleFilesChangedInSession.some((bundleFilePath) => ['overview.md', 'index.md'].includes(bundleFilePath));
+  const conceptsWithoutOverviewReview = overviewReviewed ? [] : conceptsChangedInSession;
+  const conceptsMissingFromIndex = listConceptsMissingFromIndex(bundleDirectory)
+    .filter((conceptPath) => conceptsChangedInSession.includes(conceptPath));
+  if (!conceptsWithoutOverviewReview.length && !conceptsMissingFromIndex.length) return allowDecision();
+  const structurePath = sessionStatePath(stateDirectory, hookInput.session_id, projectRoot, 'structure');
+  const findingsText = [...conceptsWithoutOverviewReview, '--', ...conceptsMissingFromIndex].join('\n');
+  if (!claimStopBlock(structurePath, findingsText, MAX_STRUCTURE_BLOCKS_PER_SESSION)) return allowDecision();
+  const overviewPath = `${bundleRelativePath}/${overviewFileName(bundleDirectory)}`;
+  return blockDecision(MODULE_ID, buildStructureReminder(bundleRelativePath, overviewPath, conceptsWithoutOverviewReview, conceptsMissingFromIndex));
+}
+
+// `checkStructure`: once the bundle validates (or cannot be validated), go on with checkBundleStructure.
+function checkBundleValidity(validityContext, { checkStructure = false } = {}) {
+  const { hookInput, projectRoot, stateDirectory, bundleDirectory, bundleRelativePath, environment } = validityContext;
+  const continueAfterValidation = () => (checkStructure ? checkBundleStructure(validityContext) : allowDecision());
   const validation = runBundleValidator(bundleDirectory, environment);
   if (!validation.ran) {
     process.stderr.write(`ai1: okf-upkeep could not validate ${bundleRelativePath}: ${validation.reason}\n`);
     const noticedPath = sessionStatePath(stateDirectory, hookInput.session_id, projectRoot, 'validator-missing');
-    if (readStateText(noticedPath) !== null) return allowDecision();
+    if (readStateText(noticedPath) !== null) return continueAfterValidation();
     writeStateText(noticedPath, validation.reason);
     return noticeDecision(MODULE_ID, `the OKF bundle was not validated: ${validation.reason}. Install Python 3.9+ to turn the check on.`);
   }
-  if (!validation.errors.length) return allowDecision();
+  if (!validation.errors.length) return continueAfterValidation();
   const validatedPath = sessionStatePath(stateDirectory, hookInput.session_id, projectRoot, 'validated');
   if (!claimStopBlock(validatedPath, validation.errors.join('\n'), MAX_VALIDATION_BLOCKS_PER_SESSION)) return allowDecision();
   return blockDecision(MODULE_ID, buildValidationReminder(bundleRelativePath, validation.errors));
@@ -121,7 +201,9 @@ export default {
     if (!sessionBase) return allowDecision();
     const { baseHead, sessionStartMilliseconds } = sessionBase;
     const bundleUpdatedMilliseconds = newestModificationMilliseconds(bundleDirectory);
-    const validityContext = { hookInput, projectRoot, stateDirectory, bundleDirectory, bundleRelativePath, environment };
+    const validityContext = {
+      hookInput, projectRoot, stateDirectory, bundleDirectory, bundleRelativePath, environment, baseHead, sessionStartMilliseconds,
+    };
     const bundleChangedInSession = bundleUpdatedMilliseconds >= sessionStartMilliseconds;
 
     // Already stopped once by a hook: no new upkeep reminder (loop guard), but the bundle the agent
@@ -166,13 +248,25 @@ export default {
 
     // No file or memory reminder due: knowledge found by investigating (queries, commands) leaves no
     // file behind, so a long run of investigation without touching the bundle asks for it too.
+    // An attempt undone before the stop leaves no diff, so the file reminder misses it.
     const finishWithoutUpkeepReminder = () => {
+      const discardedPaths = transcriptScan ? listDiscardedEdits(projectRoot, baseHead, transcriptScan.editedFilePaths) : [];
+      const discardedStatePath = sessionStatePath(stateDirectory, hookInput.session_id, projectRoot, 'discarded');
+      if (discardedPaths.length && claimStopBlock(discardedStatePath, discardedPaths.join('\n'), MAX_DISCARDED_BLOCKS_PER_SESSION)) {
+        scanState.investigationCalls = 0;
+        writeStateText(scanStatePath, JSON.stringify(scanState));
+        const affectedConceptPaths = listAffectedConcepts(
+          { projectRoot, bundleDirectory, stateDirectory, sessionStartMilliseconds },
+          discardedPaths.map((discardedPath) => ({ path: discardedPath })),
+        );
+        return blockDecision(MODULE_ID, buildDiscardedAttemptReminder(bundleRelativePath, discardedPaths, affectedConceptPaths));
+      }
       if (transcriptScan && transcriptScan.investigationCalls >= INVESTIGATION_CALLS_BEFORE_REMINDER) {
         scanState.investigationCalls = 0;
         writeStateText(scanStatePath, JSON.stringify(scanState));
         return blockDecision(MODULE_ID, buildInvestigationReminder(bundleRelativePath, transcriptScan.investigationCalls));
       }
-      return bundleChangedInSession ? checkBundleValidity(validityContext) : allowDecision();
+      return bundleChangedInSession ? checkBundleValidity(validityContext, { checkStructure: true }) : allowDecision();
     };
     if (!pendingFilesToRemind.length && !pendingMemories.length) return finishWithoutUpkeepReminder();
 

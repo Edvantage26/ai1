@@ -1,11 +1,11 @@
 ---
 type: Component
 title: okf feature
-description: Project knowledge in an OKF bundle - index at session start, CLAUDE.md drift hint, related concepts per message and per file read or edited, upkeep reminder at stop, OKF toolkit skills.
+description: Project knowledge in an OKF bundle - index and bundle health notes at session start, CLAUDE.md drift hint, related concepts per message and per file read or edited, upkeep reminder at stop, OKF toolkit skills.
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T08:23:20Z'
+  at: '2026-11-09T08:52:59Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -47,6 +47,12 @@ sources:
 - **okf-index (SessionStart):** reads `.ai1/okf/index.md`, injects it (up to
   12,000 characters) with the maintenance rules, and records the HEAD at session start in the
   session state. Without a bundle it suggests creating one with `/ai1:okf-maintain-knowledge`.
+  Since 2026-11-09 it adds, only when there is something to say, two bundle health notes (at most 10
+  paths each): concepts changed in commits after the last commit that touched the overview
+  (`overview.md`, or the root `index.md` when the bundle has none), so the overview may not describe
+  them; and concepts no `index.md` of the bundle links to (a link starting with `/` is read from the
+  bundle root). The overview itself is not injected: the index links to it, and injecting it would
+  cost tokens every session. Taken from a standalone OKF guard script that ai1 replaces.
 - **okf-claude-md (SessionStart, since v0.20.0):** the repo's CLAUDE.md files are loaded whole in
   every session while the bundle is read on demand, so knowledge piled up in CLAUDE.md costs tokens
   every time and drifts from the concepts. A deterministic check (`src/okf/okf-claude-md-check.mjs`,
@@ -146,6 +152,16 @@ sources:
   Before 2026-11-08 shell edits counted as investigation and caused false reminders.
   Field data (2026-11-01): a long investigation session ran 831 steps and 41 production queries
   without writing to the bundle.
+- **Discarded attempt reminder (Stop, same module, since 2026-11-09):** an approach tried and
+  undone before the stop (edit, run the tests, revert) leaves no diff and may stay under 10
+  investigation steps, so neither reminder above saw it and why it was dropped was lost. The same
+  transcript scan keeps the files the session edited with Write/Edit since it last edited the bundle
+  (memory files and bundle files left out; a bundle edit clears the list). When no file or memory
+  reminder is due, the files of that list inside the repo that show no change against the base HEAD
+  (not under `.ai1/` or `.claude/`, not ignored by git) are listed, with the concepts that describe
+  them, and the agent is asked to record what was tried and why it was dropped, or to say in one line
+  that the edit was trivial. Once per set of files, at most 3 per session; it comes before the
+  investigation reminder and resets its count.
 - **Validation gate (Stop, same module):** when the bundle was changed in the session, the hook
   runs the bundled validator itself (`python3 skills/okf-validate-bundle/scripts/okf_validate.py --json`, ~0.2 s on a
   45-concept bundle) and blocks only on ERRORS, listing them; warnings (e.g. v0.1 legacy) never
@@ -155,6 +171,15 @@ sources:
   It tries `python3`, `python` and `py -3` (Windows) in order. Without a Python 3 it fails open and
   tells the person once per session (`systemMessage`, never blocking); before 2026-11-09 only stderr
   said it, so on Windows the gate was off without anyone knowing.
+- **Structure check (Stop, same module, since 2026-11-09):** after a clean validation (or when no
+  Python can validate), if this session changed or deleted concepts (any bundle page but an
+  `index.md`, a `log.md` and the root `overview.md`; changed since the base HEAD and after the
+  session started) without touching the overview or the root `index.md`, the agent is asked to check
+  that they still describe the project, or to say in one line that they do; it is also asked to link
+  from the index of their folder the concepts it changed that no `index.md` links to. Once per set of
+  findings, at most 3 per session, and never when `stop_hook_active` is set (it comes at the next
+  ordinary stop): changing a concept to answer the upkeep reminder must not chain a second block.
+  While the validator reports errors, it waits for them to be fixed.
 - **Rules given to the agent:** update the concept and `generated: { by: claude-code/<model>, at }`
   with the real current UTC time; `log.md` only for lifecycle events; validate with `/ai1:okf-validate-bundle`
   and fix errors. On a v0.1 bundle: legacy warnings are expected, the agent must not migrate the
@@ -167,7 +192,7 @@ sources:
 
 # Limits
 
-- Upkeep is triggered by changed files, memories or a long investigation. A decision taken only
+- Upkeep is triggered by changed files, memories, edits undone in the session or a long investigation. A decision taken only
   in the conversation, with none of those, is not detected: recording it is up to the agent.
 - Reading is suggested, not enforced: okf-file-context names the concept of each file the agent
   reads or edits, but nothing stops an edit without opening it. Files no concept cites get nothing,

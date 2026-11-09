@@ -304,7 +304,89 @@ test('validation: without Python it fails open and tells the person once per ses
   const firstStop = stopSession(projectRoot, options);
   assert.equal(firstStop.decision, undefined, 'never blocks');
   assert.match(firstStop.systemMessage, /^ai1\/okf-upkeep: the OKF bundle was not validated: .*python3-that-does-not-exist not found.*Install Python 3\.9\+/);
-  assert.equal(stopSession(projectRoot, options), null, 'said once');
+  assert.equal(stopSession(projectRoot, options)?.systemMessage, undefined, 'said once');
+});
+
+const VALID_CONCEPT = '---\ntype: Component\ntitle: App\n---\nThe app.\n';
+
+function commitAll(projectRoot, commitMessage) {
+  runGit(projectRoot, ['add', '.']);
+  runGit(projectRoot, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', commitMessage]);
+}
+
+test('okf-index: names concepts changed after the overview and concepts no index links to', () => {
+  const projectRoot = createRepoWithBundle();
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'app.md'), VALID_CONCEPT);
+  commitAll(projectRoot, 'add a concept without touching the overview');
+  const contextText = startSession(projectRoot, hookOptions()).hookSpecificOutput.additionalContext;
+  assert.match(contextText, /changed in commits after the last one that touched `\.ai1\/okf\/overview\.md`[^\n]*\n {2}- \.ai1\/okf\/app\.md/);
+  assert.match(contextText, /not linked from any index\.md[^\n]*\n {2}- \.ai1\/okf\/app\.md/);
+});
+
+test('okf-index: a bundle in step with its overview and indexes gets no health notes', () => {
+  const projectRoot = createRepoWithBundle();
+  mkdirSync(join(projectRoot, '.ai1', 'okf', 'features'));
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'features', 'index.md'), '# Features\n\n* [App](app.md)\n* [Back to the overview](/overview.md)\n');
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'features', 'app.md'), VALID_CONCEPT);
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'overview.md'), '---\ntype: Overview\n---\nHello, with features.\n');
+  commitAll(projectRoot, 'add a linked concept and the overview');
+  const contextText = startSession(projectRoot, hookOptions()).hookSpecificOutput.additionalContext;
+  assert.doesNotMatch(contextText, /changed in commits after/);
+  assert.doesNotMatch(contextText, /not linked from any index\.md/);
+});
+
+test('structure: a concept changed without a look at the overview asks once', () => {
+  const projectRoot = createRepoWithBundle();
+  const options = hookOptions();
+  startSession(projectRoot, options);
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'app.md'), VALID_CONCEPT);
+  const firstStop = stopSession(projectRoot, options);
+  assert.equal(firstStop.decision, 'block');
+  assert.match(firstStop.reason, /without touching `\.ai1\/okf\/overview\.md` nor `\.ai1\/okf\/index\.md`:\n {2}- \.ai1\/okf\/app\.md/);
+  assert.match(firstStop.reason, /Concepts no index\.md links to[^\n]*\n {2}- \.ai1\/okf\/app\.md/);
+  assert.equal(stopSession(projectRoot, options), null, 'the same findings are not asked twice');
+});
+
+test('structure: linking the concept from the index answers both checks', () => {
+  const projectRoot = createRepoWithBundle();
+  const options = hookOptions();
+  startSession(projectRoot, options);
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'app.md'), VALID_CONCEPT);
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'index.md'), `${V02_INDEX}* [App](./app.md#why)\n`);
+  assert.equal(stopSession(projectRoot, options), null);
+});
+
+test('structure: only the overview review is asked when the concept is already linked', () => {
+  const projectRoot = createRepoWithBundle({ indexText: `${V02_INDEX}* [App](app.md)\n` });
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'app.md'), VALID_CONCEPT);
+  setModifiedSeconds(join(projectRoot, '.ai1', 'okf', 'app.md'), 1_000_000);
+  commitAll(projectRoot, 'add the concept');
+  const options = hookOptions();
+  startSession(projectRoot, options);
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'app.md'), VALID_CONCEPT.replace('The app.', 'The app, changed.'));
+  const stopReason = stopSession(projectRoot, options).reason;
+  assert.match(stopReason, /without touching/);
+  assert.doesNotMatch(stopReason, /Concepts no index\.md links to/);
+});
+
+test('structure: without overview.md the root index.md is the overview', () => {
+  const projectRoot = createRepoWithBundle();
+  rmSync(join(projectRoot, '.ai1', 'okf', 'overview.md'));
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'index.md'), V02_INDEX.replace('* [Overview](overview.md)\n', '* [App](app.md)\n'));
+  commitAll(projectRoot, 'no overview');
+  const options = hookOptions();
+  startSession(projectRoot, options);
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'app.md'), VALID_CONCEPT);
+  assert.match(stopSession(projectRoot, options).reason, /without touching `\.ai1\/okf\/index\.md`:/);
+});
+
+test('structure: never right after another hook stop', () => {
+  const projectRoot = createRepoWithBundle();
+  const options = hookOptions();
+  startSession(projectRoot, options);
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'app.md'), VALID_CONCEPT);
+  assert.equal(stopSession(projectRoot, options, { stop_hook_active: true }), null);
+  assert.equal(stopSession(projectRoot, options).decision, 'block', 'asked on the next ordinary stop');
 });
 
 test('validation: the next interpreter is tried when one is missing', () => {
@@ -546,4 +628,48 @@ test('investigation: a file reminder wins and resets the count', () => {
   assert.match(stopOutput.reason, /left knowledge newer/);
   assert.doesNotMatch(stopOutput.reason, /investigation steps/);
   assert.equal(stopSession(projectRoot, options, { transcript_path: transcriptPath }), null);
+});
+
+test('discarded attempt: a file edited and then restored asks once to record why it was dropped', () => {
+  const projectRoot = createRepoWithBundle();
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'app.md'), '---\ntype: Component\ntitle: App\nresource: src/app.py\n---\nThe app.\n');
+  setModifiedSeconds(join(projectRoot, '.ai1', 'okf', 'app.md'), 1_000_000);
+  const options = hookOptions();
+  startSession(projectRoot, options);
+  const transcriptPath = writeSessionTranscript(options, [
+    { name: 'Edit', input: { file_path: join(projectRoot, 'src', 'app.py'), old_string: 'print(1)', new_string: 'print(2)' } },
+    { name: 'Bash', input: { command: 'git checkout -- src/app.py' } },
+  ]);
+  const stopOutput = stopSession(projectRoot, options, { transcript_path: transcriptPath });
+  assert.equal(stopOutput.decision, 'block');
+  assert.match(stopOutput.reason, /edited these files and then undid the change[^\n]*\n {2}- src\/app\.py/);
+  assert.match(stopOutput.reason, /Concepts that describe those files: `\.ai1\/okf\/app\.md`/);
+  assert.match(stopOutput.reason, /why it was dropped/);
+  assert.equal(stopSession(projectRoot, options, { transcript_path: transcriptPath }), null, 'the same files are not asked twice');
+});
+
+test('discarded attempt: a change still in the diff gets the usual reminder instead', () => {
+  const projectRoot = createRepoWithBundle();
+  const options = hookOptions();
+  startSession(projectRoot, options);
+  writeFileSync(join(projectRoot, 'src', 'app.py'), 'print(2)\n');
+  const transcriptPath = writeSessionTranscript(options, [{ name: 'Write', input: { file_path: join(projectRoot, 'src', 'app.py'), content: 'print(2)\n' } }]);
+  const stopReason = stopSession(projectRoot, options, { transcript_path: transcriptPath }).reason;
+  assert.match(stopReason, /left knowledge newer/);
+  assert.doesNotMatch(stopReason, /undid the change/);
+});
+
+test('discarded attempt: a bundle edit after it, ignored files and files outside the repo do not ask', () => {
+  const projectRoot = createRepoWithBundle();
+  writeFileSync(join(projectRoot, '.gitignore'), 'build/\n');
+  commitAll(projectRoot, 'ignore build');
+  const options = hookOptions();
+  startSession(projectRoot, options);
+  const recordedTranscript = writeSessionTranscript(options, [
+    { name: 'Edit', input: { file_path: join(projectRoot, 'src', 'app.py'), old_string: 'print(1)', new_string: 'print(2)' } },
+    { name: 'Edit', input: { file_path: join(projectRoot, '.ai1', 'okf', 'overview.md'), old_string: 'Hello.', new_string: 'Hello.' } },
+    { name: 'Write', input: { file_path: join(projectRoot, 'build', 'out.js'), content: 'x' } },
+    { name: 'Write', input: { file_path: join(tmpdir(), 'scratch.txt'), content: 'x' } },
+  ]);
+  assert.equal(stopSession(projectRoot, options, { transcript_path: recordedTranscript }), null);
 });
