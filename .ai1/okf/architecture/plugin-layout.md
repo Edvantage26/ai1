@@ -5,7 +5,7 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T14:30:58Z'
+  at: '2026-11-09T16:54:04Z'
 ---
 
 # Layout
@@ -74,6 +74,12 @@ hooks it started with.
 Run from inside this repo, `claude plugin update ai1@ai1` without `--scope` updates only the project
 install of this repo; the user install, used by every other repo, stays on the old version (seen on
 2026-11-09 with v0.26.0). Check with `claude plugin list`.
+
+Before tagging, check that nothing private reached the public repo (rule in CLAUDE.md): `git grep -n -i -E`
+over machine paths (`/home/`), personal tooling (sync mounts, password managers, task trackers), internal
+hostnames, IPs and client names, plus a read of every hit outside `THIRD-PARTY.md`. Expected hits are
+generic: a product named as an example, Paseo as a fork host detected by `PASEO_AGENT_ID`, the author in
+`plugin.json`/`LICENSE`. Done for v0.27.0 on 2026-11-09: clean.
 
 To check a release end to end, run a fresh session on a throwaway clone with its remote removed
 (`git clone` into `/tmp`, `git remote remove origin`): a Paseo agent in the mode to test, with a task
