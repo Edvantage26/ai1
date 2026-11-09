@@ -5,7 +5,7 @@ description: Phases from proving ai1 in a real repo to the doctor command.
 tags: [roadmap]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T06:17:09Z'
+  at: '2026-11-09T07:25:04Z'
 ---
 
 Order changed on 2026-10-30: build the generic structure in ai1 first, then prove it in real repos.
@@ -21,7 +21,7 @@ Order changed on 2026-10-30: build the generic structure in ai1 first, then prov
 2e. **Proposals** (done 2026-11-08 as `rfc`, renamed 2026-11-09 in v0.18.0): undecided changes and
    future features in `.ai1/proposals/`, apart from the bundle until decided, created only on request
    or acceptance. See [proposals feature](features/proposals.md).
-2f. **Worktrees** (phase 1 done 2026-11-08): a worktree per significant change with a per-project
+2f. **Worktrees** (phase 1 done 2026-11-08): a worktree per change with a per-project
    recipe planned once (`/ai1:worktrees-plan-recipe`), engine `ai1 worktree`, brief and reminder. Phase 2 (planned):
    shared read-only caches per version, `writable`, build slots and locks, `WorktreeCreate` hook for
    heavy repos. See [worktrees feature](features/worktrees.md).

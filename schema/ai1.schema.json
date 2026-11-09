@@ -41,7 +41,7 @@
         "worktrees": {
           "type": "boolean",
           "default": false,
-          "description": "A worktree per significant change, made with the project recipe planned once with /ai1:worktrees-plan-recipe (.claude/skills/worktree/); the agent keeps saying which worktree it works in."
+          "description": "A worktree per change (any edit to the repo files, created before the first edit), made with the project recipe planned once with /ai1:worktrees-plan-recipe (.claude/skills/worktree/); the agent keeps saying which worktree it works in."
         },
         "design": {
           "type": "boolean",

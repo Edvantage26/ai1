@@ -1,6 +1,6 @@
 ---
 name: worktree
-description: One worktree per development in <project>. Use before starting a significant change (several files, a build, more than a couple of edits, or the main checkout busy with another session) to PROPOSE a worktree, and ALWAYS to create, run, integrate or drop a worktree in this repo.
+description: One worktree per change in <project>. Use ALWAYS before changing files of this repo when the session is not in a worktree yet, and to create, run, integrate or drop a worktree here.
 ---
 
 # Worktrees in <project>
@@ -9,18 +9,16 @@ description: One worktree per development in <project>. Use before starting a si
 worktree (edit, run, commit) without touching the main checkout; when done it is integrated into
 its base. The engine is `ai1 worktree`; the data is `recipe.json` next to this file.
 
-## When to propose it
+## When
 
-At the start of a significant change: <the project's criteria, e.g. touches the API and the web,
-needs a build, migrations>. Propose it **once**, in one line, with a suggested name and why; the
-person decides. Not for questions, research without changes or a one-line fix.
-
-> "This touches several files and needs a build: shall we do it in its own worktree (`feat-xxx`,
-> ~<size>, without touching your checkout)?"
+Any change to the files of this repo: if the session is not in a worktree, create one before the
+first edit and tell the person its name in one line ("Trabajo en el worktree `feat-xxx`."). Questions
+and research without edits need none. <Relax it here if this project wants worktrees only for some
+changes, e.g. "one-line fixes to docs go straight to main".>
 
 ## Flow
 
-1. **Create** (after the yes): `ai1 worktree create <name>`; mode `auto` decides by disk on this
+1. **Create**: `ai1 worktree create <name>`; mode `auto` decides by disk on this
    machine (<what full and light mean here>). Tell the person the path, size, mode and port.
 2. **Enter**: EnterWorktree with the printed path. Then run what it lists under "next":
    `ai1 worktree run <name> setup`.

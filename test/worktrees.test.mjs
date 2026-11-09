@@ -328,7 +328,7 @@ test('worktree-brief: points to /ai1:worktrees-plan-recipe without a recipe, giv
   writeFileSync(join(mainRoot, '.ai1', 'config.json'), JSON.stringify({ features: { okf: false, worktrees: true, lanes: true } }));
   const options = hookOptions(mainRoot);
   const mainContext = contextOf(runHookEvent('SessionStart', { session_id: 's', cwd: mainRoot, source: 'startup' }, options));
-  assert.match(mainContext, /Worktrees: do each significant change[\s\S]*ai1 worktree create <name>/);
+  assert.match(mainContext, /Worktrees: any change to the files of this repo happens in a worktree, never in the main checkout[\s\S]*create one before the first edit[\s\S]*ai1 worktree create <name>/);
   assert.match(mainContext, /plan and deep tasks are built in their own worktree/);
   assert.doesNotMatch(mainContext, /This session works in/);
   assert.equal(mainContext, contextOf(runHookEvent('SessionStart', { session_id: 's', cwd: mainRoot, source: 'startup' }, options)), 'byte-stable');
