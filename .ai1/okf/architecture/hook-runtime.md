@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T12:10:02Z'
+  at: '2026-11-09T13:25:52Z'
 ---
 
 # Flow
@@ -69,6 +69,7 @@ logged with an error signature and offered to the person as an issue ([issue rep
 | `craft-brief` | SessionStart | craft |
 | `verify-gate` | Stop | verify |
 | `test-guard` | PreToolUse (Edit, Write, MultiEdit, Bash) | verify |
+| `fix-loop` | PostToolUse (Edit, Write, MultiEdit) | verify |
 | `lanes-brief` | SessionStart | lanes |
 | `lanes-approval` | UserPromptSubmit | lanes |
 | `lanes-gate`, `lanes-escalate` | PreToolUse (Edit, Write, MultiEdit, NotebookEdit, Bash) | lanes |

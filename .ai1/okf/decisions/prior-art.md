@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T12:10:02Z'
+  at: '2026-11-09T13:25:52Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -207,9 +207,9 @@ loop as the OKF bundle with upkeep and recall. [Matt Pocock's skills](https://gi
 and `retro` (environment fixes after sessions) - taken as the [retro](../features/retro.md) of the ai1 repo.
 HumanLayer RPI: `research_codebase` -> `create_plan` -> `implement_plan` -> `validate_plan` (check the
 implementation against the plan's criteria). Trail of Bits `differential-review` and `fp-check` (security
-domain; `fp-check` is the "finding verifier" idea). Candidates, not decided: a debugging method skill with
-a fix-attempt counter hook (three sources converge on the same loop), and checking a deep plan against
-`progress.md` and the diff before `status: done`. Left out: strict TDD (3-8.5x tokens, no measured gain),
+domain; `fp-check` is the "finding verifier" idea). Built the same day: the debugging method skill with
+a fix-attempt counter hook (three sources converge on the same loop; [verify feature](../features/verify.md)).
+Still a candidate, not decided: checking a deep plan against `progress.md` and the diff before `status: done`. Left out: strict TDD (3-8.5x tokens, no measured gain),
 autonomous commit/push pipelines (`lfg`).
 
 # Harness and memory projects (2026-11-09)

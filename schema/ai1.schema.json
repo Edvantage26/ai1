@@ -535,6 +535,44 @@
             }
           ]
         },
+        "fix-loop": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "max_failed_attempts": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "default": 3,
+                  "description": "Failed fix attempts in a row (a test still failing after an edit) before the agent is told to stop and go back to the root cause."
+                },
+                "test_commands": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": "Regular expressions for test commands, tested against each simple command; replace the built-in runner list (npm/pnpm/yarn/bun test, node --test, pytest, unittest, jest, vitest, mocha, go/cargo/bun/deno test). Verify commands always count."
+                },
+                "ignore_paths": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": "Globs of files whose edits are not fix attempts (docs, .claude and .ai1 are already left out)."
+                }
+              }
+            }
+          ]
+        },
         "proposals-brief": {
           "oneOf": [
             {

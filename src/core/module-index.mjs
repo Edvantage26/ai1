@@ -26,6 +26,7 @@ export const MODULE_INDEX = [
   { id: 'design-detect', event: 'PostToolUse', feature: 'design', toolNames: ['Edit', 'Write', 'MultiEdit'], modulePath: '../design/design-detect.mjs' },
   { id: 'verify-gate', event: 'Stop', feature: 'verify', modulePath: '../verify/verify-gate.mjs' },
   { id: 'test-guard', event: 'PreToolUse', feature: 'verify', toolNames: ['Edit', 'Write', 'MultiEdit', 'Bash'], modulePath: '../verify/test-guard.mjs' },
+  { id: 'fix-loop', event: 'PostToolUse', feature: 'verify', toolNames: ['Edit', 'Write', 'MultiEdit'], modulePath: '../verify/fix-loop.mjs' },
   { id: 'worktree-brief', event: 'SessionStart', feature: 'worktrees', modulePath: '../worktrees/worktree-brief.mjs' },
   { id: 'worktree-reminder', event: 'UserPromptSubmit', feature: 'worktrees', modulePath: '../worktrees/worktree-reminder.mjs' },
   { id: 'proposals-brief', event: 'SessionStart', feature: 'proposals', modulePath: '../proposals/proposals-brief.mjs' },

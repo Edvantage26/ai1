@@ -5,7 +5,7 @@ description: What a repo chooses in .ai1/config.json; each hook module belongs t
 tags: [features, config]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T12:10:02Z'
+  at: '2026-11-09T13:25:52Z'
 sources:
   - id: features-source
     resource: src/core/features.mjs
@@ -22,7 +22,7 @@ repo switches the single module off with `modules.<id>: false`.
 | `okf` | on | `okf-index` (SessionStart), `okf-claude-md` (SessionStart), `okf-recall` (UserPromptSubmit), `okf-file-context` (PostToolUse Read/Edit/Write/MultiEdit), `okf-upkeep` (Stop) | OKF pack skills and agents, see [okf feature](/features/okf.md) |
 | `danger` | on | `danger` (PreToolUse Bash), `config-guard` and `repo-rules` (PreToolUse Edit/Write/MultiEdit/NotebookEdit/Bash) | `/ai1:danger-write-rule`, see [danger guard](/guards/danger.md), [config-guard](/guards/config-guard.md), [repo-rules](/guards/repo-rules.md) |
 | `craft` | on | `craft-brief` (SessionStart) | see [craft feature](/features/craft.md) |
-| `verify` | on | `verify-gate` (Stop), `test-guard` (PreToolUse Edit/Write/MultiEdit/Bash, see [test-guard](/guards/test-guard.md)) | `ai1 verify`, `ai1 step-done`, see [verify feature](/features/verify.md) |
+| `verify` | on | `verify-gate` (Stop), `test-guard` (PreToolUse Edit/Write/MultiEdit/Bash, see [test-guard](/guards/test-guard.md)), `fix-loop` (PostToolUse Edit/Write/MultiEdit) | `ai1 verify`, `ai1 step-done`, `/ai1:verify-debug-systematically`, see [verify feature](/features/verify.md) |
 | `lanes` | off | `lanes-brief` (SessionStart), `lanes-approval` (UserPromptSubmit), `lanes-gate` and `lanes-escalate` (PreToolUse Edit/Write/Bash) | `/ai1:lanes-design-before-code`, see [lanes feature](/features/lanes.md) |
 | `worktrees` | off | `worktree-brief` (SessionStart), `worktree-reminder` (UserPromptSubmit) | `/ai1:worktrees-plan-recipe`, `ai1 worktree`, see [worktrees feature](/features/worktrees.md) |
 | `proposals` | off | `proposals-brief` (SessionStart), `proposals-recall` (UserPromptSubmit), `proposals-upkeep` (Stop) | `/ai1:proposals-write`, `ai1 proposals`, see [proposals feature](/features/proposals.md) (called `rfc` until v0.17) |

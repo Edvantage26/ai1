@@ -5,7 +5,7 @@ description: Stop gate - the agent cannot finish while code it changed is newer 
 tags: [verify, hooks, evidence, cli]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T09:20:51Z'
+  at: '2026-11-09T13:25:52Z'
 sources:
   - id: verify-gate
     resource: src/verify/verify-gate.mjs
@@ -16,6 +16,12 @@ sources:
   - id: transcript-scan
     resource: src/core/transcript-scan.mjs
     title: Incremental transcript reader
+  - id: fix-loop
+    resource: src/verify/fix-loop.mjs
+    title: Failed fix attempts counter
+  - id: debug-skill
+    resource: skills/verify-debug-systematically/SKILL.md
+    title: /ai1:verify-debug-systematically
 ---
 
 # Why
@@ -30,6 +36,33 @@ it does nothing in a repo without `verify` commands in `.ai1/config.json`.
 
 The gate trusts a passing suite, so [test-guard](../guards/test-guard.md) asks the person before an
 edit or shell command skips, empties, weakens or deletes tests (since 2026-11-09).
+
+# fix-loop (PostToolUse) and /ai1:verify-debug-systematically
+
+Built 2026-11-09. The method skill (from Superpowers `systematic-debugging`, Pocock `diagnosing-bugs`,
+Every `ce-debug`, see [prior art](../decisions/prior-art.md)): find the cause before changing code -
+read the whole error, reproduce, check recent changes, trace the value back; compare with a working
+case; one hypothesis at a time; fix with a test that failed first; red-flag table; wait on conditions,
+not sleeps, for flaky tests; after 3 failed attempts stop and talk to the person. Customizable per
+project and person (`.ai1/skills/verify/overlay.md`: how to reproduce, where logs are).
+
+The 3-attempt rule is counted, because prose rules are lost after a compaction. `fix-loop` reads the
+transcript incrementally (state `<session>-<hash>.fix-loop`) and counts **failed attempts**: a failing
+test run (`didRunFail`) with an edit to project code since that same test command's previous run.
+- Test runs: the verify commands (any form) and known runners in each simple command - npm/pnpm/yarn/bun
+  test, `node --test`, pytest, `python -m unittest`, jest/vitest/mocha, go/cargo/bun/deno test - or
+  `modules.fix-loop.test_commands` (regexes, replacing the runner list).
+- Streaks are per test command text: the first failure is the bug, not an attempt; re-running without
+  an edit does not count; a pass of the same command resets it, a full verify run passing resets all.
+- Edits skip `*.md`, `.claude/**`, `.ai1/**`, the bundle and `ignore_paths`; a redirect inside the
+  test run (`npm test > out.log`) is not an edit.
+- At `max_failed_attempts` (default 3) the next Edit/Write gets one line of context: stop patching, go
+  back to the root cause with the skill and tell the person what was tried. Once more at twice the
+  threshold, then silent until a reset. Context, not a prompt: the person decided (2026-11-09) not to
+  be asked, and headless sessions keep working. Never blocks.
+- Checked with the entry point and a compact transcript (2026-11-09). A transcript written with spaced
+  JSON (`"type": "tool_use"`) is not scanned: the scan filters lines by the compact marker, as Claude
+  Code writes them.
 
 # verify-gate (Stop)
 

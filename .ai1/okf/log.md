@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-11-09
+* **Creation**: `fix-loop` and `/ai1:verify-debug-systematically` in the [verify feature](features/verify.md) — failed fix attempts counted, the agent told to stop after 3 in a row.
 * **Creation**: [retro](features/retro.md) — `ai1-retro`, project skill of the ai1 repo reading every repo's decision log (`ai1 log --all`); the `issue-offer` hook offers ai1's own errors as issues ([issue report](features/issue-report.md)).
 * **Creation**: [config-guard](guards/config-guard.md), [test-guard](guards/test-guard.md), [repo-rules](guards/repo-rules.md), [decision log](architecture/decision-log.md) and the decision [harness guards](decisions/harness-guards.md) — proposals 0002-0006 built in v0.21.0 (plus credential deny rules in [ai1 init](features/init.md)).
 * **Creation**: [issue report](features/issue-report.md) — `/ai1:core-report-issue` and `ai1 issue` (env, url): a problem with ai1 filed on its public repo after the person approves the text.
