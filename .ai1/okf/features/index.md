@@ -9,3 +9,4 @@
 * [proposals](proposals.md) - undecided changes and future features in `.ai1/proposals/`, apart from the bundle until decided, created only on request or acceptance; `/ai1:proposals-write`, `ai1 proposals`.
 * [/ai1:core-setup-repo and the CLI](init.md) - per-repo setup.
 * [session fork](session-fork.md) - `/ai1:session-fork-conversation` and `ai1 fork`: full or brief fork of the conversation, opened natively per host.
+* [issue report](issue-report.md) - `/ai1:core-report-issue` and `ai1 issue`: a problem with ai1 filed on its public repo, cleaned of private data and approved by the person.

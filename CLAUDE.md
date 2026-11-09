@@ -29,5 +29,5 @@ OKF validator in `--strict` mode (`python3 skills/okf-validate-bundle/scripts/ok
 
 - `.claude-plugin/` manifests · `hooks/hooks.json` wiring
 - `bin/ai1-hook.mjs` entry point · `bin/ai1` CLI · `src/core/` runtime · `src/context/`, `src/okf/`, `src/guards/` modules
-- `skills/core-setup-repo/` `/ai1:core-setup-repo` · `skills/worktrees-plan-recipe/` `/ai1:worktrees-plan-recipe` (engine in `src/worktrees/`) · `skills/session-fork-conversation/` + `ai1 fork` (`src/session/`) · `skills/okf-*/` `agents/` `vendor/` OKF toolkit
+- `skills/core-setup-repo/` `/ai1:core-setup-repo` · `skills/core-report-issue/` + `ai1 issue` (`src/cli/issue-command.mjs`) · `skills/worktrees-plan-recipe/` `/ai1:worktrees-plan-recipe` (engine in `src/worktrees/`) · `skills/session-fork-conversation/` + `ai1 fork` (`src/session/`) · `skills/okf-*/` `agents/` `vendor/` OKF toolkit
 - `schema/`, `templates/` the .ai1/config.json contract · `test/` node:test suite

@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-11-09
+* **Creation**: [issue report](features/issue-report.md) — `/ai1:core-report-issue` and `ai1 issue` (env, url): a problem with ai1 filed on its public repo after the person approves the text.
 * **Supersession**: the `rfc` feature is now [proposals](features/proposals.md) (`features/rfc.md` renamed): folder `.ai1/proposals/`, `/ai1:proposals-write`, `ai1 proposals`, modules `proposals-*`; created only on request or acceptance; `ai1 init` migrates the old names. Older entries keep the names of their time.
 
 ## 2026-11-08

@@ -5,7 +5,7 @@ description: What ai1 is, the four pieces of a harness, and what exists today.
 tags: [overview, harness]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T06:17:09Z'
+  at: '2026-11-09T06:59:55Z'
 ---
 
 # What it is
@@ -38,12 +38,12 @@ similar stack, and almost none enforce them. Prior art and what was taken from i
 
 # Status
 
-v0.17.0 (2026-11-09). Per-repo [features](architecture/features.md) chosen with
+v0.18.0 (2026-11-09). Per-repo [features](architecture/features.md) chosen with
 [/ai1:core-setup-repo](features/init.md). On by default: the [okf feature](features/okf.md) (index,
 recall, upkeep and the [OKF toolkit](packs/okf-pack.md)), the [danger guard](guards/danger.md), the
 [craft rules](features/craft.md) and the [verify gate](features/verify.md). Opt-in:
 [lanes](features/lanes.md), [proposals](features/proposals.md), [design](features/design.md) and
-[worktrees](features/worktrees.md). Plus the [session fork](features/session-fork.md) skill and CLI.
+[worktrees](features/worktrees.md). Plus the [session fork](features/session-fork.md) and [issue report](features/issue-report.md) skills and CLI.
 Next steps in the [roadmap](roadmap.md).
 
 # Code map
@@ -52,8 +52,8 @@ Next steps in the [roadmap](roadmap.md).
 - `bin/ai1-hook.mjs`, `src/core/`: hook runtime (see [hook runtime](architecture/hook-runtime.md)).
 - `src/<feature>/`: one folder per feature (`okf`, `guards`, `craft`, `verify`, `lanes`, `proposals`,
   `design`, `worktrees`, `session`, `context` for the brief).
-- `bin/ai1`, `src/cli/`, `skills/core-setup-repo/`: the CLI (`status`, `init`, `verify`, `step-done`,
-  `proposals`, `worktree`, `fork`) and `/ai1:core-setup-repo`.
+- `bin/ai1`, `src/cli/`, `skills/core-setup-repo/`, `skills/core-report-issue/`: the CLI (`status`, `init`, `verify`, `step-done`,
+  `proposals`, `worktree`, `fork`, `issue`), `/ai1:core-setup-repo` and `/ai1:core-report-issue`.
 - `skills/okf-*/`, `agents/`, `vendor/`: OKF toolkit, owned by ai1 (see [OKF toolkit](packs/okf-pack.md)).
 - `schema/ai1.schema.json`, `templates/config.json`: the per-repo contract.
 - `test/`: `npm test` (node:test suite, plus the Python tests of the OKF toolkit in `test/okf-toolkit/`).

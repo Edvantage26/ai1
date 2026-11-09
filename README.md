@@ -19,7 +19,7 @@ Skills are named `/ai1:<module>-<what it does>`, e.g. `/ai1:okf-validate-bundle`
 A repo set up with the old name (`jig`: `.claude/jig.json`, `.okf/`, `docs/rfc/`, `.jig/work/`) is
 moved to `.ai1/` by `/ai1:core-setup-repo`, with `git mv` so history follows.
 
-> **Status: early (v0.17.0).** Per-repo features, the `okf` feature (project knowledge) and the
+> **Status: early (v0.18.0).** Per-repo features, the `okf` feature (project knowledge) and the
 > `danger` guard work, are tested and verified in real sessions. The `lanes`, `design`, `verify`,
 > `proposals` and `worktrees` features are new and tested, not yet tried in live sessions. Everything marked *planned* does not exist yet.
 
@@ -139,8 +139,9 @@ once whether to stop for a plan (`modules.lanes-escalate.max_files` / `max_lines
 | `worktree-reminder`: the active worktrees when they change and every few prompts, marking this session's | worktrees | UserPromptSubmit | works |
 | `/ai1:worktrees-plan-recipe` + `ai1 worktree` (`create`, `list`, `run`, `finish`, `drop`) | worktrees | — | works |
 | Shared read-only caches per dependency version, `writable`, build slots, `WorktreeCreate` hook for heavy repos | worktrees | — | planned |
-| `/ai1:core-setup-repo` + `ai1` CLI (`ai1 status`, `ai1 init`, `ai1 verify`, `ai1 step-done`, `ai1 proposals`, `ai1 worktree`, `ai1 fork`) | — | — | works |
+| `/ai1:core-setup-repo` + `ai1` CLI (`ai1 status`, `ai1 init`, `ai1 verify`, `ai1 step-done`, `ai1 proposals`, `ai1 worktree`, `ai1 fork`, `ai1 issue`) | — | — | works |
 | `/ai1:session-fork-conversation` + `ai1 fork`: a new conversation from this one, `full` (a copy of the whole conversation) or `brief` (only a written handoff), opened natively in Paseo (an agent), VS Code (the extension URI), a terminal or Claude Desktop (the commands to open it). Needs no feature: works in any repo while the plugin is enabled | — | — | works |
+| `/ai1:core-report-issue` + `ai1 issue`: report a problem with ai1 as an issue on this repo; gathers versions and features (`ai1 issue env`), writes a minimal reproduction without private paths, hosts, names or code, checks duplicates and creates it with `gh` (or a prefilled link, `ai1 issue url`) only after you approve the text. Needs no feature | — | — | works |
 | OKF toolkit skills and agents (`skills/okf-*`, `agents/`) | okf | — | works |
 | `prod`: blocks writes to production resources declared in `.ai1/config.json` | prod | PreToolUse | planned |
 | `secrets`: refuses committing secrets | secrets | PreToolUse | planned |
