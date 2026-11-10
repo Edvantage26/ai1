@@ -5,7 +5,7 @@ description: What ai1 is, the four pieces of a harness, and what exists today.
 tags: [overview, harness]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T21:15:31Z'
+  at: '2026-11-10T16:16:21Z'
 ---
 
 # What it is
@@ -38,7 +38,7 @@ similar stack, and almost none enforce them. Prior art and what was taken from i
 
 # Status
 
-v0.28.0 (2026-11-09). Per-repo [features](architecture/features.md) chosen with
+v0.29.0 (2026-11-10). Per-repo [features](architecture/features.md) chosen with
 [/ai1:core-setup-repo](features/init.md). On by default: the [okf feature](features/okf.md) (index, CLAUDE.md drift hint,
 recall, upkeep and the [OKF toolkit](packs/okf-pack.md)), the [danger guard](guards/danger.md), the
 [craft rules](features/craft.md) and the [verify gate](features/verify.md); with them, the
@@ -49,6 +49,7 @@ recall, upkeep and the [OKF toolkit](packs/okf-pack.md)), the [danger guard](gua
 Any customizable skill takes project and personal overlays ([skill customization](architecture/skill-customization.md)).
 After 3 failed fix attempts in a row the agent is told to stop and find the root cause ([verify feature](features/verify.md)).
 Since v0.28.0 [test-guard](guards/test-guard.md) also asks before a check's config (lint, format, types) is changed, and `tool-loop` nudges the agent after 5 identical tool calls ([verify feature](features/verify.md)).
+Since v0.29.0 `worktree-recipe-offer` asks once at stop to offer the worktree recipe when a repo without one had files changed in its main checkout ([worktrees feature](features/worktrees.md)).
 The feature for undecided changes is called [later](features/later.md) since v0.25.0 (was `proposals`).
 When ai1 itself fails, the agent offers to report it (or reports it, per `AI1_REPORT_ERRORS`; [issue report](features/issue-report.md)).
 Next steps in the [roadmap](roadmap.md).
