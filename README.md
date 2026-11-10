@@ -19,7 +19,7 @@ Skills are named `/ai1:<module>-<what it does>`, e.g. `/ai1:okf-validate-bundle`
 A repo set up with the old name (`jig`: `.claude/jig.json`, `.okf/`, `docs/rfc/`, `.jig/work/`) is
 moved to `.ai1/` by `/ai1:core-setup-repo`, with `git mv` so history follows.
 
-> **Status: early (v0.29.0).** Per-repo features, the `okf` feature (project knowledge) and the
+> **Status: early (v0.29.1).** Per-repo features, the `okf` feature (project knowledge) and the
 > `danger` guard work, are tested and verified in real sessions. The `lanes`, `design`, `verify`,
 > `later` and `worktrees` features, and the `config-guard`, `repo-rules` and `test-guard` modules,
 > are new and tested, not yet tried in live sessions. Everything marked *planned* does not exist yet.
