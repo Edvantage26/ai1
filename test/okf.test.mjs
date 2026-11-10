@@ -674,6 +674,16 @@ test('discarded attempt: a file edited and then restored asks once to record why
   assert.equal(stopSession(projectRoot, options, { transcript_path: transcriptPath }), null, 'the same files are not asked twice');
 });
 
+test('discarded attempt: edits stamped before the session base (ai1 set up midway through the session) are not asked about', () => {
+  const projectRoot = createRepoWithBundle();
+  const options = hookOptions();
+  startSession(projectRoot, options);
+  const transcriptPath = join(options.homeDirectory, 'transcript.jsonl');
+  const editBeforeSetup = { type: 'assistant', timestamp: '2026-11-07T21:11:22.383Z', message: { content: [{ type: 'tool_use', id: 'tool-0', name: 'Edit', input: { file_path: join(projectRoot, 'src', 'app.py'), old_string: 'print(1)', new_string: 'print(2)' } }] } };
+  writeFileSync(transcriptPath, `${JSON.stringify(editBeforeSetup)}\n`);
+  assert.equal(stopSession(projectRoot, options, { transcript_path: transcriptPath }), null);
+});
+
 test('discarded attempt: a change still in the diff gets the usual reminder instead', () => {
   const projectRoot = createRepoWithBundle();
   const options = hookOptions();

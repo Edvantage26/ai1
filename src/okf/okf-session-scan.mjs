@@ -54,9 +54,12 @@ export function shellCommandWritesBundle(commandLine, bundleRelativePath = KNOWL
 //   - `writeWindows`: when a call that may change files was running (core/session-writes; the
 //     repo's verify commands count as read-only).
 // Returns null when the transcript is not available.
-export function scanSessionTranscript(transcriptPath, { memoryDirectories, bundleRelativePath, verifyCommands = [], projectRoot }, scanState = { offset: 0, paths: [], investigationCalls: 0 }) {
+// `sinceMilliseconds`: events stamped before it are skipped - the session base, so a session where ai1
+// became active midway (installed or set up while it ran) is not judged on edits committed before.
+export function scanSessionTranscript(transcriptPath, { memoryDirectories, bundleRelativePath, verifyCommands = [], projectRoot, sinceMilliseconds = 0 }, scanState = { offset: 0, paths: [], investigationCalls: 0 }) {
   const newTranscript = readNewTranscriptEvents(transcriptPath, scanState, [TOOL_USE_MARKER, TOOL_RESULT_MARKER]);
   if (!newTranscript) return null;
+  newTranscript.events = newTranscript.events.filter((transcriptEvent) => !(Date.parse(transcriptEvent?.timestamp) < sinceMilliseconds));
   const writtenMemoryPaths = new Set(newTranscript.restarted ? [] : scanState.paths || []);
   const editedFilePaths = new Set(newTranscript.restarted ? [] : scanState.editedPaths || []);
   let investigationCalls = newTranscript.restarted ? 0 : scanState.investigationCalls || 0;

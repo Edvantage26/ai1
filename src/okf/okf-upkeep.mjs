@@ -221,7 +221,7 @@ export default {
     const memoryDirectories = memoryDirectoriesFor([hookInput.cwd, projectRoot], homeDirectory);
     const scanStatePath = sessionStatePath(stateDirectory, hookInput.session_id, projectRoot, 'memory-scan');
     const scanState = loadScanState(scanStatePath);
-    const transcriptScan = scanSessionTranscript(hookInput.transcript_path, { memoryDirectories, bundleRelativePath, verifyCommands: config.verify || [], projectRoot }, scanState);
+    const transcriptScan = scanSessionTranscript(hookInput.transcript_path, { memoryDirectories, bundleRelativePath, verifyCommands: config.verify || [], projectRoot, sinceMilliseconds: sessionStartMilliseconds }, scanState);
     if (transcriptScan) writeStateText(scanStatePath, JSON.stringify(scanState));
 
     // Only files changed after the session started, and only inside one of its write windows (a call

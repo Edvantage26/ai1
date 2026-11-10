@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index and bundle health notes 
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T13:53:57Z'
+  at: '2026-11-10T16:45:32Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -169,6 +169,10 @@ sources:
   them, and the agent is asked to record what was tried and why it was dropped, or to say in one line
   that the edit was trivial. Once per set of files, at most 3 per session; it comes before the
   investigation reminder and resets its count.
+  Since 2026-11-10 the transcript scan skips events stamped before the session base: in a session where
+  ai1 became active midway (set up while it ran, first base recorded at a later stop) the whole
+  transcript was read from its start, and edits committed days before showed as undone (a long session
+  of a real repo got a dozen `app/*.py` files listed).
 - **Validation gate (Stop, same module):** when the bundle was changed in the session, the hook
   runs the bundled validator itself (`python3 skills/okf-validate-bundle/scripts/okf_validate.py --json`, ~0.2 s on a
   45-concept bundle) and blocks only on ERRORS, listing them; warnings (e.g. v0.1 legacy) never
