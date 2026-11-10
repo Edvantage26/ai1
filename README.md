@@ -176,6 +176,7 @@ others or are deterministic (`core-report-issue`, `okf-validate-bundle`, `danger
 | `/ai1:later-write`: note down, resume, accept or reject a later entry and carry its decisions to the bundle | later | — | works |
 | `worktree-brief`: worktree rules at session start, or a pointer to `/ai1:worktrees-plan-recipe` when the repo has no recipe; names the worktree the session is in | worktrees | SessionStart | works |
 | `worktree-reminder`: the active worktrees when they change and every few prompts, marking this session's | worktrees | UserPromptSubmit | works |
+| `worktree-recipe-offer`: when the repo has no recipe and the session changed files in the main checkout (shell edits too), asks once to offer `/ai1:worktrees-plan-recipe` | worktrees | Stop | works |
 | `/ai1:worktrees-plan-recipe` + `ai1 worktree` (`create`, `list`, `run`, `finish`, `drop`) | worktrees | — | works |
 | Shared read-only caches per dependency version, `writable`, build slots, `WorktreeCreate` hook for heavy repos | worktrees | — | planned |
 | `/ai1:core-setup-repo` + `ai1` CLI (`ai1 status`, `ai1 init`, `ai1 verify`, `ai1 step-done`, `ai1 plan-done`, `ai1 later`, `ai1 worktree`, `ai1 fork`, `ai1 issue`, `ai1 claude-md`, `ai1 log`, `ai1 skill-context`) | — | — | works |
