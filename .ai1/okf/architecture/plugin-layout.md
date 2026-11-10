@@ -5,7 +5,7 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T16:54:04Z'
+  at: '2026-11-10T16:35:17Z'
 ---
 
 # Layout
@@ -59,6 +59,13 @@ and `.ai1/rfc/` of ai1 before v0.18.0 or `.ai1/proposals/` before v0.25.0 (renam
 - Per user: `/plugin marketplace add Edvantage26/ai1` then `/plugin install ai1@ai1`.
 - Per project (offered to whoever clones): commit `extraKnownMarketplaces` (github source
   `Edvantage26/ai1`) and `enabledPlugins: {"ai1@ai1": true}` in the project's `.claude/settings.json`.
+- One install per machine is enough: a user-scope install serves every repo whose committed settings
+  enable the plugin; a project-scope install next to it is a second copy that can fall behind.
+- Updates are not automatic for a third-party marketplace: `autoUpdate: true` under
+  `extraKnownMarketplaces.ai1` works only in **user** settings (Claude Code ignores it in project or local
+  settings and copies it to `known_marketplaces.json` at session start); otherwise `claude plugin update`.
+- `claude plugin uninstall ai1@ai1 --scope project` also empties `enabledPlugins` in the repo's committed
+  `.claude/settings.json`: restore that file (`git checkout -- .claude/settings.json`) afterwards.
 
 # Versioning
 
