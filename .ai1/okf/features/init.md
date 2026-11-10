@@ -5,7 +5,7 @@ description: Sets up ai1 in a repo - asks the features, writes .ai1/config.json 
 tags: [init, cli, setup]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T13:24:58Z'
+  at: '2026-11-10T15:53:35Z'
 sources:
   - id: setup-repo
     resource: src/cli/setup-repo.mjs
@@ -87,3 +87,17 @@ sources:
   the worktree recipe (`/ai1:worktrees-plan-recipe`) when missing, the bundle
   (`/ai1:okf-maintain-knowledge`) when there is none, `/ai1:okf-tidy-claude-md` when there is one and
   `ai1 claude-md` reports findings, the Product and DesignSystem concepts for design. Then tells the person to commit and restart. It never commits.
+
+# Rolling ai1 out to repos with work in progress (2026-11-10, 11 repos)
+
+- `git mv` keeps the person's uncommitted edits of a moved `.okf/` file in the working tree. To commit
+  only the move, stage the HEAD blob at the new path (`git rev-parse HEAD:.okf/<f>`, then
+  `git update-index --cacheinfo 100644,<blob>,.ai1/okf/<f>`) and leave the edit unstaged.
+- Stage only ai1 paths (`.ai1`, `.claude/settings.json`, `.gitignore`, the updated docs), never `-A`
+  on the repo; a shared file the person already changed (`.gitignore`) stays out.
+- The "still mention old paths" list covers markdown at the root or one level down and `.claude/`:
+  grep deeper (`infra/*/README.md`, `.paseo/jobs/`) for `.okf/` too.
+- A repo where `ai1 init` ran but nothing was committed reports no migration in `ai1 status`
+  (the moves sit in the index): check `git status` before re-running.
+- Check afterwards: no `.okf/` left, the OKF validator on `.ai1/okf`, `git status` holds only the
+  person's own edits.
