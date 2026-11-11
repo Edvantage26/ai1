@@ -5,7 +5,7 @@ description: Work lanes by task size - quick, plan or deep - with a plan file fo
 tags: [lanes, workflow, hooks, skills, approval]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-11T06:58:57Z'
+  at: '2026-11-11T07:10:29Z'
 sources:
   - id: lanes-work
     resource: src/lanes/lanes-work.mjs
@@ -53,13 +53,16 @@ gate is a hook block; plans live in a local ignored folder.
   never decides. Risky areas that send a task to deep: auth, data or irreversible effects, money,
   migrations, a public API or contract others use, concurrency, deploy or environment, and code no
   test would catch breaking.
-- **plan**: read the code, write the plan to `.ai1/work/<slug>/plan.md` with frontmatter `lane: plan`,
-  `status: active` and `title` (goal, steps as `- [ ]` checkboxes, how it is verified), say it in a few lines
-  and start without waiting for a yes; tick steps as they finish and close with `ai1 plan-done <slug>`
+- **plan**: read the code, say the plan in a few lines and start without waiting for a yes. Only when it
+  has more than about 3 steps or may not finish in one go, also write it to `.ai1/work/<slug>/plan.md`
+  with frontmatter `lane: plan`, `status: active` and `title` (goal, steps as `- [ ]` checkboxes, how it
+  is verified); tick steps as they finish and close with `ai1 plan-done <slug>`
   (verify green, no approval). Until 2026-11-09 it waited for a yes (approving plans and their
   adjustments was 38 of the questions counted that week); until 2026-11-11 it lived only in the
   conversation, so a compaction lost it. The file, taken from superpowers' living plan doc at the
   person's request, is what compaction restores; it is not gated and `lanes-approval` ignores it.
+  Conditional (decided with the person on 2026-11-11): most plan tasks end before any compaction, and a
+  file on every one would be the ceremony the prior-art review warns against.
 - **deep**: `/ai1:lanes-design-before-code` skill - look before asking, one question at a time, design in
   `.ai1/work/<slug>/plan.md` (the request word for word with later corrections, goal, constraints, approaches with the choice, steps with checks,
   risks, rulings), one builder-check subagent, approval, then step by step; a task that builds an accepted [later](later.md) entry carries `later: <number>` in the plan frontmatter; each step closed with `ai1 step-done`, which logs it in `progress.md` only when
