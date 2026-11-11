@@ -16,7 +16,7 @@ export const SKILL_CUSTOMIZATION_INDEX = {
   'okf-visualize-bundle': { customizable: true, scopes: PROJECT_AND_USER },
   'verify-debug-systematically': { customizable: true, scopes: PROJECT_AND_USER },
   'verify-evaluate-llm-prompts': { customizable: true, scopes: PROJECT_AND_USER },
-  'walkthrough-record-flow': { customizable: true, scopes: PROJECT_AND_USER },
+  'storyboard-record-flow': { customizable: true, scopes: PROJECT_AND_USER },
   'core-setup-repo': { customizable: true, scopes: ['user'] },
   'okf-backfill-from-history': { customizable: false, reason: 'its subagents do not receive what is injected into the skill' },
   'core-report-issue': { customizable: false, reason: 'its privacy guarantee for a public issue lives only in the skill text' },

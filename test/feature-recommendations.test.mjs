@@ -33,7 +33,7 @@ test('a small frontend repo: design and verify on, sizing off, worktrees asked',
   const { recommendations, verifyCommands } = recommendFeatures(repoRoot, { hasKnowledgeBundle: false });
   assert.deepEqual(verifyCommands, ['pnpm test']);
   assert.equal(recommendations.design.recommended, true);
-  assert.equal(recommendations.walkthrough.recommended, true);
+  assert.equal(recommendations.storyboard.recommended, true);
   assert.ok(recommendations.design.evidence.includes('package.json depends on react'));
   assert.equal(recommendations.sizing.recommended, false);
   assert.equal(recommendations.worktrees.recommended, null, 'nothing says how many sessions run at once: ask');
@@ -58,7 +58,7 @@ test('a backend repo with migrations and decision records: sizing and later on, 
 
 test('an empty repo: only the always-useful features, verify off until there are tests', () => {
   assert.deepEqual(recommendedIn(createRepoWithFiles({ 'README.md': 'x\n' })), {
-    okf: true, danger: true, craft: true, sizing: false, worktrees: null, later: false, design: false, walkthrough: false, verify: false,
+    okf: true, danger: true, craft: true, sizing: false, worktrees: null, later: false, design: false, storyboard: false, verify: false,
   });
 });
 

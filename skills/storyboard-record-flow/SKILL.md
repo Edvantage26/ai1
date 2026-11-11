@@ -1,13 +1,13 @@
 ---
-name: walkthrough-record-flow
+name: storyboard-record-flow
 description: >-
-  Walkthrough — Record the user flow of a visual change as a storyboard the person reviews without
+  Storyboard — Record the user flow of a visual change as a storyboard the person reviews without
   running the app: numbered steps in the user's words, desktop and mobile screenshots with what is
   clicked highlighted, before vs after, an HTML served at a local URL and a PDF, kept in
-  .ai1/walkthroughs/. Use after changing UI (screens, forms, navigation, styles) and checking it in a
-  browser, when ai1/walkthrough-reminder asks for it, or when the person says "enséñame el flujo",
+  .ai1/storyboards/. Use after changing UI (screens, forms, navigation, styles) and checking it in a
+  browser, when ai1/storyboard-reminder asks for it, or when the person says "enséñame el flujo",
   "haz capturas del flujo", "quiero ver cómo queda", "documenta el flujo visualmente", "show me the
-  flow", "record a walkthrough", "before and after screenshots".
+  flow", "record a storyboard", "record a walkthrough", "before and after screenshots".
 allowed-tools: Bash("${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context *)
 ---
 
@@ -16,7 +16,7 @@ allowed-tools: Bash("${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context *)
 **Goal:** the person validates how the *user* sees the flow (what appears, what to click, what
 changed), not that the code works. Tests cover that; this is the view of a person using the app.
 ai1 does not drive the browser: capture with the browser tool you have (Playwright MCP or another),
-then hand each image to `ai1 walkthrough`.
+then hand each image to `ai1 storyboard`.
 
 ## 1. Decide the flow
 
@@ -34,7 +34,7 @@ then hand each image to `ai1 walkthrough`.
   2. Frame what the user clicks or looks at: evaluate `scripts/highlight.js` from this skill on the
      element, with `__LABEL__` replaced by "<step> · <what>". Skip it for steps that only show a result.
   3. Take the screenshot (viewport, not full page, unless the step is about scrolling).
-  4. `ai1 walkthrough add --step "<caption>" --image <file> --viewport desktop|mobile [--id <id>] [--detail "<one line>"]`
+  4. `ai1 storyboard add --step "<caption>" --image <file> --viewport desktop|mobile [--id <id>] [--detail "<one line>"]`
      (the first add may set `--title "<flow name>"` and `--base <base branch>`).
 - Look at every screenshot yourself before going on. A broken layout, an error, a spinner or a cut
   dialog is a finding: fix it (or tell the person) and capture again; never leave it in the storyboard.
@@ -44,7 +44,7 @@ then hand each image to `ai1 walkthrough`.
 When the change modifies an existing flow, capture the same steps on the base:
 
 - With worktrees: `ai1 worktree create <name>-before --base <base>`, set it up and run the app there
-  (its own port), then `ai1 walkthrough add ... --variant before` from inside it, reusing the step ids;
+  (its own port), then `ai1 storyboard add ... --variant before` from inside it, reusing the step ids;
   its captures land in `<name>`'s storyboard. Drop it afterwards: `ai1 worktree drop <name>-before --confirm`.
 - Without worktrees: use the main checkout only if it still runs the base; otherwise skip "before" and
   say so in one line.
@@ -52,11 +52,11 @@ When the change modifies an existing flow, capture the same steps on the base:
 
 ## 4. Build and show it
 
-- `ai1 walkthrough build --pdf`. If no Chrome is found, print `index.html` to `walkthrough.pdf` in the
+- `ai1 storyboard build --pdf`. If no Chrome is found, print `index.html` to `storyboard.pdf` in the
   same folder with your browser tool (print media; the page has one step per page).
-- `ai1 walkthrough serve` and give the person, in two or three lines: the URL, the PDF path, and what
+- `ai1 storyboard serve` and give the person, in two or three lines: the URL, the PDF path, and what
   to look at ("pasos 2 y 4 cambian; el 5 es nuevo").
-- The storyboard stays in `.ai1/walkthroughs/<slug>/` (git-ignored). If that folder is linked
+- The storyboard stays in `.ai1/storyboards/<slug>/` (git-ignored). If that folder is linked
   elsewhere by the person's own tooling, it already ended up there.
 
 ## 5. Publish (only if a customization asks for it)
@@ -69,18 +69,18 @@ URL, the PDF and the folder are the result.
 ## 6. When the change closes
 
 `ai1 worktree finish|drop` stops the server and deletes the screenshots `add` copied from (only
-unchanged, untracked images). Without a worktree, run `ai1 walkthrough clean` and
-`ai1 walkthrough stop` yourself once the change is done.
+unchanged, untracked images). Without a worktree, run `ai1 storyboard clean` and
+`ai1 storyboard stop` yourself once the change is done.
 
 ## Fixed rules
 
 - Never publish anywhere outside the repo without the person's yes in this conversation.
-- Never commit screenshots or storyboards; they live in `.ai1/walkthroughs/` (git-ignored).
+- Never commit screenshots or storyboards; they live in `.ai1/storyboards/` (git-ignored).
 - Captions describe what the user does and sees, never the code.
 - Never put a screenshot that shows an error or a broken screen in the storyboard as if it were fine.
 
 ## Customization
 
-This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context walkthrough-record-flow` and apply what it prints.
+This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context storyboard-record-flow` and apply what it prints.
 
-!`"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context walkthrough-record-flow`
+!`"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context storyboard-record-flow`

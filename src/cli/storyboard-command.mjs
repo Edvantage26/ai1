@@ -1,20 +1,20 @@
-// `ai1 walkthrough ...`: the storyboard of a visual change (see .ai1/okf/features/walkthrough.md).
+// `ai1 storyboard ...`: the storyboard of a visual change (see .ai1/okf/features/storyboard.md).
 //   add --step "<caption>" --image <file> [--variant before|after] [--viewport desktop|mobile] [--detail ...] [--id ...] [--title ...] [--base ...]
-//   build [--pdf]                index.html + SUMMARY.md (+ walkthrough.pdf)
+//   build [--pdf]                index.html + SUMMARY.md (+ storyboard.pdf)
 //   serve [--host <h>] [--port <n>] [--ttl <hours>] | stop | list
 //   clean                        delete the screenshots `add` copied from (worktree finish/drop do it too)
 // Every subcommand takes --slug <name>; without it the slug is the worktree or the only open plan.
 
 import { findMainCheckout } from '../core/project-roots.mjs';
-import { addCapture, cleanResidualScreenshots, resolveStoryboardSlug, storyboardDirectory } from '../walkthrough/walkthrough-storyboard.mjs';
-import { buildStoryboard } from '../walkthrough/walkthrough-build.mjs';
-import { printStoryboardPdf } from '../walkthrough/walkthrough-pdf.mjs';
-import { listStoryboards, serveStoryboard, stopStoryboardServer } from '../walkthrough/walkthrough-serve.mjs';
+import { addCapture, cleanResidualScreenshots, resolveStoryboardSlug, storyboardDirectory } from '../storyboard/storyboard-steps.mjs';
+import { buildStoryboard } from '../storyboard/storyboard-build.mjs';
+import { printStoryboardPdf } from '../storyboard/storyboard-pdf.mjs';
+import { listStoryboards, serveStoryboard, stopStoryboardServer } from '../storyboard/storyboard-serve.mjs';
 
-export const WALKTHROUGH_USAGE = 'ai1 walkthrough add --step "<caption>" --image <file> [--variant before|after] [--viewport desktop|mobile] [--detail "..."] [--id <step-id>] [--title "..."] [--base <branch>] | build [--pdf] | serve [--host <host>] [--port <n>] [--ttl <hours>] | stop | list | clean  (all take --slug <name>)';
+export const STORYBOARD_USAGE = 'ai1 storyboard add --step "<caption>" --image <file> [--variant before|after] [--viewport desktop|mobile] [--detail "..."] [--id <step-id>] [--title "..."] [--base <branch>] | build [--pdf] | serve [--host <host>] [--port <n>] [--ttl <hours>] | stop | list | clean  (all take --slug <name>)';
 
 // Prints the result and returns the exit code.
-export function runWalkthroughCommand(treeRoot, commandArguments, { readOption }) {
+export function runStoryboardCommand(treeRoot, commandArguments, { readOption }) {
   const [subcommandName] = commandArguments;
   const mainRoot = findMainCheckout(treeRoot);
   const resolveStoryboard = () => {
@@ -41,14 +41,14 @@ export function runWalkthroughCommand(treeRoot, commandArguments, { readOption }
     if (commandArguments.includes('--pdf')) {
       const printResult = printStoryboardPdf(storyboardPath, buildResult.htmlPath);
       if (printResult.pdfPath) console.log(`pdf: ${printResult.pdfPath}`);
-      else console.log(`pdf not written: ${printResult.error}. Print ${buildResult.htmlPath} to ${storyboardPath}/walkthrough.pdf with your browser tool (print media, one step per page).`);
+      else console.log(`pdf not written: ${printResult.error}. Print ${buildResult.htmlPath} to ${storyboardPath}/storyboard.pdf with your browser tool (print media, one step per page).`);
     }
     return 0;
   }
   if (subcommandName === 'serve') {
     const { slug } = resolveStoryboard();
     const { serverInfo, alreadyRunning } = serveStoryboard(mainRoot, slug, { host: readOption('--host'), port: readOption('--port'), ttlHours: readOption('--ttl') });
-    console.log(`${alreadyRunning ? 'already serving' : 'serving'} ${slug} at ${serverInfo.url} (until ${serverInfo.expires_at}, or \`ai1 walkthrough stop\`, or when its worktree is finished or dropped)`);
+    console.log(`${alreadyRunning ? 'already serving' : 'serving'} ${slug} at ${serverInfo.url} (until ${serverInfo.expires_at}, or \`ai1 storyboard stop\`, or when its worktree is finished or dropped)`);
     return 0;
   }
   if (subcommandName === 'stop') {
@@ -71,6 +71,6 @@ export function runWalkthroughCommand(treeRoot, commandArguments, { readOption }
       : 'no storyboards in this repo');
     return 0;
   }
-  console.log(`usage: ${WALKTHROUGH_USAGE}`);
+  console.log(`usage: ${STORYBOARD_USAGE}`);
   return 1;
 }

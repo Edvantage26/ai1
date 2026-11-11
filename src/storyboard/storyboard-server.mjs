@@ -1,7 +1,7 @@
-// The storyboard server, started detached by `ai1 walkthrough serve`:
-//   node walkthrough-server.mjs <storyboard folder> <port> <host> <ttl milliseconds>
+// The storyboard server, started detached by `ai1 storyboard serve`:
+//   node storyboard-server.mjs <storyboard folder> <port> <host> <ttl milliseconds>
 // Serves only the files inside the folder, writes server.json once it listens, and removes it when it
-// stops (SIGTERM from `ai1 walkthrough stop` or a finished worktree, or the TTL running out).
+// stops (SIGTERM from `ai1 storyboard stop` or a finished worktree, or the TTL running out).
 
 import { createServer } from 'node:http';
 import { existsSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';

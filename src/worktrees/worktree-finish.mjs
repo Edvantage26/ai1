@@ -19,7 +19,7 @@ import {
 } from './worktree-ops.mjs';
 import { recordIntegration } from './worktree-integrations.mjs';
 import { verifyCommandsRunBy } from '../verify/verify-gate.mjs';
-import { closeStoryboard } from '../walkthrough/walkthrough-serve.mjs';
+import { closeStoryboard } from '../storyboard/storyboard-serve.mjs';
 
 const HARNESS_PATHS = new Set(['.claude/settings.json', '.claude/settings.local.json', '.ai1/config.json']);
 

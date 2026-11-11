@@ -1,11 +1,11 @@
-// `ai1 walkthrough build`: the storyboard as one self-contained `index.html` (images inlined, no
+// `ai1 storyboard build`: the storyboard as one self-contained `index.html` (images inlined, no
 // network; slides with the arrow keys or a strip; before/after side by side; a print stylesheet with
 // one step per page, which the PDF uses) and `SUMMARY.md` (steps as text with relative image links:
 // the light input any publisher can take).
 
 import { statSync, writeFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
-import { readStoryboard, readImageBytes, stepChange, storyboardHasBefore, VIEWPORTS } from './walkthrough-storyboard.mjs';
+import { readStoryboard, readImageBytes, stepChange, storyboardHasBefore, VIEWPORTS } from './storyboard-steps.mjs';
 
 export const HTML_FILE_NAME = 'index.html';
 export const SUMMARY_FILE_NAME = 'SUMMARY.md';
@@ -96,7 +96,7 @@ export function renderStoryboardHtml(storyboardPath, storyboard) {
   const metaText = [`${storyboard.steps.length} steps`, hasBefore ? `before/after${storyboard.base ? ` vs ${storyboard.base}` : ''}` : null].filter(Boolean).join(' · ');
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escapeHtml(storyboard.title)} - walkthrough</title><style>${STORYBOARD_STYLE}</style></head>
+<title>${escapeHtml(storyboard.title)} - storyboard</title><style>${STORYBOARD_STYLE}</style></head>
 <body><div class="top"><h1>${escapeHtml(storyboard.title)}</h1><span class="meta">${escapeHtml(metaText)}</span>
 <div class="pager"><button id="prev" aria-label="Previous step">&larr;</button><span id="pager-label" class="meta"></span><button id="next" aria-label="Next step">&rarr;</button></div>
 <button id="mode-slides" aria-pressed="true">Slides</button><button id="mode-strip" aria-pressed="false">Strip</button></div>
@@ -121,7 +121,7 @@ export function renderStoryboardSummary(storyboard) {
 // Writes index.html and SUMMARY.md; returns their paths and a warning when the HTML is heavy.
 export function buildStoryboard(storyboardPath) {
   const storyboard = readStoryboard(storyboardPath);
-  if (!storyboard?.steps?.length) throw new Error(`no steps in ${storyboardPath}: add them first with \`ai1 walkthrough add\``);
+  if (!storyboard?.steps?.length) throw new Error(`no steps in ${storyboardPath}: add them first with \`ai1 storyboard add\``);
   const htmlPath = join(storyboardPath, HTML_FILE_NAME);
   const summaryPath = join(storyboardPath, SUMMARY_FILE_NAME);
   writeFileSync(htmlPath, renderStoryboardHtml(storyboardPath, storyboard));

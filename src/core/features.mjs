@@ -46,9 +46,9 @@ export const FEATURES = [
     enabledByDefault: false,
   },
   {
-    id: 'walkthrough',
-    title: 'Visual walkthrough of the user flow',
-    description: 'For repos with a frontend. After a visual change, the agent records the user flow as numbered steps (what the user does, desktop and mobile screenshots, before and after) and builds a storyboard the person reviews without running the app: an HTML served at a local URL, a PDF, and a copy to the folder the person chose (local by default, or a synced cloud folder). Reminds once at stop when UI files changed without a storyboard. Skill /ai1:walkthrough-record-flow; `ai1 walkthrough`.',
+    id: 'storyboard',
+    title: 'Visual storyboard of the user flow',
+    description: 'For repos with a frontend. After a visual change, the agent records the user flow as numbered steps (what the user does, desktop and mobile screenshots, before and after) and builds a storyboard the person reviews without running the app: an HTML served at a local URL, a PDF, and a copy to the folder the person chose (local by default, or a synced cloud folder). Reminds once at stop when UI files changed without a storyboard. Skill /ai1:storyboard-record-flow; `ai1 storyboard`.',
     enabledByDefault: false,
   },
   {

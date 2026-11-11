@@ -1,4 +1,4 @@
-// Starts, finds and stops the storyboard server of a slug (`ai1 walkthrough serve|stop|list`, and
+// Starts, finds and stops the storyboard server of a slug (`ai1 storyboard serve|stop|list`, and
 // `ai1 worktree finish|drop`, which release the URL of the worktree's storyboard). The record is
 // `server.json` in the storyboard folder; a record whose process is gone or no longer listens is
 // stale and removed.
@@ -7,18 +7,18 @@ import { spawn } from 'node:child_process';
 import { existsSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { WALKTHROUGHS_DIRECTORY } from '../core/config.mjs';
+import { STORYBOARDS_DIRECTORY } from '../core/config.mjs';
 import { readJsonFileIfValid } from '../core/json-file.mjs';
 import { readGitDirectories } from '../core/project-roots.mjs';
 import { listListeningPorts, pickWorktreePort, DEFAULT_PORT_RANGE } from '../worktrees/worktree-ports.mjs';
 import { listWorktreeStates } from '../worktrees/worktree-state.mjs';
-import { cleanResidualScreenshots, readStoryboard, storyboardDirectory } from './walkthrough-storyboard.mjs';
-import { HTML_FILE_NAME } from './walkthrough-build.mjs';
+import { cleanResidualScreenshots, readStoryboard, storyboardDirectory } from './storyboard-steps.mjs';
+import { HTML_FILE_NAME } from './storyboard-build.mjs';
 
 export const SERVER_INFO_FILE_NAME = 'server.json';
 export const DEFAULT_SERVER_HOST = '127.0.0.1';
 export const DEFAULT_SERVER_TTL_HOURS = 8;
-const SERVER_SCRIPT_PATH = fileURLToPath(new URL('./walkthrough-server.mjs', import.meta.url));
+const SERVER_SCRIPT_PATH = fileURLToPath(new URL('./storyboard-server.mjs', import.meta.url));
 const SERVER_START_TIMEOUT_MILLISECONDS = 5000;
 const SERVER_POLL_MILLISECONDS = 50;
 
@@ -55,11 +55,11 @@ export function serveStoryboard(mainRoot, slug, { host, port, ttlHours } = {}) {
   host ??= DEFAULT_SERVER_HOST;
   ttlHours ??= DEFAULT_SERVER_TTL_HOURS;
   const storyboardPath = storyboardDirectory(mainRoot, slug);
-  if (!existsSync(join(storyboardPath, HTML_FILE_NAME))) throw new Error(`no storyboard built for "${slug}": run \`ai1 walkthrough build\` first`);
+  if (!existsSync(join(storyboardPath, HTML_FILE_NAME))) throw new Error(`no storyboard built for "${slug}": run \`ai1 storyboard build\` first`);
   const listeningPorts = listListeningPorts();
   const runningServer = readLiveServer(storyboardPath, listeningPorts);
   if (runningServer) return { serverInfo: runningServer, alreadyRunning: true };
-  const chosenPort = port ? Number(port) : pickWorktreePort(`walkthrough:${slug}`, DEFAULT_PORT_RANGE, takenPorts(mainRoot, listeningPorts));
+  const chosenPort = port ? Number(port) : pickWorktreePort(`storyboard:${slug}`, DEFAULT_PORT_RANGE, takenPorts(mainRoot, listeningPorts));
   const ttlMilliseconds = Math.round(Number(ttlHours) * 3600 * 1000);
   if (!Number.isInteger(chosenPort) || !(ttlMilliseconds > 0)) throw new Error('--port must be a number and --ttl a positive number of hours');
   const serverProcess = spawn(process.execPath, [SERVER_SCRIPT_PATH, storyboardPath, String(chosenPort), host, String(ttlMilliseconds)], { detached: true, stdio: 'ignore' });
@@ -95,15 +95,15 @@ export function closeStoryboard(mainRoot, slug) {
     releasedUrl ? `storyboard server stopped (${releasedUrl})` : null,
     deleted.length ? `${deleted.length} residual screenshot(s) deleted` : null,
   ].filter(Boolean);
-  return closeParts.length ? `${closeParts.join(', ')}; the storyboard stays in ${WALKTHROUGHS_DIRECTORY}/${slug}/` : null;
+  return closeParts.length ? `${closeParts.join(', ')}; the storyboard stays in ${STORYBOARDS_DIRECTORY}/${slug}/` : null;
 }
 
 // Every storyboard in the repo: { slug, steps, built, url }.
 export function listStoryboards(mainRoot) {
-  const walkthroughsDirectory = join(mainRoot, WALKTHROUGHS_DIRECTORY);
-  if (!existsSync(walkthroughsDirectory)) return [];
+  const storyboardsDirectory = join(mainRoot, STORYBOARDS_DIRECTORY);
+  if (!existsSync(storyboardsDirectory)) return [];
   const listeningPorts = listListeningPorts();
-  return readdirSync(walkthroughsDirectory).flatMap((slug) => {
+  return readdirSync(storyboardsDirectory).flatMap((slug) => {
     const storyboardPath = storyboardDirectory(mainRoot, slug);
     const storyboard = readStoryboard(storyboardPath);
     if (!storyboard) return [];

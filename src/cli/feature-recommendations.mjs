@@ -140,7 +140,7 @@ export function recommendFeatures(repoRoot, { hasKnowledgeBundle }) {
       worktrees: recommendWorktrees(repoRoot),
       later: recommendLater(repoRoot),
       design: designRecommendation,
-      walkthrough: designRecommendation.recommended
+      storyboard: designRecommendation.recommended
         ? { ...designRecommendation, reason: 'the repo has a frontend whose user flow can be reviewed as a storyboard' }
         : designRecommendation,
       verify: verifyCommands.length

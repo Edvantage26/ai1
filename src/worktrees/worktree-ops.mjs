@@ -10,7 +10,7 @@ import {
 } from './worktree-state.mjs';
 import { measurePathBytes } from './worktree-disk.mjs';
 import { loadRecipeOrFail } from './worktree-create.mjs';
-import { closeStoryboard } from '../walkthrough/walkthrough-serve.mjs';
+import { closeStoryboard } from '../storyboard/storyboard-serve.mjs';
 
 export function readStateOrFail(commonDirectory, worktreeName) {
   validateWorktreeName(worktreeName);

@@ -17,8 +17,8 @@ export const KNOWLEDGE_BUNDLE_PATH = `${AI1_DIRECTORY}/okf`;
 export const WORK_DIRECTORY = `${AI1_DIRECTORY}/work`;
 // Later (feature `later`): undecided changes noted down for later, one file each, versioned.
 export const LATER_DIRECTORY = `${AI1_DIRECTORY}/later`;
-// Storyboards of visual changes (walkthrough feature), ignored by git with their own `.gitignore`.
-export const WALKTHROUGHS_DIRECTORY = `${AI1_DIRECTORY}/walkthroughs`;
+// Storyboards of visual changes (storyboard feature), ignored by git with their own `.gitignore`.
+export const STORYBOARDS_DIRECTORY = `${AI1_DIRECTORY}/storyboards`;
 export const AI1_PLUGIN_ID = 'ai1@ai1';
 export const SCHEMA_URL = 'https://raw.githubusercontent.com/Edvantage26/ai1/main/schema/ai1.schema.json';
 export const SUPPORTED_CONFIG_VERSION = 1;

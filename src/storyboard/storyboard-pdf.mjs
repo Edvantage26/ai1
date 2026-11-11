@@ -1,5 +1,5 @@
-// `ai1 walkthrough build --pdf`: prints index.html (its print stylesheet: one step per page) to
-// walkthrough.pdf with a headless Chrome/Chromium found on this machine. An optional system tool: when
+// `ai1 storyboard build --pdf`: prints index.html (its print stylesheet: one step per page) to
+// storyboard.pdf with a headless Chrome/Chromium found on this machine. An optional system tool: when
 // none is found or printing fails, the caller says so and the agent prints with its own browser tool.
 
 import { spawnSync } from 'node:child_process';
@@ -8,7 +8,7 @@ import { homedir } from 'node:os';
 import { delimiter, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-export const PDF_FILE_NAME = 'walkthrough.pdf';
+export const PDF_FILE_NAME = 'storyboard.pdf';
 export const PDF_TIMEOUT_MILLISECONDS = 60_000;
 const PATH_BROWSER_NAMES = ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser', 'chrome'];
 // Inside Playwright's cache folder `chromium-<build>/`, newest build first.

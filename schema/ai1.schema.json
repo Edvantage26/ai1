@@ -15,7 +15,7 @@
     },
     "features": {
       "type": "object",
-      "description": "Features enabled in this repo. Omitted features use their default (okf, danger, craft and verify: on, sizing, worktrees, design, walkthrough and later: off).",
+      "description": "Features enabled in this repo. Omitted features use their default (okf, danger, craft and verify: on, sizing, worktrees, design, storyboard and later: off).",
       "additionalProperties": false,
       "properties": {
         "okf": {
@@ -48,10 +48,10 @@
           "default": false,
           "description": "UI design rules at session start and deterministic design checks on every edited UI file (design-detect)."
         },
-        "walkthrough": {
+        "storyboard": {
           "type": "boolean",
           "default": false,
-          "description": "Visual walkthrough of the user flow after UI changes: storyboard (HTML, PDF) with before/after, served locally and saved to the person's chosen folder; reminder at stop (/ai1:walkthrough-record-flow, ai1 walkthrough)."
+          "description": "Visual storyboard of the user flow after UI changes: storyboard (HTML, PDF) with before/after, served locally and saved to the person's chosen folder; reminder at stop (/ai1:storyboard-record-flow, ai1 storyboard)."
         },
         "verify": {
           "type": "boolean",
@@ -433,7 +433,7 @@
             }
           ]
         },
-        "walkthrough-reminder": {
+        "storyboard-reminder": {
           "oneOf": [
             {
               "type": "boolean"

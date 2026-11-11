@@ -33,7 +33,7 @@ export const MODULE_INDEX = [
   { id: 'worktree-recipe-offer', event: 'Stop', feature: 'worktrees', modulePath: '../worktrees/worktree-recipe-offer.mjs' },
   { id: 'later-brief', event: 'SessionStart', feature: 'later', modulePath: '../later/later-brief.mjs' },
   { id: 'later-recall', event: 'UserPromptSubmit', feature: 'later', modulePath: '../later/later-recall.mjs' },
-  { id: 'walkthrough-reminder', event: 'Stop', feature: 'walkthrough', modulePath: '../walkthrough/walkthrough-reminder.mjs' },
+  { id: 'storyboard-reminder', event: 'Stop', feature: 'storyboard', modulePath: '../storyboard/storyboard-reminder.mjs' },
   { id: 'later-upkeep', event: 'Stop', feature: 'later', modulePath: '../later/later-upkeep.mjs' },
 ];
 

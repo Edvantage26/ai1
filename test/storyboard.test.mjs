@@ -5,10 +5,10 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, utimesSy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { addCapture, readStoryboard, resolveStoryboardSlug, stepIdFromCaption, storyboardDirectory } from '../src/walkthrough/walkthrough-storyboard.mjs';
-import { buildStoryboard, renderStoryboardSummary } from '../src/walkthrough/walkthrough-build.mjs';
-import { findChromeBinaries, printStoryboardPdf } from '../src/walkthrough/walkthrough-pdf.mjs';
-import { stopStoryboardServer } from '../src/walkthrough/walkthrough-serve.mjs';
+import { addCapture, readStoryboard, resolveStoryboardSlug, stepIdFromCaption, storyboardDirectory } from '../src/storyboard/storyboard-steps.mjs';
+import { buildStoryboard, renderStoryboardSummary } from '../src/storyboard/storyboard-build.mjs';
+import { findChromeBinaries, printStoryboardPdf } from '../src/storyboard/storyboard-pdf.mjs';
+import { stopStoryboardServer } from '../src/storyboard/storyboard-serve.mjs';
 import { runHookEvent } from '../src/core/dispatcher.mjs';
 import { createTemporaryProject } from './helpers.mjs';
 
@@ -21,7 +21,7 @@ function runGit(projectRoot, gitArguments) {
 }
 
 function createUiRepo() {
-  const projectRoot = createTemporaryProject({ features: { walkthrough: true } });
+  const projectRoot = createTemporaryProject({ features: { storyboard: true } });
   writeFileSync(join(projectRoot, 'app.css'), 'body{}\n');
   runGit(projectRoot, ['init', '-q', '-b', 'main']);
   runGit(projectRoot, ['add', '.']);
@@ -60,21 +60,23 @@ test('add then build writes one self-contained HTML with numbered steps, desktop
   const projectRoot = createUiRepo();
   const desktopShot = writeScreenshot(projectRoot, 'desktop.png');
   const mobileShot = writeScreenshot(projectRoot, 'mobile.png');
-  const firstAdd = runAi1(projectRoot, ['walkthrough', 'add', '--slug', 'booking', '--title', 'Booking flow', '--step', 'Opens the calendar', '--image', desktopShot]);
+  const firstAdd = runAi1(projectRoot, ['storyboard', 'add', '--slug', 'booking', '--title', 'Booking flow', '--step', 'Opens the calendar', '--image', desktopShot]);
   assert.equal(firstAdd.status, 0, firstAdd.stderr);
   assert.match(firstAdd.stdout, /step 1 "Opens the calendar"/);
-  runAi1(projectRoot, ['walkthrough', 'add', '--slug', 'booking', '--step', 'Opens the calendar', '--viewport', 'mobile', '--image', mobileShot]);
-  runAi1(projectRoot, ['walkthrough', 'add', '--slug', 'booking', '--step', 'Picks a <day>', '--detail', 'Free days in green', '--image', desktopShot]);
+  runAi1(projectRoot, ['storyboard', 'add', '--slug', 'booking', '--step', 'Opens the calendar', '--viewport', 'mobile', '--image', mobileShot]);
+  runAi1(projectRoot, ['storyboard', 'add', '--slug', 'booking', '--step', 'Picks a <day>', '--detail', 'Free days in green', '--image', desktopShot]);
 
   const storyboardPath = storyboardDirectory(projectRoot, 'booking');
+  // [rename-walkthrough-to-storyboard:S1] `ai1 storyboard` writes to .ai1/storyboards/<slug>/
+  assert.equal(storyboardPath, join(projectRoot, '.ai1', 'storyboards', 'booking'));
   const storyboard = readStoryboard(storyboardPath);
   assert.deepEqual(storyboard.steps.map((storyboardStep) => storyboardStep.id), ['opens-the-calendar', 'picks-a-day']);
   assert.equal(storyboard.steps[0].captures.length, 2);
 
-  const buildRun = runAi1(projectRoot, ['walkthrough', 'build', '--slug', 'booking']);
+  const buildRun = runAi1(projectRoot, ['storyboard', 'build', '--slug', 'booking']);
   assert.equal(buildRun.status, 0, buildRun.stderr);
   const storyboardHtml = readFileSync(join(storyboardPath, 'index.html'), 'utf8');
-  assert.match(storyboardHtml, /<title>Booking flow - walkthrough<\/title>/);
+  assert.match(storyboardHtml, /<title>Booking flow - storyboard<\/title>/);
   assert.match(storyboardHtml, /id="step-1"[\s\S]*Opens the calendar[\s\S]*id="step-2"/);
   assert.match(storyboardHtml, /row-desktop[\s\S]*row-mobile/);
   assert.match(storyboardHtml, /Picks a &lt;day&gt;/, 'captions are escaped');
@@ -120,9 +122,9 @@ test('before and after side by side; steps only after are new, only before remov
 
 test('build without steps says how to add them', () => {
   const projectRoot = createUiRepo();
-  const buildRun = runAi1(projectRoot, ['walkthrough', 'build', '--slug', 'empty']);
+  const buildRun = runAi1(projectRoot, ['storyboard', 'build', '--slug', 'empty']);
   assert.equal(buildRun.status, 1);
-  assert.match(buildRun.stderr, /ai1 walkthrough add/);
+  assert.match(buildRun.stderr, /ai1 storyboard add/);
   assert.equal(existsSync(join(storyboardDirectory(projectRoot, 'empty'), 'index.html')), false);
 });
 
@@ -146,7 +148,7 @@ test('build --pdf finds Chrome in Playwright\'s cache, prints one PDF, and fails
   assert.match(printStoryboardPdf(storyboardPath, htmlPath, { chromeBinaries: [] }).error, /no Chrome or Chromium/);
   assert.match(printStoryboardPdf(storyboardPath, htmlPath, { chromeBinaries: [join(projectRoot, 'not-a-browser')] }).error, /could not print/);
 
-  const failOpenRun = spawnSync(process.execPath, [AI1_CLI, 'walkthrough', 'build', '--slug', 'pdf', '--pdf'], {
+  const failOpenRun = spawnSync(process.execPath, [AI1_CLI, 'storyboard', 'build', '--slug', 'pdf', '--pdf'], {
     cwd: projectRoot, encoding: 'utf8', env: { ...process.env, PATH: '', PLAYWRIGHT_BROWSERS_PATH: join(projectRoot, 'none') },
   });
   assert.equal(failOpenRun.status, 0, 'a missing browser never fails the build');
@@ -179,36 +181,36 @@ test('serve gives a local URL; stop, worktree finish and drop release it; the st
   assert.equal(createRun.status, 0, createRun.stderr);
   const worktreePath = join(projectRoot, '.claude', 'worktrees', 'flow');
 
-  assert.match(runAi1(worktreePath, ['walkthrough', 'serve']).stderr, /walkthrough build/, 'nothing to serve before a build');
-  runAi1(worktreePath, ['walkthrough', 'add', '--step', 'Home', '--image', writeScreenshot(projectRoot, 'shot.png')]);
-  runAi1(worktreePath, ['walkthrough', 'build']);
-  const serveRun = runAi1(worktreePath, ['walkthrough', 'serve']);
+  assert.match(runAi1(worktreePath, ['storyboard', 'serve']).stderr, /storyboard build/, 'nothing to serve before a build');
+  runAi1(worktreePath, ['storyboard', 'add', '--step', 'Home', '--image', writeScreenshot(projectRoot, 'shot.png')]);
+  runAi1(worktreePath, ['storyboard', 'build']);
+  const serveRun = runAi1(worktreePath, ['storyboard', 'serve']);
   assert.equal(serveRun.status, 0, serveRun.stderr);
   const serverUrl = /at (http:\/\/127\.0\.0\.1:\d+\/)/.exec(serveRun.stdout)[1];
   assert.equal(await fetchStatus(serverUrl), 200);
   assert.equal(await fetchStatus(`${serverUrl}server.json`), 404, 'the server record is not served');
   assert.equal(await fetchStatus(`${serverUrl}..%2F..%2Fplan.md`), 404, 'nothing outside the storyboard');
-  assert.match(runAi1(worktreePath, ['walkthrough', 'serve']).stdout, /already serving flow/);
-  assert.match(runAi1(projectRoot, ['walkthrough', 'list']).stdout, /flow: 1 steps, built, at http/);
+  assert.match(runAi1(worktreePath, ['storyboard', 'serve']).stdout, /already serving flow/);
+  assert.match(runAi1(projectRoot, ['storyboard', 'list']).stdout, /flow: 1 steps, built, at http/);
 
-  assert.match(runAi1(worktreePath, ['walkthrough', 'stop']).stdout, /stopped http/);
+  assert.match(runAi1(worktreePath, ['storyboard', 'stop']).stdout, /stopped http/);
   assert.equal(await fetchStatus(serverUrl), 'down');
 
-  runAi1(worktreePath, ['walkthrough', 'serve']);
+  runAi1(worktreePath, ['storyboard', 'serve']);
   writeFileSync(join(worktreePath, 'app.css'), 'body{color:red}\n');
   runGit(worktreePath, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qam', 'red']);
   const finishRun = runAi1(projectRoot, ['worktree', 'finish', 'flow']);
   assert.equal(finishRun.status, 0, finishRun.stderr);
   assert.match(finishRun.stdout, /storyboard server stopped .*1 residual screenshot\(s\) deleted; the storyboard stays/);
   assert.equal(existsSync(join(projectRoot, 'shot.png')), false, 'the screenshot the agent left in the repo is gone');
-  assert.match(runAi1(projectRoot, ['walkthrough', 'list']).stdout, /^flow: 1 steps, built\n?$/m, 'archived, no URL');
+  assert.match(runAi1(projectRoot, ['storyboard', 'list']).stdout, /^flow: 1 steps, built\n?$/m, 'archived, no URL');
   assert.ok(existsSync(join(storyboardDirectory(projectRoot, 'flow'), 'index.html')));
 
   runAi1(projectRoot, ['worktree', 'create', 'other']);
   const otherPath = join(projectRoot, '.claude', 'worktrees', 'other');
-  runAi1(otherPath, ['walkthrough', 'add', '--step', 'Home', '--image', writeScreenshot(projectRoot, 'other.png')]);
-  runAi1(otherPath, ['walkthrough', 'build']);
-  const otherUrl = /at (http:\S+)/.exec(runAi1(otherPath, ['walkthrough', 'serve']).stdout)[1];
+  runAi1(otherPath, ['storyboard', 'add', '--step', 'Home', '--image', writeScreenshot(projectRoot, 'other.png')]);
+  runAi1(otherPath, ['storyboard', 'build']);
+  const otherUrl = /at (http:\S+)/.exec(runAi1(otherPath, ['storyboard', 'serve']).stdout)[1];
   const dropRun = runAi1(projectRoot, ['worktree', 'drop', 'other', '--confirm']);
   assert.match(dropRun.stdout, /storyboard server stopped/);
   assert.equal(await fetchStatus(otherUrl), 'down');
@@ -228,7 +230,7 @@ test('closing deletes the residual screenshots add copied from, only unchanged u
   addCapture(storyboardPath, 'close', { caption: 'Docs', imageFile: trackedShot });
   writeFileSync(changedShot, Buffer.concat([TINY_PNG, Buffer.from('more')]));
 
-  const cleanRun = runAi1(projectRoot, ['walkthrough', 'clean', '--slug', 'close']);
+  const cleanRun = runAi1(projectRoot, ['storyboard', 'clean', '--slug', 'close']);
   assert.equal(cleanRun.status, 0, cleanRun.stderr);
   assert.match(cleanRun.stdout, /deleted 1 residual screenshot/);
   assert.match(cleanRun.stdout, /kept .*changed\.png \(changed since it was added\)/);
@@ -237,50 +239,51 @@ test('closing deletes the residual screenshots add copied from, only unchanged u
   assert.ok(existsSync(changedShot) && existsSync(trackedShot));
   assert.ok(existsSync(join(storyboardPath, 'images', 'home-after-desktop.png')), 'the storyboard keeps its copy');
   assert.equal(readStoryboard(storyboardPath).steps[0].captures[0].source, undefined, 'a deleted source is forgotten');
-  assert.match(runAi1(projectRoot, ['walkthrough', 'clean', '--slug', 'close']).stdout, /deleted 0/);
+  assert.match(runAi1(projectRoot, ['storyboard', 'clean', '--slug', 'close']).stdout, /deleted 0/);
 });
 
-test('storyboards live in .ai1/walkthroughs/<slug>/, ignored by git, and work through a symlinked folder [walkthrough:S7]', async (testContext) => {
+test('storyboards live in .ai1/storyboards/<slug>/, ignored by git, and work through a symlinked folder [walkthrough:S7]', async (testContext) => {
   const projectRoot = createUiRepo();
   testContext.after(() => stopStoryboardServer(projectRoot, 'linked'));
   const screenshotPath = writeScreenshot(projectRoot, join('.ai1', 'shot.png'));
   writeFileSync(join(projectRoot, '.ai1', '.gitignore'), 'shot.png\n');
   runGit(projectRoot, ['add', '.ai1/.gitignore']);
   runGit(projectRoot, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'ignore test shot']);
-  runAi1(projectRoot, ['walkthrough', 'add', '--slug', 'local', '--step', 'Home', '--image', screenshotPath]);
-  assert.equal(storyboardDirectory(projectRoot, 'local'), join(projectRoot, '.ai1', 'walkthroughs', 'local'));
-  assert.equal(readFileSync(join(projectRoot, '.ai1', 'walkthroughs', '.gitignore'), 'utf8'), '*\n');
+  runAi1(projectRoot, ['storyboard', 'add', '--slug', 'local', '--step', 'Home', '--image', screenshotPath]);
+  assert.equal(storyboardDirectory(projectRoot, 'local'), join(projectRoot, '.ai1', 'storyboards', 'local'));
+  assert.equal(readFileSync(join(projectRoot, '.ai1', 'storyboards', '.gitignore'), 'utf8'), '*\n');
   assert.equal(execFileSync('git', ['-C', projectRoot, 'status', '--porcelain'], { encoding: 'utf8' }), '', 'nothing of it reaches git');
 
   // The person's own tooling moves the folder to a synced one and leaves a symlink.
   const syncedFolder = join(projectRoot, '..', `${projectRoot.split('/').pop()}-synced`);
-  execFileSync('mv', [join(projectRoot, '.ai1', 'walkthroughs'), syncedFolder]);
-  symlinkSync(syncedFolder, join(projectRoot, '.ai1', 'walkthroughs'));
-  runAi1(projectRoot, ['walkthrough', 'add', '--slug', 'linked', '--step', 'Home', '--image', writeScreenshot(projectRoot, join('.ai1', 'shot.png'))]);
-  assert.equal(runAi1(projectRoot, ['walkthrough', 'build', '--slug', 'linked']).status, 0);
+  execFileSync('mv', [join(projectRoot, '.ai1', 'storyboards'), syncedFolder]);
+  symlinkSync(syncedFolder, join(projectRoot, '.ai1', 'storyboards'));
+  runAi1(projectRoot, ['storyboard', 'add', '--slug', 'linked', '--step', 'Home', '--image', writeScreenshot(projectRoot, join('.ai1', 'shot.png'))]);
+  assert.equal(runAi1(projectRoot, ['storyboard', 'build', '--slug', 'linked']).status, 0);
   assert.ok(existsSync(join(syncedFolder, 'linked', 'index.html')), 'written into the linked folder');
-  const serverUrl = /at (http:\S+)/.exec(runAi1(projectRoot, ['walkthrough', 'serve', '--slug', 'linked']).stdout)[1];
+  const serverUrl = /at (http:\S+)/.exec(runAi1(projectRoot, ['storyboard', 'serve', '--slug', 'linked']).stdout)[1];
   assert.equal(await fetchStatus(serverUrl), 200);
-  assert.match(runAi1(projectRoot, ['walkthrough', 'list']).stdout, /linked: 1 steps, built, at http[\s\S]*local: 1 steps/);
-  assert.match(runAi1(projectRoot, ['walkthrough', 'clean', '--slug', 'linked']).stdout, /deleted 1/);
+  assert.match(runAi1(projectRoot, ['storyboard', 'list']).stdout, /linked: 1 steps, built, at http[\s\S]*local: 1 steps/);
+  assert.match(runAi1(projectRoot, ['storyboard', 'clean', '--slug', 'linked']).stdout, /deleted 1/);
 });
 
 test('publish destinations come from the customization, offered and published only after a yes [walkthrough:S4]', () => {
-  const skillText = readFileSync(fileURLToPath(new URL('../skills/walkthrough-record-flow/SKILL.md', import.meta.url)), 'utf8');
+  const skillText = readFileSync(fileURLToPath(new URL('../skills/storyboard-record-flow/SKILL.md', import.meta.url)), 'utf8');
   assert.match(skillText, /## 5\. Publish \(only if a customization asks for it\)[\s\S]*publish only after the person says yes[\s\S]*With no customization, there is nothing to publish/);
   assert.match(skillText, /## Fixed rules\n\n- Never publish anywhere outside the repo without the person's yes/);
 
   const projectRoot = createUiRepo();
   const homeDirectory = join(projectRoot, 'home');
-  mkdirSync(join(homeDirectory, '.config', 'ai1', 'skills', 'walkthrough'), { recursive: true });
-  writeFileSync(join(homeDirectory, '.config', 'ai1', 'skills', 'walkthrough', 'overlay.md'), '- Publish: hand steps.json to my task tracker skill.\n');
-  const withOverlay = spawnSync(process.execPath, [AI1_CLI, 'skill-context', 'walkthrough-record-flow'], { cwd: projectRoot, encoding: 'utf8', env: { ...process.env, HOME: homeDirectory, XDG_CONFIG_HOME: '' } });
+  mkdirSync(join(homeDirectory, '.config', 'ai1', 'skills', 'storyboard'), { recursive: true });
+  writeFileSync(join(homeDirectory, '.config', 'ai1', 'skills', 'storyboard', 'overlay.md'), '- Publish: hand steps.json to my task tracker skill.\n');
+  const withOverlay = spawnSync(process.execPath, [AI1_CLI, 'skill-context', 'storyboard-record-flow'], { cwd: projectRoot, encoding: 'utf8', env: { ...process.env, HOME: homeDirectory, XDG_CONFIG_HOME: '' } });
   assert.match(withOverlay.stdout, /hand steps\.json to my task tracker skill/);
-  const withoutOverlay = spawnSync(process.execPath, [AI1_CLI, 'skill-context', 'walkthrough-record-flow'], { cwd: projectRoot, encoding: 'utf8', env: { ...process.env, HOME: join(projectRoot, 'nobody'), XDG_CONFIG_HOME: '' } });
-  assert.match(withoutOverlay.stdout, /None yet for this project \(\.ai1\/skills\/walkthrough\/overlay\.md\)/);
+  const withoutOverlay = spawnSync(process.execPath, [AI1_CLI, 'skill-context', 'storyboard-record-flow'], { cwd: projectRoot, encoding: 'utf8', env: { ...process.env, HOME: join(projectRoot, 'nobody'), XDG_CONFIG_HOME: '' } });
+  assert.match(withoutOverlay.stdout, /None yet for this project \(\.ai1\/skills\/storyboard\/overlay\.md\)/);
 });
 
-test('walkthrough-reminder: UI changed and no storyboard after it reminds once; a build or an ignore glob silences it [walkthrough:S5]', () => {
+// [rename-walkthrough-to-storyboard:S1] the Stop reminder comes from storyboard-reminder and names /ai1:storyboard-record-flow
+test('storyboard-reminder: UI changed and no storyboard after it reminds once; a build or an ignore glob silences it [walkthrough:S5]', () => {
   const projectRoot = createUiRepo();
   const hookOptions = {
     environment: { CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'ai1-data-')) },
@@ -296,7 +299,7 @@ test('walkthrough-reminder: UI changed and no storyboard after it reminds once; 
   writeFileSync(join(projectRoot, 'app.css'), 'body{color:#222}\n');
   const stopOutput = stopSession();
   assert.equal(stopOutput.decision, 'block');
-  assert.match(stopOutput.reason, /ai1\/walkthrough-reminder: Walkthrough: this session changed UI files \(`app\.css`\)[\s\S]*\/ai1:walkthrough-record-flow[\s\S]*why not/);
+  assert.match(stopOutput.reason, /ai1\/storyboard-reminder: Storyboard: this session changed UI files \(`app\.css`\)[\s\S]*\/ai1:storyboard-record-flow[\s\S]*why not/);
   assert.equal(stopSession(), null, 'the same files are reminded once');
 
   writeFileSync(join(projectRoot, 'Button.tsx'), 'export const Button = () => null;\n');
@@ -309,7 +312,7 @@ test('walkthrough-reminder: UI changed and no storyboard after it reminds once; 
   utimesSync(join(storyboardPath, 'index.html'), futureMilliseconds, futureMilliseconds);
   assert.equal(stopSession(), null, 'a storyboard built after the changes');
 
-  const ignoringRoot = createTemporaryProject({ features: { walkthrough: true }, modules: { 'walkthrough-reminder': { ignore: ['emails/**'] } } });
+  const ignoringRoot = createTemporaryProject({ features: { storyboard: true }, modules: { 'storyboard-reminder': { ignore: ['emails/**'] } } });
   runGit(ignoringRoot, ['init', '-q', '-b', 'main']);
   writeFileSync(join(ignoringRoot, 'seed.txt'), 'x\n');
   runGit(ignoringRoot, ['add', '.']);

@@ -1,11 +1,11 @@
-// The storyboard of a change: `.ai1/walkthroughs/<slug>/` in the main checkout (git-ignored), with
+// The storyboard of a change: `.ai1/storyboards/<slug>/` in the main checkout (git-ignored), with
 // `steps.json` (the contract every publisher reads) and the copied screenshots in `images/`.
 // The agent captures with whatever browser tool it has; ai1 only receives the image files.
 
 import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { basename, dirname, extname, join, resolve, sep } from 'node:path';
 import { tryGit } from '../core/git.mjs';
-import { WALKTHROUGHS_DIRECTORY } from '../core/config.mjs';
+import { STORYBOARDS_DIRECTORY } from '../core/config.mjs';
 import { readGitDirectories } from '../core/project-roots.mjs';
 import { readJsonFileIfValid, writeJsonFile } from '../core/json-file.mjs';
 import { ensureDirectoryIgnoredByItself, listWorkPlans, isPlanFinished } from '../sizing/sizing-work.mjs';
@@ -21,7 +21,7 @@ const BEFORE_WORKTREE_SUFFIX = '-before';
 const MAX_STEP_ID_LENGTH = 48;
 
 export function storyboardDirectory(mainRoot, slug) {
-  return join(mainRoot, WALKTHROUGHS_DIRECTORY, slug);
+  return join(mainRoot, STORYBOARDS_DIRECTORY, slug);
 }
 
 // The worktree this checkout is, by its recorded state or its folder name; null in the main checkout.
