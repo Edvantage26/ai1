@@ -1,5 +1,8 @@
 # Update Log
 
+## 2026-11-11
+* **Creation**: `/ai1:verify-evaluate-llm-prompts` in the [verify feature](features/verify.md) — evaluate an LLM step with evidence: the cause of each failure before blaming the model, and compare models or prompts as a paired tournament.
+
 ## 2026-11-09
 * **Creation**: [walkthrough feature](features/walkthrough.md) — `/ai1:walkthrough-record-flow`, `ai1 walkthrough` and `walkthrough-reminder`: storyboard of the user flow after a visual change, in `.ai1/walkthroughs/`.
 * **Supersession**: the `proposals` feature is now [later](features/later.md) (`features/proposals.md` renamed): folder `.ai1/later/`, entries called by number ("later 0003", frontmatter `number:`), `/ai1:later-write`, `ai1 later`, modules `later-*`, danger rule `ai1-later-new`; "propuesta" in the conversation never means this feature; `ai1 init` migrates `.ai1/rfc/` and `.ai1/proposals/`. Older entries keep the names of their time.

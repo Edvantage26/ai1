@@ -5,7 +5,7 @@ description: What ai1 is, the four pieces of a harness, and what exists today.
 tags: [overview, harness]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-10T16:51:39Z'
+  at: '2026-11-11T05:49:39Z'
 ---
 
 # What it is
@@ -48,6 +48,7 @@ recall, upkeep and the [OKF toolkit](packs/okf-pack.md)), the [danger guard](gua
 [walkthrough](features/walkthrough.md) and [worktrees](features/worktrees.md). Plus the [session fork](features/session-fork.md) and [issue report](features/issue-report.md) skills and CLI.
 Any customizable skill takes project and personal overlays ([skill customization](architecture/skill-customization.md)).
 After 3 failed fix attempts in a row the agent is told to stop and find the root cause ([verify feature](features/verify.md)).
+The verify feature also ships a method skill for LLM steps (extraction, classification, judges): find the cause of failures before blaming the model, and compare models or prompts as a tournament ([verify feature](features/verify.md)).
 Since v0.28.0 [test-guard](guards/test-guard.md) also asks before a check's config (lint, format, types) is changed, and `tool-loop` nudges the agent after 5 identical tool calls ([verify feature](features/verify.md)).
 Since v0.29.0 `worktree-recipe-offer` asks once at stop to offer the worktree recipe when a repo without one had files changed in its main checkout ([worktrees feature](features/worktrees.md)).
 The feature for undecided changes is called [later](features/later.md) since v0.25.0 (was `proposals`).

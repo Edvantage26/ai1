@@ -5,7 +5,7 @@ description: Stop gate - the agent cannot finish while code it changed is newer 
 tags: [verify, hooks, evidence, cli]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T21:12:24Z'
+  at: '2026-11-11T06:00:46Z'
 sources:
   - id: verify-gate
     resource: src/verify/verify-gate.mjs
@@ -25,6 +25,27 @@ sources:
   - id: debug-skill
     resource: skills/verify-debug-systematically/SKILL.md
     title: /ai1:verify-debug-systematically
+  - id: llm-prompts-skill
+    resource: skills/verify-evaluate-llm-prompts/SKILL.md
+    title: /ai1:verify-evaluate-llm-prompts
+  - id: error-analysis-faq
+    resource: https://hamel.dev/blog/posts/evals-faq/why-is-error-analysis-so-important-in-llm-evals-and-how-is-it-performed.html
+    title: Hamel Husain - why error analysis matters in LLM evals
+  - id: error-analysis-notes
+    resource: https://hamel.dev/notes/llm/ai-product-engineering/evals-error-analysis.html
+    title: Hamel Husain - evals error analysis notes
+  - id: advanced-evals
+    resource: https://lennysnewsletter.com/p/advanced-evals-how-to-find-and-fix
+    title: Hamel Husain and Shreya Shankar - advanced evals, how to find and fix
+  - id: llm-eval-speedup
+    resource: https://arxiv.org/html/2407.06172v1
+    title: On speeding up language model evaluation (bandit model and prompt selection)
+  - id: evals-faq
+    resource: https://hamel.dev/blog/posts/evals-faq/
+    title: Hamel Husain and Shreya Shankar - evals FAQ (open/axial coding, binary checks, TPR/TNR, dev/test)
+  - id: judge-self-preference
+    resource: https://arxiv.org/pdf/2410.21819
+    title: Self-preference bias in LLM-as-a-judge
 ---
 
 # Why
@@ -81,6 +102,32 @@ test run (`didRunFail`) with an edit to project code since that same test comman
 - Checked with the entry point and a compact transcript (2026-11-09). A transcript written with spaced
   JSON (`"type": "tool_use"`) is not scanned: the scan filters lines by the compact marker, as Claude
   Code writes them.
+
+# /ai1:verify-evaluate-llm-prompts
+
+Built 2026-11-11, from a real extraction pipeline where rounds were lost on more expensive models and
+almost no failure was the model's (missing context, unstated rules, no vocabulary, a badly built test,
+wrong reference labels; cheap confidence signals at AUROC 0.5-0.6). A method skill, no hook, scoped
+to evaluating LLM steps in general (named for prompts, not failures, so it also loads while writing
+or comparing prompts). Effort grows with the trouble (decided 2026-11-11 with the person): start with a
+simple prompt on one cheap model, read 10-20 real outputs, stop if good enough; only otherwise the
+rest, in this order: diagnose the failures (checklist; a failure log `case | output | note | failure
+mode | cause | evidence`, the cause from a fixed list - `context`, `instructions`, `vocabulary/schema`,
+`test setup`, `wrong reference label`, `model limit` -; the agent reads every failure and shows the
+person about 10 before fixing the failure modes; fix the most frequent cause; models only after the
+first five are ruled out), measure while iterating (20-30 % kept apart as test, used once to confirm;
+2-3 runs to see noise; pinned model versions; pass/fail checks over 1-5 scales), a tournament for
+models or prompts (one case set that grows from the 10-20 starting cases; drop a candidate only when
+the leader wins enough of their disagreements by an exact sign test, given as a table - none dropped
+with 5 or fewer; cheapest among the indistinguishable; close finalists retried with 2-3 prompt
+formats), and labels and judges (expert labels, or a fresh-context subagent labelling blind, ideally
+two model families, sampled by the person - decided 2026-11-11; code checks first, one judge per
+failure mode by TPR/TNR; position, length and self-family biases). Five fixed rules: start simple,
+causes before a model change, same cases for every candidate with test only confirming, labels and
+judges checked, testing key and budget. Description kept short on purpose: every skill description
+loads in every session.
+In `verify` and not a feature of its own because it is the same rule as debugging (cause before
+change); the cost is a shared overlay: `.ai1/skills/verify/overlay.md` reaches both skills.
 
 # verify-gate (Stop)
 

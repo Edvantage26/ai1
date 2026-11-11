@@ -15,6 +15,7 @@ export const SKILL_CUSTOMIZATION_INDEX = {
   'okf-tidy-claude-md': { customizable: true, scopes: PROJECT_AND_USER },
   'okf-visualize-bundle': { customizable: true, scopes: PROJECT_AND_USER },
   'verify-debug-systematically': { customizable: true, scopes: PROJECT_AND_USER },
+  'verify-evaluate-llm-prompts': { customizable: true, scopes: PROJECT_AND_USER },
   'walkthrough-record-flow': { customizable: true, scopes: PROJECT_AND_USER },
   'core-setup-repo': { customizable: true, scopes: ['user'] },
   'okf-backfill-from-history': { customizable: false, reason: 'its subagents do not receive what is injected into the skill' },
