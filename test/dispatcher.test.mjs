@@ -67,12 +67,12 @@ test('session brief: a feature with its own session-start text gets only its tit
 });
 
 test('session brief warns about enabled plugins that overlap with an enabled feature', () => {
-  const projectRoot = createTemporaryProject({ features: { lanes: true, okf: false } });
+  const projectRoot = createTemporaryProject({ features: { sizing: true, okf: false } });
   const homeDirectory = mkdtempSync(join(tmpdir(), 'ai1-home-'));
   mkdirSync(join(homeDirectory, '.claude'));
   writeFileSync(join(homeDirectory, '.claude', 'settings.json'), JSON.stringify({ enabledPlugins: { 'superpowers@official': true, 'okf@x': true, 'feature-dev@official': true } }));
   const briefText = runHookEvent('SessionStart', { cwd: projectRoot }, { ...quietOptions, homeDirectory }).hookSpecificOutput.additionalContext;
-  assert.match(briefText, /Plugins that overlap with ai1 are enabled here: superpowers@official overlaps with lanes/);
+  assert.match(briefText, /Plugins that overlap with ai1 are enabled here: superpowers@official overlaps with sizing/);
   assert.doesNotMatch(briefText, /okf@x/, 'okf is off in this repo');
   assert.doesNotMatch(briefText, /feature-dev/, 'warn-only overlaps stay out of the brief');
   mkdirSync(join(projectRoot, '.claude'), { recursive: true });
@@ -148,7 +148,7 @@ test('the module index agrees with each module file, and an event loads only its
     );
   }
   const bashModules = await loadModulesForEvent('PreToolUse', 'Bash');
-  assert.deepEqual(bashModules.map((loadedModule) => loadedModule.id), ['danger', 'config-guard', 'repo-rules', 'lanes-gate', 'lanes-escalate', 'test-guard', 'tool-loop']);
+  assert.deepEqual(bashModules.map((loadedModule) => loadedModule.id), ['danger', 'config-guard', 'repo-rules', 'sizing-gate', 'sizing-escalate', 'test-guard', 'tool-loop']);
   assert.deepEqual((await loadModulesForEvent('PostToolUse', 'Read')).map((loadedModule) => loadedModule.id), ['okf-file-context']);
 });
 

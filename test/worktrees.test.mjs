@@ -327,7 +327,7 @@ test('worktree-brief: points to /ai1:worktrees-plan-recipe without a recipe, giv
   assert.match(contextOf(runHookEvent('SessionStart', { session_id: 's', cwd: bareRoot, source: 'startup' }, hookOptions(bareRoot))), /no worktree recipe[\s\S]*\/ai1:worktrees-plan-recipe/);
   const mainRoot = createRecipeRepo();
   mkdirSync(join(mainRoot, '.ai1'), { recursive: true });
-  writeFileSync(join(mainRoot, '.ai1', 'config.json'), JSON.stringify({ features: { okf: false, worktrees: true, lanes: true } }));
+  writeFileSync(join(mainRoot, '.ai1', 'config.json'), JSON.stringify({ features: { okf: false, worktrees: true, sizing: true } }));
   const options = hookOptions(mainRoot);
   const mainContext = contextOf(runHookEvent('SessionStart', { session_id: 's', cwd: mainRoot, source: 'startup' }, options));
   assert.match(mainContext, /Worktrees: any change to the files of this repo happens in a worktree, never in the main checkout[\s\S]*create one before the first edit[\s\S]*ai1 worktree create <name>/);

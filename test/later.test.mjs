@@ -146,7 +146,7 @@ test('later-brief: the recipe and the open entries; silent on resume; off by def
   setLaterEntryStatus(projectRoot, 2, 'rejected');
   const contextText = startSession(projectRoot, hookOptions()).hookSpecificOutput.additionalContext;
   assert.match(contextText, /Later: large changes .* noted down for later in `\.ai1\/later\/`/);
-  assert.match(contextText, /"acepto la propuesta" in the conversation mean your own proposal in this conversation \(answer it, or build it by its lane\), never this feature/);
+  assert.match(contextText, /"acepto la propuesta" in the conversation mean your own proposal in this conversation \(answer it, or build it by its size\), never this feature/);
   assert.match(contextText, /Never note one down on your own\. Do it when the person asks \("apúntalo para luego"/);
   assert.match(contextText, /mention it in one line at the end of your report with the way you recommend: do it here, fork it into a new conversation \(\/ai1:session-fork-conversation\) or note it down for later/);
   assert.match(contextText, /do not stop to ask, and a yes means the way you recommended\. A small fix you found on the way is done here without asking\. Never offer for details/);
@@ -185,7 +185,7 @@ test('later-upkeep: blocks once when the session left the later entries inconsis
 });
 
 test('later-upkeep: an accepted entry not cited by the bundle blocks; a finished plan asks for implemented', () => {
-  const projectRoot = createLaterEntryRepo({ okf: true, lanes: true });
+  const projectRoot = createLaterEntryRepo({ okf: true, sizing: true });
   addBundle(projectRoot);
   runGit(projectRoot, ['add', '.']);
   runGit(projectRoot, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'bundle']);
@@ -218,8 +218,8 @@ test('okf-upkeep does not ask to document later entries when the later feature i
   assert.match(stopAfterWritingAnEntry(false).reason, /okf-upkeep[\s\S]*\.ai1\/later\/0001-prod-guard\.md/, 'without the feature an entry is just another file');
 });
 
-test('lanes-gate lets later entries be written while a deep design waits for approval', () => {
-  const projectRoot = createLaterEntryRepo({ lanes: true });
+test('sizing-gate lets later entries be written while a deep design waits for approval', () => {
+  const projectRoot = createLaterEntryRepo({ sizing: true });
   const options = hookOptions();
   startSession(projectRoot, options);
   const planDirectory = join(projectRoot, '.ai1', 'work', 'billing');

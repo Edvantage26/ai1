@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { splitFrontmatter, readFrontmatterField, writeFrontmatterField } from '../src/core/frontmatter.mjs';
-import { readPlanStatus, readPlanTitle } from '../src/lanes/lanes-work.mjs';
+import { readPlanStatus, readPlanTitle } from '../src/sizing/sizing-work.mjs';
 import { readBundleSpecVersion } from '../src/okf/okf-bundle.mjs';
 
 const CRLF_CONCEPT = '---\r\ntype: Decision\r\ntitle: Use CRLF\r\ntags:\r\n  - windows\r\n  - git\r\n---\r\n\r\n# Body\r\n';

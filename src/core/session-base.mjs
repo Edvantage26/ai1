@@ -1,5 +1,5 @@
 // The HEAD at session start, shared by the modules that need to know what this session changed
-// (okf-upkeep, lanes). Recorded once per session; resume/compact must not move the baseline.
+// (okf-upkeep, sizing). Recorded once per session; resume/compact must not move the baseline.
 
 import { runGit, tryGit } from './git.mjs';
 import {

@@ -15,7 +15,7 @@
     },
     "features": {
       "type": "object",
-      "description": "Features enabled in this repo. Omitted features use their default (okf, danger, craft and verify: on, lanes, worktrees, design, walkthrough and later: off).",
+      "description": "Features enabled in this repo. Omitted features use their default (okf, danger, craft and verify: on, sizing, worktrees, design, walkthrough and later: off).",
       "additionalProperties": false,
       "properties": {
         "okf": {
@@ -33,10 +33,10 @@
           "default": true,
           "description": "Code craft rules at session start: simplicity, surgical changes, reuse before writing, proposed refactors, self-explanatory names."
         },
-        "lanes": {
+        "sizing": {
           "type": "boolean",
           "default": false,
-          "description": "Work lanes: quick, plan or deep by task size; deep designs need the person's approval before code edits (/ai1:lanes-design-before-code)."
+          "description": "Task sizing: quick, plan or deep by task size; deep designs need the person's approval before code edits (/ai1:sizing-design-before-code)."
         },
         "worktrees": {
           "type": "boolean",
@@ -357,7 +357,7 @@
             }
           ]
         },
-        "lanes-brief": {
+        "sizing-brief": {
           "oneOf": [
             {
               "type": "boolean"
@@ -373,7 +373,7 @@
             }
           ]
         },
-        "lanes-approval": {
+        "sizing-approval": {
           "oneOf": [
             {
               "type": "boolean"
@@ -389,7 +389,7 @@
             }
           ]
         },
-        "lanes-gate": {
+        "sizing-gate": {
           "oneOf": [
             {
               "type": "boolean"
@@ -405,7 +405,7 @@
             }
           ]
         },
-        "lanes-escalate": {
+        "sizing-escalate": {
           "oneOf": [
             {
               "type": "boolean"

@@ -31,7 +31,7 @@ function writeUserSettings(enabledPlugins) {
 test('setup writes a valid .ai1/config.json and enables ai1 for the project', () => {
   const repoRoot = createGitRepo();
   const setupResult = setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'danger'] });
-  assert.deepEqual(setupResult.features, { okf: true, danger: true, craft: false, lanes: false, worktrees: false, later: false, design: false, walkthrough: false, verify: false });
+  assert.deepEqual(setupResult.features, { okf: true, danger: true, craft: false, sizing: false, worktrees: false, later: false, design: false, walkthrough: false, verify: false });
   const loadedConfig = loadHarnessConfig(repoRoot);
   assert.equal(loadedConfig.status, 'ok');
   assert.equal(loadedConfig.config.trunk, 'main');
@@ -54,7 +54,7 @@ test('setup keeps existing settings and harness fields', () => {
   assert.equal(ai1Config.trunk, 'develop');
   assert.deepEqual(ai1Config.verify, ['make test']);
   assert.deepEqual(ai1Config.modules, { danger: { ignore_rules: ['git-clean'] } });
-  assert.deepEqual(ai1Config.features, { okf: false, danger: true, craft: false, lanes: false, worktrees: false, later: false, design: false, walkthrough: false, verify: false });
+  assert.deepEqual(ai1Config.features, { okf: false, danger: true, craft: false, sizing: false, worktrees: false, later: false, design: false, walkthrough: false, verify: false });
 });
 
 test('status lists enabled plugins that overlap with ai1, applying local over project over user', () => {
@@ -66,7 +66,7 @@ test('status lists enabled plugins that overlap with ai1, applying local over pr
   const overlappingPlugins = describeRepo(repoRoot, { userSettingsPath }).overlappingPlugins;
   assert.deepEqual(overlappingPlugins.map((overlappingPlugin) => [overlappingPlugin.pluginId, overlappingPlugin.action, overlappingPlugin.features]), [
     ['okf@some-marketplace', 'disable', ['okf']],
-    ['superpowers@official', 'disable', ['lanes', 'worktrees', 'verify', 'craft']],
+    ['superpowers@official', 'disable', ['sizing', 'worktrees', 'verify', 'craft']],
   ]);
 });
 
@@ -79,7 +79,7 @@ test('findOverlappingPlugins keeps only the overlaps with the given features', (
 
 test('init switches off only the plugins the person chose, in the personal settings', () => {
   const repoRoot = createGitRepo();
-  const setupResult = setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'lanes'], disabledPluginIds: ['superpowers@official'] });
+  const setupResult = setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'sizing'], disabledPluginIds: ['superpowers@official'] });
   assert.deepEqual(setupResult.disabledPlugins, ['superpowers@official']);
   assert.equal(readJson(join(repoRoot, '.claude', 'settings.local.json')).enabledPlugins['superpowers@official'], false);
   assert.equal(readJson(join(repoRoot, '.claude', 'settings.json')).enabledPlugins['superpowers@official'], undefined, 'shared settings stay clean');
@@ -97,7 +97,7 @@ test('in a worktree, plugins are disabled and read where Claude Code reads them:
   const repoRoot = createGitRepo();
   const worktreePath = join(mkdtempSync(join(tmpdir(), 'ai1-wt-')), 'feature');
   execFileSync('git', ['-C', repoRoot, 'worktree', 'add', '-q', '-b', 'feature', worktreePath]);
-  const setupResult = setupRepo(worktreePath, { enabledFeatureIds: ['lanes'], disabledPluginIds: ['superpowers@official'] });
+  const setupResult = setupRepo(worktreePath, { enabledFeatureIds: ['sizing'], disabledPluginIds: ['superpowers@official'] });
   assert.equal(setupResult.localSettingsPath, localSettingsPathFor(worktreePath));
   assert.equal(readJson(join(repoRoot, '.claude', 'settings.local.json')).enabledPlugins['superpowers@official'], false);
   const userSettingsPath = writeUserSettings({ 'superpowers@official': true });
@@ -130,10 +130,10 @@ test('status reports defaults before setup and choices after it', () => {
   const repoRoot = createGitRepo();
   const beforeSetup = describeRepo(repoRoot);
   assert.equal(beforeSetup.hasAi1Config, false);
-  assert.deepEqual(beforeSetup.features.map((featureStatus) => [featureStatus.id, featureStatus.enabled]), [['okf', true], ['danger', true], ['craft', true], ['lanes', false], ['worktrees', false], ['later', false], ['design', false], ['walkthrough', false], ['verify', true]]);
+  assert.deepEqual(beforeSetup.features.map((featureStatus) => [featureStatus.id, featureStatus.enabled]), [['okf', true], ['danger', true], ['craft', true], ['sizing', false], ['worktrees', false], ['later', false], ['design', false], ['walkthrough', false], ['verify', true]]);
   setupRepo(repoRoot, { enabledFeatureIds: ['okf'] });
   const afterSetup = describeRepo(repoRoot);
-  assert.deepEqual(afterSetup.features.map((featureStatus) => [featureStatus.id, featureStatus.enabled]), [['okf', true], ['danger', false], ['craft', false], ['lanes', false], ['worktrees', false], ['later', false], ['design', false], ['walkthrough', false], ['verify', false]]);
+  assert.deepEqual(afterSetup.features.map((featureStatus) => [featureStatus.id, featureStatus.enabled]), [['okf', true], ['danger', false], ['craft', false], ['sizing', false], ['worktrees', false], ['later', false], ['design', false], ['walkthrough', false], ['verify', false]]);
 });
 
 test('the ai1 CLI runs init and status from a subdirectory', () => {

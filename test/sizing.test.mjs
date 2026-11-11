@@ -6,16 +6,16 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runHookEvent } from '../src/core/dispatcher.mjs';
 import { listShellWriteTargets } from '../src/core/shell-writes.mjs';
-import { isApprovalMessage } from '../src/lanes/lanes-approval.mjs';
-import { listPlanSlugsWrittenBy } from '../src/lanes/lanes-work.mjs';
+import { isApprovalMessage } from '../src/sizing/sizing-approval.mjs';
+import { listPlanSlugsWrittenBy } from '../src/sizing/sizing-work.mjs';
 import { createTemporaryProject } from './helpers.mjs';
 
 function runGit(projectRoot, gitArguments) {
   execFileSync('git', ['-C', projectRoot, ...gitArguments], { stdio: 'ignore' });
 }
 
-function createLanesRepo(lanesConfig = {}) {
-  const projectRoot = createTemporaryProject({ features: { okf: false, lanes: true }, verify: ['npm test'], ...lanesConfig });
+function createSizingRepo(sizingConfig = {}) {
+  const projectRoot = createTemporaryProject({ features: { okf: false, sizing: true }, verify: ['npm test'], ...sizingConfig });
   mkdirSync(join(projectRoot, 'src'));
   writeFileSync(join(projectRoot, 'src', 'app.js'), 'console.log(1);\n');
   runGit(projectRoot, ['init', '-q']);
@@ -54,28 +54,29 @@ function writePlan(projectRoot, slug, status, title = 'Billing export') {
 
 const editCode = (projectRoot) => ({ file_path: join(projectRoot, 'src', 'app.js'), old_string: '1', new_string: '2' });
 
-test('lanes-brief: the recipe names the three lanes, the verify command and the deep skill', () => {
-  const projectRoot = createLanesRepo();
+test('sizing-brief: the recipe names the three sizes, the verify command and the deep skill [rename-lanes-to-sizing:S1]', () => {
+  const projectRoot = createSizingRepo();
   const contextText = startSession(projectRoot, hookOptions()).hookSpecificOutput.additionalContext;
+  assert.ok(contextText.includes('Sizing: size every new task before acting and say the size in one line ("Size: quick, because ...").'));
   assert.match(contextText, /quick: .*run `npm test`/);
   assert.match(contextText, /plan: /);
-  assert.match(contextText, /deep: .*\/ai1:lanes-design-before-code/);
-  assert.match(contextText, /lightest lane/);
+  assert.match(contextText, /deep: .*\/ai1:sizing-design-before-code/);
+  assert.match(contextText, /lightest size/);
   assert.match(contextText, /quick: .*resumed from the request and `git diff` alone/, 'quick is sized by the resume test');
   assert.match(contextText, /number of files never decides/);
   assert.match(contextText, /deep: .*concurrency.*no test would catch/, 'the fuller risk list reaches deep');
   assert.equal(readFileSync(join(projectRoot, '.ai1', 'work', '.gitignore'), 'utf8'), '*\n', '.ai1/work ignores itself');
 });
 
-test('lanes-brief: silent on resume, and off unless the repo enables lanes', () => {
-  const projectRoot = createLanesRepo();
-  assert.doesNotMatch(startSession(projectRoot, hookOptions(), 'resume').hookSpecificOutput.additionalContext, /Lanes:/);
+test('sizing-brief: silent on resume, and off unless the repo enables sizing', () => {
+  const projectRoot = createSizingRepo();
+  assert.doesNotMatch(startSession(projectRoot, hookOptions(), 'resume').hookSpecificOutput.additionalContext, /Sizing:/);
   const plainRepo = createTemporaryProject({ features: { okf: false } });
-  assert.doesNotMatch(startSession(plainRepo, hookOptions()).hookSpecificOutput.additionalContext, /Lanes:/);
+  assert.doesNotMatch(startSession(plainRepo, hookOptions()).hookSpecificOutput.additionalContext, /Sizing:/);
 });
 
-test('lanes-brief: after compaction the active plan comes back with its progress', () => {
-  const projectRoot = createLanesRepo();
+test('sizing-brief: after compaction the active plan comes back with its progress', () => {
+  const projectRoot = createSizingRepo();
   const options = hookOptions();
   startSession(projectRoot, options);
   const planPath = writePlan(projectRoot, 'billing', 'approved');
@@ -87,8 +88,8 @@ test('lanes-brief: after compaction the active plan comes back with its progress
   assert.ok(existsSync(planPath));
 });
 
-test('lanes-brief: an old unfinished plan is listed at startup without its progress', () => {
-  const projectRoot = createLanesRepo();
+test('sizing-brief: an old unfinished plan is listed at startup without its progress', () => {
+  const projectRoot = createSizingRepo();
   const planPath = writePlan(projectRoot, 'old-idea', 'draft', 'Old idea');
   utimesSync(planPath, 1_000_000, 1_000_000);
   const contextText = startSession(projectRoot, hookOptions()).hookSpecificOutput.additionalContext;
@@ -96,36 +97,47 @@ test('lanes-brief: an old unfinished plan is listed at startup without its progr
   assert.match(contextText, /only if the person asks/);
 });
 
-test('lanes-gate: a draft design blocks code edits but not the plan or the bundle', () => {
-  const projectRoot = createLanesRepo({ knowledge: '.ai1/okf' });
+test('sizing-gate: a draft design blocks code edits but not the plan or the bundle [rename-lanes-to-sizing:S4]', () => {
+  const projectRoot = createSizingRepo({ knowledge: '.ai1/okf' });
   const options = hookOptions();
   startSession(projectRoot, options);
   writePlan(projectRoot, 'billing', 'draft');
   const deniedEdit = useTool(projectRoot, options, 'Edit', editCode(projectRoot));
   assert.equal(deniedEdit.hookSpecificOutput.permissionDecision, 'deny');
-  assert.match(deniedEdit.hookSpecificOutput.permissionDecisionReason, /not approved by the person/);
+  assert.match(deniedEdit.hookSpecificOutput.permissionDecisionReason, /Deep task: the design .* is not approved by the person yet/);
   assert.equal(useTool(projectRoot, options, 'Write', { file_path: join(projectRoot, '.ai1', 'work', 'billing', 'plan.md'), content: 'x' }), null);
   assert.equal(useTool(projectRoot, options, 'Write', { file_path: join(projectRoot, '.ai1', 'okf', 'decisions', 'x.md'), content: 'x' }), null);
   assert.equal(useTool(projectRoot, options, 'Write', { file_path: '/tmp/scratch.txt', content: 'x' }), null, 'outside the project is not gated');
 });
 
-test('lanes: a plan-lane plan never blocks edits, is listed as plan lane and comes back after compaction', () => {
-  const projectRoot = createLanesRepo();
+test('sizing: the plan of a plan task never blocks edits, is listed as plan task and comes back after compaction', () => {
+  const projectRoot = createSizingRepo();
   const options = hookOptions();
-  assert.match(startSession(projectRoot, options).hookSpecificOutput.additionalContext, /plan: .*`\.ai1\/work\/<slug>\/plan\.md` \(frontmatter `lane: plan`, `status: active`.*ai1 plan-done <slug>/);
+  assert.match(startSession(projectRoot, options).hookSpecificOutput.additionalContext, /plan: .*`\.ai1\/work\/<slug>\/plan\.md` \(frontmatter `size: plan`, `status: active`.*ai1 plan-done <slug>/);
   const planDirectory = join(projectRoot, '.ai1', 'work', 'csv-export');
   mkdirSync(planDirectory, { recursive: true });
-  writeFileSync(join(planDirectory, 'plan.md'), '---\ntitle: CSV export\nlane: plan\nstatus: active\n---\n\n- [x] 1. parser\n- [ ] 2. writer\n');
+  writeFileSync(join(planDirectory, 'plan.md'), '---\ntitle: CSV export\nsize: plan\nstatus: active\n---\n\n- [x] 1. parser\n- [ ] 2. writer\n');
   writeFileSync(join(planDirectory, 'progress.md'), 'Step 1 - green - src/parser.js\n');
   assert.equal(useTool(projectRoot, options, 'Edit', editCode(projectRoot)), null, 'no approval needed');
   assert.equal(sendPrompt(projectRoot, options, 'adelante'), null, 'a yes approves nothing');
   const compactedContext = startSession(projectRoot, options, 'compact').hookSpecificOutput.additionalContext;
-  assert.match(compactedContext, /csv-export\/plan\.md.*CSV export.*status: active, plan lane/);
+  assert.match(compactedContext, /csv-export\/plan\.md.*CSV export.*status: active, plan task/);
   assert.match(compactedContext, /Step 1 - green/);
 });
 
-test('lanes-gate: shell writes to code are refused too, reads are not', () => {
-  const projectRoot = createLanesRepo();
+test('sizing: a plan written before the rename with `lane: plan` is still a plan task [rename-lanes-to-sizing:S6]', () => {
+  const projectRoot = createSizingRepo();
+  const options = hookOptions();
+  startSession(projectRoot, options);
+  const planDirectory = join(projectRoot, '.ai1', 'work', 'old-plan');
+  mkdirSync(planDirectory, { recursive: true });
+  writeFileSync(join(planDirectory, 'plan.md'), '---\ntitle: Old plan\nlane: plan\nstatus: active\n---\n\n- [ ] 1. writer\n');
+  assert.equal(useTool(projectRoot, options, 'Edit', editCode(projectRoot)), null, 'not taken for an unapproved deep design');
+  assert.match(startSession(projectRoot, options).hookSpecificOutput.additionalContext, /old-plan\/plan\.md.*status: active, plan task/);
+});
+
+test('sizing-gate: shell writes to code are refused too, reads are not', () => {
+  const projectRoot = createSizingRepo();
   const options = hookOptions();
   startSession(projectRoot, options);
   writePlan(projectRoot, 'billing', 'ready');
@@ -135,8 +147,8 @@ test('lanes-gate: shell writes to code are refused too, reads are not', () => {
   assert.equal(useTool(projectRoot, options, 'Bash', { command: 'echo step >> .ai1/work/billing/progress.md' }), null);
 });
 
-test('lanes-gate: inline interpreter scripts ask while the design waits, and pass once approved', () => {
-  const projectRoot = createLanesRepo();
+test('sizing-gate: inline interpreter scripts ask while the design waits, and pass once approved', () => {
+  const projectRoot = createSizingRepo();
   const options = hookOptions();
   startSession(projectRoot, options);
   writePlan(projectRoot, 'billing', 'ready');
@@ -149,23 +161,23 @@ test('lanes-gate: inline interpreter scripts ask while the design waits, and pas
   assert.equal(useTool(projectRoot, options, 'Bash', { command: inlineScript }), null);
 });
 
-test('lanes-gate: inline scripts pass when no design waits', () => {
-  const projectRoot = createLanesRepo();
+test('sizing-gate: inline scripts pass when no design waits', () => {
+  const projectRoot = createSizingRepo();
   const options = hookOptions();
   startSession(projectRoot, options);
   assert.equal(useTool(projectRoot, options, 'Bash', { command: 'python3 -c "print(1)"' }), null);
 });
 
-test('lanes-gate: a plan written in the file as approved, without the person, still blocks', () => {
-  const projectRoot = createLanesRepo();
+test('sizing-gate: a plan written in the file as approved, without the person, still blocks', () => {
+  const projectRoot = createSizingRepo();
   const options = hookOptions();
   startSession(projectRoot, options);
   writePlan(projectRoot, 'billing', 'approved');
   assert.equal(useTool(projectRoot, options, 'Edit', editCode(projectRoot)).hookSpecificOutput.permissionDecision, 'deny');
 });
 
-test('lanes-approval: the person approves a ready design and edits open', () => {
-  const projectRoot = createLanesRepo();
+test('sizing-approval: the person approves a ready design and edits open', () => {
+  const projectRoot = createSizingRepo();
   const options = hookOptions();
   startSession(projectRoot, options);
   const planPath = writePlan(projectRoot, 'billing', 'ready');
@@ -175,8 +187,8 @@ test('lanes-approval: the person approves a ready design and edits open', () => 
   assert.equal(useTool(projectRoot, options, 'Edit', editCode(projectRoot)), null);
 });
 
-test('lanes-approval: a yes while the design is a draft, or a yes with conditions, approves nothing', () => {
-  const projectRoot = createLanesRepo();
+test('sizing-approval: a yes while the design is a draft, or a yes with conditions, approves nothing', () => {
+  const projectRoot = createSizingRepo();
   const options = hookOptions();
   startSession(projectRoot, options);
   writePlan(projectRoot, 'billing', 'draft');
@@ -186,8 +198,8 @@ test('lanes-approval: a yes while the design is a draft, or a yes with condition
   assert.equal(useTool(projectRoot, options, 'Edit', editCode(projectRoot)).hookSpecificOutput.permissionDecision, 'deny');
 });
 
-test('lanes-approval: going back to ready asks for a new approval', () => {
-  const projectRoot = createLanesRepo();
+test('sizing-approval: going back to ready asks for a new approval', () => {
+  const projectRoot = createSizingRepo();
   const options = hookOptions();
   startSession(projectRoot, options);
   writePlan(projectRoot, 'billing', 'ready');
@@ -210,8 +222,8 @@ test('isApprovalMessage: short plain yes only', () => {
   for (const notApproval of ['acepto, pero cambia el paso 2', '¿acepto así?']) assert.equal(isApprovalMessage(notApproval), false, notApproval);
 });
 
-test('lanes-gate: finished plans and plans from earlier sessions do not block', () => {
-  const projectRoot = createLanesRepo();
+test('sizing-gate: finished plans and plans from earlier sessions do not block', () => {
+  const projectRoot = createSizingRepo();
   const options = hookOptions();
   const oldPlanPath = writePlan(projectRoot, 'old-idea', 'draft');
   utimesSync(oldPlanPath, 1_000_000, 1_000_000);
@@ -220,8 +232,8 @@ test('lanes-gate: finished plans and plans from earlier sessions do not block', 
   assert.equal(useTool(projectRoot, options, 'Edit', editCode(projectRoot)), null);
 });
 
-test('lanes-escalate: past the size of a quick change it tells the person once, without stopping the agent', () => {
-  const projectRoot = createLanesRepo({ modules: { 'lanes-escalate': { max_files: 3, max_lines: 1000 } } });
+test('sizing-escalate: past the size of a quick change it tells the person once, without stopping the agent', () => {
+  const projectRoot = createSizingRepo({ modules: { 'sizing-escalate': { max_files: 3, max_lines: 1000 } } });
   const options = hookOptions();
   startSession(projectRoot, options);
   writeFileSync(join(projectRoot, 'src', 'a.js'), 'a\n');
@@ -234,15 +246,15 @@ test('lanes-escalate: past the size of a quick change it tells the person once, 
   assert.equal(useTool(projectRoot, options, 'Edit', editCode(projectRoot)), null, 'shown once per session');
 });
 
-test('lanes-escalate: lines count too, and an active plan means no question', () => {
-  const projectRoot = createLanesRepo({ modules: { 'lanes-escalate': { max_files: 50, max_lines: 10 } } });
+test('sizing-escalate: lines count too, and an active plan means no question', () => {
+  const projectRoot = createSizingRepo({ modules: { 'sizing-escalate': { max_files: 50, max_lines: 10 } } });
   const options = hookOptions();
   startSession(projectRoot, options);
   writeFileSync(join(projectRoot, 'src', 'big.js'), 'line\n'.repeat(20));
   writePlan(projectRoot, 'billing', 'ready');
   sendPrompt(projectRoot, options, 'aprobado');
   assert.equal(useTool(projectRoot, options, 'Edit', editCode(projectRoot)), null);
-  const otherProject = createLanesRepo({ modules: { 'lanes-escalate': { max_files: 50, max_lines: 10 } } });
+  const otherProject = createSizingRepo({ modules: { 'sizing-escalate': { max_files: 50, max_lines: 10 } } });
   const otherOptions = hookOptions();
   startSession(otherProject, otherOptions);
   writeFileSync(join(otherProject, 'src', 'big.js'), 'line\n'.repeat(20));
@@ -266,8 +278,8 @@ test('listShellWriteTargets: a cd earlier in the line moves the relative targets
   assert.deepEqual(listShellWriteTargets('cd ~/x && touch a; cd $DIR && touch b').targetPaths, ['a', 'b'], 'unknown directories leave targets as written');
 });
 
-test('lanes-gate: from a worktree, cd to the main checkout and write its plan is not refused as a worktree plan', () => {
-  const mainRoot = createLanesRepo();
+test('sizing-gate: from a worktree, cd to the main checkout and write its plan is not refused as a worktree plan', () => {
+  const mainRoot = createSizingRepo();
   const worktreeRoot = join(mainRoot, '.claude', 'worktrees', 'feature');
   runGit(mainRoot, ['worktree', 'add', '-q', '-b', 'feature', worktreeRoot]);
   const options = hookOptions();
@@ -290,8 +302,8 @@ function runAs(sessionId, transcriptPath, eventName, projectRoot, options, extra
   return runHookEvent(eventName, { session_id: sessionId, cwd: projectRoot, transcript_path: transcriptPath, ...extraInput }, options);
 }
 
-test('lanes: another session\'s new draft does not block this session, and its own draft does', () => {
-  const projectRoot = createLanesRepo();
+test('sizing: another session\'s new draft does not block this session, and its own draft does', () => {
+  const projectRoot = createSizingRepo();
   const options = hookOptions();
   const longTranscript = writeTranscript(options, 'long-session', [{ name: 'Read', input: { file_path: join(projectRoot, 'src', 'app.js') } }]);
   runAs('long-session', longTranscript, 'SessionStart', projectRoot, options, { source: 'startup' });
@@ -307,8 +319,8 @@ test('lanes: another session\'s new draft does not block this session, and its o
   assert.match(runAs('long-session', longTranscript, 'PreToolUse', projectRoot, options, editByLongSession).hookSpecificOutput.permissionDecisionReason, /billing\/plan\.md/);
 });
 
-test('lanes-approval: a yes approves this session\'s ready design, never another session\'s', () => {
-  const projectRoot = createLanesRepo();
+test('sizing-approval: a yes approves this session\'s ready design, never another session\'s', () => {
+  const projectRoot = createSizingRepo();
   const options = hookOptions();
   const otherPlanPath = writePlan(projectRoot, 'prod-guard', 'ready');
   const thisTranscript = writeTranscript(options, 'this-session', [{ name: 'Read', input: { file_path: otherPlanPath } }]);
@@ -334,8 +346,8 @@ test('listPlanSlugsWrittenBy: writes to a plan count, reading it does not', () =
   assert.deepEqual(listPlanSlugsWrittenBy({ name: 'Write', input: { file_path: '/repo/.ai1/work/billing/progress.md' } }), []);
 });
 
-test('lanes-gate: from a worktree, a plan written in the worktree\'s .ai1/work/ is refused with the main checkout path', () => {
-  const mainRoot = createLanesRepo();
+test('sizing-gate: from a worktree, a plan written in the worktree\'s .ai1/work/ is refused with the main checkout path', () => {
+  const mainRoot = createSizingRepo();
   const worktreeRoot = join(mainRoot, '.claude', 'worktrees', 'feature');
   runGit(mainRoot, ['worktree', 'add', '-q', '-b', 'feature', worktreeRoot]);
   const options = hookOptions();
@@ -354,8 +366,8 @@ function writeScenarioPlan(projectRoot, slug, status) {
   return planPath;
 }
 
-test('lanes-gate: a plan with scenarios is not closed by hand - Edit, Write and MultiEdit point to ai1 plan-done', () => {
-  const projectRoot = createLanesRepo();
+test('sizing-gate: a plan with scenarios is not closed by hand - Edit, Write and MultiEdit point to ai1 plan-done', () => {
+  const projectRoot = createSizingRepo();
   const options = hookOptions();
   const planPath = writeScenarioPlan(projectRoot, 'login-lock', 'approved');
   const planText = readFileSync(planPath, 'utf8');
@@ -371,8 +383,8 @@ test('lanes-gate: a plan with scenarios is not closed by hand - Edit, Write and 
   }
 });
 
-test('lanes-gate: approved scenarios cannot be dropped unless the plan goes back to ready; rewording and plans without scenarios are free', () => {
-  const projectRoot = createLanesRepo();
+test('sizing-gate: approved scenarios cannot be dropped unless the plan goes back to ready; rewording and plans without scenarios are free', () => {
+  const projectRoot = createSizingRepo();
   const options = hookOptions();
   const planPath = writeScenarioPlan(projectRoot, 'login-lock', 'approved');
   const dropScenario = { file_path: planPath, old_string: '- S2: Given d, when e, then f.\n', new_string: '' };

@@ -1,7 +1,7 @@
 // craft-brief (SessionStart, feature `craft`): tells the agent how to write code so the repo grows
 // in order: the minimum change that solves the task, nothing outside it, reuse before writing,
 // refactors proposed instead of applied, and names that explain themselves. Thinking before coding
-// and verifying before "done" are left to `lanes` and `verify`. Where things live (layout, how to add
+// and verifying before "done" are left to `sizing` and `verify`. Where things live (layout, how to add
 // each kind of piece, reusable helpers) belongs in the knowledge bundle, not here.
 // The text stays byte-stable between sessions so it does not break the prompt cache.
 

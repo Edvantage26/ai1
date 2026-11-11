@@ -85,9 +85,9 @@ test('excluded and unknown skills print nothing and exit 0', () => {
 
 test('an unreadable overlay is a note, a long one is cut, and the rest still prints', () => {
   const projectRoot = createTemporaryProject();
-  mkdirSync(join(projectRoot, '.ai1', 'skills', 'lanes', 'overlay.md'), { recursive: true });
-  const homeDirectory = createUserHome('lanes', 'x'.repeat(OVERLAY_MAX_BYTES + 100));
-  const { exitCode, printedText } = skillContextOutput(['lanes-design-before-code'], { workingDirectory: projectRoot, environment: noEnvironment, homeDirectory });
+  mkdirSync(join(projectRoot, '.ai1', 'skills', 'sizing', 'overlay.md'), { recursive: true });
+  const homeDirectory = createUserHome('sizing', 'x'.repeat(OVERLAY_MAX_BYTES + 100));
+  const { exitCode, printedText } = skillContextOutput(['sizing-design-before-code'], { workingDirectory: projectRoot, environment: noEnvironment, homeDirectory });
   assert.equal(exitCode, 0);
   assert.match(printedText, /\(could not be read: EISDIR\)/);
   assert.match(printedText, new RegExp(`cut at ${OVERLAY_MAX_BYTES} bytes`));

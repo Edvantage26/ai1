@@ -1,6 +1,6 @@
 // brief: tells the agent, once per session, which harness this repo runs, so it knows the rules
 // before it acts instead of discovering them when a guard stops it. Also records the session's
-// base HEAD, shared by okf, lanes and verify. Warns while a plugin that overlaps with an enabled
+// base HEAD, shared by okf, sizing and verify. Warns while a plugin that overlaps with an enabled
 // feature (src/core/plugin-overlaps.mjs) is still enabled, so the person can switch it off.
 
 import { contextDecision } from '../core/hook-io.mjs';
@@ -37,7 +37,7 @@ export function buildHarnessBrief(config, enabledModules, enabledPluginIds = [])
       : `Before saying a change is done, run: ${verifyList}.`);
   }
   briefLines.push('When an ai1 hook asks or refuses, follow its reason; do not work around it.');
-  briefLines.push('Ask the person only for what is truly delicate: a deep-lane design, publishing (push, tag, release), production, or what an ai1 guard flags. Everything else (creating, committing in and finishing a worktree, a plan, a step you recommend) you do, then report in one line; the person can stop you. Do not end a reply with a question you could answer yourself, do not re-ask a pending question, and a yes covers what you recommended.');
+  briefLines.push('Ask the person only for what is truly delicate: a deep design, publishing (push, tag, release), production, or what an ai1 guard flags. Everything else (creating, committing in and finishing a worktree, a plan, a step you recommend) you do, then report in one line; the person can stop you. Do not end a reply with a question you could answer yourself, do not re-ask a pending question, and a yes covers what you recommended.');
   const pluginsToDisable = findOverlappingPlugins(enabledPluginIds, activeFeatures.map((featureDefinition) => featureDefinition.id))
     .filter((overlappingPlugin) => overlappingPlugin.action === 'disable');
   if (pluginsToDisable.length) {

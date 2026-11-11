@@ -1,4 +1,4 @@
-// Paths the agent's tools name, seen from the project root (used by lanes and design).
+// Paths the agent's tools name, seen from the project root (used by sizing and design).
 
 import { isAbsolute, relative, resolve } from 'node:path';
 

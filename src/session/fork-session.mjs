@@ -13,7 +13,7 @@ import { homedir, tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { AI1_DIRECTORY } from '../core/config.mjs';
 import { WORK_DIRECTORY } from '../core/config.mjs';
-import { ensureWorkDirectoryIgnored } from '../lanes/lanes-work.mjs';
+import { ensureWorkDirectoryIgnored } from '../sizing/sizing-work.mjs';
 
 const SEED_TIMEOUT_MILLISECONDS = 180_000;
 const VSCODE_URI_PREFIX = 'vscode://anthropic.claude-code/open';
@@ -112,7 +112,7 @@ function openInVscode(runCommand, host, vscodeUri) {
 export function resolveHandoffPath(repoRoot, handoffSlug) {
   if (!/^[a-z0-9][a-z0-9-]*$/.test(handoffSlug || '')) throw new Error(`invalid handoff slug "${handoffSlug}" (lowercase letters, digits and dashes)`);
   const usesAi1 = existsSync(join(repoRoot, AI1_DIRECTORY));
-  // without the lanes feature nothing else writes .ai1/work/.gitignore, so the handoff would show in git
+  // without the sizing feature nothing else writes .ai1/work/.gitignore, so the handoff would show in git
   if (usesAi1) ensureWorkDirectoryIgnored(repoRoot);
   const handoffDirectory = usesAi1 ? join(repoRoot, WORK_DIRECTORY, 'handoffs') : join(tmpdir(), 'ai1-handoffs');
   mkdirSync(handoffDirectory, { recursive: true });

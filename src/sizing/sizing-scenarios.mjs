@@ -1,4 +1,4 @@
-// Behaviour scenarios of a deep-lane plan: a `# Behaviour` section lists `- S1: Given ..., when ...,
+// Behaviour scenarios of a deep plan: a `# Behaviour` section lists `- S1: Given ..., when ...,
 // then ...`, and the test that covers a scenario carries the tag `[<slug>:S1]` in its name or a
 // comment. `ai1 plan-done` closes a plan only when every scenario's tag is found in the repo and the
 // verify commands are green. It proves a tagged test exists and the suite passes, not that the test
@@ -9,7 +9,7 @@ import { openSync, readSync, closeSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { splitFrontmatter } from '../core/frontmatter.mjs';
 import { AI1_DIRECTORY } from '../core/config.mjs';
-import { readPlanStatus, UNAPPROVED_STATUSES } from './lanes-work.mjs';
+import { readPlanStatus, UNAPPROVED_STATUSES } from './sizing-work.mjs';
 
 const BEHAVIOUR_HEADING_PATTERN = /^#{1,2}\s+behaviou?r\s*$/i;
 const ANY_SECTION_HEADING_PATTERN = /^#{1,2}\s/;

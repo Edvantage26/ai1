@@ -1,12 +1,12 @@
 ---
-name: lanes-design-before-code
-description: Lanes — Use when a task is in the deep lane - the goal is unclear, there are design choices with trade-offs, it touches a risky area (auth, data, money, migrations, public API), or it will take hours - or when the person says "piénsalo bien", "think it through", "dale una vuelta" or asks for a design before code.
+name: sizing-design-before-code
+description: Sizing — Use when a task is sized deep - the goal is unclear, there are design choices with trade-offs, it touches a risky area (auth, data, money, migrations, public API), or it will take hours - or when the person says "piénsalo bien", "think it through", "dale una vuelta" or asks for a design before code.
 allowed-tools: Bash("${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context *)
 ---
 
-# Deep lane: understand, design, get approval, then build
+# Deep task: understand, design, get approval, then build
 
-Code edits outside `.ai1/` and the knowledge bundle are refused by the `lanes-gate` hook until the
+Code edits outside `.ai1/` and the knowledge bundle are refused by the `sizing-gate` hook until the
 person approves the design. Designing, reading and asking are always free.
 
 ## 1. Open the work folder
@@ -87,7 +87,7 @@ minor (your ruling, recorded), and the person's (ask them, in one message).
 
 Set `status: ready` and show the person a short summary: goal, behaviour scenarios, chosen approach, steps, risks,
 and the rulings you made. Ask them to approve or to say what to change. A plain yes from them
-("aprobado", "adelante", "ok", "go ahead") is recorded by the `lanes-approval` hook and opens code
+("aprobado", "adelante", "ok", "go ahead") is recorded by the `sizing-approval` hook and opens code
 edits. If they ask for changes, update the plan, keep `status: ready` and ask again.
 
 ## 7. Build step by step
@@ -109,7 +109,7 @@ edits. If they ask for changes, update the plan, keep `status: ready` and ask ag
 Close with `ai1 plan-done <slug>` (from the worktree, if you work in one): it refuses while a
 scenario has no tagged test, then runs the verify commands and, only when green, sets
 `status: done` and logs where each scenario is tested. Writing `status: done` by hand on a plan with
-scenarios is refused by `lanes-gate`, and so is dropping an approved scenario (go back to
+scenarios is refused by `sizing-gate`, and so is dropping an approved scenario (go back to
 `status: ready` and ask the person). Tell the person what was built, what was verified (per
 scenario, with its test), and every ruling you made. Move lasting decisions to the knowledge bundle; the work
 folder is scratch.
@@ -123,6 +123,6 @@ folder is scratch.
 
 ## Customization
 
-This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context lanes-design-before-code` and apply what it prints.
+This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context sizing-design-before-code` and apply what it prints.
 
-!`"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context lanes-design-before-code`
+!`"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context sizing-design-before-code`

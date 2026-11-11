@@ -284,11 +284,11 @@ test('plan-done: a plan without scenarios, or with None, closes after a green ve
   assert.match(readFileSync(planPath, 'utf8'), /^status: done$/m);
 });
 
-test('plan-done: a plan-lane plan closes without approval after a green verify, and only once', () => {
+test('plan-done: the plan of a plan task closes without approval after a green verify, and only once', () => {
   const projectRoot = createTemporaryProject();
   mkdirSync(join(projectRoot, '.ai1', 'work', 'csv-export'), { recursive: true });
   const planPath = join(projectRoot, '.ai1', 'work', 'csv-export', 'plan.md');
-  writeFileSync(planPath, '---\ntitle: CSV export\nlane: plan\nstatus: active\n---\n\n- [x] 1. writer\n');
+  writeFileSync(planPath, '---\ntitle: CSV export\nsize: plan\nstatus: active\n---\n\n- [x] 1. writer\n');
   assert.deepEqual(closePlan(projectRoot, projectRoot, 'csv-export', ['npm test'], { runCommand: () => 1, repoFiles: [] }), { closed: false, message: '`npm test` failed (exit 1)' });
   assert.deepEqual(closePlan(projectRoot, projectRoot, 'csv-export', ['npm test'], { runCommand: passingRun, repoFiles: [] }), { closed: true, message: 'plan csv-export done (no scenarios; verify green)' });
   assert.match(readFileSync(planPath, 'utf8'), /^status: done$/m);

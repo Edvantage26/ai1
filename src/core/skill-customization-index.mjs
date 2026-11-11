@@ -10,7 +10,7 @@ export const SKILL_CUSTOMIZATION_INDEX = {
   'worktrees-plan-recipe': { customizable: true, scopes: PROJECT_AND_USER },
   'session-fork-conversation': { customizable: true, scopes: PROJECT_AND_USER },
   'later-write': { customizable: true, scopes: PROJECT_AND_USER },
-  'lanes-design-before-code': { customizable: true, scopes: PROJECT_AND_USER },
+  'sizing-design-before-code': { customizable: true, scopes: PROJECT_AND_USER },
   'okf-maintain-knowledge': { customizable: true, scopes: PROJECT_AND_USER },
   'okf-tidy-claude-md': { customizable: true, scopes: PROJECT_AND_USER },
   'okf-visualize-bundle': { customizable: true, scopes: PROJECT_AND_USER },

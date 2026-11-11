@@ -24,7 +24,7 @@ several sessions often work on ai1 at once, and two of them committing and relea
 3. **Work inside**: edits and commits only in the worktree. Checks:
    `ai1 worktree run <name> test` (`npm test`), `ai1 worktree run <name> okf` (OKF validator
    --strict), `ai1 worktree run <name> validate` (`claude plugin validate .`).
-4. **Progress**: start every progress report with one line naming the worktree; a deep-lane plan
+4. **Progress**: start every progress report with one line naming the worktree; a deep plan
    records the worktree name too (plans live in the main checkout's `.ai1/work/`).
 5. **Close** once the work is done and verified, without asking: commit in the branch and run `ai1 worktree finish <name>` (rebase onto `main`, runs
    `npm test` and the OKF validator, then fast-forwards `main`), or `ai1 worktree drop <name> --confirm`.

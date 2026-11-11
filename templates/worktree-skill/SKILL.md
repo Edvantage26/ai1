@@ -25,7 +25,7 @@ changes, e.g. "one-line fixes to docs go straight to main".>
 3. **Work inside**: edits and commits only in the worktree. Project steps:
    <`ai1 worktree run <name> dev` (port {{port}}), `ai1 worktree run <name> build`, ...>.
 4. **Progress**: start every progress report with one line naming the worktree; if the task has a
-   deep-lane plan, write the worktree name in it.
+   deep plan, write the worktree name in it.
 5. **Close** when the person approves: `ai1 worktree finish <name>` (<rebase|merge>; runs
    `pre-finish`: <checks>; then fast-forwards <base>), or `ai1 worktree drop <name> --confirm`.
    After finishing from inside the worktree, leave it with ExitWorktree (keep).

@@ -59,8 +59,8 @@ test('a launch folder that is not a repository is kept as is', () => {
   assert.deepEqual(resolveProjectRoots({ cwd: parentFolder }, { CLAUDE_PROJECT_DIR: parentFolder }), { projectRoot: parentFolder, sharedRoot: parentFolder });
 });
 
-test('a deep-lane plan in the main checkout gates edits made inside a worktree', () => {
-  const { mainRoot, worktreeRoot } = createRepoWithWorktree({ features: { okf: false, lanes: true } });
+test('a deep plan in the main checkout gates edits made inside a worktree', () => {
+  const { mainRoot, worktreeRoot } = createRepoWithWorktree({ features: { okf: false, sizing: true } });
   const options = {
     environment: { CLAUDE_PROJECT_DIR: mainRoot, CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'ai1-data-')) },
     homeDirectory: mkdtempSync(join(tmpdir(), 'ai1-home-')),

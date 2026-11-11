@@ -24,7 +24,7 @@ function createRepoWithFiles(filesByPath) {
 const recommendedIn = (repoRoot) => Object.fromEntries(Object.entries(recommendFeatures(repoRoot, { hasKnowledgeBundle: false }).recommendations)
   .map(([featureId, recommendation]) => [featureId, recommendation.recommended]));
 
-test('a small frontend repo: design and verify on, lanes off, worktrees asked', () => {
+test('a small frontend repo: design and verify on, sizing off, worktrees asked', () => {
   const repoRoot = createRepoWithFiles({
     'package.json': JSON.stringify({ scripts: { test: 'vitest run' }, dependencies: { react: '^19.0.0' } }),
     'pnpm-lock.yaml': '',
@@ -35,12 +35,12 @@ test('a small frontend repo: design and verify on, lanes off, worktrees asked', 
   assert.equal(recommendations.design.recommended, true);
   assert.equal(recommendations.walkthrough.recommended, true);
   assert.ok(recommendations.design.evidence.includes('package.json depends on react'));
-  assert.equal(recommendations.lanes.recommended, false);
+  assert.equal(recommendations.sizing.recommended, false);
   assert.equal(recommendations.worktrees.recommended, null, 'nothing says how many sessions run at once: ask');
   assert.equal(recommendations.verify.recommended, true);
 });
 
-test('a backend repo with migrations and decision records: lanes and later on, design off', () => {
+test('a backend repo with migrations and decision records: sizing and later on, design off', () => {
   const repoRoot = createRepoWithFiles({
     'pyproject.toml': '[tool.pytest.ini_options]\naddopts = "-q"\n',
     'app/db/migrations/0001_init.py': '',
@@ -49,16 +49,16 @@ test('a backend repo with migrations and decision records: lanes and later on, d
   });
   const { recommendations, verifyCommands } = recommendFeatures(repoRoot, { hasKnowledgeBundle: false });
   assert.deepEqual(verifyCommands, ['pytest']);
-  assert.equal(recommendations.lanes.recommended, true);
-  assert.ok(recommendations.lanes.evidence.includes('risky area: app/db/migrations'));
-  assert.ok(recommendations.lanes.evidence.includes('risky area: infra'));
+  assert.equal(recommendations.sizing.recommended, true);
+  assert.ok(recommendations.sizing.evidence.includes('risky area: app/db/migrations'));
+  assert.ok(recommendations.sizing.evidence.includes('risky area: infra'));
   assert.equal(recommendations.later.recommended, true);
   assert.equal(recommendations.design.recommended, false);
 });
 
 test('an empty repo: only the always-useful features, verify off until there are tests', () => {
   assert.deepEqual(recommendedIn(createRepoWithFiles({ 'README.md': 'x\n' })), {
-    okf: true, danger: true, craft: true, lanes: false, worktrees: null, later: false, design: false, walkthrough: false, verify: false,
+    okf: true, danger: true, craft: true, sizing: false, worktrees: null, later: false, design: false, walkthrough: false, verify: false,
   });
 });
 

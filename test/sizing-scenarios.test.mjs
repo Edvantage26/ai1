@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { checkScenarioCoverage, findScenarioTags, listRepoFiles, readPlanScenarios } from '../src/lanes/lanes-scenarios.mjs';
+import { checkScenarioCoverage, findScenarioTags, listRepoFiles, readPlanScenarios } from '../src/sizing/sizing-scenarios.mjs';
 import { createTemporaryProject } from './helpers.mjs';
 
 const PLAN_WITH_SCENARIOS = `---

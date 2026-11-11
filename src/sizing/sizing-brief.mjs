@@ -1,5 +1,5 @@
-// lanes-brief (SessionStart, feature `lanes`): tells the agent to size each task and pick the
-// lightest lane that fits (quick, plan, deep), and lists unfinished plans of both lanes. After a
+// sizing-brief (SessionStart, feature `sizing`): tells the agent to size each task and pick the
+// lightest size that fits (quick, plan, deep), and lists unfinished plan and deep plans. After a
 // compaction it puts the tail of each active plan's progress back in context, because the
 // agent's memory of where it was is exactly what compaction loses.
 // The text stays byte-stable between sessions so it does not break the prompt cache.
@@ -11,21 +11,21 @@ import { recordSessionBaseHead, readSessionBase } from '../core/session-base.mjs
 import { isFeatureEnabled } from '../core/features.mjs';
 import {
   listWorkPlans, isPlanFinished, isSessionPlan, readSessionPlanSlugs, readApprovals, isPlanApproved, ensureWorkDirectoryIgnored,
-} from './lanes-work.mjs';
+} from './sizing-work.mjs';
 import { WORK_DIRECTORY } from '../core/config.mjs';
 
-const MODULE_ID = 'lanes-brief';
+const MODULE_ID = 'sizing-brief';
 const PROGRESS_TAIL_LINES = 15;
 
-export function buildLanesRecipe(verifyCommands, usesWorktrees = false) {
+export function buildSizingRecipe(verifyCommands, usesWorktrees = false) {
   const verifyText = verifyCommands.length ? verifyCommands.map((verifyCommand) => `\`${verifyCommand}\``).join(', ') : 'the project checks';
   return [
-    'Lanes: size every new task before acting and say the lane in one line ("Lane: quick, because ...").',
+    'Sizing: size every new task before acting and say the size in one line ("Size: quick, because ...").',
     `- quick: a clear, contained change that could be resumed from the request and \`git diff\` alone (a bug, a wording, a small tweak). Do it, run ${verifyText}, report.`,
-    '- plan: several pieces but a clear goal. Read the relevant code, say the plan in a few lines (files, steps, how you will verify) and start; do not wait for a yes. Only when it has more than about 3 steps or may not finish in one go, also write it to `' + WORK_DIRECTORY + '/<slug>/plan.md` (frontmatter `lane: plan`, `status: active`, `title`; the goal, steps as `- [ ]` checkboxes, how you will verify) so it survives compaction; tick each step as you finish it and close with `ai1 plan-done <slug>`.',
-    '- deep: unclear goal, design choices, a risky area (auth, data or irreversible effects, money, migrations, a public API or contract others use, concurrency, deploy or environment, code no test would catch breaking) or hours of work. Load the /ai1:lanes-design-before-code skill and follow it: questions, a design in `' + WORK_DIRECTORY + '/<slug>/plan.md`, approval by the person, then step by step.',
+    '- plan: several pieces but a clear goal. Read the relevant code, say the plan in a few lines (files, steps, how you will verify) and start; do not wait for a yes. Only when it has more than about 3 steps or may not finish in one go, also write it to `' + WORK_DIRECTORY + '/<slug>/plan.md` (frontmatter `size: plan`, `status: active`, `title`; the goal, steps as `- [ ]` checkboxes, how you will verify) so it survives compaction; tick each step as you finish it and close with `ai1 plan-done <slug>`.',
+    '- deep: unclear goal, design choices, a risky area (auth, data or irreversible effects, money, migrations, a public API or contract others use, concurrency, deploy or environment, code no test would catch breaking) or hours of work. Load the /ai1:sizing-design-before-code skill and follow it: questions, a design in `' + WORK_DIRECTORY + '/<slug>/plan.md`, approval by the person, then step by step.',
     ...(usesWorktrees ? ['- plan and deep tasks are built in their own worktree (see Worktrees); name it in the plan so it survives compaction.'] : []),
-    'Pick the lightest lane that fits; the number of files never decides it. "rápido"/"quick" or "piénsalo bien"/"think it through" from the person sets the lane. When a quick task grows, stop and move to plan.',
+    'Pick the lightest size that fits; the number of files never decides it. "rápido"/"quick" or "piénsalo bien"/"think it through" from the person sets the size. When a quick task grows, stop and move to plan.',
   ].join('\n');
 }
 
@@ -39,7 +39,7 @@ export function describeUnfinishedPlans(workPlans, approvals, { withProgress }) 
   if (workPlans.length === 0) return '';
   const planLines = ['Unfinished plans in this repo:'];
   for (const workPlan of workPlans) {
-    const approvalText = workPlan.lane === 'plan' ? 'plan lane' : isPlanApproved(workPlan, approvals) ? 'approved by the person' : 'not approved yet';
+    const approvalText = workPlan.size === 'plan' ? 'plan task' : isPlanApproved(workPlan, approvals) ? 'approved by the person' : 'not approved yet';
     planLines.push(`- \`${workPlan.relativePath}\` "${workPlan.title}" (status: ${workPlan.status}, ${approvalText})`);
     if (withProgress) planLines.push(`  Last progress:\n${readProgressTail(workPlan.planPath).replace(/^/gm, '    ')}`);
   }
@@ -52,8 +52,8 @@ export function describeUnfinishedPlans(workPlans, approvals, { withProgress }) 
 export default {
   id: MODULE_ID,
   event: 'SessionStart',
-  feature: 'lanes',
-  description: 'Asks the agent to pick a lane (quick, plan, deep) per task and restores plan progress after compaction.',
+  feature: 'sizing',
+  description: 'Asks the agent to size each task (quick, plan, deep) per task and restores plan progress after compaction.',
   run({ hookInput, config, projectRoot, sharedRoot = projectRoot, environment }) {
     // A resumed session already has this text in its history.
     if (hookInput.source === 'resume') return allowDecision();
@@ -68,7 +68,7 @@ export default {
     const plansToRestore = isAfterCompaction && (sessionBase || sessionPlanSlugs)
       ? unfinishedPlans.filter((workPlan) => isSessionPlan(workPlan, sessionBase?.sessionStartMilliseconds, sessionPlanSlugs))
       : [];
-    const contextParts = [buildLanesRecipe(config.verify, isFeatureEnabled('worktrees', config))];
+    const contextParts = [buildSizingRecipe(config.verify, isFeatureEnabled('worktrees', config))];
     const approvals = readApprovals(sharedRoot, environment);
     const planDescription = plansToRestore.length
       ? describeUnfinishedPlans(plansToRestore, approvals, { withProgress: true })

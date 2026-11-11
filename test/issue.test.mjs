@@ -10,12 +10,12 @@ const pluginVersion = JSON.parse(readFileSync(new URL('../.claude-plugin/plugin.
 const answerClaudeVersion = () => ({ status: 0, stdout: '2.1.0 (Claude Code)\n', stderr: '' });
 
 test('issue env: versions, host and the repo features, without paths', () => {
-  const projectRoot = createTemporaryProject({ version: 1, features: { okf: true, lanes: true, someday: true } });
+  const projectRoot = createTemporaryProject({ version: 1, features: { okf: true, sizing: true, someday: true } });
   const issueEnvironment = collectIssueEnvironment(projectRoot, { environment: {}, runCommand: answerClaudeVersion, platformName: 'linux', architectureName: 'x64', nodeVersion: 'v22.0.0' });
   assert.equal(issueEnvironment.ai1Version, pluginVersion);
   assert.equal(issueEnvironment.claudeCodeVersion, '2.1.0 (Claude Code)');
   assert.equal(issueEnvironment.host, 'terminal');
-  assert.ok(issueEnvironment.enabledFeatures.includes('okf') && issueEnvironment.enabledFeatures.includes('lanes'));
+  assert.ok(issueEnvironment.enabledFeatures.includes('okf') && issueEnvironment.enabledFeatures.includes('sizing'));
   assert.deepEqual(issueEnvironment.unknownConfigEntries, ['feature "someday"']);
   const environmentText = formatIssueEnvironment(issueEnvironment);
   assert.match(environmentText, /- OS: linux x64/);

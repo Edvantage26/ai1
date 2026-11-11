@@ -1,9 +1,9 @@
-// lanes-gate (PreToolUse, feature `lanes`): while a deep-lane design of this session (not a plan-lane
+// sizing-gate (PreToolUse, feature `sizing`): while a deep design of this session (not a plan task's
 // plan, which needs no approval) is not approved
 // by the person, refuses edits to project files outside `.ai1/`, the knowledge bundle and later entries (Edit,
 // Write, MultiEdit, NotebookEdit, and shell commands that write files) and asks before inline
 // interpreter scripts, whose writes cannot be told from the command line. Designing, asking and
-// reading stay free; building waits for the approval that lanes-approval records.
+// reading stay free; building waits for the approval that sizing-approval records.
 
 import { existsSync, readFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
@@ -12,14 +12,14 @@ import { readSessionBase } from '../core/session-base.mjs';
 import { listShellWriteTargets } from '../core/shell-writes.mjs';
 import {
   listActivePlans, readApprovals, isPlanApproved, readSessionPlanSlugs, UNAPPROVED_STATUSES,
-} from './lanes-work.mjs';
+} from './sizing-work.mjs';
 import { projectRelativePath } from '../core/project-paths.mjs';
-import { findPlanScenarioViolation } from './lanes-scenarios.mjs';
+import { findPlanScenarioViolation } from './sizing-scenarios.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
 import { LATER_DIRECTORY } from '../later/later-documents.mjs';
 import { KNOWLEDGE_BUNDLE_PATH, WORK_DIRECTORY } from '../core/config.mjs';
 
-const MODULE_ID = 'lanes-gate';
+const MODULE_ID = 'sizing-gate';
 export const FILE_EDITING_TOOLS = ['Edit', 'Write', 'MultiEdit', 'NotebookEdit'];
 
 // Project-relative paths the tool call would write; paths outside the project are left out.
@@ -41,7 +41,7 @@ function isPathInside(relativePath, directoryPath) {
 
 export function findUnapprovedPlan(projectRoot, sessionStartMilliseconds, approvals, sessionPlanSlugs = null) {
   return listActivePlans(projectRoot, sessionStartMilliseconds, sessionPlanSlugs)
-    .find((workPlan) => workPlan.lane === 'deep' && (UNAPPROVED_STATUSES.has(workPlan.status) || !isPlanApproved(workPlan, approvals)));
+    .find((workPlan) => workPlan.size === 'deep' && (UNAPPROVED_STATUSES.has(workPlan.status) || !isPlanApproved(workPlan, approvals)));
 }
 
 // The text a Write, Edit or MultiEdit leaves in a file whose current text is `diskText`.
@@ -72,8 +72,8 @@ export default {
   id: MODULE_ID,
   event: 'PreToolUse',
   toolNames: [...FILE_EDITING_TOOLS, 'Bash'],
-  feature: 'lanes',
-  description: 'Refuses code edits while a deep-lane design of this session waits for the person\'s approval.',
+  feature: 'sizing',
+  description: 'Refuses code edits while a deep design of this session waits for the person\'s approval.',
   run({ hookInput, config, projectRoot, sharedRoot = projectRoot, environment }) {
     // Plans live in the main checkout, where this gate, the approval and `ai1 step-done` read them; one
     // written inside a worktree would be invisible to all three, so the design would never be gated.
@@ -83,7 +83,7 @@ export default {
       return denyDecision(MODULE_ID, `Work plans live in the main checkout, not in a worktree: write \`${join(sharedRoot, misplacedPlanPath)}\` instead of \`${misplacedPlanPath}\` here. The design gate, the approval and \`ai1 step-done\` only read it there.`);
     }
     const planWriteViolation = findPlanWriteViolation(hookInput, sharedRoot);
-    if (planWriteViolation) return denyDecision(MODULE_ID, `Deep lane: ${planWriteViolation}`);
+    if (planWriteViolation) return denyDecision(MODULE_ID, `Deep task: ${planWriteViolation}`);
     // Designing stays free: the work folder, the knowledge bundle and, with the later feature, later entries.
     const designDirectories = [WORK_DIRECTORY, KNOWLEDGE_BUNDLE_PATH, isFeatureEnabled('later', config) && LATER_DIRECTORY].filter(Boolean);
     const editedPaths = listEditedProjectPaths(hookInput, projectRoot)
@@ -96,10 +96,10 @@ export default {
       readSessionPlanSlugs(hookInput, sharedRoot, environment));
     if (!unapprovedPlan) return allowDecision();
     if (editedPaths.length === 0) {
-      return askDecision(MODULE_ID, `Deep lane: the design \`${unapprovedPlan.relativePath}\` is not approved yet and this inline script may write project files. Confirm only if it just reads; edits wait for the approval.`);
+      return askDecision(MODULE_ID, `Deep task: the design \`${unapprovedPlan.relativePath}\` is not approved yet and this inline script may write project files. Confirm only if it just reads; edits wait for the approval.`);
     }
     return denyDecision(MODULE_ID, [
-      `Deep lane: the design \`${unapprovedPlan.relativePath}\` (status: ${unapprovedPlan.status}) is not approved by the person yet, so \`${editedPaths[0]}\` cannot be edited.`,
+      `Deep task: the design \`${unapprovedPlan.relativePath}\` (status: ${unapprovedPlan.status}) is not approved by the person yet, so \`${editedPaths[0]}\` cannot be edited.`,
       unapprovedPlan.status === 'ready'
         ? 'Ask the person to approve it (or what to change); their reply unlocks edits.'
         : 'Finish the design, set `status: ready` and ask the person to approve it; their reply unlocks edits.',

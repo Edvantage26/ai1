@@ -1,7 +1,7 @@
 // later-upkeep (Stop, feature `later`): when this session touched .ai1/later/, stops the agent from
 // finishing while the folder is inconsistent (the same checks as `ai1 later check`: frontmatter,
 // numbering, decided dates, an outdated index, an accepted entry that no bundle concept cites). Also
-// reminds to mark an accepted entry implemented when a deep-lane plan built from it (`later: <number>`
+// reminds to mark an accepted entry implemented when a deep plan built from it (`later: <number>`
 // in its frontmatter) was finished in this session.
 // Each set of problems is reported once, and at most a few times per session (never loops).
 
@@ -10,14 +10,14 @@ import { allowDecision, blockDecision } from '../core/hook-io.mjs';
 import { splitFrontmatter, readFrontmatterField } from '../core/frontmatter.mjs';
 import { readSessionBase, listFilesChangedSinceBase } from '../core/session-base.mjs';
 import { resolveStateDirectory, sessionStatePath, claimStopBlock } from '../core/session-state.mjs';
-import { listWorkPlans } from '../lanes/lanes-work.mjs';
+import { listWorkPlans } from '../sizing/sizing-work.mjs';
 import { checkLaterEntries, listLaterEntries, findLaterEntry, resolveCitingBundle, resolveKnowledgePath, LATER_DIRECTORY } from './later-documents.mjs';
 
 const MODULE_ID = 'later-upkeep';
 const MAX_BLOCKS_PER_SESSION = 3;
 const MAX_LISTED_PROBLEMS = 15;
 
-// Accepted later entries whose deep-lane plan (`later: <number>`) was marked done in this session.
+// Accepted later entries whose deep plan (`later: <number>`) was marked done in this session.
 export function listBuiltLaterReminders(sharedRoot, laterEntries, sessionStartMilliseconds) {
   return listWorkPlans(sharedRoot)
     .filter((workPlan) => workPlan.status === 'done' && workPlan.modifiedMilliseconds >= sessionStartMilliseconds)

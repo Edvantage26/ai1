@@ -91,7 +91,7 @@ function recommendDesign(repoRoot, trackedFiles) {
     : { recommended: false, reason: 'no frontend found', evidence };
 }
 
-function recommendLanes(repoRoot, trackedFiles) {
+function recommendSizing(repoRoot, trackedFiles) {
   const commitCount = Number(tryGit(repoRoot, ['rev-list', '--count', 'HEAD']) ?? 0);
   // The path up to the risky folder (`db/migrations`), or the risky file itself (`main.tf`).
   const riskyDirectories = [...new Set(trackedFiles.flatMap((trackedPath) => {
@@ -136,7 +136,7 @@ export function recommendFeatures(repoRoot, { hasKnowledgeBundle }) {
       okf: { recommended: true, reason: hasKnowledgeBundle ? 'the repo already has a knowledge bundle' : 'project knowledge the agent reads before it acts', evidence: [] },
       danger: { recommended: true, reason: 'protects work, history and data in every repo', evidence: [] },
       craft: { recommended: true, reason: 'keeps changes small and the code in order in every repo', evidence: [] },
-      lanes: recommendLanes(repoRoot, trackedFiles),
+      sizing: recommendSizing(repoRoot, trackedFiles),
       worktrees: recommendWorktrees(repoRoot),
       later: recommendLater(repoRoot),
       design: designRecommendation,

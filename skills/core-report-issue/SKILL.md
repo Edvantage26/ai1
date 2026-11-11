@@ -74,7 +74,7 @@ Minimal steps on a generic repo: the config needed, the command or edit that tri
 <output of ai1 issue env>
 ```
 
-Title: short and specific, prefixed with the module (`lanes: gate blocks a quick task after ...`).
+Title: short and specific, prefixed with the module (`sizing: gate blocks a quick task after ...`).
 
 **Clean it before showing it.** Replace or remove: absolute paths and user names (`/home/<user>/...`
 -> `<repo>/...`), hostnames, IPs, URLs and names of private services, company or client names,

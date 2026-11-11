@@ -1,6 +1,6 @@
 ---
 name: later-write
-description: Later — Note down for later large changes and future features that are NOT decided yet, in .ai1/later/ (one file each, called by its number, "later 0003"), with honest options, criteria, assumptions, phases and how to resume them; when one is accepted or rejected, carry its decisions to the knowledge bundle. Use when the person asks to note something down for later ("apúntalo para luego", "anótalo para más adelante", "déjalo para luego", "apárcalo", "note it down for later", "park it"), picks "for later" in your one-line offer (here, fork or later) for a different subject, or names an existing entry by its number to update, accept, reject or resume it ("acepta la 0003", "retoma later 0005"). NOT when the person says "propuesta", "proposal", "proponme algo", "hazme una propuesta" or "acepto la propuesta": that is your own proposal in the conversation, to answer or build. Never note one down on your own. Not for recording facts or decisions already taken (that is /ai1:okf-maintain-knowledge) nor for planning how to build something already accepted (that is a plan or /ai1:lanes-design-before-code).
+description: Later — Note down for later large changes and future features that are NOT decided yet, in .ai1/later/ (one file each, called by its number, "later 0003"), with honest options, criteria, assumptions, phases and how to resume them; when one is accepted or rejected, carry its decisions to the knowledge bundle. Use when the person asks to note something down for later ("apúntalo para luego", "anótalo para más adelante", "déjalo para luego", "apárcalo", "note it down for later", "park it"), picks "for later" in your one-line offer (here, fork or later) for a different subject, or names an existing entry by its number to update, accept, reject or resume it ("acepta la 0003", "retoma later 0005"). NOT when the person says "propuesta", "proposal", "proponme algo", "hazme una propuesta" or "acepto la propuesta": that is your own proposal in the conversation, to answer or build. Never note one down on your own. Not for recording facts or decisions already taken (that is /ai1:okf-maintain-knowledge) nor for planning how to build something already accepted (that is a plan or /ai1:sizing-design-before-code).
 allowed-tools: Bash("${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context *)
 ---
 
@@ -10,7 +10,7 @@ allowed-tools: Bash("${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context *)
 
 "Propuesta", "proposal", "proponme algo", "hazme una propuesta", "acepto la propuesta", "me parece
 bien la propuesta" mean **your own proposal in this conversation** (a plan, an approach, a name you
-suggested): answer it, or build it by its lane. They never mean this skill. If the person did not ask
+suggested): answer it, or build it by its size. They never mean this skill. If the person did not ask
 to note something down for later, did not pick "for later" in your offer, and did not name an
 existing entry by its number, stop here and go back to the task.
 
@@ -120,7 +120,7 @@ This is where the entry stops being only noted down. With /ai1:okf-maintain-know
 3. **Rejected ones too**, when the reason saves discussing it again.
 4. **Link back:** list in Outcome the concepts that came out of it.
 5. Add the work to the project's roadmap if it has one. Building it is a separate task: with the
-   lanes feature, a deep plan whose frontmatter says `later: <number>`; when that plan is done, ai1
+   sizing feature, a deep plan whose frontmatter says `later: <number>`; when that plan is done, ai1
    reminds you to `ai1 later set <n> implemented`.
 6. Validate the bundle with /ai1:okf-validate-bundle.
 

@@ -18,7 +18,7 @@ import { listMarkdownFiles } from '../core/markdown-files.mjs';
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, posix, relative } from 'node:path';
 import { CONFIG_RELATIVE_PATH, KNOWLEDGE_BUNDLE_PATH, LATER_DIRECTORY, WORK_DIRECTORY, AI1_DIRECTORY, AI1_PLUGIN_ID, SCHEMA_URL } from '../core/config.mjs';
-import { ensureWorkDirectoryIgnored } from '../lanes/lanes-work.mjs';
+import { ensureWorkDirectoryIgnored } from '../sizing/sizing-work.mjs';
 import {
   LEGACY_CONFIG_PATH, LEGACY_DIRECTORY, LEGACY_WORK_PATH, LEGACY_PLUGIN_ID, LEGACY_MARKETPLACE_KEY,
   normalizeRelativePath, planLegacyMigration,

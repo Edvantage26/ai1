@@ -22,9 +22,9 @@ export const FEATURES = [
     enabledByDefault: true,
   },
   {
-    id: 'lanes',
-    title: 'Work lanes by task size',
-    description: 'The agent sizes each task: quick ones are done directly, medium ones get a short plan, complex or risky ones a design with questions that the person approves before any code is edited (skill /ai1:lanes-design-before-code). Restores progress after compaction.',
+    id: 'sizing',
+    title: 'Task sizing',
+    description: 'The agent sizes each task: quick ones are done directly, medium ones get a short plan, complex or risky ones a design with questions that the person approves before any code is edited (skill /ai1:sizing-design-before-code). Restores progress after compaction.',
     enabledByDefault: false,
   },
   {

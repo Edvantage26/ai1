@@ -1,6 +1,6 @@
-// lanes-escalate (PreToolUse, feature `lanes`): a task the agent sized as quick may grow. When the
+// sizing-escalate (PreToolUse, feature `sizing`): a task the agent sized as quick may grow. When the
 // session's changes pass a size threshold (files or lines since the session started) and there is
-// no deep-lane plan, the next edit tells the person once (a notice, it does not stop the agent): they
+// no deep plan, the next edit tells the person once (a notice, it does not stop the agent): they
 // can step in and ask for a plan.
 
 import { runGit } from '../core/git.mjs';
@@ -9,11 +9,11 @@ import { join } from 'node:path';
 import { allowDecision, noticeDecision } from '../core/hook-io.mjs';
 import { readSessionBase } from '../core/session-base.mjs';
 import { resolveStateDirectory, sessionStatePath, readStateText, writeStateText } from '../core/session-state.mjs';
-import { FILE_EDITING_TOOLS, listEditedProjectPaths } from './lanes-gate.mjs';
-import { listActivePlans, readSessionPlanSlugs } from './lanes-work.mjs';
+import { FILE_EDITING_TOOLS, listEditedProjectPaths } from './sizing-gate.mjs';
+import { listActivePlans, readSessionPlanSlugs } from './sizing-work.mjs';
 import { KNOWLEDGE_BUNDLE_PATH, WORK_DIRECTORY } from '../core/config.mjs';
 
-const MODULE_ID = 'lanes-escalate';
+const MODULE_ID = 'sizing-escalate';
 export const DEFAULT_MAX_FILES = 6;
 export const DEFAULT_MAX_LINES = 300;
 const MAX_COUNTED_FILE_BYTES = 1024 * 1024;
@@ -50,7 +50,7 @@ export default {
   id: MODULE_ID,
   event: 'PreToolUse',
   toolNames: [...FILE_EDITING_TOOLS, 'Bash'],
-  feature: 'lanes',
+  feature: 'sizing',
   description: 'Tells the person once when a task without a plan grows past the size of a quick change.',
   run({ hookInput, config, projectRoot, sharedRoot = projectRoot, environment, moduleOptions }) {
     if (listEditedProjectPaths(hookInput, projectRoot).length === 0) return allowDecision();

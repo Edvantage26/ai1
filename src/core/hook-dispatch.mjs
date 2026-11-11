@@ -13,7 +13,7 @@ import { recordPendingErrors } from './pending-errors.mjs';
 
 // Permission modes where the person chose not to be asked (bypass, auto): only the asks that guard
 // against losing work or data for good (danger) and the repo's own rules (repo-rules) still reach
-// them; the other modules' asks (config-guard, test-guard, lanes-gate scripts) let the call through.
+// them; the other modules' asks (config-guard, test-guard, sizing-gate scripts) let the call through.
 const UNATTENDED_PERMISSION_MODES = new Set(['bypassPermissions', 'auto', 'dontAsk']);
 const ASKS_KEPT_UNATTENDED = new Set(['danger', 'repo-rules']);
 

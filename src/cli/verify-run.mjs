@@ -1,6 +1,6 @@
 // `ai1 verify` runs the repo's verify commands (from .ai1/config.json) in order, with their output
 // shown as is, and stops at the first failure. `ai1 step-done <slug> "<step>"` does the same and,
-// only when everything passes, appends the step to the deep-lane progress log: progress written
+// only when everything passes, appends the step to the deep progress log: progress written
 // there is evidence, not the agent's word.
 
 import { spawnSync } from 'node:child_process';
@@ -9,8 +9,8 @@ import { join } from 'node:path';
 import { loadHarnessConfig } from '../core/config.mjs';
 import { KNOWN_MODULE_IDS } from '../core/module-index.mjs';
 import { WORK_DIRECTORY } from '../core/config.mjs';
-import { readPlanLane, readPlanStatus, writePlanStatus } from '../lanes/lanes-work.mjs';
-import { checkScenarioCoverage, formatScenarioTag } from '../lanes/lanes-scenarios.mjs';
+import { readPlanSize, readPlanStatus, writePlanStatus } from '../sizing/sizing-work.mjs';
+import { checkScenarioCoverage, formatScenarioTag } from '../sizing/sizing-scenarios.mjs';
 
 export function readVerifyCommands(repoRoot) {
   const loadedConfig = loadHarnessConfig(repoRoot, KNOWN_MODULE_IDS);
@@ -52,7 +52,7 @@ export function describeScenarioCoverage(mainCheckoutRoot, scanRoot, planSlug, r
 }
 
 // `ai1 plan-done <slug>`: the one way to close a plan. A deep plan (main checkout) must be approved,
-// a plan-lane plan only unfinished; every scenario of its `# Behaviour` section needs its tag `[<slug>:S<n>]` in the scanned checkout
+// a plan task's plan only unfinished; every scenario of its `# Behaviour` section needs its tag `[<slug>:S<n>]` in the scanned checkout
 // (the worktree, where the tests live before merge); then the verify commands must pass. Only then
 // `status: done` and a progress line. { closed, message }. Throws when the scan cannot run.
 export function closePlan(mainCheckoutRoot, scanRoot, planSlug, verifyCommands, options = {}) {
@@ -62,7 +62,7 @@ export function closePlan(mainCheckoutRoot, scanRoot, planSlug, verifyCommands, 
   if (!existsSync(planPath)) throw new Error(`no plan at ${WORK_DIRECTORY}/${planSlug}/plan.md`);
   const planText = readFileSync(planPath, 'utf8');
   const planStatus = readPlanStatus(planText);
-  if (readPlanLane(planText) === 'plan') {
+  if (readPlanSize(planText) === 'plan') {
     if (['done', 'abandoned'].includes(planStatus)) return { closed: false, message: `the plan is already ${planStatus}` };
   } else if (planStatus !== 'approved') {
     return { closed: false, message: `the plan is ${planStatus}, not approved: only an approved plan can be closed` };

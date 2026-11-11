@@ -8,7 +8,7 @@ import { tryGit } from '../core/git.mjs';
 import { WALKTHROUGHS_DIRECTORY } from '../core/config.mjs';
 import { readGitDirectories } from '../core/project-roots.mjs';
 import { readJsonFileIfValid, writeJsonFile } from '../core/json-file.mjs';
-import { ensureDirectoryIgnoredByItself, listWorkPlans, isPlanFinished } from '../lanes/lanes-work.mjs';
+import { ensureDirectoryIgnoredByItself, listWorkPlans, isPlanFinished } from '../sizing/sizing-work.mjs';
 import { listWorktreeStates } from '../worktrees/worktree-state.mjs';
 
 export const STORYBOARD_VERSION = 1;

@@ -1,12 +1,12 @@
-// lanes-approval (UserPromptSubmit, feature `lanes`): the person approves a deep-lane design by
+// sizing-approval (UserPromptSubmit, feature `sizing`): the person approves a deep design by
 // answering the agent's request for approval ("aprobado", "adelante", "ok", "go ahead"...). Only a
 // plan the agent marked `status: ready` can be approved, so a "yes" to a question asked while the
 // design is still a draft does not count. The approval is recorded by this hook, not by the agent.
 
 import { allowDecision, contextDecision } from '../core/hook-io.mjs';
-import { listWorkPlans, readSessionPlanSlugs, recordApproval, writePlanStatus } from './lanes-work.mjs';
+import { listWorkPlans, readSessionPlanSlugs, recordApproval, writePlanStatus } from './sizing-work.mjs';
 
-const MODULE_ID = 'lanes-approval';
+const MODULE_ID = 'sizing-approval';
 const MAX_APPROVAL_CHARACTERS = 120;
 const APPROVAL_WORDS = /\b(aprobad[oa]|apruebo|aprueba|apruebalo|aprobar|adelante|dale|vale|ok|okay|perfecto|listo|acepto|aceptad[oa]|approved?|accept(?:ed)?|lgtm|go ahead|proceed|yes|sounds good)\b/;
 // "si" is a yes only when it opens the message ("si", "sí, adelante"); inside a sentence it is the
@@ -28,8 +28,8 @@ export function isApprovalMessage(promptText) {
 export default {
   id: MODULE_ID,
   event: 'UserPromptSubmit',
-  feature: 'lanes',
-  description: 'Records the person\'s approval of a deep-lane design marked ready.',
+  feature: 'sizing',
+  description: 'Records the person\'s approval of a deep design marked ready.',
   run({ hookInput, projectRoot, sharedRoot = projectRoot, environment }) {
     if (!isApprovalMessage(hookInput.prompt)) return allowDecision();
     // A yes in this session approves this session's design, never one another session has waiting.
