@@ -15,11 +15,16 @@ One case set runs through it all: the 10 to 20 cases of step 1 seed the **dev** 
 
 ## 1. Start simple
 
-1. A first prompt that states the task, its rules and the vocabulary or schema it must use, with the
+1. **Complex task or structured output (JSON)?** First search the web for how others solved it: open
+   repositories, papers, provider guides on structured output, existing schemas or standards for the
+   same data. Take ideas for the prompt and the response schema (field names and order, a reasoning
+   or evidence field before the answer, enums instead of free text, how they split the task), not
+   code you cannot license; note the sources. Simple task: skip this.
+2. A first prompt that states the task, its rules and the vocabulary or schema it must use, with the
    whole unit of context (checklist in step 2), on one reasonable, cheap, current model (look it up, step 4).
-2. Run it on 10 to 20 real cases and read every output. Without labels, check them yourself or with a
+3. Run it on 10 to 20 real cases and read every output. Without labels, check them yourself or with a
    fresh-context subagent (see "Labels").
-3. Good enough for what it is used for: stop, note the prompt, model and result, build nothing more.
+4. Good enough for what it is used for: stop, note the prompt, model and result, build nothing more.
    Not good enough, or a wrong answer is costly: step 2.
 
 ## 2. Diagnose the failures before blaming the model
@@ -50,7 +55,9 @@ Method:
    `vocabulary/schema` | `test setup` (cuts, parsing, schema, data) | `wrong reference label` |
    `model limit`. Show the person about 10 failures with their notes before fixing the failure modes.
    Stop reading when new cases bring no new failure modes.
-3. **Count causes**, fix the most frequent, re-run the **same** dev cases. Repeat.
+3. **Count causes**, fix the most frequent, re-run the **same** dev cases. Repeat. A cause in
+   `instructions` or `vocabulary/schema` that keeps coming back: look again at how others structured
+   it (step 1).
 4. **Only when the first five causes are ruled out**, compare models (step 4).
 
 ## 3. Measure while you iterate

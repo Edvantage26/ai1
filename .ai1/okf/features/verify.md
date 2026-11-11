@@ -5,7 +5,7 @@ description: Stop gate - the agent cannot finish while code it changed is newer 
 tags: [verify, hooks, evidence, cli]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-11T06:18:15Z'
+  at: '2026-11-11T06:43:05Z'
 sources:
   - id: verify-gate
     resource: src/verify/verify-gate.mjs
@@ -110,7 +110,9 @@ almost no failure was the model's (missing context, unstated rules, no vocabular
 wrong reference labels; cheap confidence signals at AUROC 0.5-0.6). A method skill, no hook, scoped
 to evaluating LLM steps in general (named for prompts, not failures, so it also loads while writing
 or comparing prompts). Effort grows with the trouble (decided 2026-11-11 with the person): start with a
-simple prompt on one cheap model, read 10-20 real outputs, stop if good enough; only otherwise the
+simple prompt on one cheap model (for a complex task or JSON output, first look on the web - open
+repos, papers, provider guides, existing schemas - for how others structured the prompt and the
+response, decided 2026-11-11), read 10-20 real outputs, stop if good enough; only otherwise the
 rest, in this order: diagnose the failures (checklist; a failure log `case | output | note | failure
 mode | cause | evidence`, the cause from a fixed list - `context`, `instructions`, `vocabulary/schema`,
 `test setup`, `wrong reference label`, `model limit` -; the agent reads every failure and shows the
