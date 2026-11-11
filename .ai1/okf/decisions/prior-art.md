@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T21:20:46Z'
+  at: '2026-11-11T07:38:33Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -18,7 +18,7 @@ First review on 2026-10-30 by reading the repositories.
 | [Impeccable](https://github.com/pbakaus/impeccable) (Apache 2.0, Paul Bakaus; reviewed 2026-11-08) | Design skill for coding agents: one `/impeccable` skill with ~24 commands (critique, audit, polish...), `PRODUCT.md`/`DESIGN.md` context, and a deterministic anti-pattern detector (62 rules, Rust) run as a hook, CLI and browser extension | The detector-as-hook idea and rule ids, re-implemented for source text, and the product/design context (as OKF concepts) in the [design feature](/features/design.md) | The command set and its reference texts: install Impeccable for those; ai1 points to it when present |
 | [rsc-factory](https://github.com/gregoryjp/rsc-factory) (unofficial) | PRD-to-product engine outside the agent | Risk classifier idea (auto vs human PR) for a future pipeline mode | Whole engine: out of scope |
 | [graphify](https://github.com/gmh5225/graphify) (reviewed 2026-11-09 from its docs and third-party reviews, not its code) | `/graphify` skill: tree-sitter code graph + LLM pass over docs/PDFs/images into `graphify-out/` (`graph.json`, `GRAPH_REPORT.md`, `graph.html`), Leiden clusters, EXTRACTED/INFERRED/AMBIGUOUS edges, PreToolUse nudge on Grep/Glob, MCP server, git hooks | Nothing yet; see [graphify review](#graphify-review-2026-11-09) | The LLM semantic pass (the OKF bundle covers it, curated), Python + native deps, git hooks, a committed `graph.json` |
-| [gentle-ai](https://github.com/Gentleman-Programming/gentle-ai) (MIT; reviewed 2026-11-09 from its docs and `odd/tasks/`) | Go installer that configures many agents: persistent memory (Engram), ODD (Organic-Driven Development) as its only workflow after retiring SDD/OpenSpec, risk-tiered review (RDD), skills, personas | Sizing by "resumable from the request + `git diff`" and its fuller risk list, the request word for word in the plan, handoffs by reference, in [lanes](/features/lanes.md); see [gentle-ai review](#gentle-ai-review-2026-11-09) | Engram, test-first by default, mandatory delegation, ~400-line work units and chained PRs, RDD consent, ~40 KB of routing prompt |
+| [gentle-ai](https://github.com/Gentleman-Programming/gentle-ai) (MIT; reviewed 2026-11-09 from its docs and `odd/tasks/`) | Go installer that configures many agents: persistent memory (Engram), ODD (Organic-Driven Development) as its only workflow after retiring SDD/OpenSpec, risk-tiered review (RDD), skills, personas | Sizing by "resumable from the request + `git diff`" and its fuller risk list, the request word for word in the plan, handoffs by reference, in [lanes](/features/sizing.md); see [gentle-ai review](#gentle-ai-review-2026-11-09) | Engram, test-first by default, mandatory delegation, ~400-line work units and chained PRs, RDD consent, ~40 KB of routing prompt |
 | [Everything Claude Code (ECC)](https://github.com/affaan-m/ECC) (MIT, Affaan Mustafa, Anthropic x Forum Ventures hackathon winner; reviewed 2026-11-09 from its hooks and `docs/gateguard/`) | Multi-harness kit: ~1,068 skills, ~70 agents, ~27 hook entries (GateGuard fact-forcing gate, config protection, context monitor, strategic compact, Hookify rules, instinct learning), hosted Pro tier | Check config protection (in [test-guard](../guards/test-guard.md)) and the repeated tool call nudge (`tool-loop`, [verify](../features/verify.md)); see [ECC review](#ecc-review-2026-11-09) | Instinct learning (Haiku in the background), LLM summary in `PreCompact`, tmux/dev-server/format hooks, per-language skill and agent volume, multi-harness shims |
 | [Cloudflare security-audit-skill](https://github.com/cloudflare/security-audit-skill) (MIT; reviewed 2026-11-09 from its `SKILL.md` and file list) | One domain skill: guidance mode by default, a 6-phase full audit only on explicit request (recon, hunter waves from a coverage ledger, fresh verifiers per candidate, `findings.json`, independent re-verification, report); every finding needs a crossed trust boundary and a concrete result; target code runs only in an OS-enforced sandbox; budget counted in agent calls with critics and verifiers reserved first; two deterministic Node validators (~1,600 lines) check findings and the ledger | The pattern "loading a skill does not authorize the heavy workflow" and deterministic validators over agent output, as ideas | The skill itself: a third-party domain skill, installed per repo or user from its source, not vendored |
 
@@ -173,14 +173,14 @@ Web survey of popular skills and plugins, read from READMEs, not code. Most skil
 - **Anthropic `security-guidance`** (official, 2026-05-27): deterministic scan of ~25 insecure code
   patterns on Edit/Write, extensible with `.claude/security-patterns.yaml`. Insecure code, not secret
   files: no overlap with a `secrets` guard. Point to it when present, as with Impeccable.
-- Covered already, left out: planning-with-files and handoff skills (lanes `plan.md`, compaction
+- Covered already, left out: planning-with-files and handoff skills (sizing `plan.md`, compaction
   restore, brief fork); `code-review` and `skill-creator` (official, point to them);
   [trailofbits/skills](https://github.com/trailofbits/skills) (security research domain).
 
 Gaps found in ai1 (checked in `src/`): nothing guards `.ai1/config.json`, `.claude/settings.json` or
 the hooks against the agent switching its own rules off; no test-weakening detector yet. Bash writes
 are already handled: the Stop checks (`okf-upkeep`, `verify-gate`) judge by git and mtimes, and
-`src/core/shell-writes.mjs` feeds `session-writes`, `lanes-gate` and the bundle-edit count; only the
+`src/core/shell-writes.mjs` feeds `session-writes`, `sizing-gate` and the bundle-edit count; only the
 PostToolUse checks matched on Read/Edit/Write (`okf-file-context`) miss a file written by Bash.
 `dead-end-registry` (keyword recall of reverted approaches from a JSONL outside the repo) is covered by
 OKF: Decision concepts and per-concept "ruled out" notes, the upkeep reminder's "what was ruled out",
@@ -227,7 +227,7 @@ Read from source or READMEs by subagents; popularity from the GitHub API.
   `<promise>` or an iteration cap; state file keyed by session. `verify` is the deterministic version
   and already gives up after 2 blocks per situation. Nothing to take.
 - **security-guidance** v2.0.18 adds an LLM diff review at Stop and an async reviewer on `git commit`,
-  with environment kill switches per layer. Other official plugins overlap: `feature-dev` (deep lane),
+  with environment kill switches per layer. Other official plugins overlap: `feature-dev` (deep sizing),
   `claude-md-management` (`okf-tidy-claude-md`), `explanatory-output-style` (brief injection).
 - **trailofbits/claude-code-config** (~2.1k stars, no license: ideas only): permission deny rules for
   credential paths and destructive commands, which bind Bash only under `/sandbox`; "hooks are
@@ -235,7 +235,7 @@ Read from source or READMEs by subagents; popularity from the GitHub API.
   `.claude/settings.json`, zero runtime cost.
 - **Continuous-Claude v3** (MIT, ~3.9k stars, stale since 2026-01): ledgers, YAML handoffs written on
   PreCompact, Postgres + pgvector, embeddings, daemons, a headless Claude extracting learnings. Opposite
-  of [principles](principles.md); lanes already restore plan progress after compaction.
+  of [principles](principles.md); sizing already restores plan progress after compaction.
 - **claude-mem** (Apache-2.0, ~115k stars): every hook posts to a Bun worker whose observer LLM
   compresses activity into SQLite + Chroma, per machine; telemetry on by default; code readings report
   unbatched calls, no timeouts, shell injection. Its three-step progressive disclosure is what

@@ -5,7 +5,7 @@ description: The per-repo file that makes generic hooks behave correctly in each
 tags: [config, contract, hooks]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T13:24:58Z'
+  at: '2026-11-11T07:38:33Z'
 ---
 
 Each repo commits `.ai1/config.json` (template in `templates/config.json`).
@@ -25,7 +25,7 @@ The OKF bundle is always `.ai1/okf/` (`KNOWLEDGE_BUNDLE_PATH` in `src/core/confi
 
 Until v0.15 the bundle path was configurable with `knowledge`. Decision (2026-11-09, by the
 person): fix it, because every module read it its own way (some normalized `./` and trailing `/`,
-some did not; `null` meant "default" for okf but "no bundle" for rfc, craft and lanes), it
+some did not; `null` meant "default" for okf but "no bundle" for rfc, craft and lanes, now sizing), it
 contradicted "everything ai1 writes lives under `.ai1/`", and no repo used another value. Now:
 `knowledge: ".ai1/okf"` is ignored silently; any other value (another path, `null`) is ignored with
 a notice at session start, never an error, so the guards keep working; `ai1 init` moves that
@@ -45,7 +45,7 @@ Schema: `schema/ai1.schema.json` (for editors). Validation at runtime is hand-wr
 `src/core/config.mjs`. Wrong types or an unsupported `version` make the file invalid and ai1
 inactive. Fields, features or modules this ai1 version does not know (a repo set up with a newer
 ai1) are only warnings since 2026-11-08: they are ignored, the agent is told at session start to
-update the plugin, and every other module keeps working. Before, a repo enabling `lanes` switched
+update the plugin, and every other module keeps working. Before, a repo enabling `sizing` switched
 ai1 off entirely for anyone on an older plugin, guards included.
 
 Three levels of genericity:

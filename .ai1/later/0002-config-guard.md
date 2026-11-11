@@ -46,7 +46,7 @@ Every other guard assumes its config is trustworthy. Small (one module, reuses t
 
 ## How to resume
 
-Survey and code check: `.ai1/okf/decisions/prior-art.md` ("Skills and hook packs survey" and "Harness and memory projects", 2026-11-09). Re-check with `grep -rn "ai1/config.json\|settings" src/guards src/lanes src/verify`.
+Survey and code check: `.ai1/okf/decisions/prior-art.md` ("Skills and hook packs survey" and "Harness and memory projects", 2026-11-09). Re-check with `grep -rn "ai1/config.json\|settings" src/guards src/sizing src/verify`.
 
 ## Outcome
 

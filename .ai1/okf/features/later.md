@@ -5,7 +5,7 @@ description: Later - large changes and future features not decided yet, noted do
 tags: [later, proposals, roadmap, hooks, cli, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T14:03:22Z'
+  at: '2026-11-11T07:38:33Z'
 sources:
   - id: later-documents
     resource: src/later/later-documents.mjs
@@ -29,8 +29,8 @@ sources:
 
 # Why
 
-Future features had nowhere to live: the [roadmap](/roadmap.md) is a list of lines, deep-lane plans
-(`.ai1/work/`, see [lanes](lanes.md)) are git-ignored and describe *how* to build something already
+Future features had nowhere to live: the [roadmap](/roadmap.md) is a list of lines, deep plans
+(`.ai1/work/`, see [sizing](sizing.md)) are git-ignored and describe *how* to build something already
 chosen, and writing an undecided design into the bundle makes it look real. Taken on 2026-11-08 from
 an RFC skill written for another project, made generic and backed by mechanisms: numbering, statuses
 and the index are done by the CLI, not by the agent. Opt-in (`features.later`, default off); on in
@@ -49,7 +49,7 @@ trigger it.
   description listed "accept" as a trigger, and the agent wrote a proposal file instead of building or
   answering. A name that is a common word in the conversation will always collide.
 - Rejected names: `ideas` (there are full entries too, `idea` is already a size, and "buena idea"
-  collides), `future-ideas` (two words, same clash), `task` (lanes and Claude Code already use it for
+  collides), `future-ideas` (two words, same clash), `task` (sizing and Claude Code already use it for
   the work at hand, and it sounds decided), `pitch` (Shape Up's word, precise but an anglicism few
   people know), `parked`, `someday`, `shelf`, `horizon` (less clear), and from v0.18: `drafts`
   (clashes with the `draft` status), `decisions`/ADR (those are decided), `plans` (clashes with
@@ -65,7 +65,7 @@ The lifecycle it fills:
 |---|---|
 | Not decided, noted down for later | `.ai1/later/NNNN-<slug>.md` (versioned) |
 | Decided | `type: Decision` concepts in the bundle citing the entry in `sources`, plus the roadmap |
-| Being built | a deep-lane plan with `later: <number>` in its frontmatter |
+| Being built | a deep plan with `later: <number>` in its frontmatter |
 | Built | the feature's concept in the bundle; entry `implemented` |
 
 # Creation: only on request or when picked
@@ -114,7 +114,7 @@ numbering by hand).
 
 Effects on other features when `later` is on: [okf-upkeep](okf.md) ignores changes under
 `.ai1/later/` (a draft must not be written into the bundle; acceptance is handled by `later-upkeep`),
-and [lanes-gate](lanes.md) lets entries be written while a design waits for approval.
+and [sizing-gate](sizing.md) lets entries be written while a design waits for approval.
 [verify](verify.md) already ignores `*.md`.
 
 # Repos set up with an old name
@@ -149,7 +149,7 @@ the rename); move it to `.../skills/later/` by hand.
 - `npm test` (2026-11-09, v0.25.0): 16 tests in `test/later.test.mjs` (numbering, templates, slug and
   title rules, statuses and History, every check, index preserving hand-written text, brief with the
   creation rule, the "propuesta" rule and the offer wording, recall, upkeep blocks and the plan
-  reminder, okf-upkeep exclusion, lanes-gate, CLI end to end with options in any order, the skill
+  reminder, okf-upkeep exclusion, sizing-gate, CLI end to end with options in any order, the skill
   description excluding "propuesta"), plus the retired-name notices and renaming for rfc and proposals
   (config tests), the init refusal of both (setup tests) and both migrations (legacy-migration tests:
   move, names, bundle, plans, config, log untouched, refusal).

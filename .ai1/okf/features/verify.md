@@ -5,7 +5,7 @@ description: Stop gate - the agent cannot finish while code it changed is newer 
 tags: [verify, hooks, evidence, cli]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-11T06:43:05Z'
+  at: '2026-11-11T07:38:33Z'
 sources:
   - id: verify-gate
     resource: src/verify/verify-gate.mjs
@@ -167,10 +167,10 @@ command, and untouched since, do not count (see the integration record in [workt
 - `ai1 verify`: runs the verify commands in order with their output, stops at the first failure,
   exits with its code.
 - `ai1 step-done <slug> "<step>"`: `ai1 verify`, then appends `- <time> <step> - verify green: ...`
-  to `.ai1/work/<slug>/progress.md` only when green. Used by the [lanes](lanes.md) deep skill, so the
+  to `.ai1/work/<slug>/progress.md` only when green. Used by the [sizing](sizing.md) deep skill, so the
   progress log is evidence. When the plan has behaviour scenarios it also prints "scenarios covered
   so far: n/m (missing ...)" (informative; never fails the step).
-- `ai1 plan-done <slug>`: closes a deep plan (see [lanes, behaviour scenarios](lanes.md)): approved
+- `ai1 plan-done <slug>`: closes a deep plan (see [sizing, behaviour scenarios](sizing.md)): approved
   plan, every scenario tagged in the checkout, then `ai1 verify`; only then `status: done` and a
   progress line with each scenario's test location. The verify gate counts it as a full run, like
   `ai1 verify` and `ai1 step-done`.

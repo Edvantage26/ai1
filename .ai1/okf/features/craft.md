@@ -5,7 +5,7 @@ description: Code craft rules injected at session start so the code grows in ord
 tags: [craft, clean-code, hooks, context]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T14:03:22Z'
+  at: '2026-11-11T07:38:33Z'
 sources:
   - id: craft-brief
     resource: src/craft/craft-brief.mjs
@@ -25,7 +25,7 @@ From the [Karpathy guidelines](/decisions/prior-art.md): **simplicity first** (t
 that solves the task, no speculative options or abstractions) and **surgical changes** (every
 changed line traces to the request, match the surrounding style, remove only what your change left
 unused). Their other two rules are already covered: think before coding by
-[lanes](/features/lanes.md), goal-driven execution by `verify`.
+[sizing](/features/sizing.md), goal-driven execution by `verify`.
 
 Added on top: **reuse before writing** (look in the code and, with `okf` on, the bundle),
 **refactors are proposed, not applied** (duplication, dead code, missing or needless abstraction:

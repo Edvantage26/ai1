@@ -1,6 +1,8 @@
 # Update Log
 
 ## 2026-11-11
+* **Supersession**: the `lanes` feature is now [sizing](features/sizing.md) (`features/lanes.md` renamed): modules `sizing-*`, `/ai1:sizing-design-before-code`, "Size: quick, because ...", plan field `size: plan`. Older entries keep the names of their time.
+* **Creation**: [Migrations](architecture/migrations.md) — numbered, idempotent migrations run at session start and by `ai1 init`; the first one moves repos and personal overlays from lanes to sizing.
 * **Creation**: `/ai1:verify-evaluate-llm-prompts` in the [verify feature](features/verify.md) — evaluate an LLM step with evidence: the cause of each failure before blaming the model, and compare models or prompts as a paired tournament.
 
 ## 2026-11-09

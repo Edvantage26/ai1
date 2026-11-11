@@ -5,7 +5,7 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-10T16:35:17Z'
+  at: '2026-11-11T07:38:33Z'
 ---
 
 # Layout
@@ -25,7 +25,7 @@ schema/  templates/config.json    the per-repo contract
 # Skill names
 
 Every skill is `/ai1:<module>-<what it does>` so its owner and purpose read from the name:
-`core-setup-repo`, `core-report-issue` ([issue report](../features/issue-report.md)), `lanes-design-before-code`, `later-write`, `worktrees-plan-recipe`,
+`core-setup-repo`, `core-report-issue` ([issue report](../features/issue-report.md)), `sizing-design-before-code`, `later-write`, `worktrees-plan-recipe`,
 `session-fork-conversation` ([session fork](../features/session-fork.md)), `walkthrough-record-flow`
 ([walkthrough](../features/walkthrough.md)), `core-customize-skill`
 ([skill customization](skill-customization.md)), and

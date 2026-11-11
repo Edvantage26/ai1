@@ -25,7 +25,7 @@ sources:
     title: Later 0001
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-11T05:47:45Z'
+  at: '2026-11-11T07:38:33Z'
 ---
 
 Built 2026-11-09 from later 0001 (phases 0-2); decision in
@@ -71,7 +71,7 @@ Nothing is loaded before the skill runs.
 `src/core/skill-customization-index.mjs` has one entry per skill folder; the coherence test fails
 when a folder has no entry, an entry has no folder, a customizable skill lacks the permission, a
 `## Fixed rules` bullet or the injection as last line, or an excluded one has them. Customizable:
-worktrees-plan-recipe, session-fork-conversation, later-write, lanes-design-before-code,
+worktrees-plan-recipe, session-fork-conversation, later-write, sizing-design-before-code,
 okf-maintain-knowledge, okf-tidy-claude-md, okf-visualize-bundle, verify-debug-systematically,
 verify-evaluate-llm-prompts,
 walkthrough-record-flow (project and person) and

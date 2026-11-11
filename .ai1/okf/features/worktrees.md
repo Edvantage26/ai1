@@ -5,7 +5,7 @@ description: A worktree per change (any edit to the repo files, created before t
 tags: [worktrees, git, skills, cli, hooks]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-10T15:37:00Z'
+  at: '2026-11-11T07:38:33Z'
 sources:
   - id: worktree-create
     resource: src/worktrees/worktree-create.mjs
@@ -128,7 +128,7 @@ verify, okf, design, guards) and a **shared root** (the main checkout: `.ai1/wor
 - `npm test` (2026-11-08): 212 tests; worktrees suite covers recipe validation, every mode, the auto
   decision with injected disk space, ports, env merge, list/run/drop/finish (rebase onto a moved base,
   conflicts, dirty base, pre-finish, base not checked out, OKF ack), brief and reminder through the
-  dispatcher, the CLI end to end; project-roots suite covers both roots and a lanes plan gating edits
+  dispatcher, the CLI end to end; project-roots suite covers both roots and a deep plan gating edits
   from a worktree.
 - Dry run on a scratch Node repo with the real CLI: auto -> full, light with share/regenerate, setup
   and dev with the worktree port, finish fast-forwarding main, drop, shared data intact.

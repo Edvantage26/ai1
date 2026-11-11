@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-10T15:37:00Z'
+  at: '2026-11-11T07:38:33Z'
 ---
 
 # Flow
@@ -14,7 +14,9 @@ generated:
 `node "${CLAUDE_PLUGIN_ROOT}/bin/ai1-hook.mjs" <Event>`.
 
 1. `bin/ai1-hook.mjs` reads the hook input JSON from stdin and imports only the modules of this
-   event and tool (`loadModulesForEvent` in `src/core/module-index.mjs`). Always exits 0.
+   event and tool (`loadModulesForEvent` in `src/core/module-index.mjs`). Always exits 0. At
+   SessionStart it first runs the pending [migrations](migrations.md), and their report reaches the agent
+   with the other session-start context.
 2. `src/core/hook-dispatch.mjs` (`dispatchHookEvent`) resolves two roots with `src/core/project-roots.mjs` (from the `.git`
    entries on disk, no git process): the **tree root** (`CLAUDE_PROJECT_DIR`, else input `cwd`; it
    follows `cwd` when that is a linked worktree of the same repository, because Claude Code keeps
@@ -75,9 +77,9 @@ logged with an error signature and offered to the person as an issue ([issue rep
 | `test-guard` | PreToolUse (Edit, Write, MultiEdit, Bash) | verify |
 | `fix-loop` | PostToolUse (Edit, Write, MultiEdit) | verify |
 | `tool-loop` | PreToolUse (Bash, Edit, Write, MultiEdit, NotebookEdit) | verify |
-| `lanes-brief` | SessionStart | lanes |
-| `lanes-approval` | UserPromptSubmit | lanes |
-| `lanes-gate`, `lanes-escalate` | PreToolUse (Edit, Write, MultiEdit, NotebookEdit, Bash) | lanes |
+| `sizing-brief` | SessionStart | sizing |
+| `sizing-approval` | UserPromptSubmit | sizing |
+| `sizing-gate`, `sizing-escalate` | PreToolUse (Edit, Write, MultiEdit, NotebookEdit, Bash) | sizing |
 | `design-brief` | SessionStart | design |
 | `design-detect` | PostToolUse (Edit, Write, MultiEdit) | design |
 | `worktree-brief` | SessionStart | worktrees |
@@ -88,16 +90,16 @@ logged with an error signature and offered to the person as an issue ([issue rep
 | `later-upkeep` | Stop | later |
 
 Shared helpers in `src/core/`: `shell-parse.mjs` (split commands), `shell-writes.mjs` (files a shell
-command writes, with relative targets moved by an earlier `cd <dir>` in the line since 2026-11-09 - before, `cd /repo && sed -i ... .ai1/work/x/plan.md` from a worktree was refused as a worktree plan; used by okf-upkeep and lanes-gate), `session-base.mjs` (HEAD at session start, recorded
-by `brief`, okf-index and lanes-brief, never throws; used by okf, lanes and verify), `transcript-scan.mjs`
+command writes, with relative targets moved by an earlier `cd <dir>` in the line since 2026-11-09 - before, `cd /repo && sed -i ... .ai1/work/x/plan.md` from a worktree was refused as a worktree plan; used by okf-upkeep and sizing-gate), `session-base.mjs` (HEAD at session start, recorded
+by `brief`, okf-index and sizing-brief, never throws; used by okf, sizing and verify), `transcript-scan.mjs`
 (incremental transcript reader that skips Claude Code's `api-request-blob` request copies; okf-upkeep,
 verify-gate), `session-writes.mjs` (whether a tool call may change files: edits, subagents and shell
 commands not known to be read-only, and the session's write windows built from them; okf-upkeep and
 verify-gate only count files modified inside a window), `path-glob.mjs` (globs for .ai1/config.json
 paths), `session-state.mjs` (per-session state files, `readStateJson`, and `claimStopBlock`: the Stop
 loop guard - the same findings block once, at most N blocks per session - of okf-upkeep and
-later-upkeep), `project-paths.mjs` (tool paths relative to the project root; used by lanes and design),
-`frontmatter.mjs` (read and write flat YAML frontmatter; okf, lanes and later), `git.mjs` (`runGit`,
+later-upkeep), `project-paths.mjs` (tool paths relative to the project root; used by sizing and design),
+`frontmatter.mjs` (read and write flat YAML frontmatter; okf, sizing and later), `git.mjs` (`runGit`,
 `tryGit`, `listIgnoredPaths`, `readOriginHeadBranch`, `detectTrunkBranch`; every module and the CLI), `json-file.mjs` (`readJsonFile` throws on
 invalid JSON for files about to be rewritten, `readJsonFileIfValid`, `writeJsonFile`),
 `markdown-files.mjs` (recursive markdown listing), `tool-call-paths.mjs` (the files a tool call may
@@ -113,7 +115,7 @@ okf-file-context, okf-upkeep and the CLAUDE.md check (`okf-claude-md-check.mjs`,
 okf-claude-md and `ai1 claude-md`, which also reuses `normalizeKeywords` and `readBodyCodePaths`);
 the keyword scoring of okf-recall (`buildKeywordCatalog`, `rankConceptsForPrompt`) by later-recall.
 
-See [features](features.md), [okf feature](/features/okf.md), [lanes feature](/features/lanes.md), [craft feature](/features/craft.md), [design feature](/features/design.md), [verify feature](/features/verify.md), [later feature](/features/later.md), [worktrees feature](/features/worktrees.md), [danger guard](/guards/danger.md).
+See [features](features.md), [okf feature](/features/okf.md), [sizing feature](/features/sizing.md), [craft feature](/features/craft.md), [design feature](/features/design.md), [verify feature](/features/verify.md), [later feature](/features/later.md), [worktrees feature](/features/worktrees.md), [danger guard](/guards/danger.md).
 
 # Cost
 

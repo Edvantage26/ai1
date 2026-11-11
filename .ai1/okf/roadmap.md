@@ -5,15 +5,15 @@ description: Phases from proving ai1 in a real repo to the doctor command.
 tags: [roadmap]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T13:24:58Z'
+  at: '2026-11-11T07:38:33Z'
 ---
 
 Order changed on 2026-10-30: build the generic structure in ai1 first, then prove it in real repos.
 
 1. **Core + first guard** (done): dispatcher, config, schema, `brief`, `danger`, tests, CI.
 2. **Features + okf feature + /ai1:core-setup-repo** (done 2026-10-31): per-repo features, OKF pack, okf-index/okf-upkeep, CLI.
-2b. **Lanes** (done 2026-11-08): quick / plan / deep by task size, deep designs gated by the
-   person's approval, progress restored after compaction. See [lanes feature](features/lanes.md).
+2b. **Sizing** (done 2026-11-08; called lanes until v0.32.0): quick / plan / deep by task size, deep designs gated by the
+   person's approval, progress restored after compaction. See [sizing feature](features/sizing.md).
 2c. **Craft** (done 2026-11-08): code craft rules at session start (simplicity, surgical changes,
    reuse, proposed refactors, names). See [craft feature](features/craft.md).
 2d. **Design** (done 2026-11-08): UI rules at session start and deterministic design checks on

@@ -203,7 +203,7 @@ fails when a skill folder has no entry, when a customizable skill lacks the `ski
 | `worktrees-plan-recipe` | yes | prose + settings (the recipe) + scripts |
 | `session-fork-conversation` | yes | prose (brief); project: open in a worktree; user: `fork.opener` (`auto\|paseo\|vscode\|desktop\|terminal`) |
 | `proposals-write` | yes | prose |
-| `lanes-design-before-code` | yes | prose |
+| `sizing-design-before-code` | yes | prose |
 | `okf-maintain-knowledge` | yes | prose (bundle conventions) |
 | `okf-tidy-claude-md` | yes | prose |
 | `okf-visualize-bundle` | yes | cheap, little to change |

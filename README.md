@@ -12,15 +12,18 @@ Everything it writes in a repo lives in one folder, `.ai1/`:
 ├── config.json   features and contract of the repo (committed)
 ├── okf/          project knowledge, an OKF bundle (committed)
 ├── later/        changes not decided yet, noted down for later (committed)
-└── work/         deep-lane plans and progress (ignored by git)
+└── work/         deep plans and progress (ignored by git)
 ```
 
 Skills are named `/ai1:<module>-<what it does>`, e.g. `/ai1:okf-validate-bundle`.
 A repo set up with the old name (`jig`: `.claude/jig.json`, `.okf/`, `docs/rfc/`, `.jig/work/`) is
 moved to `.ai1/` by `/ai1:core-setup-repo`, with `git mv` so history follows.
+Later renames migrate by themselves: when a new ai1 starts a session it runs its pending numbered
+migrations on the repo and on your `~/.config/ai1/`, leaves the changes uncommitted and tells you what
+changed (e.g. v0.32.0: `lanes` -> `sizing`).
 
 > **Status: early (v0.30.2).** Per-repo features, the `okf` feature (project knowledge) and the
-> `danger` guard work, are tested and verified in real sessions. The `lanes`, `design`, `verify`,
+> `danger` guard work, are tested and verified in real sessions. The `sizing`, `design`, `verify`,
 > `later` and `worktrees` features, and the `config-guard`, `repo-rules` and `test-guard` modules,
 > are new and tested, not yet tried in live sessions. Everything marked *planned* does not exist yet.
 
@@ -85,7 +88,7 @@ Each repo picks its features; you do not need to write the file by hand:
 ```
 
 reads the project and proposes a configuration: each feature on or off with the reason and the
-evidence it found (a frontend turns design on, migrations or auth folders turn lanes on, a test
+evidence it found (a frontend turns design on, migrations or auth folders turn sizing on, a test
 script becomes the verify command...). You adjust it, it writes `.ai1/config.json` and
 `.claude/settings.json` (through the `ai1` CLI, so the result is merged and validated, not
 improvised), and then offers each enabled feature's own setup: the worktree recipe, the knowledge
@@ -98,13 +101,13 @@ bundle, the design context.
 | `craft` | on | Gives the agent the rules for orderly code: the minimum change that solves the task, nothing outside it, reuse before writing, refactors proposed (not applied) when it sees duplication or dead code, self-explanatory names. Where things live (layout, how to add each kind of piece, reusable helpers) goes in the OKF bundle |
 | `design` | off | For repos with a frontend. At session start: read the product and design-system context (OKF concepts of type `Product` / `DesignSystem`, or Impeccable's `PRODUCT.md` / `DESIGN.md`), avoid the generic AI look, keep a quality floor. After every edit to a UI file, 26 deterministic rules (overused fonts, purple gradients, glows, gradient text, low contrast, skipped headings, tiny text, placeholder images...) report what that edit introduced. Points to [Impeccable](https://github.com/pbakaus/impeccable) commands when it is installed |
 | `walkthrough` | off | For repos with a frontend. After a visual change the agent records the user flow as a storyboard you review without running the app: numbered steps in the user's words, desktop and mobile screenshots with what is clicked framed, before vs after (the base captured in a `<name>-before` worktree), new and removed steps marked. One self-contained `index.html` served at a local URL (`ai1 walkthrough serve`, released when the worktree is finished or dropped) and a PDF (one step per page, printed with a local Chrome). Kept in `.ai1/walkthroughs/<slug>/`, ignored by git; link that folder wherever you like (a synced Drive folder) with your own tooling. Closing the change deletes the screenshots it left around the repo. A Stop reminder when UI files changed with no storyboard after them. Publishing (a PR, a task tracker) only through a skill customization and only after your yes. `/ai1:walkthrough-record-flow`, `ai1 walkthrough add\|build\|serve\|stop\|list\|clean` |
-| `verify` | on | You cannot get a "done" while code changed after the last passing run of the `verify` commands (run in full: a filtered run does not count). Docs and harness config are exempt. Skipping, emptying, weakening or deleting tests, or changing the config of a check (lint, format, types), asks you first (`test-guard`); the same tool call 5 times in a row gets the agent a nudge (`tool-loop`); after 3 failed fix attempts in a row the agent is told to stop and find the root cause (`fix-loop`, `/ai1:verify-debug-systematically`). `/ai1:verify-evaluate-llm-prompts`: evaluate and improve an LLM step with evidence - start simple and stop if it is good enough; otherwise a small reference set, the cause of each failure before blaming the model, models or prompts compared as a tournament (few cases, drop losers, grow the set). `ai1 verify` runs them; `ai1 step-done` logs a deep-lane step only when they pass; `ai1 plan-done` closes a plan |
-| `lanes` | off | Sizes each task: quick ones are done directly, medium ones get a short plan the agent states and starts on (written to `.ai1/work/<slug>/plan.md`, `lane: plan`, only when it has more than about 3 steps or may not finish in one go; no approval), complex or risky ones get questions and a design (`/ai1:lanes-design-before-code`) that you approve before any code is edited. Restores progress after a compaction |
+| `verify` | on | You cannot get a "done" while code changed after the last passing run of the `verify` commands (run in full: a filtered run does not count). Docs and harness config are exempt. Skipping, emptying, weakening or deleting tests, or changing the config of a check (lint, format, types), asks you first (`test-guard`); the same tool call 5 times in a row gets the agent a nudge (`tool-loop`); after 3 failed fix attempts in a row the agent is told to stop and find the root cause (`fix-loop`, `/ai1:verify-debug-systematically`). `/ai1:verify-evaluate-llm-prompts`: evaluate and improve an LLM step with evidence - start simple and stop if it is good enough; otherwise a small reference set, the cause of each failure before blaming the model, models or prompts compared as a tournament (few cases, drop losers, grow the set). `ai1 verify` runs them; `ai1 step-done` logs a deep step only when they pass; `ai1 plan-done` closes a plan |
+| `sizing` | off | Sizes each task: quick ones are done directly, medium ones get a short plan the agent states and starts on (written to `.ai1/work/<slug>/plan.md`, `size: plan`, only when it has more than about 3 steps or may not finish in one go; no approval), complex or risky ones get questions and a design (`/ai1:sizing-design-before-code`) that you approve before any code is edited. Restores progress after a compaction. Called `lanes` until v0.31 (migrated at session start) |
 | `later` | off | Large changes and future features, not decided yet, noted down for later in `.ai1/later/NNNN-<slug>.md` (versioned, apart from the knowledge bundle because they are not the system), each called by its number ("later 0003"). The agent notes one down only when you ask ("apúntalo para luego", "note it down for later"). When a clearly different, large subject comes up mid-task, it mentions it in one line at the end of its report with what it recommends (do it here, fork it into a new conversation, or note it down for later), without stopping to ask. "Propuesta"/"proposal" in the conversation always means the agent's own proposal, never this feature. Two sizes: a one-page *idea* and a *full* entry (criteria before options, "do nothing" always an option, assumptions, phases, how to resume). Open entries listed at session start and related ones recalled on each message; when one is accepted, a hook asks for its decisions to be recorded in the OKF bundle. `/ai1:later-write`, `ai1 later new\|set\|index\|check`. Called `rfc` until v0.17 and `proposals` until v0.24: `ai1 init` migrates `.ai1/rfc/`, `.ai1/proposals/` and the old feature ids |
 
 With `later` on, an idea goes: `ai1 later new <slug> --idea` (next number, index updated) → it grows into
 a full entry when it is about to be decided → `ai1 later set <n> accepted` and its decisions become OKF
-concepts that cite it → built (with `lanes`, a deep plan with `later: <n>`) → `ai1 later set <n> implemented`.
+concepts that cite it → built (with `sizing`, a deep plan with `later: <n>`) → `ai1 later set <n> implemented`.
 
 | `worktrees` | off | Every change to the repo files is done in its own worktree, which the agent creates before the first edit, made the way your project needs. The first time, `/ai1:worktrees-plan-recipe` studies the repo (heavy folders, env files, ports, where builds write, existing worktree tools), proposes a recipe, and once you approve it saves it as the project skill `.claude/skills/worktree/` (`SKILL.md` + `recipe.json`, committed). Modes: `full`, `light` (heavy folders shared, regenerated or left out) and `auto`, which picks full when it fits on that machine's disk. Each worktree gets its env files and its own port; the agent keeps telling you which worktree it is working in. `ai1 worktree create\|list\|run\|finish\|drop` |
 
@@ -114,14 +117,14 @@ when you say so, `ai1 worktree finish feat-x` brings in the base, runs the recip
 the base and removes the worktree (the `danger` guard asks you first). Shared read-only dependency
 caches, build slots and a `WorktreeCreate` hook for very large repos are *planned*.
 
-With `lanes` on, a deep task goes: questions → design in `.ai1/work/<slug>/plan.md` (git-ignored) →
+With `sizing` on, a deep task goes: questions → design in `.ai1/work/<slug>/plan.md` (git-ignored) →
 you approve it with a plain "ok"/"aprobado" → step-by-step build with a progress log → `ai1 plan-done`.
 The design carries 2-5 behaviour scenarios (`- S1: Given ..., when ..., then ...`, or `None - <why>`);
 the test that covers one is tagged `[<slug>:S1]`, and `ai1 plan-done` closes the plan only when every
 scenario has its tagged test and the verify commands pass. It checks that the test exists and the
 suite is green, not that the test proves the scenario: that is your review. Until you
 approve, a hook refuses code edits; if a "quick" task grows past 6 files or 300 lines, it asks you
-once whether to stop for a plan (`modules.lanes-escalate.max_files` / `max_lines`).
+once whether to stop for a plan (`modules.sizing-escalate.max_files` / `max_lines`).
 
 ### Customize a skill
 
@@ -162,11 +165,11 @@ others or are deterministic (`core-report-issue`, `okf-validate-bundle`, `danger
 | Decision log + `ai1 log`: every module run logged locally (module, decision, ms, characters added, rules, error signatures; no commands or paths), off with `AI1_DECISION_LOG=0`; `ai1 log --all` for every repo on the machine | — | all | works |
 | `issue-offer`: when ai1 itself fails in a repo (a module throws, the hook crashes), the agent offers once to report it with `/ai1:core-report-issue`; nothing is filed without your yes to the text, unless you chose automatic reports (`ai1 init --report-errors auto`: only versions and the error's module and plugin file:line are sent) | core | UserPromptSubmit | works |
 | `craft-brief`: the code craft rules at session start | craft | SessionStart | works |
-| `lanes-brief`: the lane recipe at session start; restores deep-lane progress after compaction | lanes | SessionStart | works |
-| `lanes-approval`: records your approval of a deep-lane design marked ready | lanes | UserPromptSubmit | works |
-| `lanes-gate`: refuses code edits (tools and shell writes) while a deep design waits for approval, and closing by hand or dropping approved scenarios of a plan with behaviour scenarios | lanes | PreToolUse | works |
-| `lanes-escalate`: asks once when a task without a plan outgrows a quick change | lanes | PreToolUse | works |
-| `/ai1:lanes-design-before-code`: questions, design, builder check, approval, step-by-step build | lanes | — | works |
+| `sizing-brief`: the sizing recipe at session start; restores deep progress after compaction | sizing | SessionStart | works |
+| `sizing-approval`: records your approval of a deep design marked ready | sizing | UserPromptSubmit | works |
+| `sizing-gate`: refuses code edits (tools and shell writes) while a deep design waits for approval, and closing by hand or dropping approved scenarios of a plan with behaviour scenarios | sizing | PreToolUse | works |
+| `sizing-escalate`: asks once when a task without a plan outgrows a quick change | sizing | PreToolUse | works |
+| `/ai1:sizing-design-before-code`: questions, design, builder check, approval, step-by-step build | sizing | — | works |
 | `design-brief`: UI rules and the design context files at session start | design | SessionStart | works |
 | `design-detect`: design rules on every edited UI file, findings of that edit only, once per session (`modules.design-detect.ignore_rules`) | design | PostToolUse | works |
 | `walkthrough-reminder`: when the session changed UI files and built no storyboard after them, asks once to record the flow or say why not (`modules.walkthrough-reminder.ignore`) | walkthrough | Stop | works |
@@ -243,7 +246,7 @@ Then run `/ai1:core-setup-repo` in each repo. It commits nothing; commit `.ai1/c
 
 Some plugins do part of ai1's job: a standalone OKF plugin (`okf@...`, the same skills listed twice),
 `jig@...` (ai1's old name, hooks twice) and Superpowers (`superpowers@...`, its session start forces
-its own planning, worktree, TDD and verification skills on every task, competing with lanes,
+its own planning, worktree, TDD and verification skills on every task, competing with sizing,
 worktrees and verify); `feature-dev@...` only gets a warning. `/ai1:core-setup-repo` lists the ones
 you have enabled, says why each overlaps and asks which to disable in that repo only, in
 `.claude/settings.local.json` (personal, git-ignored; `ai1 init --disable-plugins`). It disables

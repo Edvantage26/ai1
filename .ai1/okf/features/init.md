@@ -5,7 +5,7 @@ description: Sets up ai1 in a repo - asks the features, writes .ai1/config.json 
 tags: [init, cli, setup]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-10T15:53:35Z'
+  at: '2026-11-11T07:38:33Z'
 sources:
   - id: setup-repo
     resource: src/cli/setup-repo.mjs
@@ -60,8 +60,8 @@ sources:
   job, each with the features it overlaps with and an action. `disable`: `okf@` (same OKF skills
   twice), `jig@` (ai1's old name, hooks twice, any feature), `superpowers@` (its SessionStart forces
   brainstorming, writing-plans, using-git-worktrees, TDD and verification-before-completion on every
-  task: lanes, worktrees, verify, craft). `warn`: `feature-dev@` (its `/feature-dev` phases duplicate
-  the lanes). Enabled plugins are read from user, project and local settings with Claude Code's
+  task: sizing, worktrees, verify, craft). `warn`: `feature-dev@` (its `/feature-dev` phases duplicate
+  the plan and deep sizes). Enabled plugins are read from user, project and local settings with Claude Code's
   precedence. The session [brief](../architecture/hook-runtime.md) adds one line while a `disable`
   plugin overlapping an enabled feature stays enabled.
 - **Recommendations** (`src/cli/feature-recommendations.mjs`): per feature `{ recommended: true |
@@ -71,7 +71,7 @@ sources:
   through `uv run`, `poetry run` or `.venv/bin`/`venv/bin` when the project has them; Cargo;
   Go), at the root and in each top-level folder with its own manifest (`cd backend && pytest` in a
   monorepo). design: frontend packages (react, vue, svelte, next, astro...) in any of those
-  `package.json`, or UI files (.tsx, .vue, .css...). lanes: risky paths (migrations, alembic,
+  `package.json`, or UI files (.tsx, .vue, .css...). sizing: risky paths (migrations, alembic,
   auth, payments, billing, infra, terraform, `.tf`), else at least 50 tracked files or 100 commits.
   worktrees: an existing practice (`.worktreeinclude`, `.config/wt.toml`, `.gtrconfig`,
   `.claude/worktrees`), other git worktrees or several authors in 90 days; otherwise `null` (ask
