@@ -120,6 +120,7 @@ export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, disable
   const retiredFeatureId = ['rfc', 'proposals'].find((featureId) => enabledFeatureIds.includes(featureId));
   if (retiredFeatureId) throw new Error(`the ${retiredFeatureId} feature is called later since v0.25.0: use --features ...,later`);
   if (enabledFeatureIds.includes('lanes')) throw new Error('the lanes feature is called sizing since v0.32.0: use --features ...,sizing');
+  if (enabledFeatureIds.includes('walkthrough')) throw new Error('the walkthrough feature is called storyboard since v0.33.0: use --features ...,storyboard');
   const unknownFeatureIds = enabledFeatureIds.filter((featureId) => !KNOWN_FEATURE_IDS.includes(featureId));
   if (unknownFeatureIds.length) throw new Error(`unknown features: ${unknownFeatureIds.join(', ')}`);
   const legacyMigration = migrateLegacyLayout(repoRoot);

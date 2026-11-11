@@ -36,13 +36,19 @@ const DEFAULT_CONFIG = {
 };
 
 // Names retired by a rename (v0.18.0: rfc -> proposals; v0.25.0: proposals -> later; v0.32.0: lanes ->
-// sizing). Not aliased: they are ignored with a notice until `ai1 init` rewrites them (renameRetiredIds).
-// lanes -> sizing is also migrated at session start (src/core/migrations.mjs); the notice is the fallback.
-const RENAMED_FEATURE_IDS = { rfc: 'later', proposals: 'later', lanes: 'sizing' };
+// sizing; v0.33.0: walkthrough -> storyboard). Not aliased: they are ignored with a notice until `ai1 init`
+// rewrites them (renameRetiredIds). Since v0.32.0 renames are also migrated at session start
+// (src/core/migrations.mjs); the notice is the fallback when that could not run.
+const RENAMED_FEATURE_IDS = { rfc: 'later', proposals: 'later', lanes: 'sizing', walkthrough: 'storyboard' };
+const MIGRATED_RENAMES = [
+  { oldFeatureId: 'lanes', newFeatureId: 'sizing', version: 'v0.32.0' },
+  { oldFeatureId: 'walkthrough', newFeatureId: 'storyboard', version: 'v0.33.0' },
+];
 const RENAMED_MODULE_IDS = {
   'rfc-brief': 'later-brief', 'rfc-recall': 'later-recall', 'rfc-upkeep': 'later-upkeep',
   'proposals-brief': 'later-brief', 'proposals-recall': 'later-recall', 'proposals-upkeep': 'later-upkeep',
   'lanes-brief': 'sizing-brief', 'lanes-approval': 'sizing-approval', 'lanes-gate': 'sizing-gate', 'lanes-escalate': 'sizing-escalate',
+  'walkthrough-reminder': 'storyboard-reminder',
 };
 export const RETIRED_RFC_DIRECTORY = `${AI1_DIRECTORY}/rfc`;
 export const RETIRED_PROPOSALS_DIRECTORY = `${AI1_DIRECTORY}/proposals`;
@@ -73,10 +79,12 @@ function readRenamedNamesNotice(rawConfig, projectRoot) {
     ...retiredNamesOf('later'),
     ...[RETIRED_RFC_DIRECTORY, RETIRED_PROPOSALS_DIRECTORY].filter((retiredDirectory) => existsSync(join(projectRoot, retiredDirectory))).map((retiredDirectory) => `${retiredDirectory}/`),
   ];
-  const sizingNames = retiredNamesOf('sizing');
   const renameNotices = [];
   if (laterNames.length) renameNotices.push(`This repo still uses an old name of the later feature (${laterNames.join(', ')}): ai1 renamed rfc to proposals in v0.18.0 and proposals to later in v0.25.0, and ignores the old names. Tell the person; /ai1:core-setup-repo (ai1 init) migrates it to .ai1/later/ and features.later.`);
-  if (sizingNames.length) renameNotices.push(`This repo still uses the old name of the sizing feature (${sizingNames.join(', ')}): ai1 renamed lanes to sizing in v0.32.0 and ignores the old names. Tell the person; /ai1:core-setup-repo (ai1 init) migrates it to features.sizing.`);
+  for (const { oldFeatureId, newFeatureId, version } of MIGRATED_RENAMES) {
+    const oldNames = retiredNamesOf(newFeatureId);
+    if (oldNames.length) renameNotices.push(`This repo still uses the old name of the ${newFeatureId} feature (${oldNames.join(', ')}): ai1 renamed ${oldFeatureId} to ${newFeatureId} in ${version} and ignores the old names. Tell the person; /ai1:core-setup-repo (ai1 init) migrates it to features.${newFeatureId}.`);
+  }
   return renameNotices.length ? renameNotices.join('\n') : null;
 }
 

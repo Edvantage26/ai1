@@ -1,11 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { runPendingMigrations, describeMigrationReports, REPO_LEDGER_RELATIVE_PATH } from '../src/core/migrations.mjs';
+import { runPendingMigrations, describeMigrationReports, REPO_LEDGER_RELATIVE_PATH, LATEST_MIGRATION_NUMBER } from '../src/core/migrations.mjs';
 import { setupRepo } from '../src/cli/setup-repo.mjs';
 import { createTemporaryProject } from './helpers.mjs';
 
@@ -51,7 +51,7 @@ test('the next session start runs nothing, and ai1 init gives the same result [r
   const homeDirectory = createUserHome();
   const projectRoot = createTemporaryProject(OLD_CONFIG);
   startSessionThroughEntrypoint(projectRoot, homeDirectory);
-  assert.deepEqual(JSON.parse(readFileSync(join(projectRoot, REPO_LEDGER_RELATIVE_PATH), 'utf8')), { applied: 1 });
+  assert.deepEqual(JSON.parse(readFileSync(join(projectRoot, REPO_LEDGER_RELATIVE_PATH), 'utf8')), { applied: LATEST_MIGRATION_NUMBER });
   assert.equal(readFileSync(join(projectRoot, '.ai1', 'work', '.gitignore'), 'utf8'), '*\n', 'the ledger never reaches git');
   assert.doesNotMatch(startSessionThroughEntrypoint(projectRoot, homeDirectory), /migrated/);
 
@@ -77,7 +77,7 @@ test('project and personal overlays move to sizing and ai1 texts name the new sk
   assert.equal(readFileSync(join(projectRoot, '.ai1', 'skills', 'sizing', 'overlay.md'), 'utf8'), 'Briefs in Spanish.\n');
   assert.ok(!existsSync(join(projectRoot, '.ai1', 'skills', 'lanes')));
   assert.equal(readFileSync(join(homeDirectory, '.config', 'ai1', 'skills', 'sizing', 'overlay.md'), 'utf8'), 'Ask before /ai1:sizing-design-before-code.\n');
-  assert.deepEqual(JSON.parse(readFileSync(join(homeDirectory, '.config', 'ai1', 'migrations.json'), 'utf8')), { applied: 1 });
+  assert.deepEqual(JSON.parse(readFileSync(join(homeDirectory, '.config', 'ai1', 'migrations.json'), 'utf8')), { applied: LATEST_MIGRATION_NUMBER });
   assert.equal(readFileSync(join(projectRoot, '.ai1', 'okf', 'features', 'flow.md'), 'utf8'), 'Deep work uses /ai1:sizing-design-before-code.\n');
   assert.equal(readFileSync(join(projectRoot, '.ai1', 'okf', 'log.md'), 'utf8'), '2026-11-01 used /ai1:lanes-design-before-code\n', 'the log is history');
   assert.match(readFileSync(join(projectRoot, '.ai1', 'work', 'csv', 'plan.md'), 'utf8'), /^size: plan$/m);
@@ -103,4 +103,74 @@ test('a migration that throws keeps its ledger and is reported; without a user c
   assert.ok(!existsSync(join(projectRoot, REPO_LEDGER_RELATIVE_PATH)));
   assert.match(describeMigrationReports(migrationReports), /ai1 vX changed something, but migrating this repo failed \(disk full\); it will be retried/);
   assert.ok(!existsSync(join(homeDirectory, '.config', 'ai1')));
+});
+
+const WALKTHROUGH_CONFIG = { version: 1, features: { okf: false, walkthrough: true }, modules: { 'walkthrough-reminder': { ignore: ['emails/**'] } } };
+
+function runGitIn(repoRoot, gitArguments) {
+  execFileSync('git', ['-C', repoRoot, ...gitArguments], { stdio: 'ignore' });
+}
+
+function createGitRepo(ai1Config) {
+  const repoRoot = createTemporaryProject(ai1Config);
+  runGitIn(repoRoot, ['init', '-q', '-b', 'main']);
+  runGitIn(repoRoot, ['add', '.']);
+  runGitIn(repoRoot, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'init']);
+  return repoRoot;
+}
+
+test('a session start moves walkthrough to storyboard: config, folder and contents, with one line [rename-walkthrough-to-storyboard:S2]', () => {
+  const projectRoot = createTemporaryProject(WALKTHROUGH_CONFIG);
+  writeFile(join(projectRoot, '.ai1', 'walkthroughs', 'booking', 'steps.json'), '{"steps":[]}\n');
+  writeFile(join(projectRoot, '.ai1', 'okf', 'features', 'ui.md'), 'Record with /ai1:walkthrough-record-flow and `ai1 walkthrough build`; files in .ai1/walkthroughs/.\n');
+  const contextText = startSessionThroughEntrypoint(projectRoot, createUserHome());
+  assert.deepEqual(readConfig(projectRoot).features, { okf: false, storyboard: true });
+  assert.deepEqual(readConfig(projectRoot).modules, { 'storyboard-reminder': { ignore: ['emails/**'] } });
+  assert.equal(readFileSync(join(projectRoot, '.ai1', 'storyboards', 'booking', 'steps.json'), 'utf8'), '{"steps":[]}\n');
+  assert.ok(!existsSync(join(projectRoot, '.ai1', 'walkthroughs')));
+  assert.equal(readFileSync(join(projectRoot, '.ai1', 'okf', 'features', 'ui.md'), 'utf8'), 'Record with /ai1:storyboard-record-flow and `ai1 storyboard build`; files in .ai1/storyboards/.\n');
+  assert.match(contextText, /ai1 v0\.33\.0 renamed the walkthrough feature to storyboard and migrated this repo: changed \.ai1\/config\.json, \.ai1\/walkthroughs -> \.ai1\/storyboards/);
+  assert.doesNotMatch(contextText, /old name of the storyboard feature/);
+});
+
+test('a symlinked walkthroughs folder moves as the same symlink, even with its target missing, and the exclude line follows [rename-walkthrough-to-storyboard:S3]', () => {
+  const projectRoot = createGitRepo({ version: 1, features: { walkthrough: true } });
+  const driveFolder = mkdtempSync(join(tmpdir(), 'ai1-drive-'));
+  symlinkSync(driveFolder, join(projectRoot, '.ai1', 'walkthroughs'));
+  writeFileSync(join(projectRoot, '.git', 'info', 'exclude'), '# local\n/.ai1/walkthroughs\n');
+  const unmountedRoot = createGitRepo({ version: 1, features: { walkthrough: true } });
+  symlinkSync(join(tmpdir(), 'ai1-unmounted-drive-that-does-not-exist'), join(unmountedRoot, '.ai1', 'walkthroughs'));
+
+  runPendingMigrations(projectRoot, { includeUser: false });
+  runPendingMigrations(unmountedRoot, { includeUser: false });
+  assert.ok(lstatSync(join(projectRoot, '.ai1', 'storyboards')).isSymbolicLink());
+  assert.equal(readlinkSync(join(projectRoot, '.ai1', 'storyboards')), driveFolder);
+  assert.equal(readFileSync(join(projectRoot, '.git', 'info', 'exclude'), 'utf8'), '# local\n/.ai1/storyboards\n');
+  assert.ok(lstatSync(join(unmountedRoot, '.ai1', 'storyboards')).isSymbolicLink(), 'a dangling symlink still moves');
+});
+
+test('an existing storyboards folder keeps the walkthroughs one in place; personal overlays move [rename-walkthrough-to-storyboard:S4]', () => {
+  const homeDirectory = createUserHome();
+  const projectRoot = createTemporaryProject(WALKTHROUGH_CONFIG);
+  writeFile(join(projectRoot, '.ai1', 'walkthroughs', 'old', 'steps.json'), 'old\n');
+  writeFile(join(projectRoot, '.ai1', 'storyboards', 'new', 'steps.json'), 'new\n');
+  writeFile(join(homeDirectory, '.config', 'ai1', 'skills', 'walkthrough', 'overlay.md'), 'Save to .ai1/walkthroughs too.\n');
+  const contextText = startSessionThroughEntrypoint(projectRoot, homeDirectory);
+  assert.ok(existsSync(join(projectRoot, '.ai1', 'walkthroughs', 'old', 'steps.json')));
+  assert.ok(existsSync(join(projectRoot, '.ai1', 'storyboards', 'new', 'steps.json')));
+  assert.match(contextText, /left alone \.ai1\/walkthroughs \(\.ai1\/storyboards already exists/);
+  assert.equal(readFileSync(join(homeDirectory, '.config', 'ai1', 'skills', 'storyboard', 'overlay.md'), 'utf8'), 'Save to .ai1/storyboards too.\n');
+});
+
+test('a session in a worktree migrates the main checkout too, where storyboards live [rename-walkthrough-to-storyboard:S5]', () => {
+  const mainRoot = createGitRepo({ version: 1, features: { walkthrough: true } });
+  const worktreeRoot = join(mkdtempSync(join(tmpdir(), 'ai1-wt-')), 'feature');
+  runGitIn(mainRoot, ['worktree', 'add', '-q', '-b', 'feature', worktreeRoot]);
+  writeFile(join(mainRoot, '.ai1', 'walkthroughs', 'booking', 'steps.json'), '{}\n');
+  const contextText = startSessionThroughEntrypoint(worktreeRoot, createUserHome());
+  assert.equal(readConfig(worktreeRoot).features.storyboard, true);
+  assert.equal(readConfig(mainRoot).features.storyboard, true);
+  assert.ok(existsSync(join(mainRoot, '.ai1', 'storyboards', 'booking', 'steps.json')));
+  assert.match(contextText, /migrated the main checkout: .*\.ai1\/walkthroughs -> \.ai1\/storyboards/);
+  assert.match(contextText, /migrated this repo: changed \.ai1\/config\.json/);
 });
