@@ -67,10 +67,13 @@ Method:
 
 ## 4. Choose models or prompts: a tournament
 
-1. **Round 1**: every candidate on the current dev cases.
-2. **Each round**: drop only the clear losers, then grow the set (double it, say) for the survivors.
+1. **Climb by price**: the first tournament has only cheap and mid-priced models. Add an expensive
+   one only when none of them reaches the bar and the failures left are labelled `model limit`; then
+   the expensive one has to beat the best cheaper one by the table below, not just score higher.
+2. **Round 1**: every candidate on the current dev cases.
+3. **Each round**: drop only the clear losers, then grow the set (double it, say) for the survivors.
    All survivors run the same cases; earlier cases stay in.
-3. **Compare paired** against the current leader, on the cases where the two disagree. Drop a
+4. **Compare paired** against the current leader, on the cases where the two disagree. Drop a
    candidate only when the leader wins at least this many of those cases (exact sign test, p < 0.05):
 
    | disagreements | 6 | 8 | 10 | 12 | 15 | 20 |
@@ -78,11 +81,11 @@ Method:
    | leader wins at least | 6 | 8 | 9 | 10 | 12 | 15 |
 
    With 5 or fewer disagreements nobody is dropped: it stays one more round.
-4. **Cost**: among the candidates you cannot tell apart from the best, keep the cheapest.
-5. **Stop** when one is left, the rest cannot be told apart (take the cheapest) or the budget runs out.
+5. **Cost**: among the candidates you cannot tell apart from the best, keep the cheapest.
+6. **Stop** when one is left, the rest cannot be told apart (take the cheapest) or the budget runs out.
    Close finalists get 2 or 3 format variants of the prompt before one is dropped: formatting alone
    can swing a score. Confirm the winner once on the test set.
-6. **One variable at a time**: a tournament of models uses one prompt; of prompts, one model.
+7. **One variable at a time**: a tournament of models uses one prompt; of prompts, one model.
 
 ## 5. Labels, judges and confidence signals
 
@@ -118,7 +121,8 @@ analysis of Hamel Husain and Shreya Shankar; the tournament is successive halvin
 ## Fixed rules
 
 - Start simple; the full method only when the simple version is not good enough.
-- No change of model before the failures have been read and each given a cause.
+- No change of model before the failures have been read and each given a cause; cheap and mid-priced
+  models first, an expensive one only for failures labelled `model limit`.
 - The same cases and setup for every candidate; the test set only confirms, never chooses.
 - Labels and judges are checked before they are trusted: agent labels blind and sampled by the person,
   judges against checked labels.

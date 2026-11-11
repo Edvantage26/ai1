@@ -5,7 +5,7 @@ description: Stop gate - the agent cannot finish while code it changed is newer 
 tags: [verify, hooks, evidence, cli]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-11T06:00:46Z'
+  at: '2026-11-11T06:03:42Z'
 sources:
   - id: verify-gate
     resource: src/verify/verify-gate.mjs
@@ -117,7 +117,9 @@ mode | cause | evidence`, the cause from a fixed list - `context`, `instructions
 person about 10 before fixing the failure modes; fix the most frequent cause; models only after the
 first five are ruled out), measure while iterating (20-30 % kept apart as test, used once to confirm;
 2-3 runs to see noise; pinned model versions; pass/fail checks over 1-5 scales), a tournament for
-models or prompts (one case set that grows from the 10-20 starting cases; drop a candidate only when
+models or prompts (climb by price, decided 2026-11-11 with the person: cheap and mid-priced models
+first, an expensive one only when none reaches the bar and the failures left are `model limit`, and
+it must beat the best cheaper one by the sign test; one case set that grows from the 10-20 starting cases; drop a candidate only when
 the leader wins enough of their disagreements by an exact sign test, given as a table - none dropped
 with 5 or fewer; cheapest among the indistinguishable; close finalists retried with 2-3 prompt
 formats), and labels and judges (expert labels, or a fresh-context subagent labelling blind, ideally
