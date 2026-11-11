@@ -5,7 +5,7 @@ description: Numbered, idempotent migrations that bring a repo and the person's 
 tags: [migrations, runtime, config, renames]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-11T09:16:28Z'
+  at: '2026-11-11T09:22:11Z'
 sources:
   - id: migrations
     resource: src/core/migrations.mjs
@@ -66,6 +66,16 @@ Older renames (jig, rfc, proposals) stay in `ai1 init`'s legacy layout migration
 (`src/cli/legacy-migration.mjs`): they move whole tracked folders with conflict checks and were not ported.
 The renamed ids are still listed in `RENAMED_FEATURE_IDS` / `RENAMED_MODULE_IDS` (`src/core/config.mjs`), so a
 config the migration could not touch gets a "renamed" notice instead of "unknown".
+
+# Version skew (seen 2026-11-11)
+
+A repo's committed config can be ahead of the plugin a session has loaded: here the rename to `sizing`
+was committed while the session still ran v0.31.0. That plugin reported `sizing` as unknown and ignored it,
+so the feature was off in that session: no sizing brief, no deep-design gate, and the `sizing-approval`
+hook never recorded the person's yes (the plan had to be marked `approved` by hand to close it). Nothing
+breaks, but the guards of a renamed feature are off until the plugin is updated and the session restarted.
+After a rename, publish (push and tag; releases are lightweight `vX.Y.Z` tags, no GitHub release) and run
+`claude plugin marketplace update ai1 && claude plugin update ai1@ai1`, then restart.
 
 # Adding a migration
 
