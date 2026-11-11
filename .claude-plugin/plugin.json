@@ -1,6 +1,6 @@
 {
   "name": "ai1",
-  "version": "0.32.0",
+  "version": "0.33.0",
   "description": "ai1 (all in one) for your coding agent: per-repo features (OKF project knowledge, destructive-command guard...) chosen in .ai1/config.json.",
   "author": {
     "name": "Edvantage",
