@@ -16,6 +16,7 @@ import { validateHarnessConfig, listUnknownConfigEntries, SUPPORTED_CONFIG_VERSI
 import { KNOWN_MODULE_IDS } from '../core/module-index.mjs';
 import { findMainCheckout } from '../core/project-roots.mjs';
 import { loadRecipe } from '../worktrees/worktree-recipe.mjs';
+import { runPendingMigrations } from '../core/migrations.mjs';
 import { migrateLegacyLayout } from './legacy-migration.mjs';
 import { readEnabledPlugins, findOverlappingPlugins, localSettingsPathFor } from '../core/plugin-overlaps.mjs';
 import { recommendFeatures } from './feature-recommendations.mjs';
@@ -118,9 +119,13 @@ export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, disable
   if (malformedPluginIds.length) throw new Error(`not plugin ids (name@marketplace): ${malformedPluginIds.join(', ')}`);
   const retiredFeatureId = ['rfc', 'proposals'].find((featureId) => enabledFeatureIds.includes(featureId));
   if (retiredFeatureId) throw new Error(`the ${retiredFeatureId} feature is called later since v0.25.0: use --features ...,later`);
+  if (enabledFeatureIds.includes('lanes')) throw new Error('the lanes feature is called sizing since v0.32.0: use --features ...,sizing');
   const unknownFeatureIds = enabledFeatureIds.filter((featureId) => !KNOWN_FEATURE_IDS.includes(featureId));
   if (unknownFeatureIds.length) throw new Error(`unknown features: ${unknownFeatureIds.join(', ')}`);
   const legacyMigration = migrateLegacyLayout(repoRoot);
+  // The same numbered migrations a session start runs (src/core/migrations.mjs); the person's own
+  // config folder is left to the session start.
+  const migrationReports = runPendingMigrations(repoRoot, { includeUser: false });
   const claudeDirectory = join(repoRoot, '.claude');
   mkdirSync(claudeDirectory, { recursive: true });
 
@@ -183,5 +188,6 @@ export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, disable
     disabledPlugins,
     addedDenyRules,
     legacyMigration,
+    migrationReports,
   };
 }

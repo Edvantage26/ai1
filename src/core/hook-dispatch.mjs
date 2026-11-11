@@ -24,7 +24,8 @@ export function relaxAskForPermissionMode(moduleId, moduleDecision, permissionMo
 
 // moduleDefinitions: metadata of every module (what `enabledModules` lists); runnableModules: the
 // loaded modules of this event (an enabled module that was not loaded is skipped).
-export function dispatchHookEvent(eventName, hookInput, { environment = process.env, homeDirectory, moduleDefinitions = MODULE_INDEX, runnableModules, reportInternalError = defaultErrorReporter } = {}) {
+// migrationNotice: what the session-start migrations changed (src/core/migrations.mjs), told to the agent.
+export function dispatchHookEvent(eventName, hookInput, { environment = process.env, homeDirectory, moduleDefinitions = MODULE_INDEX, runnableModules, reportInternalError = defaultErrorReporter, migrationNotice = null } = {}) {
   const { projectRoot, sharedRoot } = resolveProjectRoots(hookInput, environment);
   // A worktree reads the .ai1/config.json of its own branch; one without it (e.g. never committed) uses the main checkout's.
   let loadedConfig = loadHarnessConfig(projectRoot, KNOWN_MODULE_IDS);
@@ -87,6 +88,7 @@ export function dispatchHookEvent(eventName, hookInput, { environment = process.
   }
   appendDecisionLog(logEntries, sharedRoot, environment);
   recordPendingErrors(logEntries.filter((logEntry) => logEntry.decision === 'error'), sharedRoot, environment);
+  if (migrationNotice && eventName === 'SessionStart') moduleDecisions.push(contextDecision('migrations', migrationNotice));
   for (const configNotice of loadedConfig.notices) {
     reportInternalError(configNotice);
     if (eventName === 'SessionStart') moduleDecisions.push(contextDecision('setup', configNotice));

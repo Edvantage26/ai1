@@ -19,7 +19,7 @@ export function projectOverlayRelativePath(feature) {
   return `${SKILL_OVERLAYS_DIRECTORY}/${feature}/${OVERLAY_FILE_NAME}`;
 }
 
-function userConfigDirectory(environment, homeDirectory) {
+export function userConfigDirectory(environment, homeDirectory) {
   return environment.XDG_CONFIG_HOME ? join(environment.XDG_CONFIG_HOME, 'ai1') : join(homeDirectory, '.config', 'ai1');
 }
 

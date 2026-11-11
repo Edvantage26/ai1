@@ -35,12 +35,14 @@ const DEFAULT_CONFIG = {
   rules: [],
 };
 
-// Names retired by a rename (v0.18.0: rfc -> proposals; v0.25.0: proposals -> later). Not aliased:
-// they are ignored with a notice until `ai1 init` rewrites them (renameRetiredIds).
-const RENAMED_FEATURE_IDS = { rfc: 'later', proposals: 'later' };
+// Names retired by a rename (v0.18.0: rfc -> proposals; v0.25.0: proposals -> later; v0.32.0: lanes ->
+// sizing). Not aliased: they are ignored with a notice until `ai1 init` rewrites them (renameRetiredIds).
+// lanes -> sizing is also migrated at session start (src/core/migrations.mjs); the notice is the fallback.
+const RENAMED_FEATURE_IDS = { rfc: 'later', proposals: 'later', lanes: 'sizing' };
 const RENAMED_MODULE_IDS = {
   'rfc-brief': 'later-brief', 'rfc-recall': 'later-recall', 'rfc-upkeep': 'later-upkeep',
   'proposals-brief': 'later-brief', 'proposals-recall': 'later-recall', 'proposals-upkeep': 'later-upkeep',
+  'lanes-brief': 'sizing-brief', 'lanes-approval': 'sizing-approval', 'lanes-gate': 'sizing-gate', 'lanes-escalate': 'sizing-escalate',
 };
 export const RETIRED_RFC_DIRECTORY = `${AI1_DIRECTORY}/rfc`;
 export const RETIRED_PROPOSALS_DIRECTORY = `${AI1_DIRECTORY}/proposals`;
@@ -61,15 +63,21 @@ export function renameRetiredIds(rawConfig) {
   return { ...rawConfig, features: renameKeys(rawConfig.features, RENAMED_FEATURE_IDS), modules: renameKeys(rawConfig.modules, RENAMED_MODULE_IDS) };
 }
 
-// What still uses a retired name: config keys, or an old folder on disk.
+// What still uses a retired name: config keys, or an old folder on disk. One notice per renamed feature.
 function readRenamedNamesNotice(rawConfig, projectRoot) {
-  const retiredNames = [
-    ...Object.keys(rawConfig.features || {}).filter((featureId) => RENAMED_FEATURE_IDS[featureId]).map((featureId) => `features.${featureId}`),
-    ...Object.keys(rawConfig.modules || {}).filter((moduleId) => RENAMED_MODULE_IDS[moduleId]).map((moduleId) => `modules.${moduleId}`),
+  const retiredNamesOf = (newFeatureId) => [
+    ...Object.keys(rawConfig.features || {}).filter((featureId) => RENAMED_FEATURE_IDS[featureId] === newFeatureId).map((featureId) => `features.${featureId}`),
+    ...Object.keys(rawConfig.modules || {}).filter((moduleId) => RENAMED_MODULE_IDS[moduleId]?.startsWith(`${newFeatureId}-`)).map((moduleId) => `modules.${moduleId}`),
+  ];
+  const laterNames = [
+    ...retiredNamesOf('later'),
     ...[RETIRED_RFC_DIRECTORY, RETIRED_PROPOSALS_DIRECTORY].filter((retiredDirectory) => existsSync(join(projectRoot, retiredDirectory))).map((retiredDirectory) => `${retiredDirectory}/`),
   ];
-  if (!retiredNames.length) return null;
-  return `This repo still uses an old name of the later feature (${retiredNames.join(', ')}): ai1 renamed rfc to proposals in v0.18.0 and proposals to later in v0.25.0, and ignores the old names. Tell the person; /ai1:core-setup-repo (ai1 init) migrates it to .ai1/later/ and features.later.`;
+  const sizingNames = retiredNamesOf('sizing');
+  const renameNotices = [];
+  if (laterNames.length) renameNotices.push(`This repo still uses an old name of the later feature (${laterNames.join(', ')}): ai1 renamed rfc to proposals in v0.18.0 and proposals to later in v0.25.0, and ignores the old names. Tell the person; /ai1:core-setup-repo (ai1 init) migrates it to .ai1/later/ and features.later.`);
+  if (sizingNames.length) renameNotices.push(`This repo still uses the old name of the sizing feature (${sizingNames.join(', ')}): ai1 renamed lanes to sizing in v0.32.0 and ignores the old names. Tell the person; /ai1:core-setup-repo (ai1 init) migrates it to features.sizing.`);
+  return renameNotices.length ? renameNotices.join('\n') : null;
 }
 
 // Names this ai1 version does not know (fields, features, modules), e.g. from a repo set up with a

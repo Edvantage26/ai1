@@ -32,6 +32,7 @@ import { resolveBundleDirectory, readBundleIndex } from '../src/okf/okf-bundle.m
 import { buildFileMap } from '../src/okf/okf-file-map.mjs';
 import { checkClaudeMdFiles, formatClaudeMdReport } from '../src/okf/okf-claude-md-check.mjs';
 import { KNOWLEDGE_BUNDLE_PATH } from '../src/core/config.mjs';
+import { describeMigrationReports } from '../src/core/migrations.mjs';
 
 const [commandName, ...commandArguments] = process.argv.slice(2);
 
@@ -106,6 +107,8 @@ try {
       for (const plannedMove of legacyMigration.moves) console.log(`moved ${plannedMove.from} -> ${plannedMove.to}`);
       for (const settingsPath of legacyMigration.settingsFiles) console.log(`updated ${settingsPath}: jig@jig -> ai1@ai1`);
       if (legacyMigration.filesMentioningOldPaths.length) console.log(`still mention old paths (update them): ${legacyMigration.filesMentioningOldPaths.join(', ')}`);
+      const migrationText = describeMigrationReports(setupResult.migrationReports);
+      if (migrationText) console.log(migrationText);
       console.log(`wrote ${setupResult.ai1ConfigPath}`);
       console.log(`wrote ${setupResult.settingsPath}`);
       console.log(`features: ${Object.entries(setupResult.features).map(([featureId, isEnabled]) => `${featureId}=${isEnabled ? 'on' : 'off'}`).join(', ')}`);

@@ -9,6 +9,7 @@ import { loadModulesForEvent } from '../src/core/module-index.mjs';
 import { appendDecisionLog, errorSignature } from '../src/core/decision-log.mjs';
 import { recordPendingErrors } from '../src/core/pending-errors.mjs';
 import { resolveProjectRoots } from '../src/core/project-roots.mjs';
+import { runSessionStartMigrations } from '../src/core/migrations.mjs';
 
 const eventName = process.argv[2];
 
@@ -16,8 +17,10 @@ let hookInput = {};
 try {
   hookInput = await readHookInput();
   const resolvedEventName = eventName || hookInput.hook_event_name;
+  // Migrations first, so this session already reads the new names (src/core/migrations.mjs).
+  const migrationNotice = resolvedEventName === 'SessionStart' ? runSessionStartMigrations(hookInput) : null;
   const runnableModules = await loadModulesForEvent(resolvedEventName, hookInput.tool_name);
-  const hookOutput = dispatchHookEvent(resolvedEventName, hookInput, { runnableModules });
+  const hookOutput = dispatchHookEvent(resolvedEventName, hookInput, { runnableModules, migrationNotice });
   if (hookOutput) process.stdout.write(JSON.stringify(hookOutput));
 } catch (hookError) {
   process.stderr.write(`ai1: hook ${eventName} failed open: ${hookError.stack || hookError}\n`);
