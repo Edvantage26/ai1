@@ -109,6 +109,21 @@ test('lanes-gate: a draft design blocks code edits but not the plan or the bundl
   assert.equal(useTool(projectRoot, options, 'Write', { file_path: '/tmp/scratch.txt', content: 'x' }), null, 'outside the project is not gated');
 });
 
+test('lanes: a plan-lane plan never blocks edits, is listed as plan lane and comes back after compaction', () => {
+  const projectRoot = createLanesRepo();
+  const options = hookOptions();
+  assert.match(startSession(projectRoot, options).hookSpecificOutput.additionalContext, /plan: .*`\.ai1\/work\/<slug>\/plan\.md` \(frontmatter `lane: plan`, `status: active`.*ai1 plan-done <slug>/);
+  const planDirectory = join(projectRoot, '.ai1', 'work', 'csv-export');
+  mkdirSync(planDirectory, { recursive: true });
+  writeFileSync(join(planDirectory, 'plan.md'), '---\ntitle: CSV export\nlane: plan\nstatus: active\n---\n\n- [x] 1. parser\n- [ ] 2. writer\n');
+  writeFileSync(join(planDirectory, 'progress.md'), 'Step 1 - green - src/parser.js\n');
+  assert.equal(useTool(projectRoot, options, 'Edit', editCode(projectRoot)), null, 'no approval needed');
+  assert.equal(sendPrompt(projectRoot, options, 'adelante'), null, 'a yes approves nothing');
+  const compactedContext = startSession(projectRoot, options, 'compact').hookSpecificOutput.additionalContext;
+  assert.match(compactedContext, /csv-export\/plan\.md.*CSV export.*status: active, plan lane/);
+  assert.match(compactedContext, /Step 1 - green/);
+});
+
 test('lanes-gate: shell writes to code are refused too, reads are not', () => {
   const projectRoot = createLanesRepo();
   const options = hookOptions();

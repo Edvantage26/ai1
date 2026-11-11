@@ -9,7 +9,7 @@ import { join } from 'node:path';
 import { loadHarnessConfig } from '../core/config.mjs';
 import { KNOWN_MODULE_IDS } from '../core/module-index.mjs';
 import { WORK_DIRECTORY } from '../core/config.mjs';
-import { readPlanStatus, writePlanStatus } from '../lanes/lanes-work.mjs';
+import { readPlanLane, readPlanStatus, writePlanStatus } from '../lanes/lanes-work.mjs';
 import { checkScenarioCoverage, formatScenarioTag } from '../lanes/lanes-scenarios.mjs';
 
 export function readVerifyCommands(repoRoot) {
@@ -51,8 +51,8 @@ export function describeScenarioCoverage(mainCheckoutRoot, scanRoot, planSlug, r
   return `scenarios covered so far: ${coveredCount}/${scenarioCoverage.scenarioIds.length}${missingNote}`;
 }
 
-// `ai1 plan-done <slug>`: the one way to close a deep plan. The plan (main checkout) must be approved;
-// every scenario of its `# Behaviour` section needs its tag `[<slug>:S<n>]` in the scanned checkout
+// `ai1 plan-done <slug>`: the one way to close a plan. A deep plan (main checkout) must be approved,
+// a plan-lane plan only unfinished; every scenario of its `# Behaviour` section needs its tag `[<slug>:S<n>]` in the scanned checkout
 // (the worktree, where the tests live before merge); then the verify commands must pass. Only then
 // `status: done` and a progress line. { closed, message }. Throws when the scan cannot run.
 export function closePlan(mainCheckoutRoot, scanRoot, planSlug, verifyCommands, options = {}) {
@@ -62,7 +62,11 @@ export function closePlan(mainCheckoutRoot, scanRoot, planSlug, verifyCommands, 
   if (!existsSync(planPath)) throw new Error(`no plan at ${WORK_DIRECTORY}/${planSlug}/plan.md`);
   const planText = readFileSync(planPath, 'utf8');
   const planStatus = readPlanStatus(planText);
-  if (planStatus !== 'approved') return { closed: false, message: `the plan is ${planStatus}, not approved: only an approved plan can be closed` };
+  if (readPlanLane(planText) === 'plan') {
+    if (['done', 'abandoned'].includes(planStatus)) return { closed: false, message: `the plan is already ${planStatus}` };
+  } else if (planStatus !== 'approved') {
+    return { closed: false, message: `the plan is ${planStatus}, not approved: only an approved plan can be closed` };
+  }
   const scenarioCoverage = checkScenarioCoverage(scanRoot, planSlug, planText, repoFiles);
   if (scenarioCoverage.duplicateIds.length) {
     return { closed: false, message: `duplicate scenario ids in the plan: ${scenarioCoverage.duplicateIds.join(', ')}` };

@@ -1,6 +1,7 @@
-// Shared state of the lanes feature: work plans of deep-lane tasks and their approvals.
-// A plan lives in `.ai1/work/<slug>/plan.md` (frontmatter `status: draft | ready | approved | done`)
-// with `progress.md` next to it. `.ai1/work/` ignores itself, so plans never reach git.
+// Shared state of the lanes feature: work plans and the approvals of deep-lane designs.
+// A plan lives in `.ai1/work/<slug>/plan.md` with `progress.md` next to it. A deep-lane design has
+// frontmatter `status: draft | ready | approved | done`; a plan-lane plan has `lane: plan` and
+// `status: active | done`, needs no approval and is only there to survive compaction. `.ai1/work/` ignores itself, so plans never reach git.
 // Approval comes only from the person: the lanes-approval hook records it in ai1's state
 // directory, outside the repo; the `status` written in the plan is informative.
 
@@ -22,6 +23,12 @@ export function readPlanStatus(planText) {
   return statusMatch ? statusMatch[1] : 'draft';
 }
 
+// `plan` for a plan-lane plan (frontmatter `lane: plan`), `deep` otherwise.
+export function readPlanLane(planText) {
+  const { frontmatterText } = splitFrontmatter(planText);
+  return frontmatterText && /^lane:\s*['"]?plan\b/m.test(frontmatterText) ? 'plan' : 'deep';
+}
+
 export function readPlanTitle(planText, fallbackTitle) {
   const { frontmatterText } = splitFrontmatter(planText);
   const titleMatch = frontmatterText && /^title:\s*['"]?(.+?)['"]?\s*$/m.exec(frontmatterText);
@@ -32,7 +39,7 @@ export function writePlanStatus(planPath, newStatus) {
   writeFileSync(planPath, writeFrontmatterField(readFileSync(planPath, 'utf8'), 'status', newStatus));
 }
 
-// Every plan in .ai1/work, newest first: { slug, planPath, relativePath, status, title, modifiedMilliseconds }.
+// Every plan in .ai1/work, newest first: { slug, planPath, relativePath, status, lane, title, modifiedMilliseconds }.
 export function listWorkPlans(projectRoot) {
   const workDirectory = join(projectRoot, WORK_DIRECTORY);
   if (!existsSync(workDirectory)) return [];
@@ -46,6 +53,7 @@ export function listWorkPlans(projectRoot) {
       planPath,
       relativePath: relative(projectRoot, planPath),
       status: readPlanStatus(planText),
+      lane: readPlanLane(planText),
       title: readPlanTitle(planText, slug),
       modifiedMilliseconds: statSync(planPath).mtimeMs,
     });

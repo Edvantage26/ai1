@@ -1,5 +1,5 @@
 // lanes-brief (SessionStart, feature `lanes`): tells the agent to size each task and pick the
-// lightest lane that fits (quick, plan, deep), and lists unfinished deep-lane plans. After a
+// lightest lane that fits (quick, plan, deep), and lists unfinished plans of both lanes. After a
 // compaction it puts the tail of each active plan's progress back in context, because the
 // agent's memory of where it was is exactly what compaction loses.
 // The text stays byte-stable between sessions so it does not break the prompt cache.
@@ -22,7 +22,7 @@ export function buildLanesRecipe(verifyCommands, usesWorktrees = false) {
   return [
     'Lanes: size every new task before acting and say the lane in one line ("Lane: quick, because ...").',
     `- quick: a clear, contained change that could be resumed from the request and \`git diff\` alone (a bug, a wording, a small tweak). Do it, run ${verifyText}, report.`,
-    '- plan: several pieces but a clear goal. Read the relevant code, say the plan in a few lines (files, steps, how you will verify) and start; do not wait for a yes.',
+    '- plan: several pieces but a clear goal. Read the relevant code, write the plan to `' + WORK_DIRECTORY + '/<slug>/plan.md` (frontmatter `lane: plan`, `status: active`, `title`; the goal, steps as `- [ ]` checkboxes, how you will verify), say it in a few lines and start; do not wait for a yes. Tick each step as you finish it and close with `ai1 plan-done <slug>`.',
     '- deep: unclear goal, design choices, a risky area (auth, data or irreversible effects, money, migrations, a public API or contract others use, concurrency, deploy or environment, code no test would catch breaking) or hours of work. Load the /ai1:lanes-design-before-code skill and follow it: questions, a design in `' + WORK_DIRECTORY + '/<slug>/plan.md`, approval by the person, then step by step.',
     ...(usesWorktrees ? ['- plan and deep tasks are built in their own worktree (see Worktrees); name it in the plan so it survives compaction.'] : []),
     'Pick the lightest lane that fits; the number of files never decides it. "rápido"/"quick" or "piénsalo bien"/"think it through" from the person sets the lane. When a quick task grows, stop and move to plan.',
@@ -37,9 +37,9 @@ function readProgressTail(planPath) {
 
 export function describeUnfinishedPlans(workPlans, approvals, { withProgress }) {
   if (workPlans.length === 0) return '';
-  const planLines = ['Unfinished deep-lane plans in this repo:'];
+  const planLines = ['Unfinished plans in this repo:'];
   for (const workPlan of workPlans) {
-    const approvalText = isPlanApproved(workPlan, approvals) ? 'approved by the person' : 'not approved yet';
+    const approvalText = workPlan.lane === 'plan' ? 'plan lane' : isPlanApproved(workPlan, approvals) ? 'approved by the person' : 'not approved yet';
     planLines.push(`- \`${workPlan.relativePath}\` "${workPlan.title}" (status: ${workPlan.status}, ${approvalText})`);
     if (withProgress) planLines.push(`  Last progress:\n${readProgressTail(workPlan.planPath).replace(/^/gm, '    ')}`);
   }
@@ -53,7 +53,7 @@ export default {
   id: MODULE_ID,
   event: 'SessionStart',
   feature: 'lanes',
-  description: 'Asks the agent to pick a lane (quick, plan, deep) per task and restores deep-lane progress after compaction.',
+  description: 'Asks the agent to pick a lane (quick, plan, deep) per task and restores plan progress after compaction.',
   run({ hookInput, config, projectRoot, sharedRoot = projectRoot, environment }) {
     // A resumed session already has this text in its history.
     if (hookInput.source === 'resume') return allowDecision();

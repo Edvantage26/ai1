@@ -4,7 +4,7 @@
 //   ai1 init --features okf,danger [--verify "npm test" ...] [--disable-plugins a@x,b@y] [--deny-credentials] [--report-errors ask|auto|off] [--json]
 //   ai1 verify                                  run the repo's verify commands, stop at the first failure
 //   ai1 step-done <slug> "<step>"               ai1 verify, then log the step in .ai1/work/<slug>/progress.md
-//   ai1 plan-done <slug>                        close a deep plan: every behaviour scenario has its tagged test, then ai1 verify
+//   ai1 plan-done <slug>                        close a plan: every behaviour scenario has its tagged test, then ai1 verify
 //   ai1 later new <slug> [--idea] [--title "..."] create .ai1/later/NNNN-<slug>.md with the next number
 //   ai1 later set <number> <status> [--by <n>]    change a later entry's status (dates, History line, index)
 //   ai1 later index | ai1 later check            regenerate .ai1/later/README.md | report what is inconsistent

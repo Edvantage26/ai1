@@ -1,4 +1,5 @@
-// lanes-gate (PreToolUse, feature `lanes`): while a deep-lane design of this session is not approved
+// lanes-gate (PreToolUse, feature `lanes`): while a deep-lane design of this session (not a plan-lane
+// plan, which needs no approval) is not approved
 // by the person, refuses edits to project files outside `.ai1/`, the knowledge bundle and later entries (Edit,
 // Write, MultiEdit, NotebookEdit, and shell commands that write files) and asks before inline
 // interpreter scripts, whose writes cannot be told from the command line. Designing, asking and
@@ -40,7 +41,7 @@ function isPathInside(relativePath, directoryPath) {
 
 export function findUnapprovedPlan(projectRoot, sessionStartMilliseconds, approvals, sessionPlanSlugs = null) {
   return listActivePlans(projectRoot, sessionStartMilliseconds, sessionPlanSlugs)
-    .find((workPlan) => UNAPPROVED_STATUSES.has(workPlan.status) || !isPlanApproved(workPlan, approvals));
+    .find((workPlan) => workPlan.lane === 'deep' && (UNAPPROVED_STATUSES.has(workPlan.status) || !isPlanApproved(workPlan, approvals)));
 }
 
 // The text a Write, Edit or MultiEdit leaves in a file whose current text is `diskText`.
