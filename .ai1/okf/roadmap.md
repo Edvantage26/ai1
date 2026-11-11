@@ -12,7 +12,7 @@ Order changed on 2026-10-30: build the generic structure in ai1 first, then prov
 
 1. **Core + first guard** (done): dispatcher, config, schema, `brief`, `danger`, tests, CI.
 2. **Features + okf feature + /ai1:core-setup-repo** (done 2026-10-31): per-repo features, OKF pack, okf-index/okf-upkeep, CLI.
-2b. **Sizing** (done 2026-11-08; called lanes until v0.32.0): quick / plan / deep by task size, deep designs gated by the
+2b. **Sizing** (done 2026-11-08; called lanes until v0.31): quick / plan / deep by task size, deep designs gated by the
    person's approval, progress restored after compaction. See [sizing feature](features/sizing.md).
 2c. **Craft** (done 2026-11-08): code craft rules at session start (simplicity, surgical changes,
    reuse, proposed refactors, names). See [craft feature](features/craft.md).

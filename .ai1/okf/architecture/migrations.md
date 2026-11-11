@@ -5,7 +5,7 @@ description: Numbered, idempotent migrations that bring a repo and the person's 
 tags: [migrations, runtime, config, renames]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-11T07:38:33Z'
+  at: '2026-11-11T07:44:47Z'
 sources:
   - id: migrations
     resource: src/core/migrations.mjs
@@ -50,7 +50,7 @@ updates are applied like database migrations, by themselves, the first time the 
 
 | # | id | Since | Repo | Person |
 |---|---|---|---|---|
-| 1 | `lanes-to-sizing` | v0.32.0 | `features.lanes` -> `features.sizing`, `modules.lanes-*` -> `sizing-*` (the new name wins when both are set); `.ai1/skills/lanes/` -> `.ai1/skills/sizing/`; `/ai1:lanes-design-before-code` -> `/ai1:sizing-design-before-code` in the bundle, later entries, overlays, `.claude/skills/` and work plans; `lane: plan` -> `size: plan` in work plans | `skills/lanes/` -> `skills/sizing/`, skill name in overlays |
+| 1 | `lanes-to-sizing` | v0.32.0 | `features.lanes` -> `features.sizing`, `modules.lanes-*` -> `sizing-*` (the new name wins when both are set); `.ai1/skills/lanes/` -> `.ai1/skills/sizing/`; the deep skill name (`lanes-design-before-code` -> `sizing-design-before-code`, with its `/ai1:` prefix) in the bundle (except `log.md`), later entries, overlays, `.claude/skills/` and work plans; `lane: plan` -> `size: plan` in work plans | `skills/lanes/` -> `skills/sizing/`, skill name in overlays |
 
 Older renames (jig, rfc, proposals) stay in `ai1 init`'s legacy layout migration
 (`src/cli/legacy-migration.mjs`): they move whole tracked folders with conflict checks and were not ported.

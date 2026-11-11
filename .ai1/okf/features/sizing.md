@@ -5,7 +5,7 @@ description: Each task sized quick, plan or deep - with a plan file for plan and
 tags: [sizing, workflow, hooks, skills, approval]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-11T07:38:33Z'
+  at: '2026-11-11T07:44:47Z'
 sources:
   - id: sizing-work
     resource: src/sizing/sizing-work.mjs
@@ -43,7 +43,7 @@ what must hold is a hook. Opt-in (`features.sizing`, default off); on in this re
 
 # Name (since v0.32.0)
 
-Called **lanes** until v0.31.0 (feature `lanes`, modules `lanes-*`, `/ai1:lanes-design-before-code`, "Lane:
+Called **lanes** until v0.31.0 (feature `lanes`, modules `lanes-*`, skill `lanes-design-before-code`, "Lane:
 quick"). Renamed with the person on 2026-11-11 because "lane" is a metaphor that does not say what the
 feature does: it sizes each task before acting. Considered: `triage` (names the action, sounds medical),
 `depth` ("Depth: deep" is redundant), `rigor`, `gears`; `effort` and `mode` were ruled out because Claude
