@@ -25,7 +25,7 @@ sources:
     title: Later 0001
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-11T07:38:33Z'
+  at: '2026-11-11T09:16:28Z'
 ---
 
 Built 2026-11-09 from later 0001 (phases 0-2); decision in
@@ -74,7 +74,7 @@ when a folder has no entry, an entry has no folder, a customizable skill lacks t
 worktrees-plan-recipe, session-fork-conversation, later-write, sizing-design-before-code,
 okf-maintain-knowledge, okf-tidy-claude-md, okf-visualize-bundle, verify-debug-systematically,
 verify-evaluate-llm-prompts,
-walkthrough-record-flow (project and person) and
+storyboard-record-flow (project and person) and
 core-setup-repo (person only). Excluded, with the reason in the index: okf-backfill-from-history,
 core-report-issue, okf-validate-bundle, danger-write-rule, core-customize-skill.
 

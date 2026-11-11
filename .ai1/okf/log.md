@@ -1,12 +1,13 @@
 # Update Log
 
 ## 2026-11-11
+* **Supersession**: the `walkthrough` feature is now [storyboard](features/storyboard.md) (`features/walkthrough.md` renamed): `storyboard-reminder`, `storyboard-record-flow`, `ai1 storyboard`, `.ai1/storyboards/`; moved by [migration 2](architecture/migrations.md), which also migrates the main checkout from worktree sessions.
 * **Supersession**: the `lanes` feature is now [sizing](features/sizing.md) (`features/lanes.md` renamed): modules `sizing-*`, `/ai1:sizing-design-before-code`, "Size: quick, because ...", plan field `size: plan`. Older entries keep the names of their time.
 * **Creation**: [Migrations](architecture/migrations.md) — numbered, idempotent migrations run at session start and by `ai1 init`; the first one moves repos and personal overlays from lanes to sizing.
 * **Creation**: `/ai1:verify-evaluate-llm-prompts` in the [verify feature](features/verify.md) — evaluate an LLM step with evidence: the cause of each failure before blaming the model, and compare models or prompts as a paired tournament.
 
 ## 2026-11-09
-* **Creation**: [walkthrough feature](features/walkthrough.md) — `/ai1:walkthrough-record-flow`, `ai1 walkthrough` and `walkthrough-reminder`: storyboard of the user flow after a visual change, in `.ai1/walkthroughs/`.
+* **Creation**: [walkthrough feature](features/storyboard.md) — `/ai1:walkthrough-record-flow`, `ai1 walkthrough` and `walkthrough-reminder`: storyboard of the user flow after a visual change, in `.ai1/walkthroughs/`.
 * **Supersession**: the `proposals` feature is now [later](features/later.md) (`features/proposals.md` renamed): folder `.ai1/later/`, entries called by number ("later 0003", frontmatter `number:`), `/ai1:later-write`, `ai1 later`, modules `later-*`, danger rule `ai1-later-new`; "propuesta" in the conversation never means this feature; `ai1 init` migrates `.ai1/rfc/` and `.ai1/proposals/`. Older entries keep the names of their time.
 * **Creation**: `fix-loop` and `/ai1:verify-debug-systematically` in the [verify feature](features/verify.md) — failed fix attempts counted, the agent told to stop after 3 in a row.
 * **Creation**: [retro](features/retro.md) — `ai1-retro`, project skill of the ai1 repo reading every repo's decision log (`ai1 log --all`); the `issue-offer` hook offers ai1's own errors as issues ([issue report](features/issue-report.md)).

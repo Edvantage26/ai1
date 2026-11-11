@@ -5,7 +5,7 @@ description: Numbered, idempotent migrations that bring a repo and the person's 
 tags: [migrations, runtime, config, renames]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-11T07:44:47Z'
+  at: '2026-11-11T09:16:28Z'
 sources:
   - id: migrations
     resource: src/core/migrations.mjs
@@ -36,8 +36,11 @@ updates are applied like database migrations, by themselves, the first time the 
     only when that folder exists.
 - `runSessionStartMigrations` runs from `bin/ai1-hook.mjs` at SessionStart, before the dispatch, so the
   same session already reads the new names. It migrates the checkout whose `.ai1/config.json` the
-  [dispatcher](hook-runtime.md) will read (the worktree's own, else the main checkout's), and only where
-  ai1 is set up. Not inside `dispatchHookEvent`, so in-process tests never touch the real home.
+  [dispatcher](hook-runtime.md) will read and, from a worktree, the main checkout too (since v0.33.0: shared
+  state lives there - work plans, storyboards), each only where ai1 is set up and with its own ledger; the
+  person's folder once. Not inside `dispatchHookEvent`, so in-process tests never touch the real home.
+- Folders are found with `lstat`: a symlink (e.g. to a synced drive) moves as the same symlink, even when
+  its target is not mounted.
 - `ai1 init` ([setup](/features/init.md)) runs the repo part too (`includeUser: false`) and prints the report.
 - Nothing is committed. The agent gets one line per migration that did something: what changed (to
   review and commit), what was left alone (target already existed) and what the person should update by
@@ -51,6 +54,13 @@ updates are applied like database migrations, by themselves, the first time the 
 | # | id | Since | Repo | Person |
 |---|---|---|---|---|
 | 1 | `lanes-to-sizing` | v0.32.0 | `features.lanes` -> `features.sizing`, `modules.lanes-*` -> `sizing-*` (the new name wins when both are set); `.ai1/skills/lanes/` -> `.ai1/skills/sizing/`; the deep skill name (`lanes-design-before-code` -> `sizing-design-before-code`, with its `/ai1:` prefix) in the bundle (except `log.md`), later entries, overlays, `.claude/skills/` and work plans; `lane: plan` -> `size: plan` in work plans | `skills/lanes/` -> `skills/sizing/`, skill name in overlays |
+
+| 2 | `walkthrough-to-storyboard` | v0.33.0 | `features.walkthrough` -> `features.storyboard`, `modules.walkthrough-reminder` -> `storyboard-reminder`; the folder `walkthroughs` -> `storyboards` under `.ai1/` (also a symlink) and its `.git/info/exclude` line (only where `.git` is a folder); `.ai1/skills/walkthrough/` -> `storyboard/`; in ai1's texts the skill (`walkthrough-record-flow` -> `storyboard-record-flow`), `ai1 walkthrough <subcommand>` and the folder path | `skills/walkthrough/` -> `skills/storyboard/`, the same names in overlays |
+
+Shared helpers keep each migration short: `renameFeatureInConfig`, `moveFolderUnlessTaken`,
+`rewriteAi1Texts`, `listRootDocsNaming`, `migrateUserOverlays`. A concept that documents a rename writes
+the old names without the `/ai1:` prefix or folder form the migration matches, so a fresh clone does not
+rewrite it.
 
 Older renames (jig, rfc, proposals) stay in `ai1 init`'s legacy layout migration
 (`src/cli/legacy-migration.mjs`): they move whole tracked folders with conflict checks and were not ported.
