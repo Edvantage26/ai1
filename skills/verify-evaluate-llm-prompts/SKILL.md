@@ -16,7 +16,7 @@ One case set runs through it all: the 10 to 20 cases of step 1 seed the **dev** 
 ## 1. Start simple
 
 1. A first prompt that states the task, its rules and the vocabulary or schema it must use, with the
-   whole unit of context (checklist in step 2), on one reasonable, cheap model.
+   whole unit of context (checklist in step 2), on one reasonable, cheap, current model (look it up, step 4).
 2. Run it on 10 to 20 real cases and read every output. Without labels, check them yourself or with a
    fresh-context subagent (see "Labels").
 3. Good enough for what it is used for: stop, note the prompt, model and result, build nothing more.
@@ -67,13 +67,17 @@ Method:
 
 ## 4. Choose models or prompts: a tournament
 
-1. **Climb by price**: the first tournament has only cheap and mid-priced models. Add an expensive
+1. **Look up the current models first**: what you know about models stops at your training cutoff,
+   and models, versions and prices change every few weeks. Before picking candidates, search the web
+   for the latest releases and prices (provider pages, the model list of the gateway you use), check
+   they are available with your key, and note the date and the exact versions you picked.
+2. **Climb by price**: the first tournament has only cheap and mid-priced models. Add an expensive
    one only when none of them reaches the bar and the failures left are labelled `model limit`; then
    the expensive one has to beat the best cheaper one by the table below, not just score higher.
-2. **Round 1**: every candidate on the current dev cases.
-3. **Each round**: drop only the clear losers, then grow the set (double it, say) for the survivors.
+3. **Round 1**: every candidate on the current dev cases.
+4. **Each round**: drop only the clear losers, then grow the set (double it, say) for the survivors.
    All survivors run the same cases; earlier cases stay in.
-4. **Compare paired** against the current leader, on the cases where the two disagree. Drop a
+5. **Compare paired** against the current leader, on the cases where the two disagree. Drop a
    candidate only when the leader wins at least this many of those cases (exact sign test, p < 0.05):
 
    | disagreements | 6 | 8 | 10 | 12 | 15 | 20 |
@@ -81,11 +85,11 @@ Method:
    | leader wins at least | 6 | 8 | 9 | 10 | 12 | 15 |
 
    With 5 or fewer disagreements nobody is dropped: it stays one more round.
-5. **Cost**: among the candidates you cannot tell apart from the best, keep the cheapest.
-6. **Stop** when one is left, the rest cannot be told apart (take the cheapest) or the budget runs out.
+6. **Cost**: among the candidates you cannot tell apart from the best, keep the cheapest.
+7. **Stop** when one is left, the rest cannot be told apart (take the cheapest) or the budget runs out.
    Close finalists get 2 or 3 format variants of the prompt before one is dropped: formatting alone
    can swing a score. Confirm the winner once on the test set.
-7. **One variable at a time**: a tournament of models uses one prompt; of prompts, one model.
+8. **One variable at a time**: a tournament of models uses one prompt; of prompts, one model.
 
 ## 5. Labels, judges and confidence signals
 
@@ -122,7 +126,8 @@ analysis of Hamel Husain and Shreya Shankar; the tournament is successive halvin
 
 - Start simple; the full method only when the simple version is not good enough.
 - No change of model before the failures have been read and each given a cause; cheap and mid-priced
-  models first, an expensive one only for failures labelled `model limit`.
+  models first, an expensive one only for failures labelled `model limit`; candidates looked up on the
+  web, not taken from memory.
 - The same cases and setup for every candidate; the test set only confirms, never chooses.
 - Labels and judges are checked before they are trusted: agent labels blind and sampled by the person,
   judges against checked labels.
