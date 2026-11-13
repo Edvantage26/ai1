@@ -5,7 +5,7 @@ description: Storyboard of the user flow after a visual change - numbered steps 
 tags: [storyboard, ui, screenshots, pdf, worktrees]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-11T09:16:28Z'
+  at: '2026-11-13T14:28:06Z'
 sources:
   - id: storyboard
     resource: src/storyboard/storyboard-steps.mjs
@@ -43,7 +43,7 @@ keep their old HTML title and PDF name until rebuilt.
 Decided with the person on 2026-11-09: after a visual change, let them validate how the user sees the
 flow without running the app. Prior art in [prior art](../decisions/prior-art.md#visual-walkthroughs-of-ui-changes-2026-11-09).
 ai1 never drives the browser: the agent captures with its own tool and hands the files to
-`ai1 storyboard add`. Off by default; recommended with `design` (same frontend signal).
+`ai1 storyboard add`. On by default since v0.36.0; its reminder only fires when UI files changed.
 
 # How it works
 

@@ -5,15 +5,15 @@ description: The per-repo file that makes generic hooks behave correctly in each
 tags: [config, contract, hooks]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-11T07:38:33Z'
+  at: '2026-11-13T14:28:06Z'
 ---
 
 Each repo commits `.ai1/config.json` (template in `templates/config.json`).
 
 | Field | Meaning |
 |---|---|
-| `version` | Contract version, currently `1` |
-| `features.<id>` | `true`/`false` per [feature](features.md); omitted features use their default (`okf`, `danger`: on) |
+| `version` | Contract version, `2` since v0.36.0 (opt-out); `1` (init listed every feature) is still read and migrated to `2` at session start, dropping its `false` values ([all features on](/decisions/all-features-on.md)) |
+| `features.<id>` | `false` switches a [feature](features.md) off; every feature not set to `false` is on |
 | `trunk` | Protected branch name; default `main` |
 | `verify` | Commands that must pass before the agent calls a change done |
 | `modules.<id>` | `true`/`false` to force a module on/off, or an options object (with optional `enabled`) |

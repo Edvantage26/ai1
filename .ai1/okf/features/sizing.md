@@ -5,7 +5,7 @@ description: Each task sized quick, plan or deep - with a plan file for plan and
 tags: [sizing, workflow, hooks, skills, approval]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-13T10:32:42Z'
+  at: '2026-11-13T14:28:06Z'
 sources:
   - id: sizing-work
     resource: src/sizing/sizing-work.mjs
@@ -39,7 +39,7 @@ Easy tasks should be done without ceremony; complex ones need questions, a desig
 approval before code. The [prior-art review](/decisions/prior-art.md) found that heavy process applied
 to every task (spec-driven tools, forced brainstorming) costs up to 8x with no measured quality gain,
 and that prompt-only gates are skipped or lost after compaction. So the size choice is a prompt, and
-what must hold is a hook. Opt-in (`features.sizing`, default off); on in this repo.
+what must hold is a hook. On by default since v0.36.0 ([all features on](../decisions/all-features-on.md)); `features.sizing: false` switches it off.
 
 # Name (since v0.32.0)
 

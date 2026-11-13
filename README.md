@@ -21,9 +21,10 @@ A repo set up with the old name (`jig`: `.claude/jig.json`, `.okf/`, `docs/rfc/`
 moved to `.ai1/` by `/ai1:core-setup-repo`, with `git mv` so history follows.
 Later renames migrate by themselves: when a new ai1 starts a session it runs its pending numbered
 migrations on the repo and on your `~/.config/ai1/`, leaves the changes uncommitted and tells you what
-changed (e.g. v0.32.0: `lanes` -> `sizing`, v0.33.0: `walkthrough` -> `storyboard`).
+changed (e.g. v0.32.0: `lanes` -> `sizing`, v0.33.0: `walkthrough` -> `storyboard`, v0.36.0: every
+feature on, dropping the `false` values an older `ai1 init` wrote).
 
-> **Status: early (v0.35.0).** Per-repo features, the `okf` feature (project knowledge) and the
+> **Status: early (v0.36.0).** Per-repo features, the `okf` feature (project knowledge) and the
 > `danger` guard work, are tested and verified in real sessions. The `sizing`, `design`, `verify`,
 > `later` and `worktrees` features, and the `config-guard`, `repo-rules` and `test-guard` modules,
 > are new and tested, not yet tried in live sessions. Everything marked *planned* does not exist yet.
@@ -58,8 +59,8 @@ that pile a fixed shape.
 ```json
 {
   "$schema": "https://raw.githubusercontent.com/Edvantage26/ai1/main/schema/ai1.schema.json",
-  "version": 1,
-  "features": { "okf": true, "danger": true },
+  "version": 2,
+  "features": { "storyboard": false },
   "trunk": "main",
   "verify": ["npm test"],
   "modules": {
@@ -82,36 +83,37 @@ ignored (with a notice when it named another path) and `ai1 init` moves that bun
 
 ### Features
 
-Each repo picks its features; you do not need to write the file by hand:
+Every feature is on unless your repo switches it off (`"features": { "<id>": false }`). Features
+that need something from the repo start in a basic mode: worktrees with a recipe ai1 works out from
+the repo, design quiet in a repo without a frontend. You do not need to write the file by hand:
 
 ```text
 /ai1:core-setup-repo
 ```
 
-reads the project and proposes a configuration: each feature on or off with the reason and the
-evidence it found (a frontend turns design on, migrations or auth folders turn sizing on, a test
-script becomes the verify command...). You adjust it, it writes `.ai1/config.json` and
-`.claude/settings.json` (through the `ai1` CLI, so the result is merged and validated, not
-improvised), and then offers each enabled feature's own setup: the worktree recipe, the knowledge
-bundle, the design context.
+reads the project, shows every feature on with what it does, and asks only which ones you want off
+here (and the verify command it found, after running it once). It writes `.ai1/config.json` and
+`.claude/settings.json` through the `ai1` CLI (`ai1 init --disable design,storyboard`, merged and
+validated, not improvised), and then offers each feature's own setup: the knowledge bundle, the
+design context.
 
 | Feature | Default | What it does |
 |---|---|---|
 | `okf` | on | Project knowledge in an [OKF](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf) bundle: loads its index at session start, points the agent to the concepts related to each message and to each file it reads or edits, asks to update it when the session changed files or saved memories after its last update, and ships the OKF toolkit (`/ai1:okf-maintain-knowledge`, `/ai1:okf-validate-bundle`, `/ai1:okf-visualize-bundle`, `/ai1:okf-backfill-from-history`), plus `/ai1:okf-tidy-claude-md` to move knowledge piled up in CLAUDE.md into the bundle |
 | `danger` | on | Confirms or refuses commands that destroy work or data; asks you before the agent changes ai1's or Claude Code's configuration (so it cannot switch its own guards off); applies your repo's own rules (`rules` in `.ai1/config.json`, written with `/ai1:danger-write-rule`: "use pnpm", "never edit `generated/`"). In bypass and auto permission modes only the commands that lose work or data for good and your repo rules ask; the other asks let the call through |
 | `craft` | on | Gives the agent the rules for orderly code: the minimum change that solves the task, nothing outside it, reuse before writing, refactors proposed (not applied) when it sees duplication or dead code, self-explanatory names. Where things live (layout, how to add each kind of piece, reusable helpers) goes in the OKF bundle |
-| `design` | off | For repos with a frontend. At session start: read the product and design-system context (OKF concepts of type `Product` / `DesignSystem`, or Impeccable's `PRODUCT.md` / `DESIGN.md`), avoid the generic AI look, keep a quality floor. After every edit to a UI file, 26 deterministic rules (overused fonts, purple gradients, glows, gradient text, low contrast, skipped headings, tiny text, placeholder images...) report what that edit introduced. Points to [Impeccable](https://github.com/pbakaus/impeccable) commands when it is installed |
-| `storyboard` | off | For repos with a frontend. After a visual change the agent records the user flow as a storyboard you review without running the app: numbered steps in the user's words, desktop and mobile screenshots with what is clicked framed, before vs after (the base captured in a `<name>-before` worktree), new and removed steps marked. One self-contained `index.html` served at a local URL (`ai1 storyboard serve`, released when the worktree is finished or dropped) and a PDF (one step per page, printed with a local Chrome). Kept in `.ai1/storyboards/<slug>/`, ignored by git; link that folder wherever you like (a synced Drive folder) with your own tooling. Closing the change deletes the screenshots it left around the repo. A Stop reminder when UI files changed with no storyboard after them. Publishing (a PR, a task tracker) only through a skill customization and only after your yes. `/ai1:storyboard-record-flow`, `ai1 storyboard add\|build\|serve\|stop\|list\|clean`. Called `walkthrough` until v0.32 (migrated at session start) |
+| `design` | on | For repos with a frontend (quiet in one without). At session start: read the product and design-system context (OKF concepts of type `Product` / `DesignSystem`, or Impeccable's `PRODUCT.md` / `DESIGN.md`), avoid the generic AI look, keep a quality floor. After every edit to a UI file, 26 deterministic rules (overused fonts, purple gradients, glows, gradient text, low contrast, skipped headings, tiny text, placeholder images...) report what that edit introduced. Points to [Impeccable](https://github.com/pbakaus/impeccable) commands when it is installed |
+| `storyboard` | on | For repos with a frontend. After a visual change the agent records the user flow as a storyboard you review without running the app: numbered steps in the user's words, desktop and mobile screenshots with what is clicked framed, before vs after (the base captured in a `<name>-before` worktree), new and removed steps marked. One self-contained `index.html` served at a local URL (`ai1 storyboard serve`, released when the worktree is finished or dropped) and a PDF (one step per page, printed with a local Chrome). Kept in `.ai1/storyboards/<slug>/`, ignored by git; link that folder wherever you like (a synced Drive folder) with your own tooling. Closing the change deletes the screenshots it left around the repo. A Stop reminder when UI files changed with no storyboard after them. Publishing (a PR, a task tracker) only through a skill customization and only after your yes. `/ai1:storyboard-record-flow`, `ai1 storyboard add\|build\|serve\|stop\|list\|clean`. Called `walkthrough` until v0.32 (migrated at session start) |
 | `verify` | on | You cannot get a "done" while code changed after the last passing run of the `verify` commands (run in full: a filtered run does not count). Docs and harness config are exempt. Skipping, emptying, weakening or deleting tests, or changing the config of a check (lint, format, types), asks you first (`test-guard`); the same tool call 5 times in a row gets the agent a nudge (`tool-loop`); after 3 failed fix attempts in a row the agent is told to stop and find the root cause (`fix-loop`, `/ai1:verify-debug-systematically`). `/ai1:verify-evaluate-llm-prompts`: evaluate and improve an LLM step with evidence - start simple and stop if it is good enough; otherwise a small reference set, the cause of each failure before blaming the model, models or prompts compared as a tournament (few cases, drop losers, grow the set). `ai1 verify` runs them; `ai1 step-done` logs a deep step only when they pass; `ai1 plan-done` closes a plan |
-| `sizing` | off | Sizes each task: quick ones are done directly, medium ones get a short plan the agent states and starts on (written to `.ai1/work/<slug>/plan.md`, `size: plan`, only when it has more than about 3 steps or may not finish in one go; no approval), complex or risky ones get questions and a design (`/ai1:sizing-design-before-code`) that you approve before any code is edited. Restores progress after a compaction. Called `lanes` until v0.31 (migrated at session start) |
-| `later` | off | Large changes and future features, not decided yet, noted down for later in `.ai1/later/NNNN-<slug>.md` (versioned, apart from the knowledge bundle because they are not the system), each called by its number ("later 0003"). The agent notes one down only when you ask ("apúntalo para luego", "note it down for later"). When a clearly different, large subject comes up mid-task, it mentions it in one line at the end of its report with what it recommends (do it here, fork it into a new conversation, or note it down for later), without stopping to ask. "Propuesta"/"proposal" in the conversation always means the agent's own proposal, never this feature. Two sizes: a one-page *idea* and a *full* entry (criteria before options, "do nothing" always an option, assumptions, phases, how to resume). Open entries listed at session start and related ones recalled on each message; when one is accepted, a hook asks for its decisions to be recorded in the OKF bundle. `/ai1:later-write`, `ai1 later new\|set\|index\|check`. Called `rfc` until v0.17 and `proposals` until v0.24: `ai1 init` migrates `.ai1/rfc/`, `.ai1/proposals/` and the old feature ids |
-| `reuse` | off | Work that keeps coming back in this repo becomes a reusable piece. After a task with real work (8+ tool calls) the agent judges in one line whether it will be asked again here; if it may, it searches this repo's own past sessions and its project skills, commands and MCP servers (`ai1 reuse search`) and proposes in one line to encapsulate it (rule, hook, script, skill, MCP entry) or to complete or merge an existing piece. Built only on a yes (`/ai1:reuse-encapsulate`); a no is kept in `.ai1/reuse.json` and never proposed again. Never reads other repos' sessions. `ai1 reuse search\|dismiss` |
+| `sizing` | on | Sizes each task: quick ones are done directly, medium ones get a short plan the agent states and starts on (written to `.ai1/work/<slug>/plan.md`, `size: plan`, only when it has more than about 3 steps or may not finish in one go; no approval), complex or risky ones get questions and a design (`/ai1:sizing-design-before-code`) that you approve before any code is edited. Restores progress after a compaction. Called `lanes` until v0.31 (migrated at session start) |
+| `later` | on | Large changes and future features, not decided yet, noted down for later in `.ai1/later/NNNN-<slug>.md` (versioned, apart from the knowledge bundle because they are not the system), each called by its number ("later 0003"). The agent notes one down only when you ask ("apúntalo para luego", "note it down for later"). When a clearly different, large subject comes up mid-task, it mentions it in one line at the end of its report with what it recommends (do it here, fork it into a new conversation, or note it down for later), without stopping to ask. "Propuesta"/"proposal" in the conversation always means the agent's own proposal, never this feature. Two sizes: a one-page *idea* and a *full* entry (criteria before options, "do nothing" always an option, assumptions, phases, how to resume). Open entries listed at session start and related ones recalled on each message; when one is accepted, a hook asks for its decisions to be recorded in the OKF bundle. `/ai1:later-write`, `ai1 later new\|set\|index\|check`. Called `rfc` until v0.17 and `proposals` until v0.24: `ai1 init` migrates `.ai1/rfc/`, `.ai1/proposals/` and the old feature ids |
+| `reuse` | on | Work that keeps coming back in this repo becomes a reusable piece. After a task with real work (8+ tool calls) the agent judges in one line whether it will be asked again here; if it may, it searches this repo's own past sessions and its project skills, commands and MCP servers (`ai1 reuse search`) and proposes in one line to encapsulate it (rule, hook, script, skill, MCP entry) or to complete or merge an existing piece. Built only on a yes (`/ai1:reuse-encapsulate`); a no is kept in `.ai1/reuse.json` and never proposed again. Never reads other repos' sessions. `ai1 reuse search\|dismiss` |
 
 With `later` on, an idea goes: `ai1 later new <slug> --idea` (next number, index updated) → it grows into
 a full entry when it is about to be decided → `ai1 later set <n> accepted` and its decisions become OKF
 concepts that cite it → built (with `sizing`, a deep plan with `later: <n>`) → `ai1 later set <n> implemented`.
 
-| `worktrees` | off | Every change to the repo files is done in its own worktree, which the agent creates before the first edit, made the way your project needs. The first time, `/ai1:worktrees-plan-recipe` studies the repo (heavy folders, env files, ports, where builds write, existing worktree tools), proposes a recipe, and once you approve it saves it as the project skill `.claude/skills/worktree/` (`SKILL.md` + `recipe.json`, committed). Modes: `full`, `light` (heavy folders shared, regenerated or left out) and `auto`, which picks full when it fits on that machine's disk. Each worktree gets its env files and its own port; the agent keeps telling you which worktree it is working in. `ai1 worktree create\|list\|run\|finish\|drop` |
+| `worktrees` | on | Every change to the repo files is done in its own worktree, which the agent creates before the first edit, made the way your project needs. It works from the first change: ai1 works out a basic recipe from the repo (base the main branch, ignored `.env` files copied, the install of your lockfile, your verify commands before integrating). What your repo does differently goes in `.claude/skills/worktree/recipe.json`, committed, with only the fields that differ: when `ai1 worktree` reports something the recipe does not cover (a big ignored folder, an env file, a failing setup), the agent adds the fix there and tells you in one line; `/ai1:worktrees-plan-recipe` refines it with you (ports, services, shared data). Modes: `full`, `light` (heavy folders shared, regenerated or left out) and `auto`, which picks full when it fits on that machine's disk. Each worktree gets its env files and its own port; the agent keeps telling you which worktree it is working in. `ai1 worktree create\|list\|run\|finish\|drop` |
 
 With `worktrees` on: `ai1 worktree create feat-x` → the agent enters it (EnterWorktree) and runs the
 setup it prints → works and commits there, starting each progress report with the worktree's name →
@@ -183,9 +185,8 @@ others or are deterministic (`core-report-issue`, `okf-validate-bundle`, `danger
 | `later-recall`: on every message, points the agent to the related later entries, labelled with their status | later | UserPromptSubmit | works |
 | `later-upkeep`: when the session touched `.ai1/later/`, checks numbering, statuses, the index and that accepted entries are cited by the bundle; asks to mark an entry implemented when its deep plan is done | later | Stop | works |
 | `/ai1:later-write`: note down, resume, accept or reject a later entry and carry its decisions to the bundle | later | — | works |
-| `worktree-brief`: worktree rules at session start, or a pointer to `/ai1:worktrees-plan-recipe` when the repo has no recipe; names the worktree the session is in | worktrees | SessionStart | works |
+| `worktree-brief`: worktree rules at session start, the basic recipe and how to complete the overlay; names the worktree the session is in | worktrees | SessionStart | works |
 | `worktree-reminder`: the active worktrees when they change and every few prompts, marking this session's | worktrees | UserPromptSubmit | works |
-| `worktree-recipe-offer`: when the repo has no recipe and the session changed files in the main checkout (shell edits too), asks once to offer `/ai1:worktrees-plan-recipe` | worktrees | Stop | works |
 | `/ai1:worktrees-plan-recipe` + `ai1 worktree` (`create`, `list`, `run`, `finish`, `drop`) | worktrees | — | works |
 | Shared read-only caches per dependency version, `writable`, build slots, `WorktreeCreate` hook for heavy repos | worktrees | — | planned |
 | `/ai1:core-setup-repo` + `ai1` CLI (`ai1 status`, `ai1 init`, `ai1 verify`, `ai1 step-done`, `ai1 plan-done`, `ai1 later`, `ai1 reuse`, `ai1 worktree`, `ai1 fork`, `ai1 issue`, `ai1 claude-md`, `ai1 log`, `ai1 skill-context`) | — | — | works |
@@ -249,7 +250,7 @@ Then run `/ai1:core-setup-repo` in each repo. It commits nothing; commit `.ai1/c
 }
 ```
 
-It also hides from the agent the skills of the features you leave off (`skillOverrides`, set to
+It also hides from the agent the skills of the features you switch off (`skillOverrides`, set to
 `user-invocable-only`): you can still call them with `/ai1:<skill>`, and the agent stops paying
 context for them.
 

@@ -5,7 +5,7 @@ description: Numbered, idempotent migrations that bring a repo and the person's 
 tags: [migrations, runtime, config, renames]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-13T10:22:33Z'
+  at: '2026-11-13T14:28:06Z'
 sources:
   - id: migrations
     resource: src/core/migrations.mjs
@@ -55,6 +55,7 @@ updates are applied like database migrations, by themselves, the first time the 
 |---|---|---|---|---|
 | 1 | `lanes-to-sizing` | v0.32.0 | `features.lanes` -> `features.sizing`, `modules.lanes-*` -> `sizing-*` (the new name wins when both are set); `.ai1/skills/lanes/` -> `.ai1/skills/sizing/`; the deep skill name (`lanes-design-before-code` -> `sizing-design-before-code`, with its `/ai1:` prefix) in the bundle (except `log.md`), later entries, overlays, `.claude/skills/` and work plans; `lane: plan` -> `size: plan` in work plans | `skills/lanes/` -> `skills/sizing/`, skill name in overlays |
 | 2 | `walkthrough-to-storyboard` | v0.33.0 | `features.walkthrough` -> `features.storyboard`, `modules.walkthrough-reminder` -> `storyboard-reminder`; the folder `walkthroughs` -> `storyboards` under `.ai1/` (also a symlink) and its `.git/info/exclude` line (only where `.git` is a folder); `.ai1/skills/walkthrough/` -> `storyboard/`; in ai1's texts the skill (`walkthrough-record-flow` -> `storyboard-record-flow`), `ai1 walkthrough <subcommand>` and the folder path | `skills/walkthrough/` -> `skills/storyboard/`, the same names in overlays |
+| 4 | `all-features-on` | v0.36.0 | only on a config of `version` 1 (or none): drops every `features.<id>: false`, writes `version: 2` (so a clone or worktree without the ledger never drops a later opt-out), shows again the skills ai1 hid in `.claude/settings.json`; the report names the features switched on and `ai1 init --disable` ([all features on](/decisions/all-features-on.md)). Reports carry `notes` for such lines | nothing |
 | 3 | `skill-visibility` | v0.34.0 | `skillOverrides` in `.claude/settings.json`: the skills of the features the repo has off become `user-invocable-only` ([which skills the agent sees](plugin-layout.md#which-skills-the-agent-sees)); only when the file exists | nothing |
 
 Shared helpers keep each migration short: `renameFeatureInConfig`, `moveFolderUnlessTaken`,

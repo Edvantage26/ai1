@@ -5,7 +5,7 @@ description: Later - large changes and future features not decided yet, noted do
 tags: [later, proposals, roadmap, hooks, cli, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-13T10:26:34Z'
+  at: '2026-11-13T14:28:06Z'
 sources:
   - id: later-documents
     resource: src/later/later-documents.mjs
@@ -33,8 +33,8 @@ Future features had nowhere to live: the [roadmap](/roadmap.md) is a list of lin
 (`.ai1/work/`, see [sizing](sizing.md)) are git-ignored and describe *how* to build something already
 chosen, and writing an undecided design into the bundle makes it look real. Taken on 2026-11-08 from
 an RFC skill written for another project, made generic and backed by mechanisms: numbering, statuses
-and the index are done by the CLI, not by the agent. Opt-in (`features.later`, default off); on in
-this repo.
+and the index are done by the CLI, not by the agent. On by default since v0.36.0
+([all features on](../decisions/all-features-on.md)); `features.later: false` switches it off.
 
 # The name
 

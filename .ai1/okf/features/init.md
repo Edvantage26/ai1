@@ -5,7 +5,7 @@ description: Sets up ai1 in a repo - asks the features, writes .ai1/config.json 
 tags: [init, cli, setup]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-13T10:22:33Z'
+  at: '2026-11-13T14:28:06Z'
 sources:
   - id: setup-repo
     resource: src/cli/setup-repo.mjs
@@ -26,14 +26,18 @@ sources:
 
 - **CLI `ai1`** (`bin/`, on the Bash PATH while the plugin is enabled):
   - `ai1 status [--json]`: repo root, harness present, trunk, whether `.ai1/okf/` has a bundle, features.
-  - `ai1 init --features okf,danger [--verify "<cmd>" ...] [--disable-plugins a@x,b@y] [--deny-credentials] [--json]`
+  - `ai1 init [--disable design,storyboard | --disable none] [--verify "<cmd>" ...] [--disable-plugins a@x,b@y] [--deny-credentials] [--json]`:
+    every feature is on except the ones in `--disable` (exact list, written as `false`); `--disable none`
+    switches all on; without it the repo's opt-outs are kept. `--features a,b` (older form: unlisted =
+    off) still works and cannot be combined with `--disable`. Writes config `version: 2`
+    ([all features on](../decisions/all-features-on.md)).
     (`--knowledge` is refused since v0.16.0: the bundle path is fixed, see the
     [contract](../architecture/harness-contract.md)).
   - `ai1 status` also gives each feature a `recommendation` and lists `detectedVerifyCommands` and
     `overlappingPlugins` (below), the active [repo rules](../guards/repo-rules.md) and why others are
     ignored (`repoRules`), and how many credential deny rules the settings hold (`credentialDenyRules`).
 - **What init writes**, merging with existing files:
-  - `.ai1/config.json`: `features` (every selectable feature, true/false), `trunk` (kept, else
+  - `.ai1/config.json`: `version: 2`, `features` (only the features switched off, as `false`), `trunk` (kept, else
     detected: origin/HEAD, then main/master, then current branch), `verify`; other fields and
     `modules` are kept, the retired `knowledge` is removed (its bundle moved to `.ai1/okf/` first).
     The result is validated before writing.

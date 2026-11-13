@@ -5,7 +5,7 @@ description: Reuse - after real work the session judges whether it will recur in
 tags: [reuse, skills, hooks, cli, transcripts]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-13T13:14:37Z'
+  at: '2026-11-13T14:28:06Z'
 sources:
   - id: reuse-history
     resource: src/reuse/reuse-history.mjs
@@ -21,8 +21,8 @@ sources:
     title: /ai1:reuse-encapsulate
 ---
 
-Built 2026-11-13 (deep plan `reuse`). Off by default; `/ai1:core-setup-repo` recommends it when the
-repo already keeps `.claude/skills`, `.claude/commands` or `.mcp.json`. Prior art in
+Built 2026-11-13 (deep plan `reuse`). On by default since v0.36.0 ([all features on](../decisions/all-features-on.md));
+`features.reuse: false` switches it off. Prior art in
 [prior art](../decisions/prior-art.md) (section of 2026-11-13).
 
 # How it works

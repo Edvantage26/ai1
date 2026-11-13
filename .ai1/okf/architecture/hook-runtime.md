@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-11T07:38:33Z'
+  at: '2026-11-13T14:28:06Z'
 ---
 
 # Flow
@@ -84,7 +84,6 @@ logged with an error signature and offered to the person as an issue ([issue rep
 | `design-detect` | PostToolUse (Edit, Write, MultiEdit) | design |
 | `worktree-brief` | SessionStart | worktrees |
 | `worktree-reminder` | UserPromptSubmit | worktrees |
-| `worktree-recipe-offer` | Stop | worktrees |
 | `later-brief` | SessionStart | later |
 | `later-recall` | UserPromptSubmit | later |
 | `later-upkeep` | Stop | later |

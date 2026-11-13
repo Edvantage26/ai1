@@ -5,7 +5,7 @@ description: UI rules at session start and deterministic design checks on every 
 tags: [design, frontend, ui, hooks, context, impeccable]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-08T22:15:28Z'
+  at: '2026-11-13T14:28:06Z'
 sources:
   - id: design-rules
     resource: src/design/design-rules.mjs
@@ -26,7 +26,9 @@ design skills help, but nothing checks the result. [Impeccable](/decisions/prior
 that a deterministic detector run as a hook catches much of it without an LLM. Decided with the
 person on 2026-11-08: bring the detector idea and a short brief into ai1, keep the design context
 in the OKF bundle, and point to Impeccable for its method commands instead of copying them.
-Off by default: only repos with a frontend want it.
+On by default since v0.36.0 ([all features on](../decisions/all-features-on.md)), but `design-brief`
+stays quiet in a repo without a frontend (the signal of the setup recommendation: UI packages or
+tracked UI files, `repoHasFrontend`), and `design-detect` only checks UI files.
 
 # Modules
 

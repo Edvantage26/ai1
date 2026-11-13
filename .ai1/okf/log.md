@@ -1,6 +1,9 @@
 # Update Log
 
 ## 2026-11-13
+* **Creation**: [All features on by default](decisions/all-features-on.md) - every feature on unless switched off (config version 2), basic worktree recipe with the project recipe as an overlay; module `worktree-recipe-offer` retired.
+
+## 2026-11-13
 * **Creation**: [reuse feature](features/reuse.md) — `reuse-brief`, `reuse-check`, `ai1 reuse search|dismiss` and `/ai1:reuse-encapsulate`: repeated work in this repo judged by the session, searched in its own past sessions and project skills, and encapsulated or completed on a yes.
 
 ## 2026-11-11
