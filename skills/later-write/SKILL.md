@@ -30,8 +30,10 @@ apuntarlo para luego." / "Different subject: X. I recommend noting it down for l
 - **later**: it is noted down with this skill.
 
 A yes means the way you recommended; if there is no answer, carry on with the current task and drop
-it. A small fix found on the way is done here without asking. Do not offer for details, steps, follow-ups or improvements of the subject being worked on: those
-belong to the current task. Updating, accepting or rejecting an existing entry follows the person's
+it. A small fix found on the way is done here without asking. The subject the person is talking about is never offered for later or fork, however large or
+undecided, nor its details, steps, follow-ups or improvements: the default is to build it now, so close
+with its size and offer to do it here (a deep one starts with its design). Later and fork are only for a
+tangent. Updating, accepting or rejecting an existing entry follows the person's
 request too, and only for an entry they name (by number or title).
 
 

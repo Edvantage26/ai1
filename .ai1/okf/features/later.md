@@ -5,7 +5,7 @@ description: Later - large changes and future features not decided yet, noted do
 tags: [later, proposals, roadmap, hooks, cli, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-11T07:38:33Z'
+  at: '2026-11-13T10:26:34Z'
 sources:
   - id: later-documents
     resource: src/later/later-documents.mjs
@@ -79,7 +79,10 @@ recommended way, and a small fix found on the way is done here. Until 2026-11-09
 aquí, lo abro en un fork o lo apunto para luego?" and waited: in the transcripts of that week it was
 asked 69 times, so the person dropped it the same day. Never for
 details, steps or follow-ups of the current subject (decided by the person on 2026-11-09; the three
-ways the same day). Once created, the agent confirms in one line ("Apuntado para luego como later
+ways the same day), nor for the subject itself however large: on 2026-11-13 the agent closed a design
+conversation offering "apúntalo como later" for the very idea being discussed, and the person ruled
+that the default for the current subject is to offer building it now (a deep one starts with its
+design); later and fork are only for a tangent. Once created, the agent confirms in one line ("Apuntado para luego como later
 0007: «...»"). Said in the brief and in the skill; the offer lives in this feature, so with it off the
 agent does not make it. Accepting, rejecting or resuming one is done only for an entry the person names
 (by number or title).
