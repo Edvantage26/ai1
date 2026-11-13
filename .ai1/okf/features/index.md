@@ -7,6 +7,7 @@
 * [sizing](sizing.md) - each task sized quick / plan / deep, with a hook-enforced approval gate for deep designs.
 * [worktrees](worktrees.md) - a worktree per change (any edit to the repo files), with a per-project recipe planned once and saved as the project skill; `ai1 worktree`.
 * [later](later.md) - undecided changes and future features noted down for later in `.ai1/later/` ("later 0003"), apart from the bundle until decided, only on request or when picked in an offer; `/ai1:later-write`, `ai1 later`. Called `proposals` until v0.24.
+* [reuse](reuse.md) - repeated work in this repo judged at stop, searched in this repo's own sessions and skills (`ai1 reuse search`), proposed for encapsulation or for completing an existing piece; `/ai1:reuse-encapsulate`.
 * [/ai1:core-setup-repo and the CLI](init.md) - per-repo setup.
 * [session fork](session-fork.md) - `/ai1:session-fork-conversation` and `ai1 fork`: full or brief fork of the conversation, opened natively per host.
 * [issue report](issue-report.md) - `/ai1:core-report-issue` and `ai1 issue`: a problem with ai1 filed on its public repo, cleaned of private data and approved by the person; offered by the `issue-offer` hook when ai1 itself fails.

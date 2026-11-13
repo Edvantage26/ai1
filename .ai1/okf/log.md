@@ -1,5 +1,8 @@
 # Update Log
 
+## 2026-11-13
+* **Creation**: [reuse feature](features/reuse.md) — `reuse-brief`, `reuse-check`, `ai1 reuse search|dismiss` and `/ai1:reuse-encapsulate`: repeated work in this repo judged by the session, searched in its own past sessions and project skills, and encapsulated or completed on a yes.
+
 ## 2026-11-11
 * **Supersession**: the `walkthrough` feature is now [storyboard](features/storyboard.md) (`features/walkthrough.md` renamed): `storyboard-reminder`, `storyboard-record-flow`, `ai1 storyboard`, `.ai1/storyboards/`; moved by [migration 2](architecture/migrations.md), which also migrates the main checkout from worktree sessions.
 * **Supersession**: the `lanes` feature is now [sizing](features/sizing.md) (`features/lanes.md` renamed): modules `sizing-*`, `/ai1:sizing-design-before-code`, "Size: quick, because ...", plan field `size: plan`. Older entries keep the names of their time.
