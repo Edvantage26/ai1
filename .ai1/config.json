@@ -8,6 +8,7 @@
     "sizing": true,
     "worktrees": true,
     "later": true,
+    "reuse": true,
     "design": false,
     "verify": true
   },
