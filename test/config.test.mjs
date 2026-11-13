@@ -21,7 +21,7 @@ test('every shipped template is a valid contract', () => {
 test('invalid contracts are reported with a readable reason', () => {
   assert.match(validateHarnessConfig({ features: { okf: 'yes' } }).join(), /features.okf/);
   assert.match(validateHarnessConfig({ verify: 'npm test' }).join(), /verify/);
-  assert.match(validateHarnessConfig({ version: 2 }).join(), /version/);
+  assert.match(validateHarnessConfig({ version: 3 }).join(), /version/);
   assert.match(validateHarnessConfig([]).join(), /JSON object/);
 });
 
@@ -90,19 +90,19 @@ test('schema lists every module, every user-facing feature and every danger rule
 });
 
 test('retired rfc and proposals names: ignored with one notice, never unknown nor an error; renameRetiredIds lets the new name win', () => {
-  const oldNamesRepo = createTemporaryProject({ features: { rfc: true }, modules: { 'rfc-recall': false } });
+  const oldNamesRepo = createTemporaryProject({ features: { rfc: false }, modules: { 'rfc-recall': false } });
   mkdirSync(join(oldNamesRepo, '.ai1', 'rfc'));
   const loadedConfig = loadHarnessConfig(oldNamesRepo, KNOWN_MODULE_IDS);
   assert.equal(loadedConfig.status, 'ok');
   assert.deepEqual(loadedConfig.unknownEntries, []);
   assert.match(loadedConfig.notices[0], /old name of the later feature \(features\.rfc, modules\.rfc-recall, \.ai1\/rfc\/\).*proposals to later in v0\.25\.0.*\/ai1:core-setup-repo/);
-  assert.equal(isModuleEnabled({ id: 'later-brief', feature: 'later' }, loadedConfig.config), false, 'not aliased');
-  const proposalsRepo = createTemporaryProject({ features: { proposals: true }, modules: { 'proposals-upkeep': false } });
+  assert.equal(isModuleEnabled({ id: 'later-brief', feature: 'later' }, loadedConfig.config), true, 'not aliased: features.rfc false does not switch later off');
+  const proposalsRepo = createTemporaryProject({ features: { proposals: false }, modules: { 'proposals-upkeep': false } });
   mkdirSync(join(proposalsRepo, '.ai1', 'proposals'));
   const proposalsConfig = loadHarnessConfig(proposalsRepo, KNOWN_MODULE_IDS);
   assert.deepEqual(proposalsConfig.unknownEntries, []);
   assert.match(proposalsConfig.notices[0], /\(features\.proposals, modules\.proposals-upkeep, \.ai1\/proposals\/\)/);
-  assert.equal(isModuleEnabled({ id: 'later-brief', feature: 'later' }, proposalsConfig.config), false, 'not aliased');
+  assert.equal(isModuleEnabled({ id: 'later-brief', feature: 'later' }, proposalsConfig.config), true, 'not aliased');
   assert.deepEqual(loadHarnessConfig(createTemporaryProject({ features: { later: true } }), KNOWN_MODULE_IDS).notices, []);
   assert.deepEqual(renameRetiredIds({ features: { rfc: true, okf: false }, modules: { 'rfc-upkeep': false } }), { features: { okf: false, later: true }, modules: { 'later-upkeep': false } });
   assert.deepEqual(renameRetiredIds({ features: { proposals: true }, modules: { 'proposals-recall': false } }), { features: { later: true }, modules: { 'later-recall': false } });

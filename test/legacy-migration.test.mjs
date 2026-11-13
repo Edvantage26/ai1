@@ -169,7 +169,7 @@ test('ai1 init renames the rfc feature of ai1 < 0.18 to later: folder, names, bu
   assert.equal(readFileSync(join(repoRoot, '.ai1/okf/log.md'), 'utf8'), '# Log\n\n## 2026-11-08\n\n* **Creation**: RFC 0001 in `.ai1/rfc/`.\n', 'the log is history: untouched');
   assert.match(readFileSync(join(repoRoot, '.ai1/work/guard/plan.md'), 'utf8'), /^---\ntitle: Build the guard\nstatus: done\nlater: 1\n---/);
   const ai1Config = readJson(join(repoRoot, '.ai1/config.json'));
-  assert.equal(ai1Config.features.later, true);
+  assert.notEqual(ai1Config.features.later, false);
   assert.ok(!Object.hasOwn(ai1Config.features, 'rfc'));
   assert.deepEqual(ai1Config.modules, { 'later-recall': false });
   assert.deepEqual(setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'later'], userSettingsPath: writeUserSettings() }).legacyMigration.moves, [], 'nothing left to move');
@@ -209,7 +209,7 @@ test('ai1 init renames the proposals feature of ai1 < 0.25 to later: folder, nam
   assert.equal(readFileSync(join(repoRoot, '.ai1/okf/decisions/guard.md'), 'utf8'), '---\ntype: Decision\nsources:\n  - resource: .ai1/later/0001-guard.md\n---\nFrom Later 0001 ([it](../../later/0001-guard.md)); Proposal 0009 is not ours.\n');
   assert.match(readFileSync(join(repoRoot, '.ai1/work/guard/plan.md'), 'utf8'), /^---\ntitle: Build the guard\nstatus: done\nlater: 1\n---/);
   const ai1Config = readJson(join(repoRoot, '.ai1/config.json'));
-  assert.equal(ai1Config.features.later, true);
+  assert.notEqual(ai1Config.features.later, false);
   assert.ok(!Object.hasOwn(ai1Config.features, 'proposals'));
   assert.deepEqual(ai1Config.modules, { 'later-recall': false });
   assert.deepEqual(setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'later'], userSettingsPath: writeUserSettings() }).legacyMigration.moves, [], 'nothing left to move');

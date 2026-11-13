@@ -30,7 +30,6 @@ export const MODULE_INDEX = [
   { id: 'tool-loop', event: 'PreToolUse', feature: 'verify', toolNames: ['Bash', 'Edit', 'Write', 'MultiEdit', 'NotebookEdit'], modulePath: '../verify/tool-loop.mjs' },
   { id: 'worktree-brief', event: 'SessionStart', feature: 'worktrees', modulePath: '../worktrees/worktree-brief.mjs' },
   { id: 'worktree-reminder', event: 'UserPromptSubmit', feature: 'worktrees', modulePath: '../worktrees/worktree-reminder.mjs' },
-  { id: 'worktree-recipe-offer', event: 'Stop', feature: 'worktrees', modulePath: '../worktrees/worktree-recipe-offer.mjs' },
   { id: 'later-brief', event: 'SessionStart', feature: 'later', modulePath: '../later/later-brief.mjs' },
   { id: 'later-recall', event: 'UserPromptSubmit', feature: 'later', modulePath: '../later/later-recall.mjs' },
   { id: 'storyboard-reminder', event: 'Stop', feature: 'storyboard', modulePath: '../storyboard/storyboard-reminder.mjs' },

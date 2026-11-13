@@ -21,13 +21,16 @@ export const LATER_DIRECTORY = `${AI1_DIRECTORY}/later`;
 export const STORYBOARDS_DIRECTORY = `${AI1_DIRECTORY}/storyboards`;
 export const AI1_PLUGIN_ID = 'ai1@ai1';
 export const SCHEMA_URL = 'https://raw.githubusercontent.com/Edvantage26/ai1/main/schema/ai1.schema.json';
-export const SUPPORTED_CONFIG_VERSION = 1;
+// 2: every feature is on unless the repo writes it false (opt-out, since v0.36.0). 1: written by an
+// older init that listed every feature true/false; migration 0004 turns it into 2 (src/core/migrations.mjs).
+export const CURRENT_CONFIG_VERSION = 2;
+export const SUPPORTED_CONFIG_VERSIONS = [1, CURRENT_CONFIG_VERSION];
 
 // `knowledge` is retired, not unknown: it gets its own notice (see readRetiredKnowledgeNotice).
 const KNOWN_TOP_LEVEL_FIELDS = new Set(['$schema', 'version', 'features', 'trunk', 'verify', 'knowledge', 'modules', 'rules']);
 
 const DEFAULT_CONFIG = {
-  version: SUPPORTED_CONFIG_VERSION,
+  version: CURRENT_CONFIG_VERSION,
   features: {},
   trunk: 'main',
   verify: [],
@@ -50,6 +53,8 @@ const RENAMED_MODULE_IDS = {
   'lanes-brief': 'sizing-brief', 'lanes-approval': 'sizing-approval', 'lanes-gate': 'sizing-gate', 'lanes-escalate': 'sizing-escalate',
   'walkthrough-reminder': 'storyboard-reminder',
 };
+// Modules removed without a successor: a setting left for them is ignored silently, never "unknown".
+const RETIRED_MODULE_IDS = new Set(['worktree-recipe-offer']);
 export const RETIRED_RFC_DIRECTORY = `${AI1_DIRECTORY}/rfc`;
 export const RETIRED_PROPOSALS_DIRECTORY = `${AI1_DIRECTORY}/proposals`;
 
@@ -98,7 +103,7 @@ export function listUnknownConfigEntries(rawConfig, knownModuleIds = []) {
     unknownEntries.push(...Object.keys(rawConfig.features).filter((featureId) => !KNOWN_FEATURE_IDS.includes(featureId) && !RENAMED_FEATURE_IDS[featureId]).map((featureId) => `feature "${featureId}"`));
   }
   if (knownModuleIds.length && rawConfig.modules && typeof rawConfig.modules === 'object' && !Array.isArray(rawConfig.modules)) {
-    unknownEntries.push(...Object.keys(rawConfig.modules).filter((moduleId) => !knownModuleIds.includes(moduleId) && !RENAMED_MODULE_IDS[moduleId]).map((moduleId) => `module "${moduleId}"`));
+    unknownEntries.push(...Object.keys(rawConfig.modules).filter((moduleId) => !knownModuleIds.includes(moduleId) && !RENAMED_MODULE_IDS[moduleId] && !RETIRED_MODULE_IDS.has(moduleId)).map((moduleId) => `module "${moduleId}"`));
   }
   return unknownEntries;
 }
@@ -110,8 +115,8 @@ export function validateHarnessConfig(rawConfig) {
   if (rawConfig === null || typeof rawConfig !== 'object' || Array.isArray(rawConfig)) {
     return ['the file must contain a JSON object'];
   }
-  if (rawConfig.version !== undefined && rawConfig.version !== SUPPORTED_CONFIG_VERSION) {
-    validationErrors.push(`"version" must be ${SUPPORTED_CONFIG_VERSION}`);
+  if (rawConfig.version !== undefined && !SUPPORTED_CONFIG_VERSIONS.includes(rawConfig.version)) {
+    validationErrors.push(`"version" must be ${SUPPORTED_CONFIG_VERSIONS.join(' or ')}`);
   }
   if (rawConfig.features !== undefined) {
     if (rawConfig.features === null || typeof rawConfig.features !== 'object' || Array.isArray(rawConfig.features)) {

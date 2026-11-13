@@ -177,8 +177,8 @@ test('design-detect: reports what the edit wrote, once per session, as PostToolU
   assert.equal(runHookEvent('PostToolUse', editPayload(projectRoot, 'styles.css', '.title { font-size: 9px; }'), options), null, 'already reported');
 });
 
-test('design-detect: off by default, silent on non-UI files, honours ignore_rules', () => {
-  const defaultProject = createTemporaryProject({ features: { okf: false } });
+test('design-detect: off with features.design false, silent on non-UI files, honours ignore_rules', () => {
+  const defaultProject = createTemporaryProject({ features: { okf: false, design: false } });
   writeFileSync(join(defaultProject, 'styles.css'), '.title { font-size: 9px; }\n');
   assert.equal(runHookEvent('PostToolUse', editPayload(defaultProject, 'styles.css', '.title { font-size: 9px; }'), hookOptions()), null);
 
@@ -225,7 +225,7 @@ test('design-brief: asks for the context when there is none, and mentions Impecc
   assert.match(startSessionContext(projectRoot, hookOptions(homeDirectory)), /\/impeccable critique/);
 });
 
-test('design-brief: off by default and silent on resume', () => {
-  assert.doesNotMatch(startSessionContext(createTemporaryProject({ features: { okf: false } })), /Design: UI/);
+test('design-brief: off with features.design false and silent on resume', () => {
+  assert.doesNotMatch(startSessionContext(createTemporaryProject({ features: { okf: false, design: false } })), /Design: UI/);
   assert.doesNotMatch(startSessionContext(createTemporaryProject({ features: { okf: false, design: true } }), hookOptions(), 'resume'), /Design: UI/);
 });

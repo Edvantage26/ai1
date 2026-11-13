@@ -345,32 +345,6 @@ test('worktree-brief: points to /ai1:worktrees-plan-recipe without a recipe, giv
   assert.match(worktreeContext, new RegExp(`This session works in worktree \`brief\` \\(${created.path}; branch \`wt/brief\`, mode light, port ${created.port}\\)`));
 });
 
-test('worktree-recipe-offer: without a recipe, changes in the main checkout (shell edits too) remind once to offer the recipe; silent with a recipe', () => {
-  const bareRoot = createTemporaryProject({ features: { okf: false, worktrees: true } });
-  writeFileSync(join(bareRoot, 'notes.md'), 'v1\n');
-  runGit(bareRoot, ['init', '-q', '-b', 'main']);
-  runGit(bareRoot, ['add', '.']);
-  runGit(bareRoot, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'init']);
-  const options = hookOptions(bareRoot);
-  const stopSession = () => runHookEvent('Stop', { session_id: 'offer', cwd: bareRoot }, options);
-  runHookEvent('SessionStart', { session_id: 'offer', cwd: bareRoot, source: 'startup' }, options);
-  assert.equal(stopSession(), null, 'nothing changed');
-  writeFileSync(join(bareRoot, 'notes.md'), 'v2, as a shell edit would leave it\n');
-  const stopOutput = stopSession();
-  assert.equal(stopOutput.decision, 'block');
-  assert.match(stopOutput.reason, /ai1\/worktree-recipe-offer: Worktrees: this session changed files in the main checkout \(`notes\.md`\)[\s\S]*\/ai1:worktrees-plan-recipe/);
-  writeFileSync(join(bareRoot, 'other.md'), 'more\n');
-  assert.equal(stopSession(), null, 'once per session');
-
-  const mainRoot = createRecipeRepo();
-  mkdirSync(join(mainRoot, '.ai1'), { recursive: true });
-  writeFileSync(join(mainRoot, '.ai1', 'config.json'), JSON.stringify({ features: { okf: false, worktrees: true } }));
-  const recipeOptions = hookOptions(mainRoot);
-  runHookEvent('SessionStart', { session_id: 'recipe', cwd: mainRoot, source: 'startup' }, recipeOptions);
-  writeFileSync(join(mainRoot, 'changed.md'), 'x\n');
-  assert.equal(runHookEvent('Stop', { session_id: 'recipe', cwd: mainRoot }, recipeOptions), null, 'the repo has a recipe');
-});
-
 test('worktree-reminder: on change and every N prompts, marking this session, then once when none are left', () => {
   const mainRoot = createRecipeRepo({ ...TEST_RECIPE, reminder_every: 4 });
   mkdirSync(join(mainRoot, '.ai1'), { recursive: true });

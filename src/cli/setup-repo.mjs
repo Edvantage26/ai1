@@ -13,7 +13,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { FEATURES, KNOWN_FEATURE_IDS, isFeatureEnabled } from '../core/features.mjs';
-import { validateHarnessConfig, listUnknownConfigEntries, SUPPORTED_CONFIG_VERSION, SCHEMA_URL, AI1_DIRECTORY, AI1_PLUGIN_ID, CONFIG_RELATIVE_PATH, KNOWLEDGE_BUNDLE_PATH, renameRetiredIds } from '../core/config.mjs';
+import { validateHarnessConfig, listUnknownConfigEntries, CURRENT_CONFIG_VERSION, SCHEMA_URL, AI1_DIRECTORY, AI1_PLUGIN_ID, CONFIG_RELATIVE_PATH, KNOWLEDGE_BUNDLE_PATH, renameRetiredIds } from '../core/config.mjs';
 import { KNOWN_MODULE_IDS } from '../core/module-index.mjs';
 import { findMainCheckout } from '../core/project-roots.mjs';
 import { loadRecipe } from '../worktrees/worktree-recipe.mjs';
@@ -114,16 +114,21 @@ export function describeRepo(repoRoot, { userSettingsPath = DEFAULT_USER_SETTING
 // denyCredentials: add CREDENTIAL_DENY_RULES to the committed settings (existing rules are kept).
 // reportErrors: the person's choice for ai1's own errors (ask | auto | off), written as
 // `env.AI1_REPORT_ERRORS` in their user settings - personal, never in the repo.
-export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, disabledPluginIds = [], denyCredentials = false, reportErrors, userSettingsPath = DEFAULT_USER_SETTINGS_PATH }) {
+// disabledFeatureIds: the features switched off in this repo, exactly (every other one is on);
+// undefined keeps the opt-outs the config already has. enabledFeatureIds (legacy, `--features`): the
+// features on, every other one off; not combinable with disabledFeatureIds.
+export function setupRepo(repoRoot, { disabledFeatureIds, enabledFeatureIds, verifyCommands, disabledPluginIds = [], denyCredentials = false, reportErrors, userSettingsPath = DEFAULT_USER_SETTINGS_PATH }) {
   if (reportErrors !== undefined && !REPORT_MODES.includes(reportErrors)) throw new Error(`--report-errors must be ${REPORT_MODES.join(', ')}`);
   if (disabledPluginIds.includes(AI1_PLUGIN_ID)) throw new Error(`${AI1_PLUGIN_ID} cannot be disabled by ai1 init`);
   const malformedPluginIds = disabledPluginIds.filter((pluginId) => !/^[^@\s]+@[^@\s]+$/.test(pluginId));
   if (malformedPluginIds.length) throw new Error(`not plugin ids (name@marketplace): ${malformedPluginIds.join(', ')}`);
-  const retiredFeatureId = ['rfc', 'proposals'].find((featureId) => enabledFeatureIds.includes(featureId));
-  if (retiredFeatureId) throw new Error(`the ${retiredFeatureId} feature is called later since v0.25.0: use --features ...,later`);
-  if (enabledFeatureIds.includes('lanes')) throw new Error('the lanes feature is called sizing since v0.32.0: use --features ...,sizing');
-  if (enabledFeatureIds.includes('walkthrough')) throw new Error('the walkthrough feature is called storyboard since v0.33.0: use --features ...,storyboard');
-  const unknownFeatureIds = enabledFeatureIds.filter((featureId) => !KNOWN_FEATURE_IDS.includes(featureId));
+  if (enabledFeatureIds !== undefined && disabledFeatureIds !== undefined) throw new Error('use --disable (the features to switch off) or the older --features (the features to switch on), not both');
+  const namedFeatureIds = [...(enabledFeatureIds ?? []), ...(disabledFeatureIds ?? [])];
+  const retiredFeatureId = ['rfc', 'proposals'].find((featureId) => namedFeatureIds.includes(featureId));
+  if (retiredFeatureId) throw new Error(`the ${retiredFeatureId} feature is called later since v0.25.0: use later`);
+  if (namedFeatureIds.includes('lanes')) throw new Error('the lanes feature is called sizing since v0.32.0: use sizing');
+  if (namedFeatureIds.includes('walkthrough')) throw new Error('the walkthrough feature is called storyboard since v0.33.0: use storyboard');
+  const unknownFeatureIds = namedFeatureIds.filter((featureId) => !KNOWN_FEATURE_IDS.includes(featureId));
   if (unknownFeatureIds.length) throw new Error(`unknown features: ${unknownFeatureIds.join(', ')}`);
   const legacyMigration = migrateLegacyLayout(repoRoot);
   // The same numbered migrations a session start runs (src/core/migrations.mjs); the person's own
@@ -136,12 +141,17 @@ export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, disable
   const ai1ConfigPath = join(repoRoot, CONFIG_RELATIVE_PATH);
   // Retired names go away: `knowledge` (its bundle was moved above), rfc and proposals ids renamed to later.
   const { knowledge: retiredKnowledgeSetting, ...existingAi1Config } = renameRetiredIds(readJsonFile(ai1ConfigPath) || {});
-  const chosenFeatures = Object.fromEntries(SELECTABLE_FEATURE_IDS.map((featureId) => [featureId, enabledFeatureIds.includes(featureId)]));
+  const existingOptOuts = Object.entries(existingAi1Config.features || {}).filter(([featureId, featureSetting]) => featureSetting === false && SELECTABLE_FEATURE_IDS.includes(featureId)).map(([featureId]) => featureId);
+  const switchedOffIds = enabledFeatureIds !== undefined
+    ? SELECTABLE_FEATURE_IDS.filter((featureId) => !enabledFeatureIds.includes(featureId))
+    : disabledFeatureIds ?? existingOptOuts;
+  const chosenFeatures = Object.fromEntries(SELECTABLE_FEATURE_IDS.map((featureId) => [featureId, !switchedOffIds.includes(featureId)]));
+  // Opt-out: only the features switched off are written.
   const ai1Config = {
     $schema: SCHEMA_URL,
-    version: SUPPORTED_CONFIG_VERSION,
     ...existingAi1Config,
-    features: chosenFeatures,
+    version: CURRENT_CONFIG_VERSION,
+    features: Object.fromEntries(SELECTABLE_FEATURE_IDS.filter((featureId) => switchedOffIds.includes(featureId)).map((featureId) => [featureId, false])),
     trunk: existingAi1Config.trunk || detectTrunkBranch(repoRoot),
     verify: verifyCommands ?? existingAi1Config.verify ?? [],
   };

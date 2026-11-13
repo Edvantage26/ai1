@@ -21,7 +21,8 @@ function setModifiedSeconds(filePath, epochSeconds) {
 }
 
 // A committed repo with a bundle whose files are dated `bundleEpochSeconds`.
-function createRepoWithBundle({ indexText = V02_INDEX, ai1Config = {}, bundleEpochSeconds = 1_000_000 } = {}) {
+// reuse off: its own Stop check would answer the long transcripts these tests write.
+function createRepoWithBundle({ indexText = V02_INDEX, ai1Config = { features: { reuse: false } }, bundleEpochSeconds = 1_000_000 } = {}) {
   const projectRoot = createTemporaryProject(ai1Config);
   mkdirSync(join(projectRoot, '.ai1', 'okf'));
   writeFileSync(join(projectRoot, '.ai1', 'okf', 'index.md'), indexText);

@@ -139,7 +139,7 @@ test('later index: keeps what people wrote around the generated table', () => {
   assert.match(indexText, /0002-secret-scan/);
 });
 
-test('later-brief: the recipe and the open entries; silent on resume; off by default', () => {
+test('later-brief: the recipe and the open entries; silent on resume; off with features.later false', () => {
   const projectRoot = createLaterEntryRepo();
   createLaterEntry(projectRoot, { slug: 'prod-guard', size: 'idea', title: 'Guard writes to production' });
   createLaterEntry(projectRoot, { slug: 'old-idea' });
@@ -154,7 +154,7 @@ test('later-brief: the recipe and the open entries; silent on resume; off by def
   assert.match(contextText, /0001 "Guard writes to production" \(idea, draft\)/);
   assert.doesNotMatch(contextText, /Old idea/, 'rejected entries are not open');
   assert.doesNotMatch(startSession(projectRoot, hookOptions(), 'resume').hookSpecificOutput.additionalContext, /Later: large changes/);
-  const plainRepo = createTemporaryProject({ features: { okf: false } });
+  const plainRepo = createTemporaryProject({ features: { okf: false, later: false } });
   assert.doesNotMatch(startSession(plainRepo, hookOptions()).hookSpecificOutput.additionalContext, /Later: large changes/);
 });
 

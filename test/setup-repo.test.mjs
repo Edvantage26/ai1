@@ -54,7 +54,7 @@ test('setup keeps existing settings and harness fields', () => {
   assert.equal(ai1Config.trunk, 'develop');
   assert.deepEqual(ai1Config.verify, ['make test']);
   assert.deepEqual(ai1Config.modules, { danger: { ignore_rules: ['git-clean'] } });
-  assert.deepEqual(ai1Config.features, { okf: false, danger: true, craft: false, sizing: false, worktrees: false, later: false, reuse: false, design: false, storyboard: false, verify: false });
+  assert.deepEqual(ai1Config.features, { okf: false, craft: false, sizing: false, worktrees: false, later: false, reuse: false, design: false, storyboard: false, verify: false }, 'only the features switched off are written');
 });
 
 test('status lists enabled plugins that overlap with ai1, applying local over project over user', () => {
@@ -130,7 +130,7 @@ test('status reports defaults before setup and choices after it', () => {
   const repoRoot = createGitRepo();
   const beforeSetup = describeRepo(repoRoot);
   assert.equal(beforeSetup.hasAi1Config, false);
-  assert.deepEqual(beforeSetup.features.map((featureStatus) => [featureStatus.id, featureStatus.enabled]), [['okf', true], ['danger', true], ['craft', true], ['sizing', false], ['worktrees', false], ['later', false], ['reuse', false], ['design', false], ['storyboard', false], ['verify', true]]);
+  assert.deepEqual(beforeSetup.features.map((featureStatus) => [featureStatus.id, featureStatus.enabled]), [['okf', true], ['danger', true], ['craft', true], ['sizing', true], ['worktrees', true], ['later', true], ['reuse', true], ['design', true], ['storyboard', true], ['verify', true]], 'every feature on by default');
   setupRepo(repoRoot, { enabledFeatureIds: ['okf'] });
   const afterSetup = describeRepo(repoRoot);
   assert.deepEqual(afterSetup.features.map((featureStatus) => [featureStatus.id, featureStatus.enabled]), [['okf', true], ['danger', false], ['craft', false], ['sizing', false], ['worktrees', false], ['later', false], ['reuse', false], ['design', false], ['storyboard', false], ['verify', false]]);
@@ -196,4 +196,35 @@ test('setupRepo writes the report preference in the user settings only; describe
   assert.equal(describeRepo(repoRoot, { userSettingsPath }).reportErrors, 'auto');
   assert.ok(!readFileSync(join(repoRoot, '.claude', 'settings.json'), 'utf8').includes('AI1_REPORT_ERRORS'), 'never in the repo');
   assert.throws(() => setupRepo(repoRoot, { enabledFeatureIds: [], reportErrors: 'always', userSettingsPath }), /must be ask, auto, off/);
+});
+
+test('init with nothing switched off: every feature on, no false written, no ai1 skill hidden [all-on-by-default:S1]', () => {
+  const repoRoot = createGitRepo();
+  const environment = { PATH: process.env.PATH, HOME: mkdtempSync(join(tmpdir(), 'ai1-home-')) };
+  const initRun = spawnSync(process.execPath, [AI1_CLI, 'init', '--verify', 'npm test', '--json'], { cwd: repoRoot, encoding: 'utf8', env: environment });
+  assert.equal(initRun.status, 0, initRun.stderr);
+  const ai1Config = readJson(join(repoRoot, '.ai1', 'config.json'));
+  assert.equal(ai1Config.version, 2);
+  assert.deepEqual(ai1Config.features, {});
+  assert.ok(describeRepo(repoRoot).features.every((featureStatus) => featureStatus.enabled));
+  assert.equal(readJson(join(repoRoot, '.claude', 'settings.json')).skillOverrides, undefined);
+});
+
+test('init --disable writes exactly those features false, keeps them on a later plain init, and --disable none switches all on [all-on-by-default:S3]', () => {
+  const repoRoot = createGitRepo();
+  const environment = { PATH: process.env.PATH, HOME: mkdtempSync(join(tmpdir(), 'ai1-home-')) };
+  const runInit = (...initArguments) => spawnSync(process.execPath, [AI1_CLI, 'init', ...initArguments, '--json'], { cwd: repoRoot, encoding: 'utf8', env: environment });
+  assert.equal(runInit('--disable', 'design,storyboard').status, 0);
+  assert.deepEqual(readJson(join(repoRoot, '.ai1', 'config.json')).features, { design: false, storyboard: false });
+  assert.equal(readJson(join(repoRoot, '.claude', 'settings.json')).skillOverrides['ai1:storyboard-record-flow'], 'user-invocable-only');
+  assert.equal(runInit().status, 0);
+  assert.deepEqual(readJson(join(repoRoot, '.ai1', 'config.json')).features, { design: false, storyboard: false }, 'a plain init keeps the opt-outs');
+  assert.equal(loadHarnessConfig(repoRoot).config.features.storyboard, false);
+  assert.equal(runInit('--disable', 'none').status, 0);
+  assert.deepEqual(readJson(join(repoRoot, '.ai1', 'config.json')).features, {});
+  assert.equal(readJson(join(repoRoot, '.claude', 'settings.json')).skillOverrides, undefined, 'skills shown again');
+  const bothRun = runInit('--disable', 'design', '--features', 'okf');
+  assert.equal(bothRun.status, 1);
+  assert.match(bothRun.stderr, /not both/);
+  assert.match(runInit('--disable', 'teleport').stderr, /unknown features: teleport/);
 });

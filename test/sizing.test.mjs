@@ -69,10 +69,10 @@ test('sizing-brief: the recipe names the three sizes, the verify command and the
   assert.equal(readFileSync(join(projectRoot, '.ai1', 'work', '.gitignore'), 'utf8'), '*\n', '.ai1/work ignores itself');
 });
 
-test('sizing-brief: silent on resume, and off unless the repo enables sizing', () => {
+test('sizing-brief: silent on resume, and off when the repo switches sizing off', () => {
   const projectRoot = createSizingRepo();
   assert.doesNotMatch(startSession(projectRoot, hookOptions(), 'resume').hookSpecificOutput.additionalContext, /Sizing:/);
-  const plainRepo = createTemporaryProject({ features: { okf: false } });
+  const plainRepo = createTemporaryProject({ features: { okf: false, sizing: false } });
   assert.doesNotMatch(startSession(plainRepo, hookOptions()).hookSpecificOutput.additionalContext, /Sizing:/);
 });
 

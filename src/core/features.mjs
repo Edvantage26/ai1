@@ -1,6 +1,7 @@
 // Features are what a repo chooses in .ai1/config.json (`features.<id>: true | false`).
 // Each module belongs to one feature; a feature can also ship skills (e.g. the OKF pack).
-// `enabledByDefault` applies when the repo does not mention the feature.
+// `enabledByDefault` applies when the repo does not mention the feature: every feature is on unless the repo
+// writes it `false` (opt-out, config version 2; see .ai1/okf/architecture/features.md).
 
 export const FEATURES = [
   {
@@ -25,37 +26,37 @@ export const FEATURES = [
     id: 'sizing',
     title: 'Task sizing',
     description: 'The agent sizes each task: quick ones are done directly, medium ones get a short plan, complex or risky ones a design with questions that the person approves before any code is edited (skill /ai1:sizing-design-before-code). Restores progress after compaction.',
-    enabledByDefault: false,
+    enabledByDefault: true,
   },
   {
     id: 'worktrees',
     title: 'A worktree per change',
     description: 'Every change to the repo files is done in a worktree (created before the first edit), made the way this project needs (modes full/light/auto by disk, copied env, shared or regenerated heavy folders, a port per worktree, named commands, checked integration). The recipe is planned once with the person (/ai1:worktrees-plan-recipe) and saved as the project skill .claude/skills/worktree/. The agent keeps saying which worktree it works in. Adds `ai1 worktree`.',
-    enabledByDefault: false,
+    enabledByDefault: true,
   },
   {
     id: 'later',
     title: 'Undecided changes noted down for later',
     description: 'Large changes and future features that are not decided yet are noted down for later in .ai1/later/ (one versioned file each, idea or full size, called by its number: later 0003), apart from the knowledge bundle because they are not the system. Created only when the person asks for it ("apúntalo para luego"), or picks it in the one-line offer the agent makes when a clearly different subject comes up mid-task (do it here, fork the conversation, or note it down for later). Lists the open ones at session start, points to the related ones on each message, and when the session touched them checks they are consistent and that accepted ones are recorded in the bundle. Skill /ai1:later-write; `ai1 later new|set|index|check`.',
-    enabledByDefault: false,
+    enabledByDefault: true,
   },
   {
     id: 'reuse',
     title: 'Repeated work turned into reusable pieces',
     description: 'When a task took real work (8 or more tool calls since the last check), the agent judges in one line whether it will be asked again in this repo; if it may, it searches this repo\'s own past sessions and its project skills, commands and MCP servers (`ai1 reuse search`) and proposes in one line to turn it into a skill, script, MCP entry, hook or rule - or to complete or merge one that exists. Built only on a yes (skill /ai1:reuse-encapsulate); a no is kept in .ai1/reuse.json and not proposed again. Only this repo: never other repos\' sessions. Adds `ai1 reuse search|dismiss`.',
-    enabledByDefault: false,
+    enabledByDefault: true,
   },
   {
     id: 'design',
     title: 'UI design rules and checks',
     description: 'For repos with a frontend. Gives the agent the UI rules at session start (read the product and design-system context, avoid the generic AI look, keep a quality floor) and checks every UI file it edits with deterministic rules (overused fonts, purple gradients, low contrast, skipped headings, tiny text...), reporting what the edit introduced. Points to the impeccable skill when it is installed.',
-    enabledByDefault: false,
+    enabledByDefault: true,
   },
   {
     id: 'storyboard',
     title: 'Visual storyboard of the user flow',
     description: 'For repos with a frontend. After a visual change, the agent records the user flow as numbered steps (what the user does, desktop and mobile screenshots, before and after) and builds a storyboard the person reviews without running the app: an HTML served at a local URL, a PDF, and a copy to the folder the person chose (local by default, or a synced cloud folder). Reminds once at stop when UI files changed without a storyboard. Skill /ai1:storyboard-record-flow; `ai1 storyboard`.',
-    enabledByDefault: false,
+    enabledByDefault: true,
   },
   {
     id: 'verify',

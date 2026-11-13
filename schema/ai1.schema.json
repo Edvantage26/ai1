@@ -10,12 +10,12 @@
       "type": "string"
     },
     "version": {
-      "const": 1,
-      "description": "Contract version."
+      "enum": [1, 2],
+      "description": "Contract version. 2: every feature is on unless set to false here (opt-out). 1: written by ai1 before v0.36.0, when init listed every feature; a session start migrates it to 2, dropping the false values."
     },
     "features": {
       "type": "object",
-      "description": "Features enabled in this repo. Omitted features use their default (okf, danger, craft and verify: on, sizing, worktrees, design, storyboard, later and reuse: off).",
+      "description": "Features switched off in this repo (false). Every feature is on unless set to false here; true is accepted and changes nothing.",
       "additionalProperties": false,
       "properties": {
         "okf": {
@@ -331,22 +331,6 @@
           ]
         },
         "worktree-reminder": {
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "enabled": {
-                  "type": "boolean"
-                }
-              },
-              "additionalProperties": false
-            }
-          ]
-        },
-        "worktree-recipe-offer": {
           "oneOf": [
             {
               "type": "boolean"

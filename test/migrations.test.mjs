@@ -57,7 +57,7 @@ test('the next session start runs nothing, and ai1 init gives the same result [r
 
   const initRoot = createTemporaryProject(OLD_CONFIG);
   const setupResult = setupRepo(initRoot, { enabledFeatureIds: ['sizing'], verifyCommands: ['npm test'], userSettingsPath: join(homeDirectory, 'settings.json') });
-  assert.equal(readConfig(initRoot).features.sizing, true);
+  assert.notEqual(readConfig(initRoot).features.sizing, false);
   assert.deepEqual(readConfig(initRoot).modules, { 'sizing-escalate': false });
   assert.match(describeMigrationReports(setupResult.migrationReports), /changed \.ai1\/config\.json/);
   assert.throws(() => setupRepo(createTemporaryProject(OLD_CONFIG), { enabledFeatureIds: ['lanes'] }), /called sizing since v0\.32\.0/);
