@@ -35,6 +35,7 @@ export const MODULE_INDEX = [
   { id: 'later-recall', event: 'UserPromptSubmit', feature: 'later', modulePath: '../later/later-recall.mjs' },
   { id: 'storyboard-reminder', event: 'Stop', feature: 'storyboard', modulePath: '../storyboard/storyboard-reminder.mjs' },
   { id: 'later-upkeep', event: 'Stop', feature: 'later', modulePath: '../later/later-upkeep.mjs' },
+  { id: 'reuse-brief', event: 'SessionStart', feature: 'reuse', modulePath: '../reuse/reuse-brief.mjs' },
   { id: 'reuse-check', event: 'Stop', feature: 'reuse', modulePath: '../reuse/reuse-check.mjs' },
 ];
 
