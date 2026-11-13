@@ -1,4 +1,5 @@
-// Paths the agent's tools name, seen from the project root (used by sizing and design).
+// Paths the agent's tools name, seen from the project root (used by sizing and design), and where
+// Claude Code keeps a directory's sessions and memory.
 
 import { isAbsolute, relative, resolve } from 'node:path';
 
@@ -9,4 +10,9 @@ export function projectRelativePath(projectRoot, targetPath, workingDirectory = 
   const relativePath = relative(projectRoot, absolutePath);
   if (!relativePath || relativePath.startsWith('..') || isAbsolute(relativePath)) return null;
   return relativePath;
+}
+
+// Folder name Claude Code gives a working directory under ~/.claude/projects (/ and . as -).
+export function claudeProjectFolderName(directoryPath) {
+  return String(directoryPath).replace(/[/.]/g, '-');
 }

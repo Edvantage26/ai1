@@ -14,6 +14,7 @@
 //   ai1 claude-md [--json]                       where the repo's CLAUDE.md files drift from the OKF bundle (src/okf/okf-claude-md-check.mjs)
 //   ai1 log [--session <id>] [--since <hours>] [--all] [--json]  what ai1's modules decided here (or in every repo, --all) (src/cli/log-command.mjs)
 //   ai1 skill-context <skill> | --list [--json]  a skill's project and user customization, injected when it loads (src/cli/skill-context-command.mjs)
+//   ai1 reuse search "<keywords>" | dismiss   this repo's past sessions and project skills for a task; a declined proposal (src/cli/reuse-command.mjs)
 //   ai1 storyboard <add|build|serve|stop|list|destination|save>  the storyboard of a visual change (see src/cli/storyboard-command.mjs)
 // Run from anywhere inside the repo; files are written at the repo root.
 
@@ -22,6 +23,7 @@ import { findMainCheckout } from '../src/core/project-roots.mjs';
 import { runWorktreeCli, WORKTREE_USAGE } from '../src/cli/worktree-cli.mjs';
 import { readVerifyCommands, runVerifyCommands, recordStepDone, describeScenarioCoverage, closePlan, findPlanRootFor } from '../src/cli/verify-run.mjs';
 import { runLaterCommand, LATER_USAGE } from '../src/cli/later-command.mjs';
+import { runReuseCommand, REUSE_USAGE } from '../src/cli/reuse-command.mjs';
 import { runStoryboardCommand, STORYBOARD_USAGE } from '../src/cli/storyboard-command.mjs';
 import { runForkCommand, FORK_USAGE } from '../src/cli/fork-command.mjs';
 import { runIssueCommand, ISSUE_USAGE } from '../src/cli/issue-command.mjs';
@@ -158,6 +160,8 @@ try {
     process.exitCode = runIssueCommand(repoRoot, commandArguments, { readOption });
   } else if (commandName === 'later') {
     process.exitCode = runLaterCommand(repoRoot, commandArguments, { readOption });
+  } else if (commandName === 'reuse') {
+    process.exitCode = runReuseCommand(repoRoot, commandArguments, { readOption });
   } else if (commandName === 'storyboard') {
     process.exitCode = runStoryboardCommand(repoRoot, commandArguments, { readOption });
   } else {
@@ -167,6 +171,7 @@ try {
     console.log(ISSUE_USAGE);
     console.log(SKILL_CONTEXT_USAGE);
     console.log(STORYBOARD_USAGE);
+    console.log(REUSE_USAGE);
     process.exitCode = commandName ? 1 : 0;
   }
 } catch (commandError) {

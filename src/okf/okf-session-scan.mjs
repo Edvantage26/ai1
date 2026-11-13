@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
 import { splitFrontmatter } from '../core/frontmatter.mjs';
 import { readStateJson } from '../core/session-state.mjs';
+import { claudeProjectFolderName } from '../core/project-paths.mjs';
 import { listShellWriteTargets } from '../core/shell-writes.mjs';
 import { readNewTranscriptEvents, eventContentBlocks, TOOL_USE_MARKER, TOOL_RESULT_MARKER } from '../core/transcript-scan.mjs';
 import { updateWriteWindows } from '../core/session-writes.mjs';
@@ -15,7 +16,7 @@ import { updateWriteWindows } from '../core/session-writes.mjs';
 // Claude Code stores auto-memory under ~/.claude/projects/<path with / and . as ->/memory.
 export function memoryDirectoriesFor(directoryPaths, homeDirectory = homedir()) {
   return [...new Set(directoryPaths.filter(Boolean))]
-    .map((directoryPath) => join(homeDirectory, '.claude', 'projects', directoryPath.replace(/[/.]/g, '-'), 'memory'));
+    .map((directoryPath) => join(homeDirectory, '.claude', 'projects', claudeProjectFolderName(directoryPath), 'memory'));
 }
 
 const MEMORY_WRITING_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit']);
