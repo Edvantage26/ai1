@@ -102,7 +102,8 @@ test('reuse-check asks once after 8 tool calls since the last check, again after
   appendToolCalls(transcriptPath, 3);
   const firstCheck = stopTurn(repoRoot, options, transcriptPath);
   assert.equal(firstCheck.decision, 'block');
-  assert.match(firstCheck.reason, /^ai1\/reuse-check: Reuse: this task took 8 tool calls\. In one line, judge whether this kind of work will be asked again in this repo/);
+  assert.match(firstCheck.reason, /^ai1\/reuse-check: Reuse: this task took 8 tool calls\. Judge silently whether this kind of work will be asked again in this repo/);
+  assert.match(firstCheck.reason, /low .*finish without writing anything about it; the person never hears about a reuse check that found nothing/);
   assert.match(firstCheck.reason, /run `ai1 reuse search "<3-5 keywords>"`/);
   assert.match(firstCheck.reason, /A yes means you load \/ai1:reuse-encapsulate; a no means `ai1 reuse dismiss/);
   assert.equal(stopTurn(repoRoot, options, transcriptPath), null, 'silent right after a check');

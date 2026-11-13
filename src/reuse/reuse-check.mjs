@@ -16,9 +16,9 @@ const MAX_CHECKS_PER_SESSION = 2;
 
 export function buildReuseCheckReason(toolCallCount) {
   return [
-    `Reuse: this task took ${toolCallCount} tool calls. In one line, judge whether this kind of work will be asked again in this repo:`,
-    '- low (a one-off bug, exploration, something only this change needs): say "Reuse: low" and finish;',
-    '- medium (a procedure you had to figure out that is not tied to this change): run `ai1 reuse search "<3-5 keywords>"` and propose only if it was done before here or a project skill, command or MCP server already covers part of it;',
+    `Reuse: this task took ${toolCallCount} tool calls. Judge silently whether this kind of work will be asked again in this repo:`,
+    '- low (a one-off bug, exploration, something only this change needs): finish without writing anything about it; the person never hears about a reuse check that found nothing;',
+    '- medium (a procedure you had to figure out that is not tied to this change): run `ai1 reuse search "<3-5 keywords>"` and propose only if it was done before here or a project skill, command or MCP server already covers part of it; otherwise finish without a word about it;',
     '- high (the person said "otra vez", "como la última vez", "cada vez que"; setting up the same thing again; operating an external system step by step): propose directly.',
     'A proposal is one line at the end of your report, with its evidence and the container you recommend (a rule, hook, script, skill, MCP entry, or completing or merging an existing one): "Esto se repite (N veces en este repo). Recomiendo encapsularlo como <x>." A yes means you load /ai1:reuse-encapsulate; a no means `ai1 reuse dismiss <slug> --keywords "<words>" "<why>"`. Never propose what `ai1 reuse search` reports as dismissed.',
   ].join('\n');

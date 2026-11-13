@@ -5,7 +5,7 @@ description: Reuse - after real work the session judges whether it will recur in
 tags: [reuse, skills, hooks, cli, transcripts]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-13T14:28:06Z'
+  at: '2026-11-13T15:03:24Z'
 sources:
   - id: reuse-history
     resource: src/reuse/reuse-history.mjs
@@ -33,8 +33,8 @@ Built 2026-11-13 (deep plan `reuse`). On by default since v0.36.0 ([all features
 - `reuse-brief` (SessionStart): before a task that sounds done before here, run `ai1 reuse search`
   and reuse how it was done; how to word a proposal; only this repo.
 - `reuse-check` (Stop): tool calls counted from the transcript (incremental) across turns; at
-  `modules.reuse-check.minToolCalls` (default 8) since the last check it blocks once asking for one line:
-  low → finish; medium → `ai1 reuse search` and propose only with evidence; high → propose. The count
+  `modules.reuse-check.minToolCalls` (default 8) since the last check it blocks once asking for a silent judgement:
+  low → finish without a word to the person (asked on 2026-11-13: a check that found nothing must not reach them); medium → `ai1 reuse search` and propose only with evidence, else silent; high → propose. The count
   restarts after each check; at most 2 per session.
 - `ai1 reuse search "<keywords>" [--days 90] [--json]`: terms = lowercased words of 3+ letters (2 with a
   digit: o2, s3) minus stopwords; a session or a project piece matches with half or more of the terms.
