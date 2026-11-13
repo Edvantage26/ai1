@@ -1,6 +1,6 @@
 ---
 name: core-setup-repo
-description: Core — Set up ai1 in the current repository, or change which features it has enabled. Use when the person says "set up ai1 here", "configure the harness", "enable/disable an ai1 feature", "activa ai1 en este repo", or when a session reports that ai1 is installed but inactive.
+description: Core — Set up ai1 in the current repository, or switch ai1 features off or back on. Use when the person says "set up ai1 here", "configure the harness", "enable/disable an ai1 feature", "desactiva X de ai1 en este repo", "activa ai1 en este repo", or when a session reports that ai1 is installed but inactive.
 allowed-tools: Bash("${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context *)
 ---
 
@@ -34,32 +34,36 @@ before v0.18.0 (`.ai1/rfc/`, `features.rfc`) or the `proposals` feature before v
 (`.ai1/proposals/`, `features.proposals`) gets it renamed to `later` the same way. Show the person the list and ask before step 4.
 If `legacyMigration.conflicts` is not empty, the targets already exist: stop and tell the person.
 
-## 2. Propose a configuration
+## 2. Everything on; ask only what to switch off
 
-Look at the repo yourself too (README, CLAUDE.md, the main folders) to confirm or correct each
-`recommendation`: the CLI only reads cheap signals. Then show the person, in one message, a table
-with one row per feature: on/off in your proposal, and why in one line, citing the evidence ("on:
-`db/migrations` and `auth/` are risky areas"). When the repo already has `.ai1/config.json`, show
-what changes compared with it. Add the verify commands you propose (`detectedVerifyCommands`, or
-what you found) and, if `worktrees` is `null`, the one question it needs: whether several people or
-sessions work on this repo at the same time.
+Every feature is on unless the repo switches it off (`features.<id>: false`). Features that need
+something from the repo start in a basic mode: worktrees with the recipe ai1 works out from the repo,
+design and storyboard quiet in a repo without a frontend. So the setup does not choose features: it
+shows them all on and asks only whether to switch any off.
 
-Then use AskUserQuestion with **multiSelect**, one option per feature (label = `title`, description
-= the reason of your proposal), pre-selecting your proposal by marking those "(recommended)". Do not
-invent features. If `verify` is on, confirm the verify commands in the same round.
+Look at the repo yourself too (README, CLAUDE.md, the main folders) next to each `recommendation`
+(the CLI only reads cheap signals). Show the person, in one message, a table with one row per
+feature: what it does in one line and, only where the repo gives a reason, why they might switch it
+off ("design: no frontend found, it stays quiet anyway"). When the repo already has
+`.ai1/config.json`, show what is off now. Add the verify commands you propose
+(`detectedVerifyCommands`, or what you found).
+
+Then use AskUserQuestion with **multiSelect**: "Which features do you want off in this repo?", one
+option per feature (label = `title`); none selected keeps everything on, which is the recommendation.
+Do not invent features. Confirm the verify commands in the same round.
 
 Before proposing a verify command, run it once from the repo root (Bash, timeout 10 minutes,
 measuring the time) and put the result in the table: passes, fails or times out, and how long it
 took. The verify gate makes the agent run it in full before finishing every change, so:
 - it fails on the current code: say so; propose it anyway only if the person will fix the tests
-  first, otherwise leave `verify` off for now;
+  first, otherwise leave the verify commands empty for now (the gate does nothing without them);
 - it takes more than about 3 minutes: say so and propose a faster command that still checks the
-  changed code (unit tests only, one package), or leave `verify` off;
+  changed code (unit tests only, one package), or leave the verify commands empty for now;
 - it cannot run (missing dependencies, a service down): say what is missing instead of guessing.
 
 ## 3. Ask about overlapping plugins
 
-Keep the `overlappingPlugins` whose `features` is `null` or includes a feature the person chose.
+Keep the `overlappingPlugins` whose `features` is `null` or includes a feature left on.
 If any is left, tell the person in one line per plugin what overlaps and why (its `reason`), then
 ask with AskUserQuestion, **multiSelect**, which ones to disable **in this repo only** (written to
 `.claude/settings.local.json`, personal and not committed; the plugin keeps working in other repos).
@@ -84,13 +88,13 @@ their user settings (`~/.claude/settings.json`), not to the repo.
 ## 4. Write the configuration
 
 ```bash
-ai1 init --features <comma-separated ids> [--verify "<command>" ...] [--disable-plugins <ids picked in step 3>] [--deny-credentials] [--report-errors ask|auto|off]
+ai1 init [--disable <ids switched off in step 2> | --disable none] [--verify "<command>" ...] [--disable-plugins <ids picked in step 3>] [--deny-credentials] [--report-errors ask|auto|off]
 ```
 
-Pass `--features ""` to turn every optional feature off. Report what the command printed,
-including the plugins it disabled in this repo. When it migrated an
-old layout, keep the features that were on (from step 1) and offer to update the files it lists as
-still mentioning old paths (CLAUDE.md, README...).
+`--disable` is the exact list of features off (it writes only those, as `false`); `--disable none`
+switches them all on; without `--disable` the opt-outs the repo already has are kept. Report what the
+command printed, including the plugins it disabled in this repo. When it migrated an old layout,
+offer to update the files it lists as still mentioning old paths (CLAUDE.md, README...).
 
 ## 5. Show what they have
 
@@ -100,12 +104,12 @@ description, or "automatic" when it only runs hooks).
 
 ## 6. Set up each enabled feature
 
-Some features need project-specific setup that `ai1 init` cannot write. Offer each one that applies,
-one at a time, in this order, and do it only after a yes (the person may leave any for later):
+Some features work better with project-specific setup that `ai1 init` cannot write. Offer each one
+that applies, one at a time, in this order, and do it only after a yes (the person may leave any for later):
 
-- `worktrees` and `ai1 status` says `worktree recipe: missing`: plan the recipe with
-  `/ai1:worktrees-plan-recipe` (it investigates stack, heavy folders, env, ports and checks, and asks
-  only what the repo cannot answer).
+- `worktrees`: it already works with the basic recipe. Offer `/ai1:worktrees-plan-recipe` only when
+  the repo clearly needs more (ports per worktree, services, big data folders to share); otherwise
+  the agent completes the overlay when `ai1 worktree` reports a gap.
 - `okf` and there is no bundle yet: create one with `/ai1:okf-maintain-knowledge` (produce mode).
 - `okf` and there is a bundle: run `ai1 claude-md`. If it reports findings, offer
   `/ai1:okf-tidy-claude-md`; when the migration listed CLAUDE.md among the files with old paths,

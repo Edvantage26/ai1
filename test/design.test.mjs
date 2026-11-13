@@ -194,12 +194,19 @@ test('design-detect: off with features.design false, silent on non-UI files, hon
   assert.equal(runHookEvent('PostToolUse', outsidePayload, hookOptions()), null, 'files outside the project are not checked');
 });
 
+// A repo with a frontend (a UI package): design-brief speaks only in one.
+function createFrontendProject(ai1Config) {
+  const projectRoot = createTemporaryProject(ai1Config);
+  writeFileSync(join(projectRoot, 'package.json'), JSON.stringify({ dependencies: { react: '^19.0.0' } }));
+  return projectRoot;
+}
+
 function startSessionContext(projectRoot, options = hookOptions(), source = 'startup') {
   return runHookEvent('SessionStart', { session_id: 'session-1', cwd: projectRoot, source }, options)?.hookSpecificOutput?.additionalContext || '';
 }
 
 test('design-brief: points to the bundle concepts of type Product and DesignSystem, and to Impeccable files', () => {
-  const projectRoot = createTemporaryProject({ features: { okf: true, design: true } });
+  const projectRoot = createFrontendProject({ features: { okf: true, design: true } });
   mkdirSync(join(projectRoot, '.ai1', 'okf', 'design'), { recursive: true });
   writeFileSync(join(projectRoot, '.ai1', 'okf', 'index.md'), '---\nokf_version: "0.2"\n---\n# Index\n');
   writeFileSync(join(projectRoot, '.ai1', 'okf', 'design', 'system.md'), '---\ntype: DesignSystem\ntitle: Design system\n---\nPalette.\n');
@@ -214,7 +221,7 @@ test('design-brief: points to the bundle concepts of type Product and DesignSyst
 });
 
 test('design-brief: asks for the context when there is none, and mentions Impeccable only when installed', () => {
-  const projectRoot = createTemporaryProject({ features: { okf: true, design: true } });
+  const projectRoot = createFrontendProject({ features: { okf: true, design: true } });
   const contextText = startSessionContext(projectRoot);
   assert.match(contextText, /no product or design-system context yet.*type `Product` and `DesignSystem`/);
   assert.doesNotMatch(contextText, /\/impeccable critique/);
@@ -223,6 +230,13 @@ test('design-brief: asks for the context when there is none, and mentions Impecc
   mkdirSync(join(homeDirectory, '.claude', 'plugins'), { recursive: true });
   writeFileSync(join(homeDirectory, '.claude', 'plugins', 'installed_plugins.json'), JSON.stringify({ version: 2, plugins: { 'impeccable@impeccable': [] } }));
   assert.match(startSessionContext(projectRoot, hookOptions(homeDirectory)), /\/impeccable critique/);
+});
+
+test('design-brief: on by default but quiet in a repo without a frontend', () => {
+  const backendProject = createTemporaryProject({ version: 2 });
+  writeFileSync(join(backendProject, 'app.py'), 'print(1)\n');
+  assert.doesNotMatch(startSessionContext(backendProject), /Design: UI/);
+  assert.match(startSessionContext(createFrontendProject({ version: 2 })), /Design: UI/);
 });
 
 test('design-brief: off with features.design false and silent on resume', () => {

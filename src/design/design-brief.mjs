@@ -13,6 +13,7 @@ import { allowDecision, contextDecision } from '../core/hook-io.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
 import { resolveBundleDirectory, readBundleIndex, listBundleConcepts } from '../okf/okf-bundle.mjs';
 import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
+import { repoHasFrontend } from '../cli/feature-recommendations.mjs';
 
 const MODULE_ID = 'design-brief';
 const DESIGN_CONCEPT_TYPES = new Set(['product', 'designsystem']);
@@ -78,6 +79,8 @@ export default {
   run({ hookInput, config, projectRoot, homeDirectory }) {
     // A resumed session already has this text in its history.
     if (hookInput.source === 'resume') return allowDecision();
+    // On by default everywhere since v0.36.0: a repo without a frontend pays nothing for it.
+    if (!repoHasFrontend(projectRoot)) return allowDecision();
     return contextDecision(MODULE_ID, buildDesignRecipe({
       contextFiles: listDesignContextFiles(projectRoot, config),
       canRecordInBundle: isFeatureEnabled('okf', config),

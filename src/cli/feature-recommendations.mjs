@@ -92,6 +92,11 @@ function recommendDesign(repoRoot, trackedFiles) {
     : { recommended: false, reason: 'no frontend found', evidence };
 }
 
+// Whether the repo has a frontend (UI packages or tracked UI files): design-brief stays quiet without one.
+export function repoHasFrontend(repoRoot) {
+  return recommendDesign(repoRoot, listTrackedFiles(repoRoot)).recommended;
+}
+
 function recommendSizing(repoRoot, trackedFiles) {
   const commitCount = Number(tryGit(repoRoot, ['rev-list', '--count', 'HEAD']) ?? 0);
   // The path up to the risky folder (`db/migrations`), or the risky file itself (`main.tf`).
