@@ -15,7 +15,7 @@
     },
     "features": {
       "type": "object",
-      "description": "Features enabled in this repo. Omitted features use their default (okf, danger, craft and verify: on, sizing, worktrees, design, storyboard and later: off).",
+      "description": "Features enabled in this repo. Omitted features use their default (okf, danger, craft and verify: on, sizing, worktrees, design, storyboard, later and reuse: off).",
       "additionalProperties": false,
       "properties": {
         "okf": {
@@ -62,6 +62,11 @@
           "type": "boolean",
           "default": false,
           "description": "Later: undecided changes and future features noted down for later in .ai1/later/, only when the person asks or picks it in an offer; open ones listed at session start, related ones recalled per message, consistency and bundle citation checked at stop (/ai1:later-write, ai1 later)."
+        },
+        "reuse": {
+          "type": "boolean",
+          "default": false,
+          "description": "Reuse: after a task with real work the agent judges whether it will recur in this repo, searches this repo's own past sessions and project skills/commands/MCP servers (ai1 reuse search) and proposes encapsulating it or completing an existing piece; built only on a yes (/ai1:reuse-encapsulate); a no is kept in .ai1/reuse.json."
         },
         "proposals": {
           "type": "boolean",

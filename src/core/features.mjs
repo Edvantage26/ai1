@@ -40,6 +40,12 @@ export const FEATURES = [
     enabledByDefault: false,
   },
   {
+    id: 'reuse',
+    title: 'Repeated work turned into reusable pieces',
+    description: 'When a task took real work (8 or more tool calls since the last check), the agent judges in one line whether it will be asked again in this repo; if it may, it searches this repo\'s own past sessions and its project skills, commands and MCP servers (`ai1 reuse search`) and proposes in one line to turn it into a skill, script, MCP entry, hook or rule - or to complete or merge one that exists. Built only on a yes (skill /ai1:reuse-encapsulate); a no is kept in .ai1/reuse.json and not proposed again. Only this repo: never other repos\' sessions. Adds `ai1 reuse search|dismiss`.',
+    enabledByDefault: false,
+  },
+  {
     id: 'design',
     title: 'UI design rules and checks',
     description: 'For repos with a frontend. Gives the agent the UI rules at session start (read the product and design-system context, avoid the generic AI look, keep a quality floor) and checks every UI file it edits with deterministic rules (overused fonts, purple gradients, low contrast, skipped headings, tiny text...), reporting what the edit introduced. Points to the impeccable skill when it is installed.',

@@ -11,6 +11,7 @@ import { readJsonFileIfValid } from '../core/json-file.mjs';
 const FRONTEND_PACKAGES = ['react', 'vue', 'svelte', '@angular/core', 'next', 'nuxt', 'astro', 'solid-js', 'preact', 'lit', '@remix-run/react', 'react-native', 'expo'];
 const FRONTEND_FILE_PATTERN = /\.(tsx|jsx|vue|svelte|astro|css|scss)$/i;
 const RISKY_PATH_PATTERN = /(^|\/)(migrations?|alembic|auth|authentication|payments?|billing|infra|terraform)(\/|$)|\.tf$/i;
+const REUSE_EVIDENCE_PATHS = ['.claude/skills', '.claude/commands', '.mcp.json'];
 const LATER_EVIDENCE_DIRECTORIES = ['.ai1/later', 'docs/rfc', 'docs/rfcs', 'rfcs', 'docs/adr', 'adr', 'docs/decisions', 'decisions'];
 const WORKTREE_PRACTICE_FILES = ['.worktreeinclude', '.config/wt.toml', '.gtrconfig', '.claude/worktrees'];
 const LARGE_REPO_TRACKED_FILES = 50;
@@ -125,6 +126,13 @@ function recommendLater(repoRoot) {
     : { recommended: false, reason: 'no RFCs, decision records or roadmap found', evidence };
 }
 
+function recommendReuse(repoRoot) {
+  const evidence = REUSE_EVIDENCE_PATHS.filter((candidatePath) => existsSync(join(repoRoot, candidatePath))).map((candidatePath) => `${candidatePath} exists`);
+  return evidence.length
+    ? { recommended: true, reason: 'the repo already keeps its own skills, commands or MCP servers', evidence }
+    : { recommended: null, reason: 'it depends on whether the same kind of task comes back in this repo', evidence };
+}
+
 // { [featureId]: { recommended: true | false | null, reason, evidence: [] } } and the verify commands.
 export function recommendFeatures(repoRoot, { hasKnowledgeBundle }) {
   const trackedFiles = listTrackedFiles(repoRoot);
@@ -139,6 +147,7 @@ export function recommendFeatures(repoRoot, { hasKnowledgeBundle }) {
       sizing: recommendSizing(repoRoot, trackedFiles),
       worktrees: recommendWorktrees(repoRoot),
       later: recommendLater(repoRoot),
+      reuse: recommendReuse(repoRoot),
       design: designRecommendation,
       storyboard: designRecommendation.recommended
         ? { ...designRecommendation, reason: 'the repo has a frontend whose user flow can be reviewed as a storyboard' }

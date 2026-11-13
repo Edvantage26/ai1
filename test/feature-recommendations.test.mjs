@@ -58,7 +58,7 @@ test('a backend repo with migrations and decision records: sizing and later on, 
 
 test('an empty repo: only the always-useful features, verify off until there are tests', () => {
   assert.deepEqual(recommendedIn(createRepoWithFiles({ 'README.md': 'x\n' })), {
-    okf: true, danger: true, craft: true, sizing: false, worktrees: null, later: false, design: false, storyboard: false, verify: false,
+    okf: true, danger: true, craft: true, sizing: false, worktrees: null, later: false, reuse: null, design: false, storyboard: false, verify: false,
   });
 });
 
@@ -99,4 +99,9 @@ test('status gives every selectable feature a recommendation', () => {
   assert.deepEqual(repoDescription.features.map((featureStatus) => featureStatus.id), selectableFeatureIds);
   for (const featureStatus of repoDescription.features) assert.equal(typeof featureStatus.recommendation.reason, 'string', featureStatus.id);
   assert.deepEqual(repoDescription.detectedVerifyCommands, []);
+});
+
+test('reuse is recommended when the repo already keeps its own skills or MCP servers', () => {
+  const repoRoot = createRepoWithFiles({ '.mcp.json': '{}\n' });
+  assert.equal(recommendFeatures(repoRoot, { hasKnowledgeBundle: false }).recommendations.reuse.recommended, true);
 });
