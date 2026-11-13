@@ -11,7 +11,7 @@
 import { existsSync, lstatSync, readFileSync, readdirSync, renameSync, writeFileSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, relative } from 'node:path';
-import { CONFIG_RELATIVE_PATH, KNOWLEDGE_BUNDLE_PATH, LATER_DIRECTORY, WORK_DIRECTORY } from './config.mjs';
+import { CONFIG_RELATIVE_PATH, CURRENT_CONFIG_VERSION, KNOWLEDGE_BUNDLE_PATH, LATER_DIRECTORY, WORK_DIRECTORY } from './config.mjs';
 import { readJsonFileIfValid, writeJsonFile } from './json-file.mjs';
 import { listMarkdownFiles } from './markdown-files.mjs';
 import { SKILL_OVERLAYS_DIRECTORY, userConfigDirectory } from './skill-customization.mjs';
@@ -193,7 +193,41 @@ const skillVisibility = {
   migrateUser() {},
 };
 
-export const MIGRATIONS = [lanesToSizing, walkthroughToStoryboard, skillVisibility];
+// v0.36.0: every feature is on unless the repo writes it false (config version 2). A version 1 config
+// was written by an init that listed every feature true/false, so its false values cannot be told
+// from choices: they are all dropped once (decided with the person on 2026-11-13), the skills they hid
+// are shown again, and the person is told how to switch a feature off. Version 2 marks it done, so a
+// clone or a worktree without the (ignored) ledger never drops an opt-out written afterwards.
+const allFeaturesOn = {
+  number: 4,
+  id: 'all-features-on',
+  summary: 'ai1 v0.36.0 turns every feature on unless the repo switches it off',
+  migrateRepo(repoRoot, migrationReport) {
+    const configPath = join(repoRoot, CONFIG_RELATIVE_PATH);
+    const repoConfig = readJsonFileIfValid(configPath);
+    if (!repoConfig || typeof repoConfig !== 'object' || Array.isArray(repoConfig)) return;
+    if (repoConfig.version !== undefined && repoConfig.version !== 1) return;
+    const configFeatures = repoConfig.features && typeof repoConfig.features === 'object' && !Array.isArray(repoConfig.features) ? repoConfig.features : {};
+    const switchedOnIds = Object.keys(configFeatures).filter((featureId) => configFeatures[featureId] === false);
+    const migratedConfig = { ...repoConfig, version: CURRENT_CONFIG_VERSION, features: Object.fromEntries(Object.entries(configFeatures).filter(([, featureSetting]) => featureSetting !== false)) };
+    writeJsonFile(configPath, migratedConfig);
+    migrationReport.changed.push(CONFIG_RELATIVE_PATH);
+    const settingsRelativePath = '.claude/settings.json';
+    const settingsPath = join(repoRoot, settingsRelativePath);
+    const projectSettings = readJsonFileIfValid(settingsPath);
+    if (projectSettings && typeof projectSettings === 'object') {
+      const updatedSettings = applySkillVisibility(projectSettings, migratedConfig);
+      if (JSON.stringify(updatedSettings) !== JSON.stringify(projectSettings)) {
+        writeJsonFile(settingsPath, updatedSettings);
+        migrationReport.changed.push(settingsRelativePath);
+      }
+    }
+    if (switchedOnIds.length) migrationReport.notes.push(`switched on: ${switchedOnIds.join(', ')}; to switch one off again, \`ai1 init --disable <feature,...>\` (/ai1:core-setup-repo)`);
+  },
+  migrateUser() {},
+};
+
+export const MIGRATIONS = [lanesToSizing, walkthroughToStoryboard, skillVisibility, allFeaturesOn];
 export const LATEST_MIGRATION_NUMBER = MIGRATIONS.at(-1).number;
 
 function readLedgerNumber(ledgerPath) {
@@ -206,7 +240,7 @@ function runScope(scopeName, scopeRoot, ledgerPath, migrations, repoLabel) {
   const scopeReports = [];
   let appliedNumber = readLedgerNumber(ledgerPath);
   for (const migration of migrations.filter((pendingMigration) => pendingMigration.number > appliedNumber)) {
-    const migrationReport = { migration: migration.id, summary: migration.summary, scope: scopeName, where: scopeName === 'repo' ? repoLabel : 'your ai1 config folder', changed: [], leftAlone: [], toReview: [] };
+    const migrationReport = { migration: migration.id, summary: migration.summary, scope: scopeName, where: scopeName === 'repo' ? repoLabel : 'your ai1 config folder', changed: [], leftAlone: [], toReview: [], notes: [] };
     try {
       if (scopeName === 'repo') migration.migrateRepo(scopeRoot, migrationReport);
       else migration.migrateUser(scopeRoot, migrationReport);
@@ -256,6 +290,7 @@ export function describeMigrationReports(migrationReports) {
     if (migrationReport.changed.length) parts.push(`changed ${migrationReport.changed.join(', ')}`);
     if (migrationReport.leftAlone.length) parts.push(`left alone ${migrationReport.leftAlone.join(', ')}`);
     if (migrationReport.toReview.length) parts.push(`to update by hand: ${migrationReport.toReview.join(', ')}`);
+    if (migrationReport.notes?.length) parts.push(...migrationReport.notes);
     if (!parts.length) continue;
     const commitHint = migrationReport.scope === 'repo' && migrationReport.changed.length ? ' Nothing was committed: tell the person in one line and suggest reviewing and committing these changes.' : ' Tell the person in one line.';
     reportLines.push(`${migrationReport.summary} and migrated ${migrationReport.where}: ${parts.join('; ')}.${commitHint}`);

@@ -10,7 +10,7 @@ import { runPendingMigrations } from '../src/core/migrations.mjs';
 import { KNOWN_FEATURE_IDS } from '../src/core/features.mjs';
 import { createTemporaryProject } from './helpers.mjs';
 
-const LATER_OFF_CONFIG = { version: 1, trunk: 'main', verify: [], features: { okf: true, later: false, storyboard: false } };
+const LATER_OFF_CONFIG = { version: 2, trunk: 'main', verify: [], features: { okf: true, later: false, storyboard: false } };
 
 function readProjectSettings(projectRoot) {
   return JSON.parse(readFileSync(join(projectRoot, '.claude', 'settings.json'), 'utf8'));

@@ -40,7 +40,7 @@ function startSessionThroughEntrypoint(projectRoot, homeDirectory) {
 test('a session start migrates features.lanes to sizing, turns it on in that session and says what changed [rename-lanes-to-sizing:S2]', () => {
   const projectRoot = createTemporaryProject({ ...OLD_CONFIG, modules: { 'lanes-escalate': false, 'sizing-gate': { enabled: true }, 'lanes-gate': false } });
   const contextText = startSessionThroughEntrypoint(projectRoot, createUserHome());
-  assert.deepEqual(readConfig(projectRoot).features, { okf: false, sizing: true });
+  assert.deepEqual(readConfig(projectRoot).features, { sizing: true }, 'okf false dropped by migration 4');
   assert.deepEqual(readConfig(projectRoot).modules, { 'sizing-escalate': false, 'sizing-gate': { enabled: true } }, 'the new name wins when both are set');
   assert.match(contextText, /Sizing: size every new task before acting/, 'on in this same session');
   assert.match(contextText, /ai1 v0\.32\.0 renamed the lanes feature to sizing and migrated this repo: changed \.ai1\/config\.json\..*Nothing was committed/);
@@ -124,7 +124,7 @@ test('a session start moves walkthrough to storyboard: config, folder and conten
   writeFile(join(projectRoot, '.ai1', 'walkthroughs', 'booking', 'steps.json'), '{"steps":[]}\n');
   writeFile(join(projectRoot, '.ai1', 'okf', 'features', 'ui.md'), 'Record with /ai1:walkthrough-record-flow and `ai1 walkthrough build`; files in .ai1/walkthroughs/.\n');
   const contextText = startSessionThroughEntrypoint(projectRoot, createUserHome());
-  assert.deepEqual(readConfig(projectRoot).features, { okf: false, storyboard: true });
+  assert.deepEqual(readConfig(projectRoot).features, { storyboard: true }, 'okf false dropped by migration 4');
   assert.deepEqual(readConfig(projectRoot).modules, { 'storyboard-reminder': { ignore: ['emails/**'] } });
   assert.equal(readFileSync(join(projectRoot, '.ai1', 'storyboards', 'booking', 'steps.json'), 'utf8'), '{"steps":[]}\n');
   assert.ok(!existsSync(join(projectRoot, '.ai1', 'walkthroughs')));
@@ -173,4 +173,21 @@ test('a session in a worktree migrates the main checkout too, where storyboards 
   assert.ok(existsSync(join(mainRoot, '.ai1', 'storyboards', 'booking', 'steps.json')));
   assert.match(contextText, /migrated the main checkout: .*\.ai1\/walkthroughs -> \.ai1\/storyboards/);
   assert.match(contextText, /migrated this repo: changed \.ai1\/config\.json/);
+});
+
+test('a session start drops the false values an old init wrote, shows their skills and says how to switch one off; a version 2 opt-out survives a fresh clone [all-on-by-default:S2] [all-on-by-default:S3]', () => {
+  const projectRoot = createTemporaryProject({ version: 1, features: { okf: true, worktrees: false, later: false, design: false }, verify: ['npm test'] });
+  mkdirSync(join(projectRoot, '.claude'), { recursive: true });
+  writeFileSync(join(projectRoot, '.claude', 'settings.json'), JSON.stringify({ enabledPlugins: { 'ai1@ai1': true }, skillOverrides: { 'ai1:later-write': 'user-invocable-only', 'ai1:worktrees-plan-recipe': 'off' } }));
+  const contextText = startSessionThroughEntrypoint(projectRoot, createUserHome());
+  assert.deepEqual(readConfig(projectRoot).features, { okf: true });
+  assert.equal(readConfig(projectRoot).version, 2);
+  const skillOverrides = JSON.parse(readFileSync(join(projectRoot, '.claude', 'settings.json'), 'utf8')).skillOverrides;
+  assert.deepEqual(skillOverrides, { 'ai1:worktrees-plan-recipe': 'off' }, 'ai1 shows the skills it hid; the person\'s own off stays');
+  assert.match(contextText, /ai1 v0\.36\.0 turns every feature on unless the repo switches it off and migrated this repo: changed \.ai1\/config\.json, \.claude\/settings\.json; switched on: worktrees, later, design; to switch one off again, `ai1 init --disable <feature,\.\.\.>`/);
+  assert.match(contextText, /- later: Undecided changes noted down for later/, 'on in this same session');
+
+  const clonedRoot = createTemporaryProject({ version: 2, features: { design: false } });
+  startSessionThroughEntrypoint(clonedRoot, createUserHome());
+  assert.deepEqual(readConfig(clonedRoot).features, { design: false }, 'no ledger in a clone, and the opt-out stays');
 });

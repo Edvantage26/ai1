@@ -22,7 +22,7 @@ export const STORYBOARDS_DIRECTORY = `${AI1_DIRECTORY}/storyboards`;
 export const AI1_PLUGIN_ID = 'ai1@ai1';
 export const SCHEMA_URL = 'https://raw.githubusercontent.com/Edvantage26/ai1/main/schema/ai1.schema.json';
 // 2: every feature is on unless the repo writes it false (opt-out, since v0.36.0). 1: written by an
-// older init that listed every feature true/false; migration 0004 turns it into 2 (src/core/migrations.mjs).
+// older init that listed every feature true/false; migration 4 (all-features-on) turns it into 2 (src/core/migrations.mjs).
 export const CURRENT_CONFIG_VERSION = 2;
 export const SUPPORTED_CONFIG_VERSIONS = [1, CURRENT_CONFIG_VERSION];
 
