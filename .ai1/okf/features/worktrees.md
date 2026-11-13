@@ -5,7 +5,7 @@ description: A worktree per change (any edit to the repo files, created before t
 tags: [worktrees, git, skills, cli, hooks]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-11T07:38:33Z'
+  at: '2026-11-13T10:32:42Z'
 sources:
   - id: worktree-create
     resource: src/worktrees/worktree-create.mjs
@@ -105,7 +105,9 @@ check; a later edit counts again. A fast-forward made by hand leaves no record, 
 Inside a worktree Claude Code keeps `CLAUDE_PROJECT_DIR` at the launch checkout and passes the
 worktree in `cwd`. Hooks now resolve a **tree root** (the worktree: files, its branch's .ai1/config.json,
 verify, okf, design, guards) and a **shared root** (the main checkout: `.ai1/work/` plans and approvals,
-`ai1 step-done` progress). A worktree without .ai1/config.json uses the main checkout's. See
+`ai1 step-done` progress). A session isolated in the worktree (EnterWorktree) keeps its plans in the
+worktree's `.ai1/work/` until `finish` or `drop` moves them to the main checkout
+([sizing](sizing.md)). A worktree without .ai1/config.json uses the main checkout's. See
 [hook runtime](/architecture/hook-runtime.md).
 
 # Limits

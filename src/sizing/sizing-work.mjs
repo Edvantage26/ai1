@@ -1,11 +1,12 @@
 // Shared state of the sizing feature: work plans and the approvals of deep designs.
-// A plan lives in `.ai1/work/<slug>/plan.md` with `progress.md` next to it. A deep design has
+// A plan lives in `.ai1/work/<slug>/plan.md` with `progress.md` next to it, in the main checkout or,
+// from a session isolated in a worktree, in that worktree until it is finished (listPlanRoots). A deep design has
 // frontmatter `status: draft | ready | approved | done`; a plan task's plan has `size: plan` and
 // `status: active | done`, needs no approval and is only there to survive compaction. `.ai1/work/` ignores itself, so plans never reach git.
 // Approval comes only from the person: the sizing-approval hook records it in ai1's state
 // directory, outside the repo; the `status` written in the plan is informative.
 
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { splitFrontmatter, writeFrontmatterField } from '../core/frontmatter.mjs';
 import { WORK_DIRECTORY } from '../core/config.mjs';
@@ -40,26 +41,62 @@ export function writePlanStatus(planPath, newStatus) {
   writeFileSync(planPath, writeFrontmatterField(readFileSync(planPath, 'utf8'), 'status', newStatus));
 }
 
-// Every plan in .ai1/work, newest first: { slug, planPath, relativePath, status, size, title, modifiedMilliseconds }.
-export function listWorkPlans(projectRoot) {
-  const workDirectory = join(projectRoot, WORK_DIRECTORY);
-  if (!existsSync(workDirectory)) return [];
+// Where plans are read: the checkout being worked on, then the main checkout. Plans belong in the main
+// checkout, shared by every session; a session isolated in a worktree (Claude Code's EnterWorktree)
+// cannot write outside it, so its plans live in the worktree's `.ai1/work/` until finish or drop
+// moves them home (movePlansToMainCheckout).
+export function listPlanRoots(projectRoot, sharedRoot = projectRoot) {
+  return [...new Set([projectRoot, sharedRoot])];
+}
+
+// Every plan in .ai1/work of one root or of several (listPlanRoots; for a slug in more than one, the
+// first root wins), newest first: { slug, planPath, relativePath, status, size, title, modifiedMilliseconds }.
+export function listWorkPlans(planRoots) {
   const workPlans = [];
-  for (const slug of readdirSync(workDirectory)) {
-    const planPath = join(workDirectory, slug, 'plan.md');
-    if (!existsSync(planPath)) continue;
-    const planText = readFileSync(planPath, 'utf8');
-    workPlans.push({
-      slug,
-      planPath,
-      relativePath: relative(projectRoot, planPath),
-      status: readPlanStatus(planText),
-      size: readPlanSize(planText),
-      title: readPlanTitle(planText, slug),
-      modifiedMilliseconds: statSync(planPath).mtimeMs,
-    });
+  const seenSlugs = new Set();
+  for (const planRoot of [planRoots].flat()) {
+    const workDirectory = join(planRoot, WORK_DIRECTORY);
+    if (!existsSync(workDirectory)) continue;
+    for (const slug of readdirSync(workDirectory)) {
+      const planPath = join(workDirectory, slug, 'plan.md');
+      if (seenSlugs.has(slug) || !existsSync(planPath)) continue;
+      seenSlugs.add(slug);
+      const planText = readFileSync(planPath, 'utf8');
+      workPlans.push({
+        slug,
+        planPath,
+        relativePath: relative(planRoot, planPath),
+        status: readPlanStatus(planText),
+        size: readPlanSize(planText),
+        title: readPlanTitle(planText, slug),
+        modifiedMilliseconds: statSync(planPath).mtimeMs,
+      });
+    }
   }
   return workPlans.sort((firstPlan, secondPlan) => secondPlan.modifiedMilliseconds - firstPlan.modifiedMilliseconds);
+}
+
+// The first root (listPlanRoots order) holding `.ai1/work/<slug>/plan.md`, or null.
+export function findPlanRoot(planRoots, planSlug) {
+  return planRoots.find((planRoot) => existsSync(join(planRoot, WORK_DIRECTORY, planSlug, 'plan.md'))) ?? null;
+}
+
+// Before a worktree is removed: its plan folders move to the main checkout's `.ai1/work/`. A slug the
+// main checkout already has gets `-<worktree name>` so neither is lost. Returns the slugs moved there.
+export function movePlansToMainCheckout(worktreeRoot, mainRoot, worktreeName) {
+  const worktreeWorkDirectory = join(worktreeRoot, WORK_DIRECTORY);
+  if (!existsSync(worktreeWorkDirectory)) return [];
+  const mainWorkDirectory = join(mainRoot, WORK_DIRECTORY);
+  const movedSlugs = [];
+  for (const slug of readdirSync(worktreeWorkDirectory)) {
+    if (!existsSync(join(worktreeWorkDirectory, slug, 'plan.md'))) continue;
+    ensureWorkDirectoryIgnored(mainRoot);
+    const targetSlug = existsSync(join(mainWorkDirectory, slug)) ? `${slug}-${worktreeName}` : slug;
+    cpSync(join(worktreeWorkDirectory, slug), join(mainWorkDirectory, targetSlug), { recursive: true });
+    rmSync(join(worktreeWorkDirectory, slug), { recursive: true, force: true });
+    movedSlugs.push(targetSlug);
+  }
+  return movedSlugs;
 }
 
 export function isPlanFinished(workPlan) {
@@ -75,8 +112,8 @@ export function isSessionPlan(workPlan, sessionStartMilliseconds, sessionPlanSlu
 }
 
 // This session's plans that are not finished: an old forgotten draft never blocks work.
-export function listActivePlans(projectRoot, sessionStartMilliseconds, sessionPlanSlugs = null) {
-  return listWorkPlans(projectRoot).filter((workPlan) => !isPlanFinished(workPlan)
+export function listActivePlans(planRoots, sessionStartMilliseconds, sessionPlanSlugs = null) {
+  return listWorkPlans(planRoots).filter((workPlan) => !isPlanFinished(workPlan)
     && isSessionPlan(workPlan, sessionStartMilliseconds, sessionPlanSlugs));
 }
 

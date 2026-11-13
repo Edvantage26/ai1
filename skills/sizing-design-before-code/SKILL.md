@@ -117,7 +117,7 @@ folder is scratch.
 ## Fixed rules
 
 - No code edits outside `.ai1/` and the knowledge bundle before the person approves the design.
-- The plan lives in `.ai1/work/<slug>/plan.md` of the main checkout.
+- The plan lives in `.ai1/work/<slug>/plan.md` of the main checkout or, when this session is isolated in a worktree, of that worktree (finish and drop move it to the main checkout).
 - A step is done only through `ai1 step-done`, with the verify commands green.
 - A plan is done only through `ai1 plan-done`: every approved scenario with its tagged test, verify green.
 

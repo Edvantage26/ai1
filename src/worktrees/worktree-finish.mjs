@@ -13,6 +13,7 @@ import { matchesAnyGlob } from '../core/path-glob.mjs';
 import { runBundleValidator } from '../okf/okf-validator.mjs';
 import { runGit, tryGit, listIgnoredPaths } from '../core/git.mjs';
 import { findRepository, removeWorktreeState } from './worktree-state.mjs';
+import { movePlansToMainCheckout } from '../sizing/sizing-work.mjs';
 import { loadRecipeOrFail } from './worktree-create.mjs';
 import {
   readStateOrFail, listUncommittedPaths, runWorktreeCommand, removeWorktreeCheckout, resolveNamedCommands,
@@ -141,6 +142,9 @@ export function finishWorktree(startDirectory, worktreeName, options = {}) {
   steps.push(fastForwardBase(mainRoot, worktreeState.base, worktreeState.branch, recipe.finish.dirty_base_paths_ok));
   recordBaseIntegration({ mainRoot, commonDirectory, recipe, worktreeState, baseHeadBefore, knowledgeChecked: knowledgeCheck.checked });
 
+  // Plans of a session isolated in the worktree go home before anything is removed.
+  const movedPlanSlugs = movePlansToMainCheckout(worktreeState.path, mainRoot, worktreeName);
+  if (movedPlanSlugs.length) steps.push(`plans moved to the main checkout: ${movedPlanSlugs.map((planSlug) => `.ai1/work/${planSlug}`).join(', ')}`);
   // What only existed in the worktree: copies made by create and heavy paths are not news.
   const recreatablePaths = [...recipe.copy, ...recipe.heavy.map((heavyEntry) => heavyEntry.path), ...(recipe.port ? [recipe.port.env_file] : [])];
   const removedIgnoredPaths = (listIgnoredPaths(worktreeState.path) || [])

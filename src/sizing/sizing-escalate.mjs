@@ -10,7 +10,7 @@ import { allowDecision, noticeDecision } from '../core/hook-io.mjs';
 import { readSessionBase } from '../core/session-base.mjs';
 import { resolveStateDirectory, sessionStatePath, readStateText, writeStateText } from '../core/session-state.mjs';
 import { FILE_EDITING_TOOLS, listEditedProjectPaths } from './sizing-gate.mjs';
-import { listActivePlans, readSessionPlanSlugs } from './sizing-work.mjs';
+import { listActivePlans, listPlanRoots, readSessionPlanSlugs } from './sizing-work.mjs';
 import { KNOWLEDGE_BUNDLE_PATH, WORK_DIRECTORY } from '../core/config.mjs';
 
 const MODULE_ID = 'sizing-escalate';
@@ -59,7 +59,7 @@ export default {
     const escalatedPath = sessionStatePath(resolveStateDirectory(environment), hookInput.session_id, projectRoot, 'escalated');
     if (readStateText(escalatedPath) !== null) return allowDecision();
     const sharedSessionBase = sharedRoot === projectRoot ? sessionBase : readSessionBase(hookInput, sharedRoot, environment);
-    if (listActivePlans(sharedRoot, sharedSessionBase?.sessionStartMilliseconds, readSessionPlanSlugs(hookInput, sharedRoot, environment)).length > 0) return allowDecision();
+    if (listActivePlans(listPlanRoots(projectRoot, sharedRoot), sharedSessionBase?.sessionStartMilliseconds, readSessionPlanSlugs(hookInput, sharedRoot, environment)).length > 0) return allowDecision();
     const excludedDirectories = [WORK_DIRECTORY, KNOWLEDGE_BUNDLE_PATH];
     const { changedFileCount, changedLines } = measureSessionChanges(projectRoot, sessionBase.baseHead, excludedDirectories);
     const maxFiles = moduleOptions.max_files ?? DEFAULT_MAX_FILES;

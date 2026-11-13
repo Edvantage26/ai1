@@ -4,7 +4,7 @@
 // design is still a draft does not count. The approval is recorded by this hook, not by the agent.
 
 import { allowDecision, contextDecision } from '../core/hook-io.mjs';
-import { listWorkPlans, readSessionPlanSlugs, recordApproval, writePlanStatus } from './sizing-work.mjs';
+import { listPlanRoots, listWorkPlans, readSessionPlanSlugs, recordApproval, writePlanStatus } from './sizing-work.mjs';
 
 const MODULE_ID = 'sizing-approval';
 const MAX_APPROVAL_CHARACTERS = 120;
@@ -34,7 +34,7 @@ export default {
     if (!isApprovalMessage(hookInput.prompt)) return allowDecision();
     // A yes in this session approves this session's design, never one another session has waiting.
     const sessionPlanSlugs = readSessionPlanSlugs(hookInput, sharedRoot, environment);
-    const readyPlan = listWorkPlans(sharedRoot)
+    const readyPlan = listWorkPlans(listPlanRoots(projectRoot, sharedRoot))
       .find((workPlan) => workPlan.status === 'ready' && (!sessionPlanSlugs || sessionPlanSlugs.has(workPlan.slug)));
     if (!readyPlan) return allowDecision();
     recordApproval(sharedRoot, environment, readyPlan.relativePath);

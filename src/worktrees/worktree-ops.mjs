@@ -1,6 +1,7 @@
 // Engine operations on existing worktrees: list, run a recipe command, drop.
 
 import { spawnSync } from 'node:child_process';
+import { movePlansToMainCheckout } from '../sizing/sizing-work.mjs';
 import { existsSync, lstatSync, mkdirSync, rmSync, unlinkSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { runGit, tryGit } from '../core/git.mjs';
@@ -158,10 +159,12 @@ export function dropWorktree(startDirectory, worktreeName, { confirm = false, di
     bundlePath = join(bundleDirectory, `${worktreeName}-${new Date().toISOString().replace(/[:.]/g, '-')}.bundle`);
     runGit(mainRoot, ['bundle', 'create', bundlePath, worktreeState.branch, `^${worktreeState.base}`]);
   }
+  // A dropped change may still have a plan worth keeping (abandoned or to resume): it goes home too.
+  const movedPlanSlugs = existsSync(worktreeState.path) ? movePlansToMainCheckout(worktreeState.path, mainRoot, worktreeName) : [];
   removeWorktreeCheckout(mainRoot, worktreeState);
   if (existsSync(worktreeState.path)) rmSync(worktreeState.path, { recursive: true, force: true });
   tryGit(mainRoot, ['branch', '-D', worktreeState.branch]);
   removeWorktreeState(commonDirectory, worktreeName);
   const storyboardClosing = closeStoryboard(mainRoot, worktreeName);
-  return { name: worktreeName, branch: worktreeState.branch, bundlePath, discarded: uncommittedPaths, storyboard: storyboardClosing };
+  return { name: worktreeName, branch: worktreeState.branch, bundlePath, discarded: uncommittedPaths, storyboard: storyboardClosing, movedPlans: movedPlanSlugs };
 }

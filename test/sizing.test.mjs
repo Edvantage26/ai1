@@ -7,7 +7,8 @@ import { join } from 'node:path';
 import { runHookEvent } from '../src/core/dispatcher.mjs';
 import { listShellWriteTargets } from '../src/core/shell-writes.mjs';
 import { isApprovalMessage } from '../src/sizing/sizing-approval.mjs';
-import { listPlanSlugsWrittenBy } from '../src/sizing/sizing-work.mjs';
+import { listPlanSlugsWrittenBy, movePlansToMainCheckout } from '../src/sizing/sizing-work.mjs';
+import { findPlanRootFor } from '../src/cli/verify-run.mjs';
 import { createTemporaryProject } from './helpers.mjs';
 
 function runGit(projectRoot, gitArguments) {
@@ -278,7 +279,7 @@ test('listShellWriteTargets: a cd earlier in the line moves the relative targets
   assert.deepEqual(listShellWriteTargets('cd ~/x && touch a; cd $DIR && touch b').targetPaths, ['a', 'b'], 'unknown directories leave targets as written');
 });
 
-test('sizing-gate: from a worktree, cd to the main checkout and write its plan is not refused as a worktree plan', () => {
+test('sizing-gate: from a worktree, a plan is free to write in the main checkout and in the worktree', () => {
   const mainRoot = createSizingRepo();
   const worktreeRoot = join(mainRoot, '.claude', 'worktrees', 'feature');
   runGit(mainRoot, ['worktree', 'add', '-q', '-b', 'feature', worktreeRoot]);
@@ -287,7 +288,7 @@ test('sizing-gate: from a worktree, cd to the main checkout and write its plan i
     session_id: 'session-1', cwd: worktreeRoot, tool_name: 'Bash', tool_input: { command: commandLine },
   }, { ...options, environment: { ...options.environment, CLAUDE_PROJECT_DIR: mainRoot } });
   assert.equal(runCommand(`cd ${mainRoot} && sed -i 's/a/b/' .ai1/work/feature/plan.md`), null);
-  assert.equal(runCommand("sed -i 's/a/b/' .ai1/work/feature/plan.md").hookSpecificOutput.permissionDecision, 'deny', 'without the cd it is the worktree plan');
+  assert.equal(runCommand("sed -i 's/a/b/' .ai1/work/feature/plan.md"), null, 'the worktree plan too');
 });
 
 // A transcript whose tool calls are `toolUses` ({ name, input }), for a session with that id.
@@ -346,18 +347,35 @@ test('listPlanSlugsWrittenBy: writes to a plan count, reading it does not', () =
   assert.deepEqual(listPlanSlugsWrittenBy({ name: 'Write', input: { file_path: '/repo/.ai1/work/billing/progress.md' } }), []);
 });
 
-test('sizing-gate: from a worktree, a plan written in the worktree\'s .ai1/work/ is refused with the main checkout path', () => {
+test('sizing-gate: a session isolated in a worktree writes its plan there; the gate reads it and git ignores it', () => {
   const mainRoot = createSizingRepo();
   const worktreeRoot = join(mainRoot, '.claude', 'worktrees', 'feature');
   runGit(mainRoot, ['worktree', 'add', '-q', '-b', 'feature', worktreeRoot]);
   const options = hookOptions();
-  const writePlan = (planPath) => runHookEvent('PreToolUse', {
-    session_id: 'session-1', cwd: worktreeRoot, tool_name: 'Write', tool_input: { file_path: planPath, content: '---\nstatus: draft\n---\n' },
-  }, { ...options, environment: { ...options.environment, CLAUDE_PROJECT_DIR: mainRoot } });
-  const misplacedOutput = writePlan(join(worktreeRoot, '.ai1', 'work', 'feature', 'plan.md'));
-  assert.equal(misplacedOutput.hookSpecificOutput.permissionDecision, 'deny');
-  assert.ok(misplacedOutput.hookSpecificOutput.permissionDecisionReason.includes(join(mainRoot, '.ai1', 'work', 'feature', 'plan.md')));
-  assert.equal(writePlan(join(mainRoot, '.ai1', 'work', 'feature', 'plan.md')), null, 'the main checkout path is free');
+  const worktreeOptions = { ...options, environment: { ...options.environment, CLAUDE_PROJECT_DIR: mainRoot } };
+  const worktreePlanPath = join(worktreeRoot, '.ai1', 'work', 'feature', 'plan.md');
+  const transcriptPath = writeTranscript(options, 'session-1', [{ name: 'Write', input: { file_path: worktreePlanPath, content: '...' } }]);
+  const runInWorktree = (toolName, toolInput) => runHookEvent('PreToolUse', {
+    session_id: 'session-1', cwd: worktreeRoot, transcript_path: transcriptPath, tool_name: toolName, tool_input: toolInput,
+  }, worktreeOptions);
+  assert.equal(runInWorktree('Write', { file_path: worktreePlanPath, content: '---\nstatus: draft\n---\n' }), null);
+  assert.equal(readFileSync(join(worktreeRoot, '.ai1', 'work', '.gitignore'), 'utf8'), '*\n', 'never committed from the worktree');
+  writePlan(worktreeRoot, 'feature', 'draft');
+  assert.match(runInWorktree('Edit', editCode(worktreeRoot)).hookSpecificOutput.permissionDecisionReason, /feature\/plan\.md/, 'the draft in the worktree gates code edits');
+});
+
+test('plans of a worktree: ai1 step-done finds them there, and finish or drop moves them to the main checkout', () => {
+  const mainRoot = createSizingRepo();
+  const worktreeRoot = join(mainRoot, '.claude', 'worktrees', 'feature');
+  runGit(mainRoot, ['worktree', 'add', '-q', '-b', 'feature', worktreeRoot]);
+  writePlan(worktreeRoot, 'feature', 'approved');
+  assert.equal(findPlanRootFor(worktreeRoot, 'feature'), worktreeRoot);
+  assert.equal(findPlanRootFor(worktreeRoot, 'missing'), mainRoot, 'the error names the main checkout');
+  writePlan(mainRoot, 'feature', 'done');
+  assert.deepEqual(movePlansToMainCheckout(worktreeRoot, mainRoot, 'feature'), ['feature-feature'], 'a taken slug gets the worktree name');
+  assert.match(readFileSync(join(mainRoot, '.ai1', 'work', 'feature-feature', 'plan.md'), 'utf8'), /status: approved/);
+  assert.equal(existsSync(join(worktreeRoot, '.ai1', 'work', 'feature')), false);
+  assert.deepEqual(movePlansToMainCheckout(worktreeRoot, mainRoot, 'feature'), [], 'nothing left to move');
 });
 
 function writeScenarioPlan(projectRoot, slug, status) {

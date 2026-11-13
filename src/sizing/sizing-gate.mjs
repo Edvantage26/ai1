@@ -11,7 +11,7 @@ import { allowDecision, askDecision, denyDecision } from '../core/hook-io.mjs';
 import { readSessionBase } from '../core/session-base.mjs';
 import { listShellWriteTargets } from '../core/shell-writes.mjs';
 import {
-  listActivePlans, readApprovals, isPlanApproved, readSessionPlanSlugs, UNAPPROVED_STATUSES,
+  listActivePlans, listPlanRoots, ensureWorkDirectoryIgnored, readApprovals, isPlanApproved, readSessionPlanSlugs, UNAPPROVED_STATUSES,
 } from './sizing-work.mjs';
 import { projectRelativePath } from '../core/project-paths.mjs';
 import { findPlanScenarioViolation } from './sizing-scenarios.mjs';
@@ -39,8 +39,8 @@ function isPathInside(relativePath, directoryPath) {
   return relativePath === directoryPrefix || relativePath.startsWith(`${directoryPrefix}/`);
 }
 
-export function findUnapprovedPlan(projectRoot, sessionStartMilliseconds, approvals, sessionPlanSlugs = null) {
-  return listActivePlans(projectRoot, sessionStartMilliseconds, sessionPlanSlugs)
+export function findUnapprovedPlan(planRoots, sessionStartMilliseconds, approvals, sessionPlanSlugs = null) {
+  return listActivePlans(planRoots, sessionStartMilliseconds, sessionPlanSlugs)
     .find((workPlan) => workPlan.size === 'deep' && (UNAPPROVED_STATUSES.has(workPlan.status) || !isPlanApproved(workPlan, approvals)));
 }
 
@@ -56,13 +56,18 @@ function applyFileEdit(toolName, toolInput, diskText) {
   }, diskText);
 }
 
+function isPlanPath(relativePath) {
+  return Boolean(relativePath) && basename(relativePath) === 'plan.md' && dirname(dirname(relativePath)) === WORK_DIRECTORY;
+}
+
 // A write to a plan with behaviour scenarios that sets `status: done` by hand or drops an approved
 // scenario: the reason to refuse it, or null. Milliseconds: reads only that plan.md.
-function findPlanWriteViolation(hookInput, sharedRoot) {
+function findPlanWriteViolation(hookInput, planRoots) {
   if (!['Write', 'Edit', 'MultiEdit'].includes(hookInput.tool_name)) return null;
-  const relativePath = listEditedProjectPaths(hookInput, sharedRoot)[0];
-  if (!relativePath || basename(relativePath) !== 'plan.md' || dirname(dirname(relativePath)) !== WORK_DIRECTORY) return null;
-  const planPath = join(sharedRoot, relativePath);
+  const planRoot = planRoots.find((candidateRoot) => isPlanPath(listEditedProjectPaths(hookInput, candidateRoot)[0]));
+  if (!planRoot) return null;
+  const relativePath = listEditedProjectPaths(hookInput, planRoot)[0];
+  const planPath = join(planRoot, relativePath);
   if (!existsSync(planPath)) return null;
   const diskText = readFileSync(planPath, 'utf8');
   return findPlanScenarioViolation(basename(dirname(relativePath)), diskText, applyFileEdit(hookInput.tool_name, hookInput.tool_input || {}, diskText));
@@ -75,14 +80,14 @@ export default {
   feature: 'sizing',
   description: 'Refuses code edits while a deep design of this session waits for the person\'s approval.',
   run({ hookInput, config, projectRoot, sharedRoot = projectRoot, environment }) {
-    // Plans live in the main checkout, where this gate, the approval and `ai1 step-done` read them; one
-    // written inside a worktree would be invisible to all three, so the design would never be gated.
-    const misplacedPlanPath = projectRoot !== sharedRoot
-      && listEditedProjectPaths(hookInput, projectRoot).find((relativePath) => isPathInside(relativePath, WORK_DIRECTORY));
-    if (misplacedPlanPath) {
-      return denyDecision(MODULE_ID, `Work plans live in the main checkout, not in a worktree: write \`${join(sharedRoot, misplacedPlanPath)}\` instead of \`${misplacedPlanPath}\` here. The design gate, the approval and \`ai1 step-done\` only read it there.`);
+    // A session isolated in a worktree writes its plans there (it cannot write the main checkout); the
+    // gate, the approval and `ai1 step-done` read both, and finish or drop moves them home. The
+    // worktree's `.ai1/work/` must ignore itself before the first plan, or it would be committed.
+    const planRoots = listPlanRoots(projectRoot, sharedRoot);
+    if (projectRoot !== sharedRoot && listEditedProjectPaths(hookInput, projectRoot).some((relativePath) => isPathInside(relativePath, WORK_DIRECTORY))) {
+      ensureWorkDirectoryIgnored(projectRoot);
     }
-    const planWriteViolation = findPlanWriteViolation(hookInput, sharedRoot);
+    const planWriteViolation = findPlanWriteViolation(hookInput, planRoots);
     if (planWriteViolation) return denyDecision(MODULE_ID, `Deep task: ${planWriteViolation}`);
     // Designing stays free: the work folder, the knowledge bundle and, with the later feature, later entries.
     const designDirectories = [WORK_DIRECTORY, KNOWLEDGE_BUNDLE_PATH, isFeatureEnabled('later', config) && LATER_DIRECTORY].filter(Boolean);
@@ -92,7 +97,7 @@ export default {
     const runsInlineScript = hookInput.tool_name === 'Bash' && listShellWriteTargets(hookInput.tool_input?.command).runsInlineScript;
     if (editedPaths.length === 0 && !runsInlineScript) return allowDecision();
     const sessionBase = readSessionBase(hookInput, sharedRoot, environment);
-    const unapprovedPlan = findUnapprovedPlan(sharedRoot, sessionBase?.sessionStartMilliseconds, readApprovals(sharedRoot, environment),
+    const unapprovedPlan = findUnapprovedPlan(planRoots, sessionBase?.sessionStartMilliseconds, readApprovals(sharedRoot, environment),
       readSessionPlanSlugs(hookInput, sharedRoot, environment));
     if (!unapprovedPlan) return allowDecision();
     if (editedPaths.length === 0) {

@@ -9,7 +9,8 @@ import { join } from 'node:path';
 import { loadHarnessConfig } from '../core/config.mjs';
 import { KNOWN_MODULE_IDS } from '../core/module-index.mjs';
 import { WORK_DIRECTORY } from '../core/config.mjs';
-import { readPlanSize, readPlanStatus, writePlanStatus } from '../sizing/sizing-work.mjs';
+import { findPlanRoot, listPlanRoots, readPlanSize, readPlanStatus, writePlanStatus } from '../sizing/sizing-work.mjs';
+import { findMainCheckout } from '../core/project-roots.mjs';
 import { checkScenarioCoverage, formatScenarioTag } from '../sizing/sizing-scenarios.mjs';
 
 export function readVerifyCommands(repoRoot) {
@@ -33,6 +34,14 @@ function defaultRunCommand(verifyCommand, repoRoot) {
   return commandResult.status ?? 1;
 }
 
+// Where `ai1 step-done` / `plan-done` find a plan: this checkout (a worktree keeps the plans of a
+// session isolated in it), then the main checkout; the main checkout when neither has it, so the
+// "no plan" error names the usual place.
+export function findPlanRootFor(repoRoot, planSlug) {
+  const mainCheckoutRoot = findMainCheckout(repoRoot);
+  return findPlanRoot(listPlanRoots(repoRoot, mainCheckoutRoot), planSlug) ?? mainCheckoutRoot;
+}
+
 export function recordStepDone(repoRoot, planSlug, stepText, verifyCommands, recordedAt = new Date().toISOString()) {
   const planDirectory = join(repoRoot, WORK_DIRECTORY, planSlug);
   if (!existsSync(join(planDirectory, 'plan.md'))) throw new Error(`no plan at ${WORK_DIRECTORY}/${planSlug}/plan.md`);
@@ -51,7 +60,7 @@ export function describeScenarioCoverage(mainCheckoutRoot, scanRoot, planSlug, r
   return `scenarios covered so far: ${coveredCount}/${scenarioCoverage.scenarioIds.length}${missingNote}`;
 }
 
-// `ai1 plan-done <slug>`: the one way to close a plan. A deep plan (main checkout) must be approved,
+// `ai1 plan-done <slug>`: the one way to close a plan. A deep plan (findPlanRootFor) must be approved,
 // a plan task's plan only unfinished; every scenario of its `# Behaviour` section needs its tag `[<slug>:S<n>]` in the scanned checkout
 // (the worktree, where the tests live before merge); then the verify commands must pass. Only then
 // `status: done` and a progress line. { closed, message }. Throws when the scan cannot run.

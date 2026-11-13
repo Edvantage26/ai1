@@ -20,7 +20,7 @@
 import { findRepoRoot, describeRepo, setupRepo } from '../src/cli/setup-repo.mjs';
 import { findMainCheckout } from '../src/core/project-roots.mjs';
 import { runWorktreeCli, WORKTREE_USAGE } from '../src/cli/worktree-cli.mjs';
-import { readVerifyCommands, runVerifyCommands, recordStepDone, describeScenarioCoverage, closePlan } from '../src/cli/verify-run.mjs';
+import { readVerifyCommands, runVerifyCommands, recordStepDone, describeScenarioCoverage, closePlan, findPlanRootFor } from '../src/cli/verify-run.mjs';
 import { runLaterCommand, LATER_USAGE } from '../src/cli/later-command.mjs';
 import { runStoryboardCommand, STORYBOARD_USAGE } from '../src/cli/storyboard-command.mjs';
 import { runForkCommand, FORK_USAGE } from '../src/cli/fork-command.mjs';
@@ -127,9 +127,10 @@ try {
       console.error(`ai1: \`${verifyResult.failedCommand}\` failed (exit ${verifyResult.exitCode})${commandName === 'step-done' ? '; step not recorded' : ''}`);
       process.exitCode = verifyResult.exitCode || 1;
     } else if (commandName === 'step-done') {
-      console.log(`ai1: verify green; step recorded in ${recordStepDone(findMainCheckout(repoRoot), planSlug, stepText, verifyCommands)}`);
+      const planRoot = findPlanRootFor(repoRoot, planSlug);
+      console.log(`ai1: verify green; step recorded in ${recordStepDone(planRoot, planSlug, stepText, verifyCommands)}`);
       try {
-        const coverageLine = describeScenarioCoverage(findMainCheckout(repoRoot), repoRoot, planSlug);
+        const coverageLine = describeScenarioCoverage(planRoot, repoRoot, planSlug);
         if (coverageLine) console.log(`ai1: ${coverageLine}`);
       } catch (scanError) {
         console.log(`ai1: scenario coverage not checked (${scanError.message.split('\n')[0]})`);
@@ -140,7 +141,7 @@ try {
   } else if (commandName === 'plan-done') {
     const [planSlug] = commandArguments;
     if (!planSlug) throw new Error('usage: ai1 plan-done <slug>');
-    const closeResult = closePlan(findMainCheckout(repoRoot), repoRoot, planSlug, readVerifyCommands(repoRoot));
+    const closeResult = closePlan(findPlanRootFor(repoRoot, planSlug), repoRoot, planSlug, readVerifyCommands(repoRoot));
     if (closeResult.closed) console.log(`ai1: ${closeResult.message}`);
     else { console.error(`ai1: plan not closed - ${closeResult.message}`); process.exitCode = 1; }
   } else if (commandName === 'claude-md') {

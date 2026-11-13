@@ -10,7 +10,7 @@ import { allowDecision, contextDecision } from '../core/hook-io.mjs';
 import { recordSessionBaseHead, readSessionBase } from '../core/session-base.mjs';
 import { isFeatureEnabled } from '../core/features.mjs';
 import {
-  listWorkPlans, isPlanFinished, isSessionPlan, readSessionPlanSlugs, readApprovals, isPlanApproved, ensureWorkDirectoryIgnored,
+  listPlanRoots, listWorkPlans, isPlanFinished, isSessionPlan, readSessionPlanSlugs, readApprovals, isPlanApproved, ensureWorkDirectoryIgnored,
 } from './sizing-work.mjs';
 import { WORK_DIRECTORY } from '../core/config.mjs';
 
@@ -57,13 +57,14 @@ export default {
   run({ hookInput, config, projectRoot, sharedRoot = projectRoot, environment }) {
     // A resumed session already has this text in its history.
     if (hookInput.source === 'resume') return allowDecision();
-    // Plans live in the main checkout (shared root), so every worktree of the repo sees the same ones.
+    // Plans live in the main checkout (shared root), so every worktree of the repo sees the same ones;
+    // a session isolated in a worktree keeps its own there until finish (listPlanRoots).
     recordSessionBaseHead(hookInput, projectRoot, environment);
     if (sharedRoot !== projectRoot) recordSessionBaseHead(hookInput, sharedRoot, environment);
     ensureWorkDirectoryIgnored(sharedRoot);
     const isAfterCompaction = hookInput.source === 'compact';
     const sessionBase = isAfterCompaction ? readSessionBase(hookInput, sharedRoot, environment) : null;
-    const unfinishedPlans = listWorkPlans(sharedRoot).filter((workPlan) => !isPlanFinished(workPlan));
+    const unfinishedPlans = listWorkPlans(listPlanRoots(projectRoot, sharedRoot)).filter((workPlan) => !isPlanFinished(workPlan));
     const sessionPlanSlugs = isAfterCompaction ? readSessionPlanSlugs(hookInput, sharedRoot, environment) : null;
     const plansToRestore = isAfterCompaction && (sessionBase || sessionPlanSlugs)
       ? unfinishedPlans.filter((workPlan) => isSessionPlan(workPlan, sessionBase?.sessionStartMilliseconds, sessionPlanSlugs))

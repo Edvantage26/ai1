@@ -5,7 +5,7 @@ description: Each task sized quick, plan or deep - with a plan file for plan and
 tags: [sizing, workflow, hooks, skills, approval]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-11T07:44:47Z'
+  at: '2026-11-13T10:32:42Z'
 sources:
   - id: sizing-work
     resource: src/sizing/sizing-work.mjs
@@ -91,7 +91,7 @@ Gherkin/Cucumber glue. Decided with the person on 2026-11-09; goal: the agent ca
 done while an agreed behaviour has no test - the verify gate alone only knows the suite is green.
 
 - `ai1 plan-done <slug>` (`src/cli/verify-run.mjs`) is the one way to close a plan: a deep plan
-  (main checkout) must be `approved` (a plan task's plan only not finished), no duplicate ids, every scenario's tag found in the current
+  (main checkout, or this worktree) must be `approved` (a plan task's plan only not finished), no duplicate ids, every scenario's tag found in the current
   checkout (the worktree, where the tests live before merge), then the verify commands green; only
   then `status: done` and a progress line with each scenario's test location. A plan without
   scenarios closes after a green verify. Without git it fails closed.
@@ -118,10 +118,16 @@ verify) or `abandoned`. Deep plan statuses: `draft` -> `ready` (agent asks) -> `
 they are listed at startup.
 
 **Whose plan it is (since v0.20.2):** plans live in the main checkout's `.ai1/work/`, shared by every
-session open on the repo. From a worktree, `sizing-gate` refuses writing a plan under the worktree's own
-`.ai1/work/` and names the main checkout path (since 2026-11-09): a plan there was invisible to the
-gate, the approval and `ai1 step-done`, so a deep design made from a worktree was never gated (seen in
-a real session: the person's "adelante" was not recorded). A plan is this session's when the session's transcript shows a call that
+session open on the repo. A session isolated in a worktree (Claude Code's EnterWorktree, the way ai1's
+worktree flow enters one) cannot write outside it, file tools and symlinks included (tried
+2026-11-13), so since 2026-11-13 its plans live in the worktree's `.ai1/work/`: `listPlanRoots`
+gives the gate, the escalation check, the approval, the brief and `ai1 step-done`/`plan-done` the
+worktree first and the main checkout after; the gate makes the worktree's `.ai1/work/` ignore itself
+before the first plan is written; `ai1 worktree finish` and `drop` move its plan folders to the main
+checkout (`movePlansToMainCheckout`, a taken slug gets `-<worktree name>`). Before (2026-11-09 to
+2026-11-13) the gate refused a plan in the worktree and named the main checkout path, which such a
+session could not write; earlier still, a plan there was invisible to the gate and the approval. Approvals stay keyed
+by the plan's relative path under the main checkout's state. A plan is this session's when the session's transcript shows a call that
 wrote its `plan.md` (Write/Edit/MultiEdit on it, or a shell command naming it that is not read-only;
 `readSessionPlanSlugs` in `src/sizing/sizing-work.mjs`, incremental scan, state `<session>-<hash>.sizing-plans`).
 The gate, the escalation check, the approval and the post-compaction restore only look at this

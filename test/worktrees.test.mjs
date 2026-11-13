@@ -9,6 +9,7 @@ import { createWorktree, decideMode } from '../src/worktrees/worktree-create.mjs
 import { readWorktreeState } from '../src/worktrees/worktree-state.mjs';
 import { listWorktrees, runWorktreeCommand, dropWorktree, applyCommandArguments } from '../src/worktrees/worktree-ops.mjs';
 import { finishWorktree } from '../src/worktrees/worktree-finish.mjs';
+import { ensureWorkDirectoryIgnored } from '../src/sizing/sizing-work.mjs';
 import { integratedFileMatcher } from '../src/worktrees/worktree-integrations.mjs';
 import { listSessionChangedCode } from '../src/verify/verify-gate.mjs';
 import { runHookEvent } from '../src/core/dispatcher.mjs';
@@ -221,7 +222,12 @@ test('drop needs --confirm, refuses uncommitted work, bundles own commits and cl
   commitInWorktree(created.path, 'feature.js', 'x\n');
   writeFileSync(join(created.path, 'src', 'app.js'), 'changed\n');
   assert.throws(() => dropWorktree(mainRoot, 'dropped', { confirm: true }), /uncommitted changes[\s\S]*src\/app\.js/);
+  ensureWorkDirectoryIgnored(created.path);
+  mkdirSync(join(created.path, '.ai1', 'work', 'dropped'), { recursive: true });
+  writeFileSync(join(created.path, '.ai1', 'work', 'dropped', 'plan.md'), '---\nstatus: draft\n---\n');
   const dropResult = dropWorktree(mainRoot, 'dropped', { confirm: true, discardUncommitted: true });
+  assert.deepEqual(dropResult.movedPlans, ['dropped']);
+  assert.ok(existsSync(join(mainRoot, '.ai1', 'work', 'dropped', 'plan.md')), 'the plan of a session isolated in the worktree survives');
   assert.ok(existsSync(dropResult.bundlePath));
   assert.match(runGit(mainRoot, ['bundle', 'list-heads', dropResult.bundlePath]), /refs\/heads\/wt\/dropped/);
   assert.equal(existsSync(created.path), false);
