@@ -22,7 +22,7 @@ Later renames migrate by themselves: when a new ai1 starts a session it runs its
 migrations on the repo and on your `~/.config/ai1/`, leaves the changes uncommitted and tells you what
 changed (e.g. v0.32.0: `lanes` -> `sizing`, v0.33.0: `walkthrough` -> `storyboard`).
 
-> **Status: early (v0.33.0).** Per-repo features, the `okf` feature (project knowledge) and the
+> **Status: early (v0.34.0).** Per-repo features, the `okf` feature (project knowledge) and the
 > `danger` guard work, are tested and verified in real sessions. The `sizing`, `design`, `verify`,
 > `later` and `worktrees` features, and the `config-guard`, `repo-rules` and `test-guard` modules,
 > are new and tested, not yet tried in live sessions. Everything marked *planned* does not exist yet.
