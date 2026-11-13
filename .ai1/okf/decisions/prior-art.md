@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-11T07:38:33Z'
+  at: '2026-11-13T10:13:21Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -308,3 +308,26 @@ in `scripts/hooks/` and the evaluation in `docs/gateguard/`.
   the transcript, not a tool-call count); treating
   [repo rules](../guards/repo-rules.md) reason text as untrusted data, since ECC disables git-tracked
   rules by default ("opening a repo must not activate repo-authored instructions").
+
+# Detecting repeated work to encapsulate it (2026-11-13)
+
+Reviewed for an undecided idea: count what sessions repeat and propose turning it into a skill, MCP,
+hook or rule, or completing or merging what already exists. Nothing built or decided.
+
+- **ECC continuous-learning v2.1** (read from its `SKILL.md`): an `observe.sh` hook on every
+  Pre/PostToolUse writes `observations.jsonl` per project; a background Haiku observer (disabled by
+  default, 5 min interval) turns it into atomic "instincts" (trigger, action, confidence 0.3-0.9,
+  evidence, scope); `/evolve` clusters them into skills/commands/agents; project → global when seen in
+  2+ projects. Ideas worth taking: project scope, promotion across repos, evidence. Against
+  [principles](principles.md): an LLM watching every call.
+- **Claude Code `/insights`** (community write-ups, no official doc found): on demand, ~30 days of
+  local sessions, one Opus-written HTML report in `~/.claude/usage-data/` suggesting skills and hooks.
+  It does not read the installed config, so it cannot suggest completing an existing skill.
+- **anthropics/claude-code#17161** (prompt-pattern detection with skill suggestions, threshold,
+  "don't suggest this"): closed *not planned* on 2026-02-23. Nothing native is coming.
+- **Agent Workflow Memory** (ICML 2025): workflows induced from *successful* trajectories only, as
+  parameterized, nestable step skeletons (+24.6% Mind2Web, +51.1% WebArena relative). A critique
+  attributes the gain mostly to the reusable skeletons.
+- **Voyager** / Anthropic **skill-creator**: skills as verified executable code; every new skill with
+  evals. A fixed sequence is cheaper as a script than as a skill.
+- Transcripts Claude Code already keeps locally are enough to mine offline, without a new per-call hook.
