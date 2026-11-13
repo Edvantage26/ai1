@@ -15,6 +15,7 @@ import { runGit, tryGit, listIgnoredPaths } from '../core/git.mjs';
 import { findRepository, removeWorktreeState } from './worktree-state.mjs';
 import { movePlansToMainCheckout } from '../sizing/sizing-work.mjs';
 import { loadRecipeOrFail } from './worktree-create.mjs';
+import { RECIPE_GAP_HINT } from './worktree-recipe.mjs';
 import {
   readStateOrFail, listUncommittedPaths, runWorktreeCommand, removeWorktreeCheckout, resolveNamedCommands,
 } from './worktree-ops.mjs';
@@ -133,7 +134,7 @@ export function finishWorktree(startDirectory, worktreeName, options = {}) {
   const steps = [integrateBase(worktreeState.path, worktreeState.base, finishStrategy)];
   if (recipe.commands['pre-finish'] !== undefined) {
     const preFinishResult = runWorktreeCommand(mainRoot, worktreeName, 'pre-finish', options.runCommand ? { runCommand: options.runCommand } : {});
-    if (preFinishResult.exitCode !== 0) throw new Error(`pre-finish failed: \`${preFinishResult.failedCommand}\` (exit ${preFinishResult.exitCode}); fix it in the worktree and run finish again`);
+    if (preFinishResult.exitCode !== 0) throw new Error(`pre-finish failed: \`${preFinishResult.failedCommand}\` (exit ${preFinishResult.exitCode}); fix it in the worktree and run finish again. ${RECIPE_GAP_HINT}`);
     steps.push('pre-finish passed');
   }
   const knowledgeCheck = checkBranchKnowledge(worktreeState.path, worktreeState.base, options);

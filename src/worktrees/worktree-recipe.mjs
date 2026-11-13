@@ -13,6 +13,10 @@ import { detectBasicRecipe } from './worktree-basic-recipe.mjs';
 export const PROJECT_SKILL_DIRECTORY = join('.claude', 'skills', 'worktree');
 export const RECIPE_RELATIVE_PATH = join(PROJECT_SKILL_DIRECTORY, 'recipe.json');
 export const SUPPORTED_RECIPE_VERSION = 1;
+// What the agent does when the recipe falls short (the person chose on 2026-11-13: adjust it and say so).
+export const RECIPE_GAP_HINT = `If the worktree lacks something the main checkout has (a file, a folder, an install step), add the fix to ${RECIPE_RELATIVE_PATH} yourself - only the fields that differ from the basic recipe (/ai1:worktrees-plan-recipe has the format) - and say it in one line; propose it first when it would share a folder that holds state or delete data.`;
+// The named commands whose failure may mean the recipe falls short.
+export const RECIPE_STEP_COMMANDS = ['setup', 'pre-finish'];
 export const BUILT_IN_MODES = ['auto', 'full', 'light'];
 export const HEAVY_STRATEGIES = ['copy', 'share', 'regenerate', 'exclude'];
 // Fields of the recipe format that a later ai1 phase implements; accepted and ignored for now.

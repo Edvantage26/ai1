@@ -1,11 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, statSync, utimesSync, writeFileSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, statSync, truncateSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { validateRecipe, loadRecipe, listUnknownRecipeFields, DEFAULT_RECIPE, RECIPE_RELATIVE_PATH } from '../src/worktrees/worktree-recipe.mjs';
-import { createWorktree, decideMode } from '../src/worktrees/worktree-create.mjs';
+import { createWorktree, decideMode, UNCOVERED_FOLDER_BYTES } from '../src/worktrees/worktree-create.mjs';
 import { readWorktreeState } from '../src/worktrees/worktree-state.mjs';
 import { listWorktrees, runWorktreeCommand, dropWorktree, applyCommandArguments } from '../src/worktrees/worktree-ops.mjs';
 import { finishWorktree } from '../src/worktrees/worktree-finish.mjs';
@@ -391,6 +391,30 @@ test('basic recipe: with no recipe file, create works from the trunk, copies ign
   assert.equal(overlaidRecipe.status, 'overlay');
   assert.deepEqual(overlaidRecipe.recipe.port, { env_file: '.env', variables: ['PORT'] });
   assert.deepEqual(overlaidRecipe.recipe.setup, ['npm ci'], 'fields the overlay does not set come from the basic recipe');
+});
+
+test('basic recipe falling short: create lists what it does not cover, a failed setup or pre-finish says to complete the overlay, and the overlay fixes it [all-on-by-default:S5]', () => {
+  const mainRoot = createNodeRepoWithoutRecipe();
+  writeFileSync(join(mainRoot, '.gitignore'), '.env\n.env.*\nnode_modules/\n.claude/worktrees/\nmodels/\n');
+  runGit(mainRoot, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qam', 'ignore models']);
+  mkdirSync(join(mainRoot, 'models'));
+  writeFileSync(join(mainRoot, 'models', 'weights.bin'), '');
+  truncateSync(join(mainRoot, 'models', 'weights.bin'), UNCOVERED_FOLDER_BYTES);
+  writeFileSync(join(mainRoot, 'frontend', '.env.local'), 'SECRET=1\n');
+  mkdirSync(join(mainRoot, '.claude', 'skills', 'worktree'), { recursive: true });
+  writeFileSync(join(mainRoot, RECIPE_RELATIVE_PATH), JSON.stringify({ copy: ['.env'], setup: ['false'] }));
+  const ai1Cli = (cliArguments) => spawnSync(process.execPath, [new URL('../bin/ai1', import.meta.url).pathname, ...cliArguments], { cwd: mainRoot, encoding: 'utf8' });
+  const createOutput = ai1Cli(['worktree', 'create', 'short', '--mode', 'light']).stdout;
+  assert.match(createOutput, /not covered by the recipe: frontend\/\.env\.local \(ignored env file, not copied\), models \(ignored folder of 50 MB or more, neither copied nor regenerated\)/);
+  assert.match(createOutput, /add the fix to \.claude\/skills\/worktree\/recipe\.json yourself - only the fields that differ from the basic recipe/);
+  const setupRun = ai1Cli(['worktree', 'run', 'short', 'setup']);
+  assert.notEqual(setupRun.status, 0);
+  assert.match(setupRun.stdout, /`false` failed[\s\S]*add the fix to \.claude\/skills\/worktree\/recipe\.json yourself/);
+
+  writeFileSync(join(mainRoot, RECIPE_RELATIVE_PATH), JSON.stringify({ heavy: [{ path: 'node_modules', strategy: 'regenerate', command: 'npm ci' }, { path: 'models', strategy: 'share' }] }));
+  const fixedOutput = ai1Cli(['worktree', 'create', 'fixed', '--mode', 'light']).stdout;
+  assert.doesNotMatch(fixedOutput, /not covered/);
+  assert.ok(existsSync(join(mainRoot, '.claude', 'worktrees', 'fixed', 'frontend', '.env.local')), 'the basic copy patterns are back once the overlay leaves copy alone');
 });
 
 test('worktree-reminder: on change and every N prompts, marking this session, then once when none are left', () => {

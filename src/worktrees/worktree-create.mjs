@@ -13,10 +13,16 @@ import { runGit, tryGit, detectTrunkBranch, readOriginHeadBranch } from '../core
 import {
   findRepository, validateWorktreeName, readWorktreeState, writeWorktreeState, listWorktreeStates,
 } from './worktree-state.mjs';
-import { measurePathBytes, readDiskSpace, supportsCopyOnWrite, copyPath, linkDirectory } from './worktree-disk.mjs';
+import { measurePathBytes, measurePathBytesUpTo, readDiskSpace, supportsCopyOnWrite, copyPath, linkDirectory } from './worktree-disk.mjs';
 import { DEFAULT_PORT_RANGE, listListeningPorts, pickWorktreePort, writeEnvVariables } from './worktree-ports.mjs';
 
 const WORKTREE_INCLUDE_FILE = '.worktreeinclude';
+// An ignored top-level folder at least this big, and not in `heavy`, is reported as not covered.
+export const UNCOVERED_FOLDER_BYTES = 50 * 1024 * 1024;
+const UNCOVERED_SIZE_BUDGET_MS = 2000;
+const ENV_FILE_PATTERNS = ['.env', '.env.*', '*/.env', '*/.env.*'];
+// ai1's own folders and the worktrees are never the recipe's business.
+const NEVER_UNCOVERED_PATHS = ['.ai1', '.claude'];
 
 export function loadRecipeOrFail(mainRoot) {
   const loadedRecipe = loadRecipe(mainRoot);
@@ -76,6 +82,30 @@ export function listFilesToCopy(mainRoot, copyPatterns, skippedPaths) {
     }
   }
   return filesToCopy;
+}
+
+// What the recipe leaves out that the worktree may need: ignored env files not copied, and ignored
+// top-level folders of UNCOVERED_FOLDER_BYTES or more that are not heavy entries (neither copied nor
+// regenerated). Sizes share a time budget; a folder not reached in it is skipped, never guessed.
+export function listUncoveredPaths(mainRoot, { coveredPaths, filesToCopy }) {
+  const isCovered = (repoPath) => [...coveredPaths, ...NEVER_UNCOVERED_PATHS].some((coveredPath) => repoPath === coveredPath || repoPath.startsWith(`${coveredPath}/`));
+  const copiedFiles = new Set(filesToCopy);
+  const uncoveredPaths = [];
+  const envFiles = (tryGit(mainRoot, ['ls-files', '--others', '--ignored', '--exclude-standard', '--', ...ENV_FILE_PATTERNS.map((envPattern) => `:(glob)${envPattern}`)]) || '')
+    .split('\n').filter(Boolean).map(normalizeRepoPath);
+  for (const envFile of envFiles) {
+    if (!copiedFiles.has(envFile) && !isCovered(envFile)) uncoveredPaths.push({ path: envFile, reason: 'ignored env file, not copied' });
+  }
+  const ignoredEntries = (tryGit(mainRoot, ['ls-files', '--others', '--ignored', '--exclude-standard', '--directory']) || '').split('\n').filter(Boolean);
+  const deadlineMs = Date.now() + UNCOVERED_SIZE_BUDGET_MS;
+  for (const ignoredEntry of ignoredEntries) {
+    const entryPath = normalizeRepoPath(ignoredEntry);
+    if (!ignoredEntry.endsWith('/') || entryPath.includes('/') || isCovered(entryPath)) continue;
+    if (measurePathBytesUpTo(join(mainRoot, entryPath), UNCOVERED_FOLDER_BYTES, deadlineMs) >= UNCOVERED_FOLDER_BYTES) {
+      uncoveredPaths.push({ path: entryPath, reason: `ignored folder of ${UNCOVERED_FOLDER_BYTES / 1024 / 1024} MB or more, neither copied nor regenerated` });
+    }
+  }
+  return uncoveredPaths;
 }
 
 // Sum of the blob sizes of a commit: what a full checkout writes for tracked files.
@@ -232,11 +262,13 @@ export function createWorktree(startDirectory, worktreeName, options = {}) {
       last_run: null,
     };
     writeWorktreeState(commonDirectory, worktreeState);
+    const uncoveredPaths = listUncoveredPaths(mainRoot, { coveredPaths: [locationPath, ...heavyPaths], filesToCopy });
     const shareOnTrackedWarnings = heavyEntries.filter((heavyEntry) => heavyEntry.isTracked && heavyEntry.strategy === 'share')
       .map((heavyEntry) => `${heavyEntry.path} is tracked: share works only for ignored paths, so it is excluded instead`);
     return {
       ...worktreeState,
       size_bytes: measurePathBytes(worktreePath),
+      uncovered: uncoveredPaths,
       warnings: [...warnings, ...baseWarnings, ...shareOnTrackedWarnings],
     };
   } catch (creationError) {

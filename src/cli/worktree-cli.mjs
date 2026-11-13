@@ -7,6 +7,7 @@
 // Every command takes --json. Runs from anywhere inside the repo or one of its worktrees.
 
 import { createWorktree } from '../worktrees/worktree-create.mjs';
+import { RECIPE_GAP_HINT, RECIPE_STEP_COMMANDS } from '../worktrees/worktree-recipe.mjs';
 import { listWorktrees, runWorktreeCommand, dropWorktree } from '../worktrees/worktree-ops.mjs';
 import { finishWorktree } from '../worktrees/worktree-finish.mjs';
 import { formatBytes } from '../worktrees/worktree-disk.mjs';
@@ -24,6 +25,7 @@ function describeCreated(created) {
     ...(created.setup_commands.length ? [`next: ai1 worktree run ${created.name} setup  (${created.setup_commands.join(' && ')})`] : []),
     `enter it: EnterWorktree with path ${created.path} (or work with absolute paths under it)`,
     ...created.warnings.map((warningText) => `warning: ${warningText}`),
+    ...(created.uncovered.length ? [`not covered by the recipe: ${created.uncovered.map((uncoveredPath) => `${uncoveredPath.path} (${uncoveredPath.reason})`).join(', ')}`, RECIPE_GAP_HINT] : []),
   ].join('\n');
 }
 
@@ -64,7 +66,7 @@ export function runWorktreeCli(workingDirectory, commandArguments) {
     const extraArguments = restArguments.slice(commandIndex + 1).filter((argumentText) => argumentText !== '--json');
     const runResult = runWorktreeCommand(workingDirectory, worktreeName, commandName, { extraArguments });
     return {
-      output: wantsJson ? JSON.stringify(runResult) : (runResult.exitCode === 0 ? `ai1: ${commandName} passed in ${worktreeName}` : `ai1: \`${runResult.failedCommand}\` failed (exit ${runResult.exitCode}) in ${worktreeName}`),
+      output: wantsJson ? JSON.stringify(runResult) : (runResult.exitCode === 0 ? `ai1: ${commandName} passed in ${worktreeName}` : `ai1: \`${runResult.failedCommand}\` failed (exit ${runResult.exitCode}) in ${worktreeName}${RECIPE_STEP_COMMANDS.includes(commandName) ? `\n${RECIPE_GAP_HINT}` : ''}`),
       exitCode: runResult.exitCode,
     };
   }

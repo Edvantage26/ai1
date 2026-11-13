@@ -17,6 +17,33 @@ export function measurePathBytes(targetPath) {
   return totalBytes;
 }
 
+// Like measurePathBytes, but stops once it reaches capBytes or the deadline (Date.now() ms): enough to
+// tell whether a folder is heavy without walking all of a large node_modules.
+export function measurePathBytesUpTo(targetPath, capBytes, deadlineMs) {
+  let totalBytes = 0;
+  const pendingPaths = [targetPath];
+  while (pendingPaths.length && totalBytes < capBytes && Date.now() < deadlineMs) {
+    const currentPath = pendingPaths.pop();
+    let pathStats;
+    try {
+      pathStats = lstatSync(currentPath);
+    } catch {
+      continue;
+    }
+    if (pathStats.isSymbolicLink()) continue;
+    if (!pathStats.isDirectory()) {
+      totalBytes += pathStats.size;
+      continue;
+    }
+    try {
+      for (const entryName of readdirSync(currentPath)) pendingPaths.push(join(currentPath, entryName));
+    } catch {
+      continue;
+    }
+  }
+  return totalBytes;
+}
+
 // { freeBytes, totalBytes } of the volume holding `targetPath` (or its nearest existing parent),
 // or null when the platform cannot tell.
 export function readDiskSpace(targetPath) {
