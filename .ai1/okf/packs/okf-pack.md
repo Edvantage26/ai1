@@ -5,7 +5,7 @@ description: The OKF skills, agents and scripts, imported from okf-skills and ma
 tags: [okf, toolkit, third-party]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T07:24:06Z'
+  at: '2026-11-13T13:06:58Z'
 sources:
   - id: upstream
     resource: https://github.com/scaccogatto/okf-skills
@@ -28,5 +28,14 @@ Attribution in `THIRD-PARTY.md` and `licenses/`.
   find at the repo root (`parents[3]` of the script). No `uv`, `pip` or network.
 - **Tests:** `test/okf-toolkit/` (validator and backfill events, with fixtures) runs inside
   `npm test` with `python3 -S`, so only the vendored PyYAML is used.
+- **Usage (measured 2026-11-13 on the maintainer's machine):** the validator is the only heavily used
+  piece (~1,050 runs in ~100 sessions, plus the hook and `worktree finish` runs, which transcripts do
+  not show); `--migrate` and `okf_init.py` a handful of times; `okf_visualize.py` once; the backfill
+  script and its two agents never ran (every hit was moving or adapting their code). The backfill
+  script does not import PyYAML (only `git log` and transcript JSON), so `vendor/yaml` is needed only
+  by the validator, init and visualize. Context for porting the toolkit to Node.
+- **Measuring usage:** scan `~/.claude/projects/**/*.jsonl` for `tool_use` entries (`Bash` commands
+  that run a `python3 ... okf_*.py` script, `Skill`, `Agent`) grouped by project; a plain grep
+  overcounts, because skill listings and edits of the scripts mention the names too.
 - **Left out on import:** upstream benchmarks, docs site, examples, MCP server, GitHub Action, its
   dormant Stop hook, CI and its own bundle. Upstream changes are no longer pulled; port by hand if needed.
