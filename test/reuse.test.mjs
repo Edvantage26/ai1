@@ -144,3 +144,16 @@ test('reuse-brief: look up past work before redoing it, how to propose, only thi
   const offRepo = createTemporaryProject({ version: 1, features: { reuse: false } });
   assert.doesNotMatch(startSession(offRepo, 'startup')?.hookSpecificOutput?.additionalContext || '', /Reuse:/);
 });
+
+test('/ai1:reuse-encapsulate picks the container from its table, completes before creating, and is customizable [reuse:S5]', async () => {
+  const { SKILL_CUSTOMIZATION_INDEX } = await import('../src/core/skill-customization-index.mjs');
+  const skillText = readFileSync(fileURLToPath(new URL('../skills/reuse-encapsulate/SKILL.md', import.meta.url)), 'utf8');
+  assert.match(skillText, /^name: reuse-encapsulate$/m);
+  for (const container of ['A guard rule', 'A hook in `.claude/settings.json`', 'A script in the repo', 'A project skill', 'An MCP server entry in `.mcp.json`', '**Complete it**', '**Merge or restructure**']) {
+    assert.ok(skillText.includes(container), `container row: ${container}`);
+  }
+  assert.match(skillText, /Run `ai1 reuse search/);
+  assert.match(skillText, /Never use other repos' sessions/);
+  assert.match(skillText, /## Fixed rules/);
+  assert.deepEqual(SKILL_CUSTOMIZATION_INDEX['reuse-encapsulate'], { customizable: true, scopes: ['project', 'user'] });
+});
