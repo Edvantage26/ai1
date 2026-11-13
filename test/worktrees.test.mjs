@@ -87,13 +87,13 @@ test('recipe: invalid recipes are reported with a readable reason', () => {
 
 test('recipe: load merges defaults and warns about unknown and planned fields', () => {
   const repoRoot = createTemporaryProject();
-  assert.equal(loadRecipe(repoRoot).status, 'missing');
+  assert.equal(loadRecipe(repoRoot).status, 'basic');
   mkdirSync(join(repoRoot, '.claude', 'skills', 'worktree'), { recursive: true });
   writeFileSync(join(repoRoot, RECIPE_RELATIVE_PATH), '{ nope');
   assert.equal(loadRecipe(repoRoot).status, 'invalid');
   writeFileSync(join(repoRoot, RECIPE_RELATIVE_PATH), JSON.stringify({ copy: ['.env'], finish: { strategy: 'merge' }, caches: [], teleport: 1 }));
   const loadedRecipe = loadRecipe(repoRoot);
-  assert.equal(loadedRecipe.status, 'ok');
+  assert.equal(loadedRecipe.status, 'overlay');
   assert.deepEqual(loadedRecipe.recipe.copy, ['.env']);
   assert.equal(loadedRecipe.recipe.branch_prefix, 'wt/');
   assert.deepEqual(loadedRecipe.recipe.finish, { strategy: 'merge', allow_merge: true, dirty_base_paths_ok: [] });
@@ -327,10 +327,13 @@ function hookOptions(mainRoot) {
 
 const contextOf = (hookOutput) => hookOutput?.hookSpecificOutput?.additionalContext ?? '';
 
-test('worktree-brief: points to /ai1:worktrees-plan-recipe without a recipe, gives the rules with one, names the session worktree', () => {
+test('worktree-brief: gives the rules with the basic recipe or an overlay, says how to complete the overlay, names the session worktree', () => {
   const bareRoot = createTemporaryProject({ features: { okf: false, worktrees: true } });
   runGit(bareRoot, ['init', '-q']);
-  assert.match(contextOf(runHookEvent('SessionStart', { session_id: 's', cwd: bareRoot, source: 'startup' }, hookOptions(bareRoot))), /no worktree recipe[\s\S]*\/ai1:worktrees-plan-recipe/);
+  const bareContext = contextOf(runHookEvent('SessionStart', { session_id: 's', cwd: bareRoot, source: 'startup' }, hookOptions(bareRoot)));
+  assert.match(bareContext, /Worktrees: any change to the files of this repo happens in a worktree/, 'no recipe file needed');
+  assert.match(bareContext, /ai1 works it out from the repo[\s\S]*add the fix there yourself \(only the fields that differ[\s\S]*say it in one line; propose it first when it would share a folder that holds state or delete data/);
+  assert.doesNotMatch(bareContext, /no worktree recipe/);
   const mainRoot = createRecipeRepo();
   mkdirSync(join(mainRoot, '.ai1'), { recursive: true });
   writeFileSync(join(mainRoot, '.ai1', 'config.json'), JSON.stringify({ features: { okf: false, worktrees: true, sizing: true } }));
@@ -343,6 +346,51 @@ test('worktree-brief: points to /ai1:worktrees-plan-recipe without a recipe, giv
   const created = createWorktree(mainRoot, 'brief', { mode: 'light' });
   const worktreeContext = contextOf(runHookEvent('SessionStart', { session_id: 's2', cwd: created.path, source: 'startup' }, options));
   assert.match(worktreeContext, new RegExp(`This session works in worktree \`brief\` \\(${created.path}; branch \`wt/brief\`, mode light, port ${created.port}\\)`));
+});
+
+// A Node repo with no recipe file: package-lock.json, an ignored .env (and one in frontend/), verify `npm test`.
+function createNodeRepoWithoutRecipe() {
+  const mainRoot = realpathSync(mkdtempSync(join(tmpdir(), 'ai1-wt-basic-')));
+  mkdirSync(join(mainRoot, '.ai1'));
+  writeFileSync(join(mainRoot, '.ai1', 'config.json'), JSON.stringify({ version: 2, verify: ['npm test'] }));
+  writeFileSync(join(mainRoot, '.gitignore'), '.env\nnode_modules/\n.claude/worktrees/\n');
+  writeFileSync(join(mainRoot, 'package.json'), '{"scripts":{"test":"node --test"}}\n');
+  writeFileSync(join(mainRoot, 'package-lock.json'), '{}\n');
+  mkdirSync(join(mainRoot, 'frontend'));
+  writeFileSync(join(mainRoot, 'frontend', 'app.js'), 'x\n');
+  runGit(mainRoot, ['init', '-q', '-b', 'main']);
+  runGit(mainRoot, ['add', '.']);
+  runGit(mainRoot, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'init']);
+  writeFileSync(join(mainRoot, '.env'), 'API=1\n');
+  writeFileSync(join(mainRoot, 'frontend', '.env'), 'VITE=1\n');
+  mkdirSync(join(mainRoot, 'node_modules', 'left-pad'), { recursive: true });
+  writeFileSync(join(mainRoot, 'node_modules', 'left-pad', 'index.js'), 'module.exports = 1;\n');
+  return mainRoot;
+}
+
+test('basic recipe: with no recipe file, create works from the trunk, copies ignored .env files, regenerates node_modules with npm ci, and pre-finish runs verify [all-on-by-default:S4]', () => {
+  const mainRoot = createNodeRepoWithoutRecipe();
+  runGit(mainRoot, ['checkout', '-q', '-b', 'side']);
+  const loadedRecipe = loadRecipe(mainRoot);
+  assert.equal(loadedRecipe.status, 'basic');
+  assert.deepEqual(loadedRecipe.recipe.heavy, [{ path: 'node_modules', strategy: 'regenerate', command: 'npm ci' }]);
+  assert.deepEqual(loadedRecipe.recipe.commands, { 'pre-finish': ['npm test'] });
+  const created = createWorktree(mainRoot, 'x', { mode: 'light' });
+  assert.equal(created.base, 'main', 'the trunk, not the branch the main checkout is on');
+  assert.equal(readFileSync(join(created.path, '.env'), 'utf8'), 'API=1\n');
+  assert.equal(readFileSync(join(created.path, 'frontend', '.env'), 'utf8'), 'VITE=1\n');
+  assert.ok(!existsSync(join(created.path, 'node_modules')));
+  assert.deepEqual(created.setup_commands, ['npm ci']);
+  const executedCommands = [];
+  runWorktreeCommand(mainRoot, 'x', 'pre-finish', { runCommand: (commandText) => { executedCommands.push(commandText); return 0; } });
+  assert.deepEqual(executedCommands, ['npm test']);
+
+  mkdirSync(join(mainRoot, '.claude', 'skills', 'worktree'), { recursive: true });
+  writeFileSync(join(mainRoot, RECIPE_RELATIVE_PATH), JSON.stringify({ port: { env_file: '.env', variables: ['PORT'] } }));
+  const overlaidRecipe = loadRecipe(mainRoot);
+  assert.equal(overlaidRecipe.status, 'overlay');
+  assert.deepEqual(overlaidRecipe.recipe.port, { env_file: '.env', variables: ['PORT'] });
+  assert.deepEqual(overlaidRecipe.recipe.setup, ['npm ci'], 'fields the overlay does not set come from the basic recipe');
 });
 
 test('worktree-reminder: on change and every N prompts, marking this session, then once when none are left', () => {

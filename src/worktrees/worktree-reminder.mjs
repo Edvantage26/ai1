@@ -26,7 +26,7 @@ export default {
   description: 'Reminds the active worktrees when they change and every few prompts, marking the one this session works in.',
   run({ hookInput, projectRoot, sharedRoot = projectRoot, environment }) {
     const loadedRecipe = loadRecipe(sharedRoot);
-    if (loadedRecipe.status !== 'ok') return allowDecision();
+    if (loadedRecipe.status === 'invalid') return allowDecision();
     const commonDirectory = readGitDirectories(sharedRoot)?.commonDirectory;
     if (!commonDirectory) return allowDecision();
     const worktreeStates = listWorktreeStates(commonDirectory);

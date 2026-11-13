@@ -20,7 +20,6 @@ const WORKTREE_INCLUDE_FILE = '.worktreeinclude';
 
 export function loadRecipeOrFail(mainRoot) {
   const loadedRecipe = loadRecipe(mainRoot);
-  if (loadedRecipe.status === 'missing') throw new Error(`no worktree recipe at ${loadedRecipe.recipePath}: plan one with /ai1:worktrees-plan-recipe`);
   if (loadedRecipe.status === 'invalid') throw new Error(`invalid ${loadedRecipe.recipePath}: ${loadedRecipe.errors.join('; ')}`);
   return loadedRecipe;
 }
