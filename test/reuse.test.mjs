@@ -1,12 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createTemporaryProject } from './helpers.mjs';
 import { claudeProjectFolderName } from '../src/core/project-paths.mjs';
+import { runHookEvent } from '../src/core/dispatcher.mjs';
 
 const AI1_BIN = fileURLToPath(new URL('../bin/ai1', import.meta.url));
 
@@ -75,4 +76,58 @@ test('reuse dismiss keeps a declined proposal in .ai1/reuse.json and search repo
   assert.match(runReuse(repoRoot, homeDirectory, ['search', 'logging backend']), /dismissed: o2-setup - one-off migration \(\d{4}-\d\d-\d\d\); do not propose it again/);
   assert.doesNotMatch(runReuse(repoRoot, homeDirectory, ['search', 'deploy button']), /dismissed/);
   assert.throws(() => runReuse(repoRoot, homeDirectory, ['dismiss', 'no-keywords', 'why']), (commandError) => commandError.status === 1 && /usage: ai1 reuse/.test(commandError.stdout));
+});
+
+function hookOptions() {
+  return {
+    environment: { CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'ai1-data-')) },
+    homeDirectory: mkdtempSync(join(tmpdir(), 'ai1-home-')),
+    reportInternalError: (errorMessage) => { throw new Error(errorMessage); },
+  };
+}
+
+function appendToolCalls(transcriptPath, callCount) {
+  const transcriptLines = Array.from({ length: callCount }, (unused, callIndex) => JSON.stringify({ type: 'assistant', timestamp: '2026-11-13T10:00:00Z', message: { content: [{ type: 'tool_use', id: `tool-${Math.random()}-${callIndex}`, name: 'Bash', input: { command: 'ls' } }] } }));
+  appendFileSync(transcriptPath, `${transcriptLines.join('\n')}\n`);
+}
+
+const stopTurn = (repoRoot, options, transcriptPath) => runHookEvent('Stop', { session_id: 'session-1', cwd: repoRoot, transcript_path: transcriptPath }, options);
+
+test('reuse-check asks once after 8 tool calls since the last check, again after 8 more, at most twice [reuse:S1]', () => {
+  const repoRoot = createReuseRepo();
+  const options = hookOptions();
+  const transcriptPath = join(options.homeDirectory, 'transcript.jsonl');
+  appendToolCalls(transcriptPath, 5);
+  assert.equal(stopTurn(repoRoot, options, transcriptPath), null, '5 calls: not yet');
+  appendToolCalls(transcriptPath, 3);
+  const firstCheck = stopTurn(repoRoot, options, transcriptPath);
+  assert.equal(firstCheck.decision, 'block');
+  assert.match(firstCheck.reason, /^ai1\/reuse-check: Reuse: this task took 8 tool calls\. In one line, judge whether this kind of work will be asked again in this repo/);
+  assert.match(firstCheck.reason, /run `ai1 reuse search "<3-5 keywords>"`/);
+  assert.match(firstCheck.reason, /A yes means you load \/ai1:reuse-encapsulate; a no means `ai1 reuse dismiss/);
+  assert.equal(stopTurn(repoRoot, options, transcriptPath), null, 'silent right after a check');
+  appendToolCalls(transcriptPath, 8);
+  assert.match(stopTurn(repoRoot, options, transcriptPath).reason, /took 8 tool calls/);
+  appendToolCalls(transcriptPath, 20);
+  assert.equal(stopTurn(repoRoot, options, transcriptPath), null, 'at most twice per session');
+});
+
+test('reuse-check is silent under the threshold, with the feature off, and honours minToolCalls [reuse:S2]', () => {
+  const quietRepo = createReuseRepo();
+  const quietOptions = hookOptions();
+  const quietTranscript = join(quietOptions.homeDirectory, 'transcript.jsonl');
+  appendToolCalls(quietTranscript, 7);
+  assert.equal(stopTurn(quietRepo, quietOptions, quietTranscript), null);
+
+  const offRepo = createTemporaryProject({ version: 1, features: { reuse: false } });
+  const offOptions = hookOptions();
+  const offTranscript = join(offOptions.homeDirectory, 'transcript.jsonl');
+  appendToolCalls(offTranscript, 30);
+  assert.equal(stopTurn(offRepo, offOptions, offTranscript), null);
+
+  const tunedRepo = createTemporaryProject({ version: 1, features: { reuse: true }, modules: { 'reuse-check': { minToolCalls: 3 } } });
+  const tunedOptions = hookOptions();
+  const tunedTranscript = join(tunedOptions.homeDirectory, 'transcript.jsonl');
+  appendToolCalls(tunedTranscript, 3);
+  assert.equal(stopTurn(tunedRepo, tunedOptions, tunedTranscript).decision, 'block');
 });

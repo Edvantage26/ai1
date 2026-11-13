@@ -656,6 +656,28 @@
             }
           ]
         },
+        "reuse-check": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "minToolCalls": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "default": 8,
+                  "description": "Tool calls since the last reuse check before the agent is asked whether the work will recur."
+                }
+              }
+            }
+          ]
+        },
         "later-brief": {
           "oneOf": [
             {
