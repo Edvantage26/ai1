@@ -1,6 +1,6 @@
 ---
 name: core-report-issue
-description: Core — Report a problem with ai1 itself (a hook that blocks or misfires, a wrong message, a skill or `ai1` command that fails, a missing feature) as an issue on the public Edvantage26/ai1 repository - gathers the versions and features, writes a minimal reproduction with nothing private in it, checks for duplicates, and creates it only after the person approves the exact text. Use when the person says "esto de ai1 va mal", "reporta un bug del plugin", "abre un issue en ai1", "report this to ai1", "file a bug against the harness", or when ai1 behaves wrongly and they want the maintainers to know.
+description: Core — Report a problem with ai1 itself (a hook that blocks or misfires, a skill or `ai1` command that fails, a missing feature) as an issue on the public Edvantage26/ai1 repository. Use when the person says "esto de ai1 va mal", "reporta un bug del plugin", "abre un issue en ai1", "report this to ai1", "file a bug against the harness", or when ai1 behaves wrongly and they want the maintainers to know.
 ---
 
 # Report an issue on ai1

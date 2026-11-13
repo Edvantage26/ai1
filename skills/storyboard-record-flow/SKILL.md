@@ -1,10 +1,8 @@
 ---
 name: storyboard-record-flow
 description: >-
-  Storyboard — Record the user flow of a visual change as a storyboard the person reviews without
-  running the app: numbered steps in the user's words, desktop and mobile screenshots with what is
-  clicked highlighted, before vs after, an HTML served at a local URL and a PDF, kept in
-  .ai1/storyboards/. Use after changing UI (screens, forms, navigation, styles) and checking it in a
+  Storyboard — Record the user flow of a visual change as a storyboard (steps and screenshots,
+  before vs after) the person reviews without running the app. Use after changing UI (screens, forms, navigation, styles) and checking it in a
   browser, when ai1/storyboard-reminder asks for it, or when the person says "enséñame el flujo",
   "haz capturas del flujo", "quiero ver cómo queda", "documenta el flujo visualmente", "show me the
   flow", "record a storyboard", "record a walkthrough", "before and after screenshots".

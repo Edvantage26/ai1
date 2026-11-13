@@ -1,6 +1,6 @@
 ---
 name: danger-write-rule
-description: Danger — Turn a project rule into a guard rule in .ai1/config.json (`rules`), so a command or edit that breaks it is asked about or refused instead of relying on the agent remembering a CLAUDE.md line. Use when the person corrects the agent and wants it never to happen again ("no vuelvas a hacer X", "que esto no pase más", "bloquea X", "prohíbe X en este repo", "never do X again", "block X here"), or asks to turn a CLAUDE.md rule into a guard.
+description: Danger — Turn a project rule into a guard rule that asks about or refuses a command or edit breaking it. Use when the person corrects the agent and wants it never to happen again ("no vuelvas a hacer X", "que esto no pase más", "bloquea X", "prohíbe X en este repo", "never do X again", "block X here"), or asks to turn a CLAUDE.md rule into a guard.
 ---
 
 # Write a repo rule

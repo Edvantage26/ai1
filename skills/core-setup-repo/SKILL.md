@@ -1,6 +1,6 @@
 ---
 name: core-setup-repo
-description: Core — Set up ai1 in the current repository — read the project and propose a configuration (which features and why, verify commands, plugins that overlap), let the person adjust it, write .ai1/config.json and .claude/settings.json so ai1 runs for everyone who opens the repo, then walk through each enabled feature's own setup (worktree recipe, design context, knowledge bundle). Use when the person says "set up ai1 here", "configure the harness", "enable/disable an ai1 feature", "activa ai1 en este repo", or when a session reports that ai1 is installed but inactive.
+description: Core — Set up ai1 in the current repository, or change which features it has enabled. Use when the person says "set up ai1 here", "configure the harness", "enable/disable an ai1 feature", "activa ai1 en este repo", or when a session reports that ai1 is installed but inactive.
 allowed-tools: Bash("${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context *)
 ---
 

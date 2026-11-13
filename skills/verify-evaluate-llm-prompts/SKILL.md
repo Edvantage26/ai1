@@ -1,6 +1,6 @@
 ---
 name: verify-evaluate-llm-prompts
-description: Verify — Evaluate and improve an LLM step (extraction, classification, judge, verifier) with evidence before blaming the model - start simple; if it fails, find the cause of each failure, then compare models or prompts as a tournament. Use when writing, iterating or comparing prompts or models, when someone says "el modelo falla", "el LLM se equivoca", "prueba otro modelo", "compara modelos", "mejora el prompt", "el juez no es fiable", "why does the model fail", "try a better model", "compare models", "improve this prompt", or when a bigger model is proposed to fix errors.
+description: Verify — Evaluate and improve an LLM step (extraction, classification, judge, verifier) with evidence before blaming the model. Use when writing, iterating or comparing prompts or models, when someone says "el modelo falla", "el LLM se equivoca", "prueba otro modelo", "compara modelos", "mejora el prompt", "el juez no es fiable", "why does the model fail", "try a better model", "compare models", "improve this prompt", or when a bigger model is proposed to fix errors.
 allowed-tools: Bash("${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context *)
 ---
 

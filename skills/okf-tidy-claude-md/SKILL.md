@@ -1,10 +1,8 @@
 ---
 name: okf-tidy-claude-md
 description: >-
-  OKF — Tidy the repo's CLAUDE.md against its OKF bundle: find the knowledge piled up in CLAUDE.md
-  (architecture, setup, decisions, references that no longer exist), propose a short CLAUDE.md that
-  keeps only what the agent needs every session plus a pointer to the bundle, and move the rest into
-  concepts - after the person approves. Use when a session says "CLAUDE.md drifts from the bundle",
+  OKF — Tidy the repo's CLAUDE.md against its OKF bundle: keep only what the agent needs every
+  session and move the rest of its knowledge into concepts. Use when a session says "CLAUDE.md drifts from the bundle",
   or the person says "ordena/refactoriza el CLAUDE.md", "pasa el CLAUDE.md al okf", "el CLAUDE.md
   está desfasado", "tidy CLAUDE.md", "move CLAUDE.md into the bundle".
 user-invocable: true

@@ -1,12 +1,10 @@
 ---
 name: okf-maintain-knowledge
 description: >-
-  OKF — Author, maintain, and consume Open Knowledge Format (OKF) knowledge bundles —
-  portable markdown + YAML frontmatter that both humans and agents read. Use when
-  capturing project knowledge (services, APIs, schemas, metrics, runbooks,
-  decisions) into an OKF bundle, when updating one after code or docs change, or
-  when a repository contains an `.okf/` (or other OKF) bundle that should inform
-  the task. Triggers on: "document this in OKF", "update the knowledge bundle",
+  OKF — Author, maintain, and consume Open Knowledge Format (OKF) knowledge bundles. Use when
+  capturing project knowledge (services, APIs, schemas, decisions) into an OKF bundle, when
+  updating one after code or docs change, or when a repository's OKF bundle should inform the
+  task. Triggers on: "document this in OKF", "update the knowledge bundle",
   "capture this as a concept", or any work in a repo that has an OKF bundle.
 user-invocable: true
 argument-hint: "[produce|maintain|consume] [path]"

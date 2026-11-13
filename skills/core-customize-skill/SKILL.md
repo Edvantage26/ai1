@@ -1,6 +1,6 @@
 ---
 name: core-customize-skill
-description: Core — Customize how an ai1 skill works for this project (committed in .ai1/skills/<feature>/overlay.md) or only for the person (~/.config/ai1/skills/<feature>/overlay.md, or a plugin option in /config) - after the person approves the exact text. Use when the person corrects or adjusts how an ai1 skill works and wants it kept ("aquí siempre…", "en este repo los briefs…", "para mí, abre los forks en Paseo", "personaliza la skill de later", "customize this skill", "from now on in this repo…"), or when a skill's customization footer offers it and they say yes.
+description: Core — Customize how an ai1 skill works for this project or only for the person. Use when the person corrects or adjusts how an ai1 skill works and wants it kept ("aquí siempre…", "en este repo los briefs…", "para mí, abre los forks en Paseo", "personaliza la skill de later", "customize this skill", "from now on in this repo…"), or when a skill's customization footer offers it and they say yes.
 ---
 
 # Customize an ai1 skill
