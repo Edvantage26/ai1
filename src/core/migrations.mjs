@@ -17,6 +17,7 @@ import { listMarkdownFiles } from './markdown-files.mjs';
 import { SKILL_OVERLAYS_DIRECTORY, userConfigDirectory } from './skill-customization.mjs';
 import { ensureWorkDirectoryIgnored } from '../sizing/sizing-work.mjs';
 import { resolveProjectRoots } from './project-roots.mjs';
+import { applySkillVisibility } from './skill-visibility.mjs';
 
 const LEDGER_FILE_NAME = 'migrations.json';
 export const REPO_LEDGER_RELATIVE_PATH = `${WORK_DIRECTORY}/${LEDGER_FILE_NAME}`;
@@ -171,7 +172,28 @@ const walkthroughToStoryboard = {
   },
 };
 
-export const MIGRATIONS = [lanesToSizing, walkthroughToStoryboard];
+// v0.34.0: the skills of disabled features leave the agent's skill list (`skillOverrides` in the
+// committed .claude/settings.json, see src/core/skill-visibility.mjs); `ai1 init` keeps it in step.
+const skillVisibility = {
+  number: 3,
+  id: 'skill-visibility',
+  summary: 'ai1 v0.34.0 hides from the agent the skills of the features this repo has off',
+  migrateRepo(repoRoot, migrationReport) {
+    const repoConfig = readJsonFileIfValid(join(repoRoot, CONFIG_RELATIVE_PATH));
+    if (!repoConfig || typeof repoConfig !== 'object') return;
+    const settingsRelativePath = '.claude/settings.json';
+    const settingsPath = join(repoRoot, settingsRelativePath);
+    const projectSettings = readJsonFileIfValid(settingsPath);
+    if (!projectSettings || typeof projectSettings !== 'object') return;
+    const updatedSettings = applySkillVisibility(projectSettings, repoConfig);
+    if (JSON.stringify(updatedSettings) === JSON.stringify(projectSettings)) return;
+    writeJsonFile(settingsPath, updatedSettings);
+    migrationReport.changed.push(settingsRelativePath);
+  },
+  migrateUser() {},
+};
+
+export const MIGRATIONS = [lanesToSizing, walkthroughToStoryboard, skillVisibility];
 export const LATEST_MIGRATION_NUMBER = MIGRATIONS.at(-1).number;
 
 function readLedgerNumber(ledgerPath) {

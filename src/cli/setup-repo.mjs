@@ -1,5 +1,6 @@
 // Writes the per-repo harness: .ai1/config.json (features and contract) and
-// .claude/settings.json (enables ai1 for whoever opens the repo). Both files are merged with what
+// .claude/settings.json (enables ai1 for whoever opens the repo, and hides from the agent the skills
+// of disabled features, src/core/skill-visibility.mjs). Both files are merged with what
 // already exists, so running it again only changes what the person chose.
 // Overrides that only make sense on this machine (switching off plugins of the person that overlap
 // with ai1, see src/core/plugin-overlaps.mjs) go to .claude/settings.local.json, personal and kept out of git.
@@ -21,6 +22,7 @@ import { migrateLegacyLayout } from './legacy-migration.mjs';
 import { readEnabledPlugins, findOverlappingPlugins, localSettingsPathFor } from '../core/plugin-overlaps.mjs';
 import { recommendFeatures } from './feature-recommendations.mjs';
 import { planLegacyMigration, readLegacyConfig } from '../core/legacy-layout.mjs';
+import { applySkillVisibility } from '../core/skill-visibility.mjs';
 
 export const AI1_MARKETPLACE = { source: { source: 'github', repo: 'Edvantage26/ai1' } };
 
@@ -148,7 +150,7 @@ export function setupRepo(repoRoot, { enabledFeatureIds, verifyCommands, disable
   writeJsonFile(ai1ConfigPath, ai1Config);
 
   const settingsPath = join(claudeDirectory, 'settings.json');
-  const projectSettings = readJsonFile(settingsPath) || {};
+  const projectSettings = applySkillVisibility(readJsonFile(settingsPath) || {}, ai1Config);
   projectSettings.extraKnownMarketplaces = { ...projectSettings.extraKnownMarketplaces, ai1: AI1_MARKETPLACE };
   projectSettings.enabledPlugins = { ...projectSettings.enabledPlugins, [AI1_PLUGIN_ID]: true };
   const existingDenyRules = projectSettings.permissions?.deny || [];

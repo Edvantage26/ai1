@@ -5,7 +5,7 @@ description: Sets up ai1 in a repo - asks the features, writes .ai1/config.json 
 tags: [init, cli, setup]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-11T07:38:33Z'
+  at: '2026-11-13T10:22:33Z'
 sources:
   - id: setup-repo
     resource: src/cli/setup-repo.mjs
@@ -38,7 +38,9 @@ sources:
     `modules` are kept, the retired `knowledge` is removed (its bundle moved to `.ai1/okf/` first).
     The result is validated before writing.
   - `.claude/settings.json`: `extraKnownMarketplaces.ai1` (github `Edvantage26/ai1`) and
-    `enabledPlugins["ai1@ai1"] = true`. Shared and committed. With `--deny-credentials` (since
+    `enabledPlugins["ai1@ai1"] = true`. Shared and committed. Since v0.34.0 also `skillOverrides`:
+    the skills of the features left off are `user-invocable-only`, hidden from the agent but callable
+    by the person ([which skills the agent sees](../architecture/plugin-layout.md#which-skills-the-agent-sees)). With `--deny-credentials` (since
     2026-11-09, asked by the setup skill, recommended) it also appends `CREDENTIAL_DENY_RULES` to
     `permissions.deny`, keeping existing rules and adding none twice: `Read(**/*.pem)`,
     `Read(**/*.key)`, `Read(~/.ssh/id_*)` (not the whole folder: `~/.ssh/config` stays readable),

@@ -5,7 +5,7 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-11T09:16:28Z'
+  at: '2026-11-13T10:22:33Z'
 ---
 
 # Layout
@@ -34,6 +34,28 @@ from the OKF pack `okf-maintain-knowledge`, `okf-validate-bundle`, `okf-visualiz
 written in ai1 ([okf feature](../features/okf.md)). Claude Code
 has no nested skill names, so the module is a prefix; it names a plugin skill by its folder, so
 the folder carries the full name. Each description starts with its module.
+
+# Which skills the agent sees
+
+Claude Code lists every installed plugin skill (name and description) to the agent in every session,
+in every repo. The description is how the agent picks a skill, and each one costs context everywhere,
+so descriptions say what the skill is for and its trigger phrases; how it works lives in its body
+(trimmed 2026-11-13, from about 1,400 to 1,100 words in all). The exclusion text in `later-write`
+stays on purpose ([later](../features/later.md)).
+
+In a repo with ai1, the skills of a **disabled feature** leave the agent's list but stay callable by
+the person: `skillOverrides["ai1:<skill>"] = "user-invocable-only"` in the committed
+`.claude/settings.json` (`src/core/skill-visibility.mjs`). Skills of an always-on feature (`core-*`)
+or of no feature (`session-*`) are always listed. `ai1 init` writes it from the chosen features
+([init](../features/init.md)); migration 3 does it once in repos set up before
+([migrations](migrations.md)); the session `brief` says so when `features` was edited by hand and the
+two no longer match. ai1 touches only `ai1:` keys, removes only its own `user-invocable-only` and
+leaves a person's `off` alone. A repo without ai1 set up still lists every skill.
+
+`skillOverrides` (read in the Claude Code 2.1.319 source on 2026-11-13, not tried in a live
+session): a settings field, values `on`, `name-only` (listed without description),
+`user-invocable-only` (hidden from the model, `/name` kept), `off` (hidden from both); matched against
+the skill's full name (`ai1:later-write`) and its aliases.
 
 # What ai1 writes in a repo
 

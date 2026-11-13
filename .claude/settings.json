@@ -25,5 +25,8 @@
       "Read(~/.npmrc)",
       "Read(~/.pypirc)"
     ]
+  },
+  "skillOverrides": {
+    "ai1:storyboard-record-flow": "user-invocable-only"
   }
 }

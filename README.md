@@ -244,6 +244,10 @@ Then run `/ai1:core-setup-repo` in each repo. It commits nothing; commit `.ai1/c
 }
 ```
 
+It also hides from the agent the skills of the features you leave off (`skillOverrides`, set to
+`user-invocable-only`): you can still call them with `/ai1:<skill>`, and the agent stops paying
+context for them.
+
 Some plugins do part of ai1's job: a standalone OKF plugin (`okf@...`, the same skills listed twice),
 `jig@...` (ai1's old name, hooks twice) and Superpowers (`superpowers@...`, its session start forces
 its own planning, worktree, TDD and verification skills on every task, competing with sizing,
