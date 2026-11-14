@@ -18,6 +18,7 @@
 //   ai1 storyboard <add|note|build|serve|stop|list|clean>  the storyboard of a visual change (see src/cli/storyboard-command.mjs)
 //   ai1 okf validate <bundle-dir> [--strict | --max-warnings N] [--migrate] [--json]  check an OKF bundle (src/cli/okf-command.mjs)
 //   ai1 okf init <target-dir> [--title "..."] [--force]  scaffold a starter OKF bundle
+//   ai1 okf visualize <bundle-dir> [-o viz.html] [...]  the bundle as an interactive HTML graph
 // Run from anywhere inside the repo; files are written at the repo root.
 
 import { findRepoRoot, describeRepo, setupRepo } from '../src/cli/setup-repo.mjs';

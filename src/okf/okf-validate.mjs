@@ -97,23 +97,29 @@ function createReport() {
 
 const STRICT_UTF8_DECODER = new TextDecoder('utf-8', { fatal: true });
 
+// A bundle file as text with `\n` line endings (Python's universal newlines, as the toolkit read it).
+// Throws when it is not UTF-8.
+export function readBundleFileText(filePath) {
+  return STRICT_UTF8_DECODER.decode(readFileSync(filePath)).replace(/\r\n?/g, '\n');
+}
+
 // A file as UTF-8 text without BOM, or null after reporting it: a bad file is a per-file error.
 function readBundleText(filePath, relativePath, report) {
   try {
-    return STRICT_UTF8_DECODER.decode(readFileSync(filePath)).replace(/^\uFEFF+/, '');
+    return readBundleFileText(filePath).replace(/^\uFEFF+/, '');
   } catch (readFailure) {
     report.error(relativePath, `cannot read file: ${readFailure.message}`);
     return null;
   }
 }
 
-function isInsideDirectory(candidatePath, directoryPath) {
+export function isInsideDirectory(candidatePath, directoryPath) {
   const relativeToDirectory = relative(directoryPath, candidatePath);
   return relativeToDirectory === '' || (!relativeToDirectory.startsWith('..') && !relativeToDirectory.startsWith(sep) && !/^[a-zA-Z]:/.test(relativeToDirectory));
 }
 
 // Path.resolve() of Python: symlinks resolved for the part of the path that exists.
-function resolveExistingPrefix(targetPath) {
+export function resolveExistingPrefix(targetPath) {
   const absolutePath = resolve(targetPath);
   try {
     return realpathSync(absolutePath);
@@ -352,14 +358,17 @@ function checkLog(filePath, relativePath, report) {
   }
 }
 
-// Link targets outside fenced blocks. An unreadable file was already reported: no second error.
+// Link targets of a file outside fenced blocks. An unreadable file was already reported: no second error.
 export function collectLinkTargets(filePath) {
-  let text;
   try {
-    text = STRICT_UTF8_DECODER.decode(readFileSync(filePath));
+    return listLinkTargets(readBundleFileText(filePath));
   } catch {
     return [];
   }
+}
+
+// Markdown link targets ([text](target), not images) outside fenced blocks.
+export function listLinkTargets(text) {
   const linkTargets = [];
   let isInFence = false;
   for (const line of splitLines(text)) {
@@ -403,8 +412,9 @@ function compareRelativePaths(firstFile, secondFile) {
   return firstParts.length - secondParts.length;
 }
 
-// Every `.md` file under the bundle, sorted as Python sorted its paths (by path component).
-function listMarkdownFiles(bundleDirectory) {
+// Every `.md` file under the bundle, sorted as Python sorted its paths (by path component):
+// [{ filePath, relativePath, fileName }].
+export function listMarkdownFiles(bundleDirectory) {
   const markdownFiles = [];
   const visitDirectory = (directoryPath) => {
     for (const directoryEntry of readdirSync(directoryPath, { withFileTypes: true })) {
@@ -525,7 +535,7 @@ export function migrateOkfBundle(bundleDirectory) {
     if (fileName === 'index.md' && !isRootIndex) continue;
     let text;
     try {
-      text = STRICT_UTF8_DECODER.decode(readFileSync(filePath)).replace(/\r\n?/g, '\n');
+      text = readBundleFileText(filePath);
     } catch {
       continue;
     }

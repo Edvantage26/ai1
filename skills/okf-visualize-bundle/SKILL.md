@@ -11,17 +11,13 @@ allowed-tools: Bash Bash("${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context *)
 # Visualize an OKF bundle
 
 Generate a self-contained HTML graph of the target bundle. The bundle directory
-is required, so pass `.okf` explicitly when no path is given. No backend, no
+is required, so pass the bundle the ai1 brief names (`.ai1/okf`) when no path is given. No backend, no
 install, no bundle content leaves the page. The viewer does need network
 access: cytoscape, marked and dompurify load from cdn.jsdelivr.net.
 
 ```bash
-python3 "${CLAUDE_SKILL_DIR}/scripts/okf_visualize.py" $ARGUMENTS
+"${CLAUDE_PLUGIN_ROOT}/bin/ai1" okf visualize $ARGUMENTS
 ```
-
-Needs only `python3` 3.9+: PyYAML ships in this repo's `vendor/`. If it reports
-`No module named 'yaml'` (the skill was installed without that folder), run
-`python3 -m pip install --quiet pyyaml` once.
 
 The detail panel shows each concept's `type`, `description`, `tags`, `status`,
 `generated`, `verified`, `stale_after`, `sources` (with their credibility
