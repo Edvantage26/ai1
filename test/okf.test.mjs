@@ -605,10 +605,13 @@ test('shellCommandWritesBundle: shell writes to the bundle count, reads do not',
     "python3 - <<'EOF'\nopen('.ai1/okf/log.md','w').write('x')\nEOF",
     "node -e \"require('fs').writeFileSync('.ai1/okf/x.md','x')\"",
     'cd /repo && bash -c "echo x >> .ai1/okf/log.md"',
+    'ai1 okf validate .ai1/okf --migrate --strict',
+    '"/plugin/data/bin/ai1" okf validate .ai1/okf --strict --migrate',
   ];
   for (const commandLine of bundleWrites) assert.equal(shellCommandWritesBundle(commandLine, '.ai1/okf'), true, commandLine);
   const bundleReads = [
     'ai1 okf validate .ai1/okf --strict',
+    'ai1 okf validate .ai1/okf --json && echo "--migrate is the door"',
     'cat .ai1/okf/index.md',
     'grep -rn verify .ai1/okf/',
     'git diff --stat .ai1/okf',

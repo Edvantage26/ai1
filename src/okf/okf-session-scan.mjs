@@ -35,11 +35,15 @@ function namesBundlePath(shellWord, bundleName) {
 
 // Whether a Bash command writes to the bundle: an edit made with the shell (`cat >> .ai1/okf/x.md`,
 // `sed -i`, `tee`, `mv`, an inline python/node script naming a bundle file) counts as updating it,
-// just like Write/Edit. Reading the bundle (validator, cat, grep) never counts.
+// just like Write/Edit, and so does `ai1 okf validate --migrate`. Reading the bundle (validator,
+// cat, grep) never counts.
+const OKF_MIGRATE_PATTERN = /\bai1["']?\s+okf\s+validate\b[^;&|\n]*\s--migrate\b/;
 export function shellCommandWritesBundle(commandLine, bundleRelativePath = KNOWLEDGE_BUNDLE_PATH) {
   const bundleName = String(bundleRelativePath).replace(/^\.\//, '').replace(/\/+$/, '');
   const commandText = String(commandLine || '');
   if (!commandText.includes(bundleName)) return false;
+  // `ai1 okf validate <bundle> --migrate` rewrites the bundle in place.
+  if (OKF_MIGRATE_PATTERN.test(commandText)) return true;
   const { targetPaths, runsInlineScript } = listShellWriteTargets(commandText);
   if (targetPaths.some((targetPath) => namesBundlePath(targetPath, bundleName))) return true;
   const namesBundleFile = new RegExp(`(^|[\\s'"=/(])${bundleName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/\\S`).test(commandText);
