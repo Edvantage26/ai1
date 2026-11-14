@@ -1,5 +1,9 @@
 # Update Log
 
+## 2026-11-15
+* **Deprecation**: the OKF backfill (`/ai1:okf-backfill-from-history`, agents `bundle-weaver` and `event-analyzer`) is removed - never used, costly by upstream's measure; produce mode of `/ai1:okf-maintain-knowledge` reads the history lightly instead ([OKF toolkit](packs/okf-pack.md)).
+* **Supersession**: the OKF toolkit's Python scripts are now `ai1 okf validate`, `ai1 okf init` and `ai1 okf visualize` (Node, js-yaml vendored); ai1 no longer needs Python ([principles](decisions/principles.md)).
+
 ## 2026-11-13
 * **Creation**: [All features on by default](decisions/all-features-on.md) - every feature on unless switched off (config version 2), basic worktree recipe with the project recipe as an overlay; module `worktree-recipe-offer` retired.
 
