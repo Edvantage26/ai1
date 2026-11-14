@@ -114,9 +114,10 @@ that applies, one at a time, in this order, and do it only after a yes (the pers
 - `okf` and there is a bundle: run `ai1 claude-md`. If it reports findings, offer
   `/ai1:okf-tidy-claude-md`; when the migration listed CLAUDE.md among the files with old paths,
   make it one offer (the skill fixes those paths too).
-- `design` and the bundle has no concept of type `Product` or `DesignSystem`: capture who the
-  product is for and its tone; palette, typefaces, type scale, spacing and radii (read from the code
-  first, ask only what it does not say).
+- `design` and the bundle has no concept of type `Product` or `DesignSystem`: capture who uses the
+  product (under `## Users` of `Product`, one `### <name>` per profile: who they are, what they already
+  know, device, what they come to do; /ai1:design-review-usability reads them) and its tone; palette,
+  typefaces, type scale, spacing and radii (read from the code first, ask only what it does not say).
 
 ## 7. Close
 

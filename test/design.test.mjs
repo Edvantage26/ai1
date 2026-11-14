@@ -223,13 +223,30 @@ test('design-brief: points to the bundle concepts of type Product and DesignSyst
 test('design-brief: asks for the context when there is none, and mentions Impeccable only when installed', () => {
   const projectRoot = createFrontendProject({ features: { okf: true, design: true } });
   const contextText = startSessionContext(projectRoot);
-  assert.match(contextText, /no product or design-system context yet.*type `Product` and `DesignSystem`/);
+  assert.match(contextText, /no product or design-system context yet.*type `Product` \(.*\) and `DesignSystem`/);
   assert.doesNotMatch(contextText, /\/impeccable critique/);
 
   const homeDirectory = mkdtempSync(join(tmpdir(), 'ai1-home-'));
   mkdirSync(join(homeDirectory, '.claude', 'plugins'), { recursive: true });
   writeFileSync(join(homeDirectory, '.claude', 'plugins', 'installed_plugins.json'), JSON.stringify({ version: 2, plugins: { 'impeccable@impeccable': [] } }));
   assert.match(startSessionContext(projectRoot, hookOptions(homeDirectory)), /\/impeccable critique/);
+});
+
+test('design-brief: asks for user profiles under ## Users and names the usability review', () => {
+  const contextText = startSessionContext(createFrontendProject({ features: { okf: true, design: true } }));
+  assert.match(contextText, /type `Product` \(the people who use it under `## Users`, one `### <name>` per profile/);
+  assert.match(contextText, /\/ai1:design-review-usability, offered after a storyboard/);
+});
+
+test('design-brief: with frontend-design installed, its tokens go to the DesignSystem concept; not mentioned otherwise', () => {
+  const projectRoot = createFrontendProject({ features: { okf: true, design: true } });
+  assert.doesNotMatch(startSessionContext(projectRoot), /frontend-design/);
+  const homeDirectory = mkdtempSync(join(tmpdir(), 'ai1-home-'));
+  mkdirSync(join(homeDirectory, '.claude', 'plugins'), { recursive: true });
+  writeFileSync(join(homeDirectory, '.claude', 'plugins', 'installed_plugins.json'), JSON.stringify({ version: 2, plugins: { 'frontend-design@claude-plugins-official': [] } }));
+  const contextText = startSessionContext(projectRoot, hookOptions(homeDirectory));
+  assert.match(contextText, /frontend-design skill is installed: use it to set the visual direction[\s\S]*the `DesignSystem` concept/);
+  assert.doesNotMatch(contextText, /\/impeccable critique/, 'each installed skill is detected on its own');
 });
 
 test('design-brief: on by default but quiet in a repo without a frontend', () => {

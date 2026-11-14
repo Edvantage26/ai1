@@ -5,7 +5,7 @@ description: UI rules at session start and deterministic design checks on every 
 tags: [design, frontend, ui, hooks, context, impeccable]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-14T15:15:14Z'
+  at: '2026-11-14T15:22:51Z'
 sources:
   - id: design-rules
     resource: src/design/design-rules.mjs
@@ -34,7 +34,7 @@ tracked UI files, `repoHasFrontend`), and `design-detect` only checks UI files.
 
 | Module | Event | What it does |
 |---|---|---|
-| `design-brief` | SessionStart | Context first (lists the design context files), avoid the generic AI look, quality floor, expect design-detect. Mentions `/impeccable critique`, `audit`, `polish` only when Impeccable is installed. Skipped on `resume`. |
+| `design-brief` | SessionStart | Context first (lists the design context files), avoid the generic AI look, quality floor, expect design-detect, the usability review after a storyboard. With no context, asks for the user profiles in the `## Users` shape. Mentions `/impeccable critique`, `audit`, `polish` only when Impeccable is installed, and frontend-design (set the visual direction, then record its palette, typefaces and type scale in `DesignSystem`) only when that skill is installed (`isDesignSkillInstalled`: a plugin of that name or a skill folder). Skipped on `resume`. |
 | `design-detect` | PostToolUse (Edit, Write, MultiEdit) | Scans the edited UI file, keeps the findings on lines this edit wrote (Write = whole file; Edit/MultiEdit = where `new_string` landed), reports each once per session (keyed by rule + line text), as `additionalContext`. Never blocks. |
 
 Only files inside the project. UI files: `.css .scss .sass .less .pcss` (style) and `.html .htm .jsx .tsx .vue .svelte .astro`

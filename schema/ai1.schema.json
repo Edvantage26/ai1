@@ -35,22 +35,22 @@
         },
         "sizing": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Task sizing: quick, plan or deep by task size; deep designs need the person's approval before code edits (/ai1:sizing-design-before-code)."
         },
         "worktrees": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "A worktree per change (any edit to the repo files, created before the first edit), made with the project recipe planned once with /ai1:worktrees-plan-recipe (.claude/skills/worktree/); the agent keeps saying which worktree it works in."
         },
         "design": {
           "type": "boolean",
-          "default": false,
-          "description": "UI design rules at session start and deterministic design checks on every edited UI file (design-detect)."
+          "default": true,
+          "description": "UI design rules at session start, deterministic design checks on every edited UI file (design-detect), and the usability review of a flow (/ai1:design-review-usability)."
         },
         "storyboard": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Visual storyboard of the user flow after UI changes: storyboard (HTML, PDF) with before/after, served locally and saved to the person's chosen folder; reminder at stop (/ai1:storyboard-record-flow, ai1 storyboard)."
         },
         "verify": {
@@ -60,12 +60,12 @@
         },
         "later": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Later: undecided changes and future features noted down for later in .ai1/later/, only when the person asks or picks it in an offer; open ones listed at session start, related ones recalled per message, consistency and bundle citation checked at stop (/ai1:later-write, ai1 later)."
         },
         "reuse": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Reuse: after a task with real work the agent judges whether it will recur in this repo, searches this repo's own past sessions and project skills/commands/MCP servers (ai1 reuse search) and proposes encapsulating it or completing an existing piece; built only on a yes (/ai1:reuse-encapsulate); a no is kept in .ai1/reuse.json."
         },
         "proposals": {

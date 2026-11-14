@@ -49,13 +49,13 @@ export const FEATURES = [
   {
     id: 'design',
     title: 'UI design rules and checks',
-    description: 'For repos with a frontend. Gives the agent the UI rules at session start (read the product and design-system context, avoid the generic AI look, keep a quality floor) and checks every UI file it edits with deterministic rules (overused fonts, purple gradients, low contrast, skipped headings, tiny text...), reporting what the edit introduced. Points to the impeccable skill when it is installed.',
+    description: 'For repos with a frontend. Gives the agent the UI rules at session start (read the product and design-system context, avoid the generic AI look, keep a quality floor) and checks every UI file it edits with deterministic rules (overused fonts, purple gradients, low contrast, skipped headings, tiny text...), reporting what the edit introduced. Skill /ai1:design-review-usability checks that a flow is intuitive for the people who use it: an agent that knows only their profile and the goal tries the task, every step is walked, findings land on the storyboard. Points to the impeccable and frontend-design skills when they are installed.',
     enabledByDefault: true,
   },
   {
     id: 'storyboard',
     title: 'Visual storyboard of the user flow',
-    description: 'For repos with a frontend. After a visual change, the agent records the user flow as numbered steps (what the user does, desktop and mobile screenshots, before and after) and builds a storyboard the person reviews without running the app: an HTML served at a local URL, a PDF, and a copy to the folder the person chose (local by default, or a synced cloud folder). Reminds once at stop when UI files changed without a storyboard. Skill /ai1:storyboard-record-flow; `ai1 storyboard`.',
+    description: 'For repos with a frontend. After a visual change, the agent records the user flow as numbered steps (what the user does, desktop and mobile screenshots, before and after) and builds a storyboard the person reviews without running the app: an HTML served at a local URL and a PDF, kept in .ai1/storyboards/ (link that folder anywhere, a synced cloud folder for instance, with your own tooling). Usability findings show on their steps. Reminds once at stop when UI files changed without a storyboard. Skill /ai1:storyboard-record-flow; `ai1 storyboard`.',
     enabledByDefault: true,
   },
   {
