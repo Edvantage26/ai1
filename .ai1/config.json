@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/Edvantage26/ai1/main/schema/ai1.schema.json",
-  "version": 1,
+  "version": 2,
   "features": {
     "okf": true,
     "danger": true,
@@ -9,7 +9,6 @@
     "worktrees": true,
     "later": true,
     "reuse": true,
-    "design": false,
     "verify": true
   },
   "trunk": "main",
