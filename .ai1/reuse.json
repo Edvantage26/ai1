@@ -1,0 +1,15 @@
+{
+  "dismissed": [
+    {
+      "slug": "rename-concept",
+      "keywords": [
+        "rename",
+        "migration",
+        "feature",
+        "overlay"
+      ],
+      "reason": "the person prefers not to encapsulate concept renames as a skill",
+      "date": "2026-11-14"
+    }
+  ]
+}
