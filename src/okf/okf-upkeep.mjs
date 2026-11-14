@@ -177,15 +177,15 @@ function checkBundleStructure({ hookInput, projectRoot, stateDirectory, bundleDi
 
 // `checkStructure`: once the bundle validates (or cannot be validated), go on with checkBundleStructure.
 function checkBundleValidity(validityContext, { checkStructure = false } = {}) {
-  const { hookInput, projectRoot, stateDirectory, bundleDirectory, bundleRelativePath, environment } = validityContext;
+  const { hookInput, projectRoot, stateDirectory, bundleDirectory, bundleRelativePath } = validityContext;
   const continueAfterValidation = () => (checkStructure ? checkBundleStructure(validityContext) : allowDecision());
-  const validation = runBundleValidator(bundleDirectory, environment);
+  const validation = runBundleValidator(bundleDirectory, validityContext.validateBundle);
   if (!validation.ran) {
     process.stderr.write(`ai1: okf-upkeep could not validate ${bundleRelativePath}: ${validation.reason}\n`);
-    const noticedPath = sessionStatePath(stateDirectory, hookInput.session_id, projectRoot, 'validator-missing');
+    const noticedPath = sessionStatePath(stateDirectory, hookInput.session_id, projectRoot, 'validator-failed');
     if (readStateText(noticedPath) !== null) return continueAfterValidation();
     writeStateText(noticedPath, validation.reason);
-    return noticeDecision(MODULE_ID, `the OKF bundle was not validated: ${validation.reason}. Install Python 3.9+ to turn the check on.`);
+    return noticeDecision(MODULE_ID, `the OKF bundle was not validated: ${validation.reason}.`);
   }
   if (!validation.errors.length) return continueAfterValidation();
   const validatedPath = sessionStatePath(stateDirectory, hookInput.session_id, projectRoot, 'validated');

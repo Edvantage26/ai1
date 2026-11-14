@@ -237,14 +237,13 @@ test('drop needs --confirm, refuses uncommitted work, bundles own commits and cl
 });
 
 const commitInMain = (mainRoot, fileName, fileText) => commitInWorktree(mainRoot, fileName, fileText);
-const NO_PYTHON = { AI1_PYTHON: 'no-such-python-for-ai1-tests' };
 
 test('finish rebases onto a moved base, fast-forwards it and cleans everything', () => {
   const mainRoot = createRecipeRepo();
   const created = createWorktree(mainRoot, 'done', { mode: 'light' });
   commitInWorktree(created.path, 'feature.js', 'feature\n');
   commitInMain(mainRoot, 'other.js', 'other\n');
-  const finishResult = finishWorktree(mainRoot, 'done', { environment: NO_PYTHON });
+  const finishResult = finishWorktree(mainRoot, 'done');
   assert.match(finishResult.steps.join('\n'), /rebased onto main[\s\S]*main fast-forwarded/);
   assert.ok(existsSync(join(mainRoot, 'feature.js')));
   assert.equal(runGit(mainRoot, ['log', '--format=%s', '-1']).trim(), 'change feature.js');
@@ -258,19 +257,19 @@ test('finish refuses uncommitted work, stops on conflicts and on a dirty base ch
   const mainRoot = createRecipeRepo({ ...TEST_RECIPE, finish: { dirty_base_paths_ok: ['notes/'] } });
   const created = createWorktree(mainRoot, 'busy', { mode: 'light' });
   writeFileSync(join(created.path, 'src', 'app.js'), 'wip\n');
-  assert.throws(() => finishWorktree(mainRoot, 'busy', { environment: NO_PYTHON }), /uncommitted changes/);
+  assert.throws(() => finishWorktree(mainRoot, 'busy'), /uncommitted changes/);
   runGit(created.path, ['add', '.']);
   runGit(created.path, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'branch edit']);
   commitInMain(mainRoot, 'src/app.js', 'main edit\n');
-  assert.throws(() => finishWorktree(mainRoot, 'busy', { environment: NO_PYTHON }), /could not rebase onto main \(conflicts\)/);
+  assert.throws(() => finishWorktree(mainRoot, 'busy'), /could not rebase onto main \(conflicts\)/);
   assert.equal(runGit(created.path, ['status', '--porcelain']), '', 'the rebase was aborted');
   runGit(created.path, ['merge', '-q', '-X', 'ours', '-m', 'merge main', 'main']);
   writeFileSync(join(mainRoot, 'src', 'other.js'), 'uncommitted in main\n');
-  assert.throws(() => finishWorktree(mainRoot, 'busy', { environment: NO_PYTHON }), /uncommitted changes, so it cannot move[\s\S]*src\/other\.js/);
+  assert.throws(() => finishWorktree(mainRoot, 'busy'), /uncommitted changes, so it cannot move[\s\S]*src\/other\.js/);
   runGit(mainRoot, ['clean', '-fq', 'src']);
   mkdirSync(join(mainRoot, 'notes'));
   writeFileSync(join(mainRoot, 'notes', 'draft.md'), 'another session\n');
-  const finishResult = finishWorktree(mainRoot, 'busy', { environment: NO_PYTHON });
+  const finishResult = finishWorktree(mainRoot, 'busy');
   assert.match(finishResult.steps[0], /already contains the base/);
   assert.ok(existsSync(join(mainRoot, 'notes', 'draft.md')), 'allowed dirty paths stay as they were');
 });
@@ -280,9 +279,9 @@ test('finish runs pre-finish and moves a base that is not checked out anywhere',
   runGit(mainRoot, ['branch', 'release']);
   const created = createWorktree(mainRoot, 'rel', { mode: 'light', base: 'release' });
   commitInWorktree(created.path, 'fix.js', 'fix\n');
-  assert.throws(() => finishWorktree(mainRoot, 'rel', { environment: NO_PYTHON, runCommand: () => 1 }), /pre-finish failed/);
+  assert.throws(() => finishWorktree(mainRoot, 'rel', { runCommand: () => 1 }), /pre-finish failed/);
   assert.ok(existsSync(created.path));
-  const finishResult = finishWorktree(mainRoot, 'rel', { environment: NO_PYTHON, runCommand: () => 0 });
+  const finishResult = finishWorktree(mainRoot, 'rel', { runCommand: () => 0 });
   assert.match(finishResult.steps.join('\n'), /pre-finish passed[\s\S]*release moved/);
   assert.equal(runGit(mainRoot, ['log', '--format=%s', '-1', 'release']).trim(), 'change fix.js');
   assert.equal(existsSync(join(mainRoot, 'fix.js')), false, 'main is untouched');
@@ -299,9 +298,9 @@ test('finish asks for the knowledge bundle when the branch changes code without 
   runGit(mainRoot, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'okf']);
   const created = createWorktree(mainRoot, 'docs', { mode: 'light' });
   commitInWorktree(created.path, 'feature.js', 'feature\n');
-  assert.throws(() => finishWorktree(mainRoot, 'docs', { environment: NO_PYTHON }), /does not touch the knowledge bundle[\s\S]*feature\.js[\s\S]*--ack/);
-  const finishResult = finishWorktree(mainRoot, 'docs', { environment: NO_PYTHON, acknowledgement: 'internal helper, no documented asset' });
-  assert.match(finishResult.notes.join('\n'), /internal helper[\s\S]*validator not run/);
+  assert.throws(() => finishWorktree(mainRoot, 'docs'), /does not touch the knowledge bundle[\s\S]*feature\.js[\s\S]*--ack/);
+  const finishResult = finishWorktree(mainRoot, 'docs', { acknowledgement: 'internal helper, no documented asset' });
+  assert.deepEqual(finishResult.notes, ['knowledge bundle not updated: internal helper, no documented asset'], 'the validator ran in-process');
 });
 
 test('the ai1 worktree CLI creates, lists and drops, in text and JSON', () => {
@@ -485,7 +484,7 @@ function finishCodeAndConcept(mainRoot, worktreeName) {
   writeFileSync(join(created.path, '.ai1', 'okf', 'feature.md'), '---\ntype: Component\ntitle: Feature\ndescription: The feature.\n---\nIt does the feature.\n');
   runGit(created.path, ['add', '.']);
   runGit(created.path, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'concept']);
-  finishWorktree(mainRoot, worktreeName, { environment: NO_PYTHON, runCommand: () => 0 });
+  finishWorktree(mainRoot, worktreeName, { runCommand: () => 0 });
 }
 
 test('finish records what it wrote into the base, so its Stop hooks do not ask again until a file is edited', () => {

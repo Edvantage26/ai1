@@ -263,7 +263,7 @@ test('okf-upkeep: outside a git repo it fails open', () => {
 
 const BROKEN_CONCEPT = '---\ntitle: No type here\n---\nA concept without `type` is an OKF error.\n';
 
-test('validation: a bundle edited in the session with an ERROR blocks with the errors', () => {
+test('validation: a bundle edited in the session with an ERROR blocks with the errors, validated in-process [okf-node:S2]', () => {
   const projectRoot = createRepoWithBundle();
   const options = hookOptions();
   startSession(projectRoot, options);
@@ -320,18 +320,6 @@ test('validation: at most three validation blocks per session', () => {
   }
   writeFileSync(join(projectRoot, '.ai1', 'okf', 'broken-4.md'), BROKEN_CONCEPT);
   assert.equal(stopSession(projectRoot, options, { stop_hook_active: true }), null);
-});
-
-test('validation: without Python it fails open and tells the person once per session', () => {
-  const projectRoot = createRepoWithBundle();
-  const options = hookOptions();
-  options.environment.AI1_PYTHON = 'python3-that-does-not-exist';
-  startSession(projectRoot, options);
-  writeFileSync(join(projectRoot, '.ai1', 'okf', 'broken.md'), BROKEN_CONCEPT);
-  const firstStop = stopSession(projectRoot, options);
-  assert.equal(firstStop.decision, undefined, 'never blocks');
-  assert.match(firstStop.systemMessage, /^ai1\/okf-upkeep: the OKF bundle was not validated: .*python3-that-does-not-exist not found.*Install Python 3\.9\+/);
-  assert.equal(stopSession(projectRoot, options)?.systemMessage, undefined, 'said once');
 });
 
 const VALID_CONCEPT = '---\ntype: Component\ntitle: App\n---\nThe app.\n';
@@ -416,13 +404,8 @@ test('structure: never right after another hook stop', () => {
   assert.equal(stopSession(projectRoot, options).decision, 'block', 'asked on the next ordinary stop');
 });
 
-test('validation: the next interpreter is tried when one is missing', () => {
-  const projectRoot = createRepoWithBundle();
-  writeFileSync(join(projectRoot, '.ai1', 'okf', 'broken.md'), BROKEN_CONCEPT);
-  const validation = runBundleValidator(join(projectRoot, '.ai1', 'okf'), {}, [['python-that-does-not-exist'], ['python3', '-S']]);
-  assert.equal(validation.ran, true);
-  assert.equal(validation.errors.length, 1);
-  assert.match(runBundleValidator(join(projectRoot, '.ai1', 'okf'), {}, [['missing-one'], ['missing-two']]).reason, /missing-one not found; missing-two not found/);
+test('validation: a crash of the validator itself fails open with its reason [okf-node:S2]', () => {
+  assert.deepEqual(runBundleValidator('/any', () => { throw new Error('boom'); }), { ran: false, reason: 'the validator failed (boom)' });
 });
 
 test('okf-upkeep: a deleted file is asked about once, not on every stop', () => {

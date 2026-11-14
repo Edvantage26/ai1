@@ -184,7 +184,7 @@ test('links: only missing bundle .md targets warn (absolute, anchors, external, 
   assert.ok(linkWarnings.some((warning) => warning.includes('passwd.md')));
 });
 
-test('a whole bundle: counts and conformance', () => {
+test('a whole bundle: counts and conformance [okf-node:S1]', () => {
   const report = validateFiles({ 'index.md': "---\nokf_version: '0.2'\n---\n# Root\n\n* [c](c.md)\n", 'c.md': FULL_META, 'log.md': '## 2026-01-01\n* created\n' });
   assertClean(report);
   assert.deepEqual([report.concepts, report.indexes, report.logs], [1, 1, 1]);
@@ -204,7 +204,7 @@ function migrateLegacy(conceptText = LEGACY_CONCEPT) {
   return { bundleDirectory, migratedText: readFileSync(join(bundleDirectory, 'c.md'), 'utf8') };
 }
 
-test('migrate: timestamp becomes generated without disturbing the rest; citations become sources', () => {
+test('migrate: timestamp becomes generated without disturbing the rest; citations become sources [okf-node:S3]', () => {
   const { migratedText } = migrateLegacy();
   assert.ok(migratedText.includes('generated:\n  by: process:okf-migrate\n  at: "2026-01-01T00:00:00Z"\n'));
   assert.ok(!migratedText.includes('timestamp:'));

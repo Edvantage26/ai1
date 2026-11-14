@@ -53,7 +53,7 @@ function integrateBase(worktreePath, baseBranch, finishStrategy) {
 }
 
 // OKF checks on what the branch changes against its base, when the okf feature is on there.
-export function checkBranchKnowledge(worktreePath, baseBranch, { acknowledgement, environment = process.env } = {}) {
+export function checkBranchKnowledge(worktreePath, baseBranch, { acknowledgement } = {}) {
   const loadedConfig = loadHarnessConfig(worktreePath);
   if (loadedConfig.status !== 'ok' || !isFeatureEnabled('okf', loadedConfig.config)) return { checked: false, notes: [] };
   const bundleRelativePath = KNOWLEDGE_BUNDLE_PATH;
@@ -73,7 +73,7 @@ export function checkBranchKnowledge(worktreePath, baseBranch, { acknowledgement
     }
     notes.push(`knowledge bundle not updated: ${acknowledgement}`);
   }
-  const validation = runBundleValidator(bundleDirectory, environment);
+  const validation = runBundleValidator(bundleDirectory);
   if (!validation.ran) notes.push(`OKF validator not run: ${validation.reason}`);
   else if (validation.errors.length) {
     throw new Error([`the knowledge bundle of the branch has ${validation.errors.length} validator error(s):`, ...validation.errors.slice(0, 15).map((validationError) => `  - ${validationError}`), 'Fix them in the worktree, commit, and run finish again.'].join('\n'));
@@ -120,7 +120,7 @@ function recordBaseIntegration({ mainRoot, commonDirectory, recipe, worktreeStat
   recordIntegration(commonDirectory, { checkout: baseCheckout, changedPaths, verified, knowledgeChecked });
 }
 
-// options: { merge, acknowledgement, runCommand, environment }.
+// options: { merge, acknowledgement, runCommand }.
 export function finishWorktree(startDirectory, worktreeName, options = {}) {
   const { mainRoot, commonDirectory } = findRepository(startDirectory);
   const worktreeState = readStateOrFail(commonDirectory, worktreeName);
