@@ -1,8 +1,8 @@
 // The worktree recipe: the basic recipe ai1 works out from the repo (worktree-basic-recipe.mjs), with
-// the project overlay `.claude/skills/worktree/recipe.json` on top when the repo has one - only the
+// the project recipe `.claude/skills/worktree/recipe.json` on top when the repo has one - only the
 // fields that differ, written by the agent when the basic recipe falls short or by
-// /ai1:worktrees-plan-recipe, committed with the repo. A full recipe from before v0.36.0 is an overlay
-// that sets every field. An optional `SKILL.md` next to it holds project rules in prose.
+// /ai1:worktrees-plan-recipe, committed with the repo. A full recipe from before v0.36.0 is a project
+// recipe that sets every field. An optional `SKILL.md` next to it holds project rules in prose.
 // schema/worktree-recipe.schema.json describes the same rules for editors; this validator is
 // hand-written so ai1 keeps zero dependencies (test/worktrees.test.mjs checks both agree).
 
@@ -134,14 +134,14 @@ export function listUnknownRecipeFields(rawRecipe) {
   return Object.keys(rawRecipe).filter((fieldName) => !KNOWN_RECIPE_FIELDS.has(fieldName));
 }
 
-// Defaults, then the basic recipe, then the overlay: each replaces whole top-level fields, except
+// Defaults, then the basic recipe, then the project recipe: each replaces whole top-level fields, except
 // `finish`, merged field by field.
 function mergeRecipeLayers(...recipeLayers) {
   return recipeLayers.reduce((mergedRecipe, recipeLayer) => ({ ...mergedRecipe, ...recipeLayer, finish: { ...mergedRecipe.finish, ...recipeLayer.finish } }), {});
 }
 
-// status: 'basic' (no project file: the basic recipe) | 'overlay' (basic recipe + the project file,
-// plus warnings) | 'invalid' (the project file has errors). basic and overlay are both usable.
+// status: 'basic' (no project file: the basic recipe) | 'project' (basic recipe + the project file,
+// plus warnings) | 'invalid' (the project file has errors). basic and project are both usable.
 export function loadRecipe(repoRoot) {
   const recipePath = join(repoRoot, RECIPE_RELATIVE_PATH);
   const basicRecipe = detectBasicRecipe(repoRoot);
@@ -159,7 +159,7 @@ export function loadRecipe(repoRoot) {
     ...PLANNED_RECIPE_FIELDS.filter((fieldName) => rawRecipe[fieldName] !== undefined).map((fieldName) => `field "${fieldName}" is planned, not built yet; ignored`),
   ];
   return {
-    status: 'overlay',
+    status: 'project',
     recipePath,
     warnings,
     recipe: mergeRecipeLayers(DEFAULT_RECIPE, basicRecipe, rawRecipe),

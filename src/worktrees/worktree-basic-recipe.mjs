@@ -1,6 +1,6 @@
 // The basic worktree recipe: what ai1 works out from the repo itself on every use, so a repo needs no
-// recipe file to work in worktrees. The project file `.claude/skills/worktree/recipe.json` is an
-// overlay on top of it (only the fields that differ; see loadRecipe). Worked out again each time, so
+// recipe file to work in worktrees. The project file `.claude/skills/worktree/recipe.json` goes
+// on top of it (only the fields that differ; see loadRecipe). Worked out again each time, so
 // it follows the repo when it changes (a new lockfile, new verify commands). Cheap: a few existence
 // checks and .ai1/config.json, no walk of the tree (it also runs from the UserPromptSubmit reminder).
 

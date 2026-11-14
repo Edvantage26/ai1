@@ -1,6 +1,6 @@
 // config-guard (PreToolUse, feature `danger`): changing the files that configure the harness -
 // .ai1/config.json, .claude/settings.json, .claude/settings.local.json, .claude/hooks/, and the skill
-// overlays in .ai1/skills/ (they change how ai1's skills work) - asks the person first, so the agent cannot switch its own guards off unseen (`danger` reads `ignore_rules`
+// skill customizations in .ai1/skills/ (they change how ai1's skills work) - asks the person first, so the agent cannot switch its own guards off unseen (`danger` reads `ignore_rules`
 // from .ai1/config.json). `ask`, not `deny`: setup and the person change these files on purpose.
 // Claude Code protects `.claude/` itself, but not in bypassPermissions mode, and never `.ai1/`.
 // Matched by path ending, so the copies in other worktrees (`.claude/worktrees/*/`) count too.
@@ -33,7 +33,7 @@ export default {
   event: 'PreToolUse',
   toolNames: ['Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'Bash'],
   feature: 'danger',
-  description: 'Asks the person before the agent changes the harness configuration (.ai1/config.json, .claude/settings*.json, .claude/hooks/, .ai1/skills/ overlays).',
+  description: 'Asks the person before the agent changes the harness configuration (.ai1/config.json, .claude/settings*.json, .claude/hooks/, .ai1/skills/ skill customizations).',
   run({ hookInput, projectRoot }) {
     const changedConfigPaths = listHarnessConfigChanges(hookInput, hookInput.cwd || projectRoot);
     if (changedConfigPaths.length === 0) return allowDecision();

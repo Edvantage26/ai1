@@ -5,19 +5,19 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createTemporaryProject } from './helpers.mjs';
-import { CUSTOMIZATION_HEADING, OVERLAY_MAX_BYTES, renderSkillContext, resolveSkillOverlays } from '../src/core/skill-customization.mjs';
+import { CUSTOMIZATION_HEADING, CUSTOMIZATION_MAX_BYTES, renderSkillContext, resolveSkillCustomizations } from '../src/core/skill-customization.mjs';
 import { runSkillContextCommand } from '../src/cli/skill-context-command.mjs';
 
-function writeProjectOverlay(projectRoot, feature, overlayText) {
+function writeProjectCustomization(projectRoot, feature, customizationText) {
   mkdirSync(join(projectRoot, '.ai1', 'skills', feature), { recursive: true });
-  writeFileSync(join(projectRoot, '.ai1', 'skills', feature, 'overlay.md'), overlayText);
+  writeFileSync(join(projectRoot, '.ai1', 'skills', feature, 'customization.md'), customizationText);
 }
 
-function createUserHome(feature, overlayText) {
+function createUserHome(feature, customizationText) {
   const homeDirectory = mkdtempSync(join(tmpdir(), 'ai1-home-'));
-  if (overlayText !== undefined) {
+  if (customizationText !== undefined) {
     mkdirSync(join(homeDirectory, '.config', 'ai1', 'skills', feature), { recursive: true });
-    writeFileSync(join(homeDirectory, '.config', 'ai1', 'skills', feature, 'overlay.md'), overlayText);
+    writeFileSync(join(homeDirectory, '.config', 'ai1', 'skills', feature, 'customization.md'), customizationText);
   }
   return homeDirectory;
 }
@@ -30,22 +30,22 @@ function skillContextOutput(commandArguments, options) {
 
 const noEnvironment = {};
 
-test('no overlay: the heading, "none yet" and the footer that offers to customize', () => {
+test('no customization: the heading, "none yet" and the footer that offers to customize', () => {
   const projectRoot = createTemporaryProject();
   const { exitCode, printedText } = skillContextOutput(['later-write'], { workingDirectory: projectRoot, environment: noEnvironment, homeDirectory: createUserHome('later') });
   assert.equal(exitCode, 0);
   assert.ok(printedText.startsWith(CUSTOMIZATION_HEADING));
-  assert.match(printedText, /None yet for this project \(\.ai1\/skills\/later\/overlay\.md\)/);
+  assert.match(printedText, /None yet for this project \(\.ai1\/skills\/later\/customization\.md\)/);
   assert.match(printedText, /\/ai1:core-customize-skill/);
   assert.match(printedText, /Fixed rules of the skill above win/);
 });
 
-test('project and user overlays are both printed, project first, with the precedence', () => {
+test('project and user customizations are both printed, project first, with the precedence', () => {
   const projectRoot = createTemporaryProject();
-  writeProjectOverlay(projectRoot, 'session', '- Briefs always list the verify commands.\n');
+  writeProjectCustomization(projectRoot, 'session', '- Briefs always list the verify commands.\n');
   const homeDirectory = createUserHome('session', '- Keep briefs short.\n');
   const { printedText } = skillContextOutput(['session-fork-conversation'], { workingDirectory: projectRoot, environment: noEnvironment, homeDirectory });
-  const projectIndex = printedText.indexOf('### This project (.ai1/skills/session/overlay.md)');
+  const projectIndex = printedText.indexOf('### This project (.ai1/skills/session/customization.md)');
   const userIndex = printedText.indexOf('### This person (');
   assert.ok(projectIndex > 0 && userIndex > projectIndex);
   assert.match(printedText, /Briefs always list the verify commands\./);
@@ -54,18 +54,18 @@ test('project and user overlays are both printed, project first, with the preced
   assert.doesNotMatch(printedText, /None yet/);
 });
 
-test('XDG_CONFIG_HOME moves the user overlay', () => {
+test('XDG_CONFIG_HOME moves the user customization', () => {
   const projectRoot = createTemporaryProject();
   const configHome = mkdtempSync(join(tmpdir(), 'ai1-xdg-'));
   mkdirSync(join(configHome, 'ai1', 'skills', 'okf'), { recursive: true });
-  writeFileSync(join(configHome, 'ai1', 'skills', 'okf', 'overlay.md'), 'mine');
-  const resolvedOverlays = resolveSkillOverlays('okf-maintain-knowledge', { workingDirectory: projectRoot, environment: { XDG_CONFIG_HOME: configHome }, homeDirectory: createUserHome('okf') });
-  assert.equal(resolvedOverlays.user.text, 'mine');
+  writeFileSync(join(configHome, 'ai1', 'skills', 'okf', 'customization.md'), 'mine');
+  const resolvedCustomizations = resolveSkillCustomizations('okf-maintain-knowledge', { workingDirectory: projectRoot, environment: { XDG_CONFIG_HOME: configHome }, homeDirectory: createUserHome('okf') });
+  assert.equal(resolvedCustomizations.user.text, 'mine');
 });
 
-test('a user-only skill ignores a project overlay and only offers a personal one', () => {
+test('a user-only skill ignores a project customization and only offers a personal one', () => {
   const projectRoot = createTemporaryProject();
-  writeProjectOverlay(projectRoot, 'core', 'project rule');
+  writeProjectCustomization(projectRoot, 'core', 'project rule');
   const { printedText } = skillContextOutput(['core-setup-repo'], { workingDirectory: projectRoot, environment: noEnvironment, homeDirectory: createUserHome('core') });
   assert.doesNotMatch(printedText, /project rule/);
   assert.match(printedText, /None yet for this person/);
@@ -75,7 +75,7 @@ test('a user-only skill ignores a project overlay and only offers a personal one
 
 test('excluded and unknown skills print nothing and exit 0', () => {
   const projectRoot = createTemporaryProject();
-  writeProjectOverlay(projectRoot, 'core', 'should never show');
+  writeProjectCustomization(projectRoot, 'core', 'should never show');
   for (const skillFolder of ['core-report-issue', 'okf-validate-bundle', 'no-such-skill']) {
     const { exitCode, printedText } = skillContextOutput([skillFolder], { workingDirectory: projectRoot, environment: noEnvironment, homeDirectory: createUserHome('core') });
     assert.equal(exitCode, 0);
@@ -83,43 +83,60 @@ test('excluded and unknown skills print nothing and exit 0', () => {
   }
 });
 
-test('an unreadable overlay is a note, a long one is cut, and the rest still prints', () => {
+test('an unreadable customization is a note, a long one is cut, and the rest still prints', () => {
   const projectRoot = createTemporaryProject();
-  mkdirSync(join(projectRoot, '.ai1', 'skills', 'sizing', 'overlay.md'), { recursive: true });
-  const homeDirectory = createUserHome('sizing', 'x'.repeat(OVERLAY_MAX_BYTES + 100));
+  mkdirSync(join(projectRoot, '.ai1', 'skills', 'sizing', 'customization.md'), { recursive: true });
+  const homeDirectory = createUserHome('sizing', 'x'.repeat(CUSTOMIZATION_MAX_BYTES + 100));
   const { exitCode, printedText } = skillContextOutput(['sizing-design-before-code'], { workingDirectory: projectRoot, environment: noEnvironment, homeDirectory });
   assert.equal(exitCode, 0);
   assert.match(printedText, /\(could not be read: EISDIR\)/);
-  assert.match(printedText, new RegExp(`cut at ${OVERLAY_MAX_BYTES} bytes`));
+  assert.match(printedText, new RegExp(`cut at ${CUSTOMIZATION_MAX_BYTES} bytes`));
   assert.match(printedText, /Precedence:/);
 });
 
-test('inside a linked worktree the branch overlay wins, else the main checkout one is used', () => {
+test('inside a linked worktree the branch customization wins, else the main checkout one is used', () => {
   const mainRoot = createTemporaryProject();
   const runGit = (gitArguments, cwd = mainRoot) => execFileSync('git', gitArguments, { cwd, stdio: 'ignore' });
   runGit(['init', '-q', '-b', 'main']);
-  writeProjectOverlay(mainRoot, 'later', 'from main');
+  writeProjectCustomization(mainRoot, 'later', 'from main');
   runGit(['add', '.']);
   runGit(['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'init']);
   const worktreeRoot = join(mkdtempSync(join(tmpdir(), 'ai1-wt-')), 'wt');
   runGit(['worktree', 'add', '-q', '-b', 'wt/x', worktreeRoot]);
   const options = { workingDirectory: join(worktreeRoot, '.ai1'), environment: noEnvironment, homeDirectory: createUserHome('later') };
-  writeProjectOverlay(worktreeRoot, 'later', 'from the branch');
-  assert.equal(resolveSkillOverlays('later-write', options).project.text, 'from the branch');
+  writeProjectCustomization(worktreeRoot, 'later', 'from the branch');
+  assert.equal(resolveSkillCustomizations('later-write', options).project.text, 'from the branch');
   execFileSync('rm', ['-rf', join(worktreeRoot, '.ai1', 'skills')]);
-  const fromMain = resolveSkillOverlays('later-write', { ...options, workingDirectory: worktreeRoot });
+  const fromMain = resolveSkillCustomizations('later-write', { ...options, workingDirectory: worktreeRoot });
   assert.equal(fromMain.project.text, 'from main');
   assert.equal(fromMain.project.fromMainCheckout, true);
   assert.match(renderSkillContext(fromMain), /from the main checkout/);
 });
 
+test('a file still named overlay.md is read, with a note to rename it; customization.md wins when both exist', () => {
+  const projectRoot = createTemporaryProject();
+  mkdirSync(join(projectRoot, '.ai1', 'skills', 'session'), { recursive: true });
+  writeFileSync(join(projectRoot, '.ai1', 'skills', 'session', 'overlay.md'), 'legacy project rule');
+  const homeDirectory = createUserHome('session');
+  mkdirSync(join(homeDirectory, '.config', 'ai1', 'skills', 'session'), { recursive: true });
+  writeFileSync(join(homeDirectory, '.config', 'ai1', 'skills', 'session', 'overlay.md'), 'legacy personal habit');
+  const legacyText = skillContextOutput(['session-fork-conversation'], { workingDirectory: projectRoot, environment: noEnvironment, homeDirectory }).printedText;
+  assert.match(legacyText, /### This project \(\.ai1\/skills\/session\/overlay\.md\)\nlegacy project rule\n\(old file name overlay\.md: tell the person in one line to rename it customization\.md/);
+  assert.match(legacyText, /legacy personal habit\n\(old file name overlay\.md/);
+
+  writeProjectCustomization(projectRoot, 'session', 'current project rule');
+  const currentText = skillContextOutput(['session-fork-conversation'], { workingDirectory: projectRoot, environment: noEnvironment, homeDirectory }).printedText;
+  assert.match(currentText, /current project rule/);
+  assert.doesNotMatch(currentText, /legacy project rule/);
+});
+
 test('--list names every skill with its status; a broken skills directory still exits 0', () => {
   const projectRoot = createTemporaryProject();
-  writeProjectOverlay(projectRoot, 'okf', 'conventions');
+  writeProjectCustomization(projectRoot, 'okf', 'conventions');
   const listed = skillContextOutput(['--list', '--json'], { workingDirectory: projectRoot, environment: noEnvironment, homeDirectory: createUserHome('okf') });
   const skillCustomizations = JSON.parse(listed.printedText);
   const tidyEntry = skillCustomizations.find((skillCustomization) => skillCustomization.skill === 'okf-tidy-claude-md');
-  assert.equal(tidyEntry.project, '.ai1/skills/okf/overlay.md');
+  assert.equal(tidyEntry.project, '.ai1/skills/okf/customization.md');
   assert.equal(skillCustomizations.find((skillCustomization) => skillCustomization.skill === 'core-report-issue').customizable, false);
   const broken = skillContextOutput(['--list'], { workingDirectory: projectRoot, environment: noEnvironment, skillsDirectory: join(projectRoot, 'missing') });
   assert.equal(broken.exitCode, 0);
@@ -128,7 +145,7 @@ test('--list names every skill with its status; a broken skills directory still 
 
 test('the CLI entry point prints the context and exits 0', () => {
   const projectRoot = createTemporaryProject();
-  writeProjectOverlay(projectRoot, 'worktrees', 'never share data/');
+  writeProjectCustomization(projectRoot, 'worktrees', 'never share data/');
   const cliOutput = execFileSync('node', [join(import.meta.dirname, '..', 'bin', 'ai1'), 'skill-context', 'worktrees-plan-recipe'], { cwd: projectRoot, encoding: 'utf8', env: { ...process.env, HOME: createUserHome('worktrees'), XDG_CONFIG_HOME: '' } });
   assert.match(cliOutput, /never share data\//);
 });

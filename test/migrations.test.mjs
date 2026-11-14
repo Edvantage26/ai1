@@ -63,7 +63,7 @@ test('the next session start runs nothing, and ai1 init gives the same result [r
   assert.throws(() => setupRepo(createTemporaryProject(OLD_CONFIG), { enabledFeatureIds: ['lanes'] }), /called sizing since v0\.32\.0/);
 });
 
-test('project and personal overlays move to sizing and ai1 texts name the new skill [rename-lanes-to-sizing:S5]', () => {
+test('project and personal customizations move to sizing and ai1 texts name the new skill [rename-lanes-to-sizing:S5]', () => {
   const homeDirectory = createUserHome();
   const projectRoot = createTemporaryProject(OLD_CONFIG);
   writeFile(join(projectRoot, '.ai1', 'skills', 'lanes', 'overlay.md'), 'Briefs in Spanish.\n');
@@ -74,9 +74,9 @@ test('project and personal overlays move to sizing and ai1 texts name the new sk
   writeFile(join(projectRoot, 'CLAUDE.md'), 'Run /ai1:lanes-design-before-code for deep tasks.\n');
 
   const contextText = startSessionThroughEntrypoint(projectRoot, homeDirectory);
-  assert.equal(readFileSync(join(projectRoot, '.ai1', 'skills', 'sizing', 'overlay.md'), 'utf8'), 'Briefs in Spanish.\n');
+  assert.equal(readFileSync(join(projectRoot, '.ai1', 'skills', 'sizing', 'customization.md'), 'utf8'), 'Briefs in Spanish.\n');
   assert.ok(!existsSync(join(projectRoot, '.ai1', 'skills', 'lanes')));
-  assert.equal(readFileSync(join(homeDirectory, '.config', 'ai1', 'skills', 'sizing', 'overlay.md'), 'utf8'), 'Ask before /ai1:sizing-design-before-code.\n');
+  assert.equal(readFileSync(join(homeDirectory, '.config', 'ai1', 'skills', 'sizing', 'customization.md'), 'utf8'), 'Ask before /ai1:sizing-design-before-code.\n');
   assert.deepEqual(JSON.parse(readFileSync(join(homeDirectory, '.config', 'ai1', 'migrations.json'), 'utf8')), { applied: LATEST_MIGRATION_NUMBER });
   assert.equal(readFileSync(join(projectRoot, '.ai1', 'okf', 'features', 'flow.md'), 'utf8'), 'Deep work uses /ai1:sizing-design-before-code.\n');
   assert.equal(readFileSync(join(projectRoot, '.ai1', 'okf', 'log.md'), 'utf8'), '2026-11-01 used /ai1:lanes-design-before-code\n', 'the log is history');
@@ -86,12 +86,12 @@ test('project and personal overlays move to sizing and ai1 texts name the new sk
   assert.match(contextText, /migrated your ai1 config folder/);
 });
 
-test('an overlay already at sizing keeps the lanes one in place and lists it', () => {
+test('a customization already at sizing keeps the lanes one in place and lists it', () => {
   const projectRoot = createTemporaryProject(OLD_CONFIG);
   writeFile(join(projectRoot, '.ai1', 'skills', 'lanes', 'overlay.md'), 'old\n');
   writeFile(join(projectRoot, '.ai1', 'skills', 'sizing', 'overlay.md'), 'new\n');
   const migrationText = describeMigrationReports(runPendingMigrations(projectRoot, { includeUser: false }));
-  assert.equal(readFileSync(join(projectRoot, '.ai1', 'skills', 'sizing', 'overlay.md'), 'utf8'), 'new\n');
+  assert.equal(readFileSync(join(projectRoot, '.ai1', 'skills', 'sizing', 'customization.md'), 'utf8'), 'new\n');
   assert.match(migrationText, /left alone \.ai1\/skills\/lanes \(\.ai1\/skills\/sizing already exists/);
 });
 
@@ -149,7 +149,7 @@ test('a symlinked walkthroughs folder moves as the same symlink, even with its t
   assert.ok(lstatSync(join(unmountedRoot, '.ai1', 'storyboards')).isSymbolicLink(), 'a dangling symlink still moves');
 });
 
-test('an existing storyboards folder keeps the walkthroughs one in place; personal overlays move [rename-walkthrough-to-storyboard:S4]', () => {
+test('an existing storyboards folder keeps the walkthroughs one in place; personal customizations move [rename-walkthrough-to-storyboard:S4]', () => {
   const homeDirectory = createUserHome();
   const projectRoot = createTemporaryProject(WALKTHROUGH_CONFIG);
   writeFile(join(projectRoot, '.ai1', 'walkthroughs', 'old', 'steps.json'), 'old\n');
@@ -159,7 +159,7 @@ test('an existing storyboards folder keeps the walkthroughs one in place; person
   assert.ok(existsSync(join(projectRoot, '.ai1', 'walkthroughs', 'old', 'steps.json')));
   assert.ok(existsSync(join(projectRoot, '.ai1', 'storyboards', 'new', 'steps.json')));
   assert.match(contextText, /left alone \.ai1\/walkthroughs \(\.ai1\/storyboards already exists/);
-  assert.equal(readFileSync(join(homeDirectory, '.config', 'ai1', 'skills', 'storyboard', 'overlay.md'), 'utf8'), 'Save to .ai1/storyboards too.\n');
+  assert.equal(readFileSync(join(homeDirectory, '.config', 'ai1', 'skills', 'storyboard', 'customization.md'), 'utf8'), 'Save to .ai1/storyboards too.\n');
 });
 
 test('a session in a worktree migrates the main checkout too, where storyboards live [rename-walkthrough-to-storyboard:S5]', () => {
@@ -190,4 +190,21 @@ test('a session start drops the false values an old init wrote, shows their skil
   const clonedRoot = createTemporaryProject({ version: 2, features: { design: false } });
   startSessionThroughEntrypoint(clonedRoot, createUserHome());
   assert.deepEqual(readConfig(clonedRoot).features, { design: false }, 'no ledger in a clone, and the opt-out stays');
+});
+
+test('a session start renames overlay.md to customization.md in the repo and for the person, leaving a taken name alone [overlay-to-customization]', () => {
+  const homeDirectory = createUserHome();
+  const projectRoot = createTemporaryProject({ version: 2, features: {} });
+  writeFile(join(projectRoot, '.ai1', 'skills', 'session', 'overlay.md'), 'Briefs in Spanish.\n');
+  writeFile(join(projectRoot, '.ai1', 'skills', 'okf', 'overlay.md'), 'old\n');
+  writeFile(join(projectRoot, '.ai1', 'skills', 'okf', 'customization.md'), 'new\n');
+  writeFile(join(homeDirectory, '.config', 'ai1', 'skills', 'storyboard', 'overlay.md'), 'Mine.\n');
+  const contextText = startSessionThroughEntrypoint(projectRoot, homeDirectory);
+  assert.equal(readFileSync(join(projectRoot, '.ai1', 'skills', 'session', 'customization.md'), 'utf8'), 'Briefs in Spanish.\n');
+  assert.ok(!existsSync(join(projectRoot, '.ai1', 'skills', 'session', 'overlay.md')));
+  assert.equal(readFileSync(join(projectRoot, '.ai1', 'skills', 'okf', 'customization.md'), 'utf8'), 'new\n');
+  assert.ok(existsSync(join(projectRoot, '.ai1', 'skills', 'okf', 'overlay.md')), 'a taken name keeps the old file');
+  assert.equal(readFileSync(join(homeDirectory, '.config', 'ai1', 'skills', 'storyboard', 'customization.md'), 'utf8'), 'Mine.\n');
+  assert.match(contextText, /ai1 v0\.38\.0 renamed the skill customization files from overlay\.md to customization\.md and migrated this repo: changed \.ai1\/skills\/session\/overlay\.md -> \.ai1\/skills\/session\/customization\.md; left alone \.ai1\/skills\/okf\/overlay\.md/);
+  assert.match(contextText, /migrated your ai1 config folder: changed .*storyboard\/overlay\.md -> .*storyboard\/customization\.md/);
 });

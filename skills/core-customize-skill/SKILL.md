@@ -6,16 +6,17 @@ description: Core — Customize how an ai1 skill works for this project or only 
 # Customize an ai1 skill
 
 Every customizable ai1 skill ends by printing its customization (`ai1 skill-context <skill>`): the
-project overlay, then the person's, then the precedence. This skill writes those overlays.
+project's customization, then the person's, then the precedence. This skill writes those
+customizations.
 `ai1 skill-context --list` shows which skills can be customized, at which scopes, and what exists.
 
 ## 1. Which skill, and which kind of change
 
 - Find the skill the correction is about and check `ai1 skill-context --list`. A skill marked "not
   customizable" stays as it is: tell the person why (the list says it).
-- The overlay folder is the skill's **feature**, its name prefix: `session-fork-conversation` ->
+- The customization folder is the skill's **feature**, its name prefix: `session-fork-conversation` ->
   `session`, `okf-maintain-knowledge` -> `okf` (shared by every okf skill).
-- Data is not an overlay. Point the person to where it lives instead:
+- Data is not a customization. Point the person to where it lives instead:
   - where forks open: the plugin option **Fork opener** in `/config` (theirs, per person);
   - hook options: `modules.<module>` in `.ai1/config.json` (/ai1:core-setup-repo);
   - how worktrees are made: the worktree recipe (/ai1:worktrees-plan-recipe `revisar`).
@@ -24,9 +25,9 @@ project overlay, then the person's, then the precedence. This skill writes those
 
 ## 2. Project or personal
 
-- **Project** (`.ai1/skills/<feature>/overlay.md`, committed): rules of this repo, for everyone
+- **Project** (`.ai1/skills/<feature>/customization.md`, committed): rules of this repo, for everyone
   who works on it.
-- **Personal** (`~/.config/ai1/skills/<feature>/overlay.md`, or `$XDG_CONFIG_HOME/ai1/...`): the
+- **Personal** (`~/.config/ai1/skills/<feature>/customization.md`, or `$XDG_CONFIG_HOME/ai1/...`): the
   person's habits and tools, in every repo.
 
 Ask only when the skill accepts both and the correction does not make it obvious ("en este repo"
@@ -34,17 +35,17 @@ is project; "yo prefiero" is personal).
 
 ## 3. Write it
 
-An overlay is plain markdown, short (it is injected every time the skill loads; over 8 KB is cut):
+A customization is plain markdown, short (it is injected every time the skill loads; over 8 KB is cut):
 one bullet per rule, saying what to do and, when not obvious, why. Add to the existing file, do not
 rewrite what others wrote. It cannot override the skill's Fixed rules: if the correction contradicts
 one, say so and do not write it.
 
-Show the person the exact text and the file; write it after their yes. For a project overlay the
+Show the person the exact text and the file; write it after their yes. For a project customization the
 `config-guard` hook asks them once more before the file changes: that prompt is the final approval,
 never avoid it. Then run `ai1 skill-context <skill>` and show that the text appears.
 
 ## 4. Close
 
-- Project overlay: tell them to commit it (do not commit on your own). It applies from the next
+- Project customization: tell them to commit it (do not commit on your own). It applies from the next
   time the skill loads, in this session too.
-- Personal overlay: it applies in every repo from the next time the skill loads.
+- Personal customization: it applies in every repo from the next time the skill loads.

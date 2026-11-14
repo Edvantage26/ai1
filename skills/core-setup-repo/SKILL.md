@@ -109,7 +109,7 @@ that applies, one at a time, in this order, and do it only after a yes (the pers
 
 - `worktrees`: it already works with the basic recipe. Offer `/ai1:worktrees-plan-recipe` only when
   the repo clearly needs more (ports per worktree, services, big data folders to share); otherwise
-  the agent completes the overlay when `ai1 worktree` reports a gap.
+  the agent completes the project recipe when `ai1 worktree` reports a gap.
 - `okf` and there is no bundle yet: create one with `/ai1:okf-maintain-knowledge` (produce mode).
 - `okf` and there is a bundle: run `ai1 claude-md`. If it reports findings, offer
   `/ai1:okf-tidy-claude-md`; when the migration listed CLAUDE.md among the files with old paths,

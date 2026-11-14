@@ -5,7 +5,7 @@ description: Numbered, idempotent migrations that bring a repo and the person's 
 tags: [migrations, runtime, config, renames]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-13T14:28:06Z'
+  at: '2026-11-14T20:38:40Z'
 sources:
   - id: migrations
     resource: src/core/migrations.mjs
@@ -21,7 +21,7 @@ sources:
 # Why
 
 Until v0.31 a rename (jig -> ai1, rfc -> proposals -> later) left the old names ignored with a notice
-until someone ran `ai1 init` in each repo, and the person's own overlays in `~/.config/ai1/` were never
+until someone ran `ai1 init` in each repo, and the person's own skill customizations in `~/.config/ai1/` were never
 moved. Decided with the person on 2026-11-11, when renaming lanes to [sizing](/features/sizing.md):
 updates are applied like database migrations, by themselves, the first time the new ai1 starts a session.
 
@@ -53,13 +53,14 @@ updates are applied like database migrations, by themselves, the first time the 
 
 | # | id | Since | Repo | Person |
 |---|---|---|---|---|
-| 1 | `lanes-to-sizing` | v0.32.0 | `features.lanes` -> `features.sizing`, `modules.lanes-*` -> `sizing-*` (the new name wins when both are set); `.ai1/skills/lanes/` -> `.ai1/skills/sizing/`; the deep skill name (`lanes-design-before-code` -> `sizing-design-before-code`, with its `/ai1:` prefix) in the bundle (except `log.md`), later entries, overlays, `.claude/skills/` and work plans; `lane: plan` -> `size: plan` in work plans | `skills/lanes/` -> `skills/sizing/`, skill name in overlays |
-| 2 | `walkthrough-to-storyboard` | v0.33.0 | `features.walkthrough` -> `features.storyboard`, `modules.walkthrough-reminder` -> `storyboard-reminder`; the folder `walkthroughs` -> `storyboards` under `.ai1/` (also a symlink) and its `.git/info/exclude` line (only where `.git` is a folder); `.ai1/skills/walkthrough/` -> `storyboard/`; in ai1's texts the skill (`walkthrough-record-flow` -> `storyboard-record-flow`), `ai1 walkthrough <subcommand>` and the folder path | `skills/walkthrough/` -> `skills/storyboard/`, the same names in overlays |
+| 1 | `lanes-to-sizing` | v0.32.0 | `features.lanes` -> `features.sizing`, `modules.lanes-*` -> `sizing-*` (the new name wins when both are set); `.ai1/skills/lanes/` -> `.ai1/skills/sizing/`; the deep skill name (`lanes-design-before-code` -> `sizing-design-before-code`, with its `/ai1:` prefix) in the bundle (except `log.md`), later entries, skill customizations, `.claude/skills/` and work plans; `lane: plan` -> `size: plan` in work plans | `skills/lanes/` -> `skills/sizing/`, skill name in overlays |
+| 2 | `walkthrough-to-storyboard` | v0.33.0 | `features.walkthrough` -> `features.storyboard`, `modules.walkthrough-reminder` -> `storyboard-reminder`; the folder `walkthroughs` -> `storyboards` under `.ai1/` (also a symlink) and its `.git/info/exclude` line (only where `.git` is a folder); `.ai1/skills/walkthrough/` -> `storyboard/`; in ai1's texts the skill (`walkthrough-record-flow` -> `storyboard-record-flow`), `ai1 walkthrough <subcommand>` and the folder path | `skills/walkthrough/` -> `skills/storyboard/`, the same names in skill customizations |
 | 4 | `all-features-on` | v0.36.0 | only on a config of `version` 1 (or none): drops every `features.<id>: false`, writes `version: 2` (so a clone or worktree without the ledger never drops a later opt-out), shows again the skills ai1 hid in `.claude/settings.json`; the report names the features switched on and `ai1 init --disable` ([all features on](/decisions/all-features-on.md)). Reports carry `notes` for such lines | nothing |
 | 3 | `skill-visibility` | v0.34.0 | `skillOverrides` in `.claude/settings.json`: the skills of the features the repo has off become `user-invocable-only` ([which skills the agent sees](plugin-layout.md#which-skills-the-agent-sees)); only when the file exists | nothing |
+| 5 | `overlay-to-customization` | v0.38.0 | every `.ai1/skills/<feature>/overlay.md` -> `customization.md` in the same folder (left alone, and reported, when `customization.md` already exists); the loader still reads `overlay.md` with a note until then ([skill customization](skill-customization.md)) | the same in `~/.config/ai1/skills/` |
 
 Shared helpers keep each migration short: `renameFeatureInConfig`, `moveFolderUnlessTaken`,
-`rewriteAi1Texts`, `listRootDocsNaming`, `migrateUserOverlays`. A concept that documents a rename writes
+`rewriteAi1Texts`, `listRootDocsNaming`, `migrateUserCustomizations`, `renameCustomizationFiles`. A concept that documents a rename writes
 the old names without the `/ai1:` prefix or folder form the migration matches, so a fresh clone does not
 rewrite it.
 
@@ -87,5 +88,5 @@ fine), add its row above, and test it through the entry point with a temporary `
 # Validate
 
 `node --test test/migrations.test.mjs`: session start through `bin/ai1-hook.mjs` with a temporary HOME
-migrates config, overlays, texts and plans, a second start runs nothing, `ai1 init` gives the same result,
+migrates config, customizations, texts and plans, a second start runs nothing, `ai1 init` gives the same result,
 a clash is left alone, a throwing migration keeps its ledger.

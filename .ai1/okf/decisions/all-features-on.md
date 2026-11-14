@@ -1,6 +1,6 @@
 ---
 type: Decision
-title: Every feature on by default, basic modes refined by overlays
+title: Every feature on by default, basic modes refined by the project
 description: Why ai1 switched from opt-in features to opt-out (config version 2), how repos set up before were migrated, and why features that need setup start in a basic mode the project refines (2026-11-13, v0.36.0).
 tags: [decision, features, config, worktrees]
 sources:
@@ -15,14 +15,14 @@ sources:
     title: Basic worktree recipe
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-13T14:28:06Z'
+  at: '2026-11-14T20:38:40Z'
 ---
 
 # Decision
 
 Asked by the person on 2026-11-13: "que por defecto todo estuviese activo", switching off only what a
 repo does not want, and features that need setup (worktrees) starting with a basic version that is
-improved as the project evolves, detecting by itself when it has to, as an overlay.
+improved as the project evolves, detecting by itself when it has to, as a project layer on top.
 
 - **Opt-out.** Every selectable [feature](../architecture/features.md) is on unless
   `.ai1/config.json` says `false`. `ai1 init` writes only the features switched off
@@ -37,9 +37,9 @@ improved as the project evolves, detecting by itself when it has to, as an overl
   what keeps a clone or a worktree from re-running it over a later opt-out.
 - **Basic modes.** worktrees works without a recipe: the [basic recipe](../features/worktrees.md) is
   worked out from the repo on every use (not frozen in a file at init, so it follows the repo), and
-  `.claude/skills/worktree/recipe.json` is an overlay with only the fields that differ. When the
+  `.claude/skills/worktree/recipe.json` is the project recipe, with only the fields that differ. When the
   basic recipe falls short, `ai1 worktree` says what is not covered and the agent completes the
-  overlay itself and says so in one line (the person chose "ajusta solo y avisa"), proposing first
+  project recipe itself and says so in one line (the person chose "ajusta solo y avisa"), proposing first
   only when it would share a folder holding state or delete data. design stays quiet without a
   frontend; storyboard and design checks already fire only on UI files.
 - `worktree-recipe-offer` (Stop, offering to plan a recipe) is retired: there is always a recipe.

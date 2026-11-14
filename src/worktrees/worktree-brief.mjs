@@ -1,6 +1,6 @@
 // worktree-brief (SessionStart, feature `worktrees`): tells the agent how this repo works with
 // worktrees: any change to the repo's files happens in a worktree (created before the first edit), made
-// with the basic recipe ai1 works out from the repo plus the project overlay when there is one, which
+// with the basic recipe ai1 works out from the repo plus the project recipe when there is one, which
 // the agent itself completes when the basic recipe falls short; inside a worktree it names it, and asks
 // to mention it in every progress report. Byte-stable within a session.
 

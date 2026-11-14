@@ -5,7 +5,7 @@ description: Later - large changes and future features not decided yet, noted do
 tags: [later, proposals, roadmap, hooks, cli, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-13T14:28:06Z'
+  at: '2026-11-14T20:38:40Z'
 sources:
   - id: later-documents
     resource: src/later/later-documents.mjs
@@ -133,8 +133,8 @@ files and the bundle the paths, the skill and CLI names, and `RFC NNNN`/`Proposa
 NNNN` -> `Later NNNN`/`later NNNN` only for numbers of moved entries (never "RFC 3339"); plans
 `rfc:`/`proposal:` -> `later:`; config ids renamed (the new name wins when both are set). The bundle's
 `log.md` is left untouched: it is history. A jig repo with `docs/rfc/` goes straight to
-`.ai1/later/`. Refuses if `.ai1/later/` exists. Not migrated: a skill overlay in
-`.ai1/skills/proposals/` or `~/.config/ai1/skills/proposals/` (the overlays shipped the same day as
+`.ai1/later/`. Refuses if `.ai1/later/` exists. Not migrated: a skill customization in
+`.ai1/skills/proposals/` or `~/.config/ai1/skills/proposals/` (customizations shipped the same day as
 the rename); move it to `.../skills/later/` by hand.
 
 # Limits

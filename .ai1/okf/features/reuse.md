@@ -5,7 +5,7 @@ description: Reuse - after real work the session judges whether it will recur in
 tags: [reuse, skills, hooks, cli, transcripts]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-13T15:03:24Z'
+  at: '2026-11-14T20:38:40Z'
 sources:
   - id: reuse-history
     resource: src/reuse/reuse-history.mjs
@@ -48,7 +48,7 @@ Built 2026-11-13 (deep plan `reuse`). On by default since v0.36.0 ([all features
 - `/ai1:reuse-encapsulate`: evidence from the search, the skeleton (fixed steps, parameters, checks,
   pitfalls; only from work that ended well), container from a table (guard rule or bundle line /
   hook / script / skill / MCP entry / complete an existing piece / merge overlapping ones), build in the
-  repo, run it once on the real case. Customizable (project and user overlays) for where pieces go.
+  repo, run it once on the real case. Customizable (project and user customizations) for where pieces go.
 
 # Decisions (2026-11-13, by the person)
 

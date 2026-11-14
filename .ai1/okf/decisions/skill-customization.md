@@ -1,7 +1,7 @@
 ---
 type: Decision
 title: Skill customization - one mechanism, two scopes, customizable by default with justified exclusions
-description: Why ai1 skills are customized through overlays injected at load time, per project and per person, and which choices were taken (later 0001, 2026-11-09).
+description: Why ai1 skills are customized through customization files injected at load time, per project and per person, and which choices were taken (later 0001, 2026-11-09).
 tags: [decision, skills, customization]
 sources:
   - id: proposal-0001
@@ -9,7 +9,7 @@ sources:
     title: Customizable ai1 skills - project and user overlays
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T13:24:58Z'
+  at: '2026-11-14T20:38:40Z'
 ---
 
 Decided by the person on 2026-11-09; built the same day. How it works:
@@ -22,16 +22,22 @@ Decided by the person on 2026-11-09; built the same day. How it works:
 - **Two scopes**: project (committed in `.ai1/skills/<feature>/`) and person (`~/.config/ai1/...` and
   plugin `userConfig`). Where a fork opens is the person's, never the repo's.
 - **Customizable by default**; a skill is excluded only with a written reason, and a test forces the
-  choice for every new skill. Excluded where the rule an overlay could weaken protects others or is
+  choice for every new skill. Excluded where the rule a customization could weaken protects others or is
   deterministic (report-issue, validate-bundle, danger-write-rule, customize-skill) or the injection
   cannot reach (backfill's subagents).
-- **Fixed rules** in every customizable skill; the overlay comes after them and the model is told they win.
+- **Fixed rules** in every customizable skill; the customization comes after them and the model is told they win.
 - **Injected at load** by `` !`…` `` through the plugin's own `bin/ai1`: no tokens until a skill runs.
-- Folder per **feature** (the skill prefix), so a skill rename does not move overlays.
+- Folder per **feature** (the skill prefix), so a skill rename does not move customizations.
+- **Named customization** (v0.38.0, 2026-11-14, asked by the person): the files were `overlay.md`
+  and the docs said "overlay"; the person did not like the word. Now `customization.md`, matching
+  `/ai1:core-customize-skill` and the `## ai1 customization` block, with migration 5 renaming the
+  files and the loader reading the old name with a note meanwhile. The worktree recipe, which also
+  said "overlay", says **project recipe** (status `project`). Discarded: `rules.md` (clashes with
+  Fixed rules and guard rules), `addendum.md`, `preferences.md` (wrong for the project scope).
 
 # Discarded
 
-- A SessionStart hook with every overlay: paid every session for skills never used.
+- A SessionStart hook with every customization: paid every session for skills never used.
 - `` !`cat …` `` in each skill: no worktree fallback, no person scope, wording repeated in every skill.
 - Opt-in per skill: new skills would be closed unless someone remembered; the test forces a decision anyway.
 - A per-feature `settings.json` now: nothing reads it yet.

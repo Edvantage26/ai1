@@ -1,8 +1,8 @@
 ---
 type: Architecture
-title: Skill customization - project and user overlays
-description: How a repo or a person adds rules to an ai1 skill without touching the plugin - overlays injected when the skill loads (ai1 skill-context), the customization index and its test, Fixed rules, the fork_opener plugin option and /ai1:core-customize-skill.
-tags: [skills, customization, overlay, userConfig, cli]
+title: Skill customization - project and user customizations
+description: How a repo or a person adds rules to an ai1 skill without touching the plugin - customization files injected when the skill loads (ai1 skill-context), the customization index and its test, Fixed rules, the fork_opener plugin option and /ai1:core-customize-skill.
+tags: [skills, customization, userConfig, cli]
 resource: src/core/skill-customization.mjs
 sources:
   - id: customization-index
@@ -25,7 +25,7 @@ sources:
     title: Later 0001
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-14T15:15:14Z'
+  at: '2026-11-14T20:38:40Z'
 ---
 
 Built 2026-11-09 from later 0001 (phases 0-2); decision in
@@ -38,8 +38,8 @@ customization itself.
 
 | Scope | Where | For |
 |---|---|---|
-| Project | `.ai1/skills/<feature>/overlay.md`, committed | rules of this repo, for everyone |
-| Person (prose) | `~/.config/ai1/skills/<feature>/overlay.md` (`$XDG_CONFIG_HOME/ai1/...`) | habits, in every repo |
+| Project | `.ai1/skills/<feature>/customization.md`, committed | rules of this repo, for everyone |
+| Person (prose) | `~/.config/ai1/skills/<feature>/customization.md` (`$XDG_CONFIG_HOME/ai1/...`) | habits, in every repo |
 | Person (values) | plugin `userConfig` in `/config` (today: `fork_opener`) | tools of the person |
 
 `<feature>` is the skill folder prefix (`session-fork-conversation` -> `session`); the okf skills share
@@ -51,7 +51,7 @@ customization itself.
 Each customizable `SKILL.md` ends with `## Fixed rules`, a `## Customization` paragraph and, as its
 last line, `` !`"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context <skill>` ``. When the skill is invoked,
 Claude Code runs it in the session's directory and puts its output in place of the line, so the model
-gets one block: procedure, fixed rules, then `## ai1 customization` with the project overlay (the
+gets one block: procedure, fixed rules, then `## ai1 customization` with the project customization (the
 worktree's own first, else the main checkout's), the person's, and a footer: offer once to save a
 correction with /ai1:core-customize-skill, and the precedence (fixed rules > project > person).
 Nothing is loaded before the skill runs.
@@ -61,10 +61,11 @@ Nothing is loaded before the skill runs.
 - The plugin's own `bin/ai1`, not `ai1` from PATH: another ai1 earlier on PATH (an older install, a
   parent session) answered with its usage and exit 1, which broke the skill load (seen in the
   end-to-end test).
-- `ai1 skill-context` never fails: excluded or unknown skill prints nothing; an unreadable overlay is
-  a note; an overlay over 8 KB is cut with a note; any other error prints nothing; exit 0 always.
+- `ai1 skill-context` never fails: excluded or unknown skill prints nothing; an unreadable customization
+  is a note; one over 8 KB is cut with a note; a file still named `overlay.md` (before v0.38.0) is
+  read, with a note to rename it (migration 5 renames it; `customization.md` wins when both exist); any other error prints nothing; exit 0 always.
 - `ai1 skill-context --list [--json]`: every skill, customizable (scopes) or why not, and the
-  overlays found.
+  customizations found.
 
 # Which skills
 
@@ -80,7 +81,7 @@ core-report-issue, okf-validate-bundle, danger-write-rule, core-customize-skill.
 
 # Around it
 
-- `/ai1:core-customize-skill` writes overlays after the person approves the exact text; points data
+- `/ai1:core-customize-skill` writes customizations after the person approves the exact text; points data
   to its place (`/config`, `modules.*`, the recipe) and "never do X" to /ai1:danger-write-rule.
 - [config-guard](../guards/config-guard.md) asks before any change under `.ai1/skills/`.
 - `fork_opener` (`auto|paseo|vscode|desktop|terminal`, default auto): the fork skill passes
@@ -90,8 +91,8 @@ core-report-issue, okf-validate-bundle, danger-write-rule, core-customize-skill.
 
 # Limits
 
-- The precedence is told to the model, not enforced: an overlay can still contradict a fixed rule.
-- A skill's `description` cannot be customized: it loads before any injection, so an overlay changes
+- The precedence is told to the model, not enforced: a customization can still contradict a fixed rule.
+- A skill's `description` cannot be customized: it loads before any injection, so a customization changes
   how a skill works, not when it triggers.
 - `CLAUDE_PLUGIN_OPTION_*` reaches hooks only; the CLI gets user values from the skill text.
 - Other `ai1 …` commands in skills still use `ai1` from PATH (same stale-PATH risk, outside this work).
@@ -101,7 +102,7 @@ core-report-issue, okf-validate-bundle, danger-write-rule, core-customize-skill.
 # Verified
 
 - 2026-11-09, Claude Code 2.1.319: `claude -p --plugin-dir <worktree>` in a scratch repo with a clean
-  `CLAUDE_CONFIG_DIR` (no bypass), a project overlay, a person overlay through `XDG_CONFIG_HOME` and a
-  saved `fork_opener`: proposals-write received both overlays in order with the footer;
-  session-fork-conversation showed `ai1 fork host --opener 'paseo'` and the person overlay;
+  `CLAUDE_CONFIG_DIR` (no bypass), a project customization, a person customization through `XDG_CONFIG_HOME` and a
+  saved `fork_opener`: proposals-write received both customizations in order with the footer;
+  session-fork-conversation showed `ai1 fork host --opener 'paseo'` and the person customization;
   core-report-issue received no customization section. `npm test` green.

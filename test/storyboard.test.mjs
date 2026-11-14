@@ -275,11 +275,11 @@ test('publish destinations come from the customization, offered and published on
   const projectRoot = createUiRepo();
   const homeDirectory = join(projectRoot, 'home');
   mkdirSync(join(homeDirectory, '.config', 'ai1', 'skills', 'storyboard'), { recursive: true });
-  writeFileSync(join(homeDirectory, '.config', 'ai1', 'skills', 'storyboard', 'overlay.md'), '- Publish: hand steps.json to my task tracker skill.\n');
-  const withOverlay = spawnSync(process.execPath, [AI1_CLI, 'skill-context', 'storyboard-record-flow'], { cwd: projectRoot, encoding: 'utf8', env: { ...process.env, HOME: homeDirectory, XDG_CONFIG_HOME: '' } });
-  assert.match(withOverlay.stdout, /hand steps\.json to my task tracker skill/);
-  const withoutOverlay = spawnSync(process.execPath, [AI1_CLI, 'skill-context', 'storyboard-record-flow'], { cwd: projectRoot, encoding: 'utf8', env: { ...process.env, HOME: join(projectRoot, 'nobody'), XDG_CONFIG_HOME: '' } });
-  assert.match(withoutOverlay.stdout, /None yet for this project \(\.ai1\/skills\/storyboard\/overlay\.md\)/);
+  writeFileSync(join(homeDirectory, '.config', 'ai1', 'skills', 'storyboard', 'customization.md'), '- Publish: hand steps.json to my task tracker skill.\n');
+  const withCustomization = spawnSync(process.execPath, [AI1_CLI, 'skill-context', 'storyboard-record-flow'], { cwd: projectRoot, encoding: 'utf8', env: { ...process.env, HOME: homeDirectory, XDG_CONFIG_HOME: '' } });
+  assert.match(withCustomization.stdout, /hand steps\.json to my task tracker skill/);
+  const withoutCustomization = spawnSync(process.execPath, [AI1_CLI, 'skill-context', 'storyboard-record-flow'], { cwd: projectRoot, encoding: 'utf8', env: { ...process.env, HOME: join(projectRoot, 'nobody'), XDG_CONFIG_HOME: '' } });
+  assert.match(withoutCustomization.stdout, /None yet for this project \(\.ai1\/skills\/storyboard\/customization\.md\)/);
 });
 
 // [rename-walkthrough-to-storyboard:S1] the Stop reminder comes from storyboard-reminder and names /ai1:storyboard-record-flow

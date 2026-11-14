@@ -5,7 +5,7 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-14T20:33:15Z'
+  at: '2026-11-14T20:38:40Z'
 ---
 
 # Layout
@@ -61,7 +61,7 @@ the skill's full name (`ai1:later-write`) and its aliases.
 
 All under `.ai1/` (constants in `src/core/config.mjs`): `config.json` (the
 [contract](harness-contract.md)), `okf/` (the bundle, a fixed path since v0.16.0), `later/` (called `rfc/` until v0.17 and `proposals/` until v0.24) and `work/`, which ignores
-itself with its own `.gitignore`. `.ai1/skills/<feature>/overlay.md` holds the project's skill customizations
+itself with its own `.gitignore`. `.ai1/skills/<feature>/customization.md` holds the project's skill customizations
 ([skill customization](skill-customization.md)). Outside it only `.claude/settings.json` (Claude Code reads it
 there), the worktree recipe `.claude/skills/worktree/` (must be a project skill) and session state
 in `${CLAUDE_PLUGIN_DATA}` or `~/.cache/ai1`.

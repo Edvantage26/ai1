@@ -93,7 +93,7 @@ test('recipe: load merges defaults and warns about unknown and planned fields', 
   assert.equal(loadRecipe(repoRoot).status, 'invalid');
   writeFileSync(join(repoRoot, RECIPE_RELATIVE_PATH), JSON.stringify({ copy: ['.env'], finish: { strategy: 'merge' }, caches: [], teleport: 1 }));
   const loadedRecipe = loadRecipe(repoRoot);
-  assert.equal(loadedRecipe.status, 'overlay');
+  assert.equal(loadedRecipe.status, 'project');
   assert.deepEqual(loadedRecipe.recipe.copy, ['.env']);
   assert.equal(loadedRecipe.recipe.branch_prefix, 'wt/');
   assert.deepEqual(loadedRecipe.recipe.finish, { strategy: 'merge', allow_merge: true, dirty_base_paths_ok: [] });
@@ -327,7 +327,7 @@ function hookOptions(mainRoot) {
 
 const contextOf = (hookOutput) => hookOutput?.hookSpecificOutput?.additionalContext ?? '';
 
-test('worktree-brief: gives the rules with the basic recipe or an overlay, says how to complete the overlay, names the session worktree', () => {
+test('worktree-brief: gives the rules with the basic recipe or a project recipe, says how to complete the project recipe, names the session worktree', () => {
   const bareRoot = createTemporaryProject({ features: { okf: false, worktrees: true } });
   runGit(bareRoot, ['init', '-q']);
   const bareContext = contextOf(runHookEvent('SessionStart', { session_id: 's', cwd: bareRoot, source: 'startup' }, hookOptions(bareRoot)));
@@ -387,13 +387,13 @@ test('basic recipe: with no recipe file, create works from the trunk, copies ign
 
   mkdirSync(join(mainRoot, '.claude', 'skills', 'worktree'), { recursive: true });
   writeFileSync(join(mainRoot, RECIPE_RELATIVE_PATH), JSON.stringify({ port: { env_file: '.env', variables: ['PORT'] } }));
-  const overlaidRecipe = loadRecipe(mainRoot);
-  assert.equal(overlaidRecipe.status, 'overlay');
-  assert.deepEqual(overlaidRecipe.recipe.port, { env_file: '.env', variables: ['PORT'] });
-  assert.deepEqual(overlaidRecipe.recipe.setup, ['npm ci'], 'fields the overlay does not set come from the basic recipe');
+  const projectRecipe = loadRecipe(mainRoot);
+  assert.equal(projectRecipe.status, 'project');
+  assert.deepEqual(projectRecipe.recipe.port, { env_file: '.env', variables: ['PORT'] });
+  assert.deepEqual(projectRecipe.recipe.setup, ['npm ci'], 'fields the project recipe does not set come from the basic recipe');
 });
 
-test('basic recipe falling short: create lists what it does not cover, a failed setup or pre-finish says to complete the overlay, and the overlay fixes it [all-on-by-default:S5]', () => {
+test('basic recipe falling short: create lists what it does not cover, a failed setup or pre-finish says to complete the project recipe, and the project recipe fixes it [all-on-by-default:S5]', () => {
   const mainRoot = createNodeRepoWithoutRecipe();
   writeFileSync(join(mainRoot, '.gitignore'), '.env\n.env.*\nnode_modules/\n.claude/worktrees/\nmodels/\n');
   runGit(mainRoot, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qam', 'ignore models']);
@@ -414,7 +414,7 @@ test('basic recipe falling short: create lists what it does not cover, a failed 
   writeFileSync(join(mainRoot, RECIPE_RELATIVE_PATH), JSON.stringify({ heavy: [{ path: 'node_modules', strategy: 'regenerate', command: 'npm ci' }, { path: 'models', strategy: 'share' }] }));
   const fixedOutput = ai1Cli(['worktree', 'create', 'fixed', '--mode', 'light']).stdout;
   assert.doesNotMatch(fixedOutput, /not covered/);
-  assert.ok(existsSync(join(mainRoot, '.claude', 'worktrees', 'fixed', 'frontend', '.env.local')), 'the basic copy patterns are back once the overlay leaves copy alone');
+  assert.ok(existsSync(join(mainRoot, '.claude', 'worktrees', 'fixed', 'frontend', '.env.local')), 'the basic copy patterns are back once the project recipe leaves copy alone');
 });
 
 test('worktree-reminder: on change and every N prompts, marking this session, then once when none are left', () => {

@@ -5,7 +5,7 @@ description: Stop gate - the agent cannot finish while code it changed is newer 
 tags: [verify, hooks, evidence, cli]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-11T07:38:33Z'
+  at: '2026-11-14T20:38:40Z'
 sources:
   - id: verify-gate
     resource: src/verify/verify-gate.mjs
@@ -83,7 +83,7 @@ Every `ce-debug`, see [prior art](../decisions/prior-art.md)): find the cause be
 read the whole error, reproduce, check recent changes, trace the value back; compare with a working
 case; one hypothesis at a time; fix with a test that failed first; red-flag table; wait on conditions,
 not sleeps, for flaky tests; after 3 failed attempts stop and talk to the person. Customizable per
-project and person (`.ai1/skills/verify/overlay.md`: how to reproduce, where logs are).
+project and person (`.ai1/skills/verify/customization.md`: how to reproduce, where logs are).
 
 The 3-attempt rule is counted, because prose rules are lost after a compaction. `fix-loop` reads the
 transcript incrementally (state `<session>-<hash>.fix-loop`) and counts **failed attempts**: a failing
@@ -132,7 +132,7 @@ causes before a model change, same cases for every candidate with test only conf
 judges checked, testing key and budget. Description kept short on purpose: every skill description
 loads in every session.
 In `verify` and not a feature of its own because it is the same rule as debugging (cause before
-change); the cost is a shared overlay: `.ai1/skills/verify/overlay.md` reaches both skills.
+change); the cost is a shared customization: `.ai1/skills/verify/customization.md` reaches both skills.
 
 # verify-gate (Stop)
 

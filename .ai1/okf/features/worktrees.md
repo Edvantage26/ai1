@@ -5,7 +5,7 @@ description: A worktree per change (any edit to the repo files, created before t
 tags: [worktrees, git, skills, cli, hooks]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-13T14:28:06Z'
+  at: '2026-11-14T20:38:40Z'
 sources:
   - id: worktree-create
     resource: src/worktrees/worktree-create.mjs
@@ -43,13 +43,14 @@ git-worktree-runner, Superpowers) each cover part of it; none plans a recipe wit
 keeps it in the repo. See [prior art](/decisions/prior-art.md#worktrees-2026-11-08). Agreed with the
 person on 2026-11-08; on by default since v0.36.0 ([all features on](/decisions/all-features-on.md)).
 
-# Basic recipe and overlay (since v0.36.0)
+# Basic recipe and project recipe (since v0.36.0)
 
 A repo needs no recipe file. `loadRecipe` layers `DEFAULT_RECIPE`, the **basic recipe**
 (`src/worktrees/worktree-basic-recipe.mjs`, worked out on every use, a few existence checks, so it
-follows the repo) and the project **overlay** `.claude/skills/worktree/recipe.json`; each layer
-replaces whole top-level fields, `finish` merges field by field. Status `basic` | `overlay` |
-`invalid`; a full recipe from before is an overlay that sets every field.
+follows the repo) and the **project recipe** `.claude/skills/worktree/recipe.json`; each layer
+replaces whole top-level fields, `finish` merges field by field. Status `basic` | `project` |
+`invalid` (`project` was `overlay` before v0.38.0); a full recipe from before is a project recipe
+that sets every field.
 
 - Basic: `base: trunk`; `copy` = `.env`, `.env.*` at the root and one folder down; by root lockfile
   (first match per folder) `heavy` regenerate + `setup`: package-lock -> `node_modules`/`npm ci`, pnpm
@@ -58,19 +59,19 @@ replaces whole top-level fields, `finish` merges field by field. Status `basic` 
   `commands.pre-finish` = the `verify` commands (finish does not run verify by itself).
 - Not covered: `create` lists ignored `.env*` files (root, first level) not copied and ignored
   top-level folders of 50 MB or more that are not `heavy` (size walk capped, 2 s budget shared,
-  skipped when not reached), plus the hint to complete the overlay (`RECIPE_GAP_HINT`); a failed
+  skipped when not reached), plus the hint to complete the project recipe (`RECIPE_GAP_HINT`); a failed
   `run setup`/`run pre-finish` and a failed pre-finish in `finish` print the same hint. The agent
-  writes the overlay itself and says so in one line; it proposes first when the fix shares a folder
+  writes the project recipe itself and says so in one line; it proposes first when the fix shares a folder
   holding state or deletes data (the person's choice, 2026-11-13).
 
 # Pieces
 
 | Piece | Where | Role |
 |---|---|---|
-| `/ai1:worktrees-plan-recipe` | `skills/worktrees-plan-recipe/SKILL.md` | Complete the overlay when the basic recipe falls short (by the agent, reported in one line); refine it with the person (ports, services, shared data); `revisar`: update it. |
-| Project overlay | `<repo>/.claude/skills/worktree/recipe.json` (+ optional `SKILL.md`, `scripts/`) | Committed. Only the fields that differ from the basic recipe; prose rules when there are any. Template in `templates/worktree-skill/`. |
+| `/ai1:worktrees-plan-recipe` | `skills/worktrees-plan-recipe/SKILL.md` | Complete the project recipe when the basic recipe falls short (by the agent, reported in one line); refine it with the person (ports, services, shared data); `revisar`: update it. |
+| Project recipe | `<repo>/.claude/skills/worktree/recipe.json` (+ optional `SKILL.md`, `scripts/`) | Committed. Only the fields that differ from the basic recipe; prose rules when there are any. Template in `templates/worktree-skill/`. |
 | Engine | `ai1 worktree create\|list\|run\|finish\|drop` (`src/worktrees/`, `src/cli/worktree-cli.mjs`) | Deterministic operations driven by `recipe.json` (schema `schema/worktree-recipe.schema.json`). |
-| `worktree-brief` | SessionStart | The worktree rules, the basic recipe in one line and how to complete the overlay; inside a worktree, names it. Byte-stable. |
+| `worktree-brief` | SessionStart | The worktree rules, the basic recipe in one line and how to complete the project recipe; inside a worktree, names it. Byte-stable. |
 | `worktree-reminder` | UserPromptSubmit | Active worktrees when they change and every `reminder_every` prompts, marking this session's. |
 | `danger` rules | PreToolUse | `git worktree remove --force` asks; plain remove asks when it would delete ignored files; `ai1 worktree drop --discard-uncommitted` asks; `finish` and a plain `drop` do not (since 2026-11-09: the agent commits in the branch and finishes once the work is verified, nothing is pushed, and drop keeps the commits in a bundle). |
 

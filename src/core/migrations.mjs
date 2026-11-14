@@ -14,7 +14,7 @@ import { dirname, join, relative } from 'node:path';
 import { CONFIG_RELATIVE_PATH, CURRENT_CONFIG_VERSION, KNOWLEDGE_BUNDLE_PATH, LATER_DIRECTORY, WORK_DIRECTORY } from './config.mjs';
 import { readJsonFileIfValid, writeJsonFile } from './json-file.mjs';
 import { listMarkdownFiles } from './markdown-files.mjs';
-import { SKILL_OVERLAYS_DIRECTORY, userConfigDirectory } from './skill-customization.mjs';
+import { CUSTOMIZATION_FILE_NAME, LEGACY_CUSTOMIZATION_FILE_NAME, SKILL_CUSTOMIZATIONS_DIRECTORY, userConfigDirectory } from './skill-customization.mjs';
 import { ensureWorkDirectoryIgnored } from '../sizing/sizing-work.mjs';
 import { resolveProjectRoots } from './project-roots.mjs';
 import { applySkillVisibility } from './skill-visibility.mjs';
@@ -60,7 +60,7 @@ function renameFeatureInConfig(repoRoot, migrationReport, { oldFeatureId, newFea
   migrationReport.changed.push(CONFIG_RELATIVE_PATH);
 }
 
-// Moves a folder (or a symlink) to its new name unless the new one already exists (then both stay, reported).
+// Moves a folder, a file or a symlink to its new name unless the new one already exists (then both stay, reported).
 function moveFolderUnlessTaken(fromPath, toPath, migrationReport, displayPath) {
   if (!pathExists(fromPath)) return;
   if (pathExists(toPath)) {
@@ -84,14 +84,14 @@ const repoDisplayPath = (repoRoot) => (absolutePath) => relative(repoRoot, absol
 const userDisplayPath = (absolutePath) => absolutePath;
 
 // The texts ai1 owns in a repo: the bundle (its log.md is history: untouched), later entries, skill
-// overlays, `.claude/skills/` and the work plans (`rewritePlanText` adds plan-only changes).
+// customizations, `.claude/skills/` and the work plans (`rewritePlanText` adds plan-only changes).
 function rewriteAi1Texts(repoRoot, rewriteText, migrationReport, rewritePlanText = rewriteText) {
   const displayPath = repoDisplayPath(repoRoot);
   const bundleLogPath = join(repoRoot, KNOWLEDGE_BUNDLE_PATH, 'log.md');
   const ai1Texts = [
     ...listMarkdownFiles(join(repoRoot, KNOWLEDGE_BUNDLE_PATH)).filter((markdownPath) => markdownPath !== bundleLogPath),
     ...listMarkdownFiles(join(repoRoot, LATER_DIRECTORY)),
-    ...listMarkdownFiles(join(repoRoot, SKILL_OVERLAYS_DIRECTORY)),
+    ...listMarkdownFiles(join(repoRoot, SKILL_CUSTOMIZATIONS_DIRECTORY)),
     ...listMarkdownFiles(join(repoRoot, '.claude', 'skills')),
   ];
   for (const textPath of ai1Texts) rewriteTextFile(textPath, rewriteText, migrationReport, displayPath);
@@ -107,29 +107,29 @@ function listRootDocsNaming(repoRoot, oldNamePattern, reviewNote, migrationRepor
   }
 }
 
-// The person's overlays of a renamed skill: their folder moves, and the old names in every overlay change.
-function migrateUserOverlays(userDirectory, migrationReport, { oldFeatureId, newFeatureId, rewriteText }) {
+// The person's customizations of a renamed skill: their folder moves, and the old names in every one change.
+function migrateUserCustomizations(userDirectory, migrationReport, { oldFeatureId, newFeatureId, rewriteText }) {
   moveFolderUnlessTaken(join(userDirectory, 'skills', oldFeatureId), join(userDirectory, 'skills', newFeatureId), migrationReport, userDisplayPath);
-  for (const overlayPath of listMarkdownFiles(join(userDirectory, 'skills'))) rewriteTextFile(overlayPath, rewriteText, migrationReport, userDisplayPath);
+  for (const customizationPath of listMarkdownFiles(join(userDirectory, 'skills'))) rewriteTextFile(customizationPath, rewriteText, migrationReport, userDisplayPath);
 }
 
 const renameLanesSkill = (fileText) => fileText.replace(/\/ai1:lanes-design-before-code\b/g, '/ai1:sizing-design-before-code');
 
-// v0.32.0: the lanes feature is called sizing (feature and module ids, the deep skill, the overlay
-// folders, the plan-task field `lane: plan` -> `size: plan`).
+// v0.32.0: the lanes feature is called sizing (feature and module ids, the deep skill, the
+// customization folders, the plan-task field `lane: plan` -> `size: plan`).
 const lanesToSizing = {
   number: 1,
   id: 'lanes-to-sizing',
   summary: 'ai1 v0.32.0 renamed the lanes feature to sizing',
   migrateRepo(repoRoot, migrationReport) {
     renameFeatureInConfig(repoRoot, migrationReport, { oldFeatureId: 'lanes', newFeatureId: 'sizing', oldModuleIds: ['lanes-brief', 'lanes-approval', 'lanes-gate', 'lanes-escalate'] });
-    const overlaysDirectory = join(repoRoot, SKILL_OVERLAYS_DIRECTORY);
-    moveFolderUnlessTaken(join(overlaysDirectory, 'lanes'), join(overlaysDirectory, 'sizing'), migrationReport, repoDisplayPath(repoRoot));
+    const customizationsDirectory = join(repoRoot, SKILL_CUSTOMIZATIONS_DIRECTORY);
+    moveFolderUnlessTaken(join(customizationsDirectory, 'lanes'), join(customizationsDirectory, 'sizing'), migrationReport, repoDisplayPath(repoRoot));
     rewriteAi1Texts(repoRoot, renameLanesSkill, migrationReport, (planText) => renameLanesSkill(planText).replace(/^(---\r?\n(?:[^\n]*\n)*?)lane:(?=[ \t]*['"]?plan\b)/, '$1size:'));
     listRootDocsNaming(repoRoot, /\/ai1:lanes-design-before-code\b/, 'names /ai1:lanes-design-before-code, now /ai1:sizing-design-before-code', migrationReport);
   },
   migrateUser(userDirectory, migrationReport) {
-    migrateUserOverlays(userDirectory, migrationReport, { oldFeatureId: 'lanes', newFeatureId: 'sizing', rewriteText: renameLanesSkill });
+    migrateUserCustomizations(userDirectory, migrationReport, { oldFeatureId: 'lanes', newFeatureId: 'sizing', rewriteText: renameLanesSkill });
   },
 };
 
@@ -152,7 +152,7 @@ function renameExcludedStoryboardsFolder(repoRoot, migrationReport) {
 }
 
 // v0.33.0: the walkthrough feature is called storyboard (feature and module ids, the skill, `ai1
-// storyboard`, the folder `.ai1/storyboards/`, also when it is a symlink, and the overlay folders).
+// storyboard`, the folder `.ai1/storyboards/`, also when it is a symlink, and the customization folders).
 const walkthroughToStoryboard = {
   number: 2,
   id: 'walkthrough-to-storyboard',
@@ -162,13 +162,13 @@ const walkthroughToStoryboard = {
     renameFeatureInConfig(repoRoot, migrationReport, { oldFeatureId: 'walkthrough', newFeatureId: 'storyboard', oldModuleIds: ['walkthrough-reminder'] });
     moveFolderUnlessTaken(join(repoRoot, OLD_STORYBOARDS_DIRECTORY), join(repoRoot, NEW_STORYBOARDS_DIRECTORY), migrationReport, displayPath);
     renameExcludedStoryboardsFolder(repoRoot, migrationReport);
-    const overlaysDirectory = join(repoRoot, SKILL_OVERLAYS_DIRECTORY);
-    moveFolderUnlessTaken(join(overlaysDirectory, 'walkthrough'), join(overlaysDirectory, 'storyboard'), migrationReport, displayPath);
+    const customizationsDirectory = join(repoRoot, SKILL_CUSTOMIZATIONS_DIRECTORY);
+    moveFolderUnlessTaken(join(customizationsDirectory, 'walkthrough'), join(customizationsDirectory, 'storyboard'), migrationReport, displayPath);
     rewriteAi1Texts(repoRoot, renameStoryboardTexts, migrationReport);
     listRootDocsNaming(repoRoot, /\/ai1:walkthrough-record-flow\b|\.ai1\/walkthroughs\b|\bai1 walkthrough\b/, 'names the walkthrough skill, command or folder, now storyboard', migrationReport);
   },
   migrateUser(userDirectory, migrationReport) {
-    migrateUserOverlays(userDirectory, migrationReport, { oldFeatureId: 'walkthrough', newFeatureId: 'storyboard', rewriteText: renameStoryboardTexts });
+    migrateUserCustomizations(userDirectory, migrationReport, { oldFeatureId: 'walkthrough', newFeatureId: 'storyboard', rewriteText: renameStoryboardTexts });
   },
 };
 
@@ -227,7 +227,31 @@ const allFeaturesOn = {
   migrateUser() {},
 };
 
-export const MIGRATIONS = [lanesToSizing, walkthroughToStoryboard, skillVisibility, allFeaturesOn];
+// Every `<skills folder>/<feature>/overlay.md` becomes `customization.md` in the same folder, unless
+// that one already exists (then both stay, reported).
+function renameCustomizationFiles(skillsDirectory, migrationReport, displayPath) {
+  if (!existsSync(skillsDirectory)) return;
+  for (const directoryEntry of readdirSync(skillsDirectory, { withFileTypes: true })) {
+    if (!directoryEntry.isDirectory()) continue;
+    const featureDirectory = join(skillsDirectory, directoryEntry.name);
+    moveFolderUnlessTaken(join(featureDirectory, LEGACY_CUSTOMIZATION_FILE_NAME), join(featureDirectory, CUSTOMIZATION_FILE_NAME), migrationReport, displayPath);
+  }
+}
+
+// v0.38.0: a skill's customization file is `customization.md`, no longer `overlay.md`.
+const overlayToCustomization = {
+  number: 5,
+  id: 'overlay-to-customization',
+  summary: 'ai1 v0.38.0 renamed the skill customization files from overlay.md to customization.md',
+  migrateRepo(repoRoot, migrationReport) {
+    renameCustomizationFiles(join(repoRoot, SKILL_CUSTOMIZATIONS_DIRECTORY), migrationReport, repoDisplayPath(repoRoot));
+  },
+  migrateUser(userDirectory, migrationReport) {
+    renameCustomizationFiles(join(userDirectory, 'skills'), migrationReport, userDisplayPath);
+  },
+};
+
+export const MIGRATIONS = [lanesToSizing, walkthroughToStoryboard, skillVisibility, allFeaturesOn, overlayToCustomization];
 export const LATEST_MIGRATION_NUMBER = MIGRATIONS.at(-1).number;
 
 function readLedgerNumber(ledgerPath) {

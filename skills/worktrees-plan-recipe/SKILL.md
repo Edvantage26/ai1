@@ -1,6 +1,6 @@
 ---
 name: worktrees-plan-recipe
-description: Worktrees — Complete, refine or revise how this repository makes git worktrees, one per change: the overlay on top of the basic recipe ai1 works out from the repo. Use when `ai1 worktree` reports something the recipe does not cover, when a worktree needed a step by hand, when the person wants worktrees made a particular way here ("cada worktree con su puerto", "comparte la carpeta de datos", "work in a worktree"), or to revise the recipe ("revisa la receta de worktrees", "/ai1:worktrees-plan-recipe revisar").
+description: Worktrees — Complete, refine or revise how this repository makes git worktrees, one per change: the project recipe on top of the basic recipe ai1 works out from the repo. Use when `ai1 worktree` reports something the recipe does not cover, when a worktree needed a step by hand, when the person wants worktrees made a particular way here ("cada worktree con su puerto", "comparte la carpeta de datos", "work in a worktree"), or to revise the recipe ("revisa la receta de worktrees", "/ai1:worktrees-plan-recipe revisar").
 allowed-tools: Bash("${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context *)
 ---
 
@@ -12,7 +12,7 @@ used - base the trunk, ignored `.env` files at the root and one folder down copi
 the lockfile (`npm ci`, `pnpm`, `yarn`, `bun`, `uv sync`, `poetry install`) as setup with its
 dependency folder regenerated, the repo's `verify` commands as `pre-finish`.
 
-What this repo does differently goes in the **overlay** `.claude/skills/worktree/recipe.json`
+What this repo does differently goes in the **project recipe** `.claude/skills/worktree/recipe.json`
 (committed): only the fields that differ; each one replaces the basic field whole (`finish` merges
 field by field). The full format is ai1's `schema/worktree-recipe.schema.json`, with an example of
 every field in `templates/worktree-skill/recipe.json`. Next to it, optionally:
@@ -25,19 +25,19 @@ The engine is `ai1 worktree create|list|run|finish|drop` (on the Bash PATH while
 
 ## 0. Which path
 
-Run `ai1 status`. The line `worktree recipe:` says `basic` (no overlay), `overlay` or `invalid`.
+Run `ai1 status`. The line `worktree recipe:` says `basic` (no project recipe), `project` or `invalid`.
 
 - `ai1 worktree` reported something not covered, or a worktree needed a step by hand: **complete**
-  the overlay (step 1).
+  the project recipe (step 1).
 - The person wants worktrees made a particular way (ports, services, shared data, modes, closing):
   **refine** (steps 2-5).
 - `invalid`, or the person asked to revise: **revise** (step 6).
 - Otherwise there is nothing to do: follow the project skill (`/worktree`) when there is one.
 
-## 1. Complete the overlay
+## 1. Complete the project recipe
 
 The agent does this by itself and says it in one line ("Receta de worktrees: añado `models/` como
-share."). Add to the overlay only the fields the gap needs, keeping what it already has; a field the
+share."). Add to the project recipe only the fields the gap needs, keeping what it already has; a field the
 basic recipe also sets must keep the basic entries that still apply (e.g. `heavy` with the
 `node_modules` entry plus the new one). Typical fixes:
 
@@ -49,7 +49,7 @@ basic recipe also sets must keep the basic entries that still apply (e.g. `heavy
 
 **Propose first** (one line, wait for the yes) when the fix would share a folder that holds state
 (a database, uploads, anything the app writes) or delete data. Then `ai1 status` must say
-`worktree recipe: overlay`; tell the person to commit `.claude/skills/worktree/`.
+`worktree recipe: project`; tell the person to commit `.claude/skills/worktree/`.
 
 ## 2. Adopt what already exists
 
@@ -83,7 +83,7 @@ Answer these from the repo itself; note the evidence for each:
 
 One question per message, the most important first, with your recommendation. Typical: which heavy
 folders a usual task really needs, whether services may be shared, how they like to close. Then show
-the overlay as JSON (only the fields that differ from the basic recipe) and, when there are
+the project recipe as JSON (only the fields that differ from the basic recipe) and, when there are
 project rules worth writing, a summary of the project `SKILL.md`. Iterate until they approve.
 
 ## 5. Write, dry run, report
@@ -97,9 +97,9 @@ project rules worth writing, a summary of the project `SKILL.md`. Iterate until 
 
 ## 6. Revise
 
-Read the current overlay and project skill, ask what changed (or detect it: new heavy folder, new
+Read the current project recipe and project skill, ask what changed (or detect it: new heavy folder, new
 service, a failure they hit), propose the diff, and after approval update the same files. Run the
-dry run again. Fields that now match the basic recipe can leave the overlay.
+dry run again. Fields that now match the basic recipe can leave the project recipe.
 
 ## Rules for every path
 
@@ -110,7 +110,7 @@ dry run again. Fields that now match the basic recipe can leave the overlay.
 
 - Never push unless the person asks.
 - Never edit a path a worktree shares with the main checkout (`share` strategy).
-- The overlay holds only what differs from the basic recipe; a fix that shares a folder holding state or deletes data is proposed first and written only after the person's yes.
+- The project recipe holds only what differs from the basic recipe; a fix that shares a folder holding state or deletes data is proposed first and written only after the person's yes.
 
 ## Customization
 

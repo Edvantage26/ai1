@@ -1,7 +1,7 @@
 ---
 type: Component
 title: config-guard
-description: PreToolUse guard that asks the person before the agent changes the harness configuration (.ai1/config.json, .claude/settings*.json, .claude/hooks/) and the skill overlays in .ai1/skills/.
+description: PreToolUse guard that asks the person before the agent changes the harness configuration (.ai1/config.json, .claude/settings*.json, .claude/hooks/) and the skill customizations in .ai1/skills/.
 tags: [guard, hooks, config]
 resource: src/guards/config-guard.mjs
 sources:
@@ -13,7 +13,7 @@ sources:
     title: Later 0002
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T14:03:22Z'
+  at: '2026-11-14T20:38:40Z'
 ---
 
 Feature `danger` (on by default); switch it off alone with `modules.config-guard: false`. Built
@@ -33,7 +33,7 @@ still prompts in bypass mode, so since 2026-11-09 ai1 lets this guard's asks thr
 
 - Protected: any path that, as written or after `realpath`, ends in `/.ai1/config.json`,
   `/.claude/settings.json`, `/.claude/settings.local.json`, or lies under `/.claude/hooks/` or `/.ai1/skills/`
-  (project overlays change how ai1's skills work, see [skill customization](../architecture/skill-customization.md)). Matched by
+  (project customizations change how ai1's skills work, see [skill customization](../architecture/skill-customization.md)). Matched by
   ending, so the copies in other worktrees and `~/.claude/settings.json` count too.
 - File tools (Edit, Write, MultiEdit, NotebookEdit): their path.
 - Shell: the targets from `src/core/tool-call-paths.mjs` - redirects, `tee`, `sed -i`, `cp`, `rm`
