@@ -98,11 +98,12 @@ export function applyCommandArguments(commandText, extraArguments) {
 }
 
 // { exitCode, failedCommand }; stops at the first failing command and records the run in the state.
-export function runWorktreeCommand(startDirectory, worktreeName, commandName, { runCommand = defaultRunCommand, extraArguments = [] } = {}) {
+// `recipe`: run the command from this recipe instead of the main checkout's (finish's pre-finish).
+export function runWorktreeCommand(startDirectory, worktreeName, commandName, { runCommand = defaultRunCommand, extraArguments = [], recipe: recipeOverride } = {}) {
   const { mainRoot, commonDirectory } = findRepository(startDirectory);
   const worktreeState = readStateOrFail(commonDirectory, worktreeName);
   if (!existsSync(worktreeState.path)) throw new Error(`${worktreeState.path} is missing`);
-  const { recipe } = loadRecipeOrFail(mainRoot);
+  const recipe = recipeOverride || loadRecipeOrFail(mainRoot).recipe;
   const commandEnvironment = buildWorktreeEnvironment(recipe, worktreeState, mainRoot);
   let runResult = { exitCode: 0, failedCommand: null };
   for (const commandTemplate of resolveNamedCommands(recipe, worktreeState, commandName)) {

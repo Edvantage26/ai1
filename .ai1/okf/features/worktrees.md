@@ -5,7 +5,7 @@ description: A worktree per change (any edit to the repo files, created before t
 tags: [worktrees, git, skills, cli, hooks]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-14T23:28:33Z'
+  at: '2026-11-14T23:51:36Z'
 sources:
   - id: worktree-create
     resource: src/worktrees/worktree-create.mjs
@@ -111,6 +111,13 @@ Clean worktree required -> base brought in (rebase, or `--merge` to keep hashes)
 bundle needs `--ack "<reason>"`; validator errors block; a validator crash fails open) -> fast-forward the base
 (in the checkout that has it, which must be clean except `dirty_base_paths_ok`; `update-ref` when not
 checked out) -> share links removed, worktree, branch and record removed. Never forces, never pushes.
+
+The recipe is the base's, except `pre-finish`: when the branch changes its own `pre-finish` (in
+`.claude/skills/worktree/recipe.json`), finish runs the branch's, since those commands check the
+branch's code, and says so in its steps. Found on 2026-11-15: the branch that removed the Python OKF
+validator could not finish, because the base's `pre-finish` still called the script it deleted. The
+recipe is not behind config-guard (agents edit it through /ai1:worktrees-plan-recipe), so this opens
+no new way around a check; the step line shows a weakened `pre-finish` to the person.
 
 The fast-forward gives the files it writes into a checked-out base fresh modification times, so the
 Stop hooks of any session open there would take them for unchecked changes. `finish` records them in

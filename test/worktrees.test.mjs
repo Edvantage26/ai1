@@ -274,6 +274,29 @@ test('finish refuses uncommitted work, stops on conflicts and on a dirty base ch
   assert.ok(existsSync(join(mainRoot, 'notes', 'draft.md')), 'allowed dirty paths stay as they were');
 });
 
+test('finish takes pre-finish from the branch when the branch changes it, and says so', () => {
+  const mainRoot = createRecipeRepo({ ...TEST_RECIPE, commands: { 'pre-finish': ['npm test', 'python3 check.py'] } });
+  const created = createWorktree(mainRoot, 'recipe', { mode: 'light' });
+  const branchRecipePath = join(created.path, RECIPE_RELATIVE_PATH);
+  writeFileSync(branchRecipePath, JSON.stringify({ ...TEST_RECIPE, commands: { 'pre-finish': ['npm test', 'node check.mjs'] } }));
+  runGit(created.path, ['add', RECIPE_RELATIVE_PATH]);
+  runGit(created.path, ['-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-qm', 'check in node']);
+  const ranCommands = [];
+  const finishResult = finishWorktree(mainRoot, 'recipe', { runCommand: (commandText) => { ranCommands.push(commandText); return 0; } });
+  assert.deepEqual(ranCommands, ['npm test', 'node check.mjs']);
+  assert.match(finishResult.steps.join('\n'), /pre-finish taken from the branch's recipe, which changes it: npm test && node check\.mjs\npre-finish passed/);
+});
+
+test('finish keeps the base pre-finish when the branch does not change it', () => {
+  const mainRoot = createRecipeRepo({ ...TEST_RECIPE, commands: { 'pre-finish': 'npm test' } });
+  const created = createWorktree(mainRoot, 'same', { mode: 'light' });
+  commitInWorktree(created.path, 'fix.js', 'fix\n');
+  const ranCommands = [];
+  const finishResult = finishWorktree(mainRoot, 'same', { runCommand: (commandText) => { ranCommands.push(commandText); return 0; } });
+  assert.deepEqual(ranCommands, ['npm test']);
+  assert.doesNotMatch(finishResult.steps.join('\n'), /branch's recipe/);
+});
+
 test('finish runs pre-finish and moves a base that is not checked out anywhere', () => {
   const mainRoot = createRecipeRepo({ ...TEST_RECIPE, commands: { 'pre-finish': 'npm test' } });
   runGit(mainRoot, ['branch', 'release']);

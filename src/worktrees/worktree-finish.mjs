@@ -15,7 +15,7 @@ import { runGit, tryGit, listIgnoredPaths } from '../core/git.mjs';
 import { findRepository, removeWorktreeState } from './worktree-state.mjs';
 import { movePlansToMainCheckout } from '../sizing/sizing-work.mjs';
 import { loadRecipeOrFail } from './worktree-create.mjs';
-import { RECIPE_GAP_HINT } from './worktree-recipe.mjs';
+import { RECIPE_GAP_HINT, loadRecipe } from './worktree-recipe.mjs';
 import {
   readStateOrFail, listUncommittedPaths, runWorktreeCommand, removeWorktreeCheckout, resolveNamedCommands,
 } from './worktree-ops.mjs';
@@ -24,6 +24,19 @@ import { verifyCommandsRunBy } from '../verify/verify-gate.mjs';
 import { closeStoryboard } from '../storyboard/storyboard-serve.mjs';
 
 const HARNESS_PATHS = new Set(['.claude/settings.json', '.claude/settings.local.json', '.ai1/config.json']);
+
+// The recipe whose `pre-finish` checks the branch. Those commands verify the branch's code, so when the
+// branch changes its own `pre-finish` (a command it removes, a new check) the branch's recipe wins;
+// everything else (strategy, allow_merge, dirty_base_paths_ok) stays the base's. An invalid branch
+// recipe leaves the base's in charge. `fromBranch` tells finish to say so.
+export function choosePreFinishRecipe(baseRecipe, worktreePath, worktreeState) {
+  const branchRecipe = loadRecipe(worktreePath);
+  if (branchRecipe.status === 'invalid') return { recipe: baseRecipe, fromBranch: false };
+  const listPreFinish = (recipe) => (recipe.commands['pre-finish'] === undefined ? [] : resolveNamedCommands(recipe, worktreeState, 'pre-finish'));
+  const branchCommands = listPreFinish(branchRecipe.recipe);
+  if (JSON.stringify(branchCommands) === JSON.stringify(listPreFinish(baseRecipe))) return { recipe: baseRecipe, fromBranch: false };
+  return { recipe: { ...baseRecipe, commands: { ...baseRecipe.commands, ...branchRecipe.recipe.commands } }, fromBranch: true, branchCommands };
+}
 
 function isAncestor(repoRoot, ancestorRef, descendantRef) {
   return tryGit(repoRoot, ['merge-base', '--is-ancestor', ancestorRef, descendantRef]) !== null;
@@ -132,8 +145,10 @@ export function finishWorktree(startDirectory, worktreeName, options = {}) {
   const finishStrategy = options.merge ? 'merge' : recipe.finish.strategy;
 
   const steps = [integrateBase(worktreeState.path, worktreeState.base, finishStrategy)];
-  if (recipe.commands['pre-finish'] !== undefined) {
-    const preFinishResult = runWorktreeCommand(mainRoot, worktreeName, 'pre-finish', options.runCommand ? { runCommand: options.runCommand } : {});
+  const preFinish = choosePreFinishRecipe(recipe, worktreeState.path, worktreeState);
+  if (preFinish.fromBranch) steps.push(`pre-finish taken from the branch's recipe, which changes it: ${preFinish.branchCommands.length ? preFinish.branchCommands.join(' && ') : '(none)'}`);
+  if (preFinish.recipe.commands['pre-finish'] !== undefined) {
+    const preFinishResult = runWorktreeCommand(mainRoot, worktreeName, 'pre-finish', { recipe: preFinish.recipe, ...(options.runCommand ? { runCommand: options.runCommand } : {}) });
     if (preFinishResult.exitCode !== 0) throw new Error(`pre-finish failed: \`${preFinishResult.failedCommand}\` (exit ${preFinishResult.exitCode}); fix it in the worktree and run finish again. ${RECIPE_GAP_HINT}`);
     steps.push('pre-finish passed');
   }
@@ -141,7 +156,7 @@ export function finishWorktree(startDirectory, worktreeName, options = {}) {
   if (knowledgeCheck.checked) steps.push('knowledge bundle checked');
   const baseHeadBefore = runGit(mainRoot, ['rev-parse', worktreeState.base]).trim();
   steps.push(fastForwardBase(mainRoot, worktreeState.base, worktreeState.branch, recipe.finish.dirty_base_paths_ok));
-  recordBaseIntegration({ mainRoot, commonDirectory, recipe, worktreeState, baseHeadBefore, knowledgeChecked: knowledgeCheck.checked });
+  recordBaseIntegration({ mainRoot, commonDirectory, recipe: preFinish.recipe, worktreeState, baseHeadBefore, knowledgeChecked: knowledgeCheck.checked });
 
   // Plans of a session isolated in the worktree go home before anything is removed.
   const movedPlanSlugs = movePlansToMainCheckout(worktreeState.path, mainRoot, worktreeName);
