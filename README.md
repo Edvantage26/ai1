@@ -24,7 +24,7 @@ migrations on the repo and on your `~/.config/ai1/`, leaves the changes uncommit
 changed (e.g. v0.32.0: `lanes` -> `sizing`, v0.33.0: `walkthrough` -> `storyboard`, v0.36.0: every
 feature on, dropping the `false` values an older `ai1 init` wrote).
 
-> **Status: early (v0.36.0).** Per-repo features, the `okf` feature (project knowledge) and the
+> **Status: early (v0.37.0).** Per-repo features, the `okf` feature (project knowledge) and the
 > `danger` guard work, are tested and verified in real sessions. The `sizing`, `design`, `verify`,
 > `later` and `worktrees` features, and the `config-guard`, `repo-rules` and `test-guard` modules,
 > are new and tested, not yet tried in live sessions. Everything marked *planned* does not exist yet.
