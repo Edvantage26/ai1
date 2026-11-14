@@ -5,7 +5,7 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-13T10:22:33Z'
+  at: '2026-11-14T18:03:47Z'
 ---
 
 # Layout
@@ -88,6 +88,15 @@ and `.ai1/rfc/` of ai1 before v0.18.0 or `.ai1/proposals/` before v0.25.0 (renam
   settings and copies it to `known_marketplaces.json` at session start); otherwise `claude plugin update`.
 - `claude plugin uninstall ai1@ai1 --scope project` also empties `enabledPlugins` in the repo's committed
   `.claude/settings.json`: restore that file (`git checkout -- .claude/settings.json`) afterwards.
+- Claude Code registers a **project-scope** install by itself at session start in a repo whose committed
+  settings enable the plugin, pinned to the version current at that moment, and the user install's
+  `autoUpdate` does not move it. Seen on 2026-11-14: nine repos of one machine held project entries from
+  0.30.2 to 0.36.0 (one for a worktree long gone) next to a user install on the latest. Cleanup that keeps
+  the committed settings: back up `~/.claude/plugins/installed_plugins.json`, drop the `ai1@ai1` entries
+  with `scope: project`, check `claude plugin list`; old folders under
+  `~/.claude/plugins/cache/ai1/ai1/<version>/` can go once no session runs from them (a running session
+  keeps executing the hooks of the version it started with). The entry comes back at the next session
+  start, but on the current version.
 
 # Versioning
 
