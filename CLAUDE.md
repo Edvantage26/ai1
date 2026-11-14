@@ -10,16 +10,16 @@ OKF v0.2. Read `.ai1/okf/index.md` first and follow the links to the relevant co
 that affects a documented asset (contract, module, decision, roadmap), update its concept body and
 `generated: { by: <agent>/<version> or human:<id>, at: <ISO 8601> }`. Add a dated `.ai1/okf/log.md` entry
 only for lifecycle events (created, deprecated, superseded, regenerated, verified). Validate with the
-OKF validator in `--strict` mode (`python3 skills/okf-validate-bundle/scripts/okf_validate.py .ai1/okf --strict`).
+OKF validator in `--strict` mode (`node bin/ai1 okf validate .ai1/okf --strict`).
 
 ## Rules for this repo
 
 - **Public repo**: never commit secrets, internal hostnames, client names or Edvantage-specific
   infrastructure. Those belong in a private pack, not here.
-- **Hooks**: plain Node or POSIX shell, no npm dependencies, no network calls. A system tool (`git`,
-  `python3`) only when optional, with a timeout, failing open when missing, and telling the person once
+- **Hooks**: plain Node or POSIX shell, no npm dependencies, no network calls. A system tool (`git`)
+  only when optional, with a timeout, failing open when missing, and telling the person once
   when that turns a check off. Per-tool-call hooks stay in milliseconds; heavy work goes to the CLI.
-  Skill scripts may use another runtime from the README requirements, dependencies vendored; no third
+  Skill scripts are Node too (`ai1` subcommands), dependencies vendored in `vendor/`; no second
   language. Fail open on internal errors; fail closed only on matched production writes. See
   `.ai1/okf/decisions/principles.md`.
 - **Never grant the agent git permissions** (commit/push) from the plugin.

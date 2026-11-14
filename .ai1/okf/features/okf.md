@@ -18,7 +18,7 @@ sources:
     title: Transcript, memory and shell-edit scan for upkeep
   - id: okf-validator
     resource: src/okf/okf-validator.mjs
-    title: Bundled Python validator runner
+    title: In-process validator runner
   - id: okf-bundle
     resource: src/okf/okf-bundle.mjs
     title: Shared bundle helpers and maintenance rules

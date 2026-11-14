@@ -4,7 +4,7 @@
 //      pending changes; or
 //   2. the bundle was touched in this session and the OKF validator reports ERRORS. The hook runs
 //      the validator itself, because asking the agent to validate proved unreliable in field tests.
-//      Warnings never block; without Python it fails open and tells the person once per session.
+//      Warnings never block; a crash of the validator fails open and tells the person once per session.
 //   3. once the bundle validates, this session changed concepts without a look at the overview
 //      (overview.md or the root index.md), or changed concepts no index.md links to; asked once per
 //      set of findings, never right after another hook stop.

@@ -5,7 +5,7 @@ description: What ai1 is, the four pieces of a harness, and what exists today.
 tags: [overview, harness]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-14T20:42:58Z'
+  at: '2026-11-14T23:28:33Z'
 ---
 
 # What it is
@@ -62,7 +62,7 @@ Next steps in the [roadmap](roadmap.md).
 - `src/<feature>/`: one folder per feature (`okf`, `guards`, `craft`, `verify`, `sizing`, `later`,
   `reuse`, `design`, `storyboard`, `worktrees`, `session`, `context` for the brief).
 - `bin/ai1`, `src/cli/`, `skills/core-setup-repo/`, `skills/core-report-issue/`: the CLI (`status`, `init`, `verify`, `step-done`,
-  `later`, `reuse`, `worktree`, `storyboard`, `fork`, `issue`, `claude-md`, `log`), `/ai1:core-setup-repo` and `/ai1:core-report-issue`.
-- `skills/okf-*/`, `agents/`, `vendor/`: OKF toolkit, owned by ai1 (see [OKF toolkit](packs/okf-pack.md)); `skills/okf-tidy-claude-md/` is ai1's own.
+  `later`, `reuse`, `worktree`, `storyboard`, `fork`, `issue`, `claude-md`, `log`, `okf`), `/ai1:core-setup-repo` and `/ai1:core-report-issue`.
+- `skills/okf-*/`, `src/okf/okf-validate.mjs`, `okf-init.mjs`, `okf-visualize.mjs`, `vendor/`: OKF toolkit, owned by ai1 (see [OKF toolkit](packs/okf-pack.md)); `skills/okf-tidy-claude-md/` is ai1's own.
 - `schema/ai1.schema.json`, `templates/config.json`: the per-repo contract.
-- `test/`: `npm test` (node:test suite, plus the Python tests of the OKF toolkit in `test/okf-toolkit/`).
+- `test/`: `npm test` (node:test suite).

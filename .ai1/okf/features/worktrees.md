@@ -5,7 +5,7 @@ description: A worktree per change (any edit to the repo files, created before t
 tags: [worktrees, git, skills, cli, hooks]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-14T20:38:40Z'
+  at: '2026-11-14T23:28:33Z'
 sources:
   - id: worktree-create
     resource: src/worktrees/worktree-create.mjs
@@ -108,7 +108,7 @@ receive the work.
 
 Clean worktree required -> base brought in (rebase, or `--merge` to keep hashes) -> recipe
 `pre-finish` -> OKF checks when the branch's .ai1/config.json enables okf (code changed without touching the
-bundle needs `--ack "<reason>"`; validator errors block; no python fails open) -> fast-forward the base
+bundle needs `--ack "<reason>"`; validator errors block; a validator crash fails open) -> fast-forward the base
 (in the checkout that has it, which must be clean except `dirty_base_paths_ok`; `update-ref` when not
 checked out) -> share links removed, worktree, branch and record removed. Never forces, never pushes.
 

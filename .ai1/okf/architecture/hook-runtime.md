@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-13T14:28:06Z'
+  at: '2026-11-14T23:28:33Z'
 ---
 
 # Flow
@@ -107,7 +107,7 @@ change, sorted as edit / shell-write / remove / move / move-target; config-guard
 layout, so core never imports `src/cli/`). Paths under `.ai1/` (`KNOWLEDGE_BUNDLE_PATH`,
 `WORK_DIRECTORY`) are constants in `config.mjs`.
 okf-upkeep is split: `okf-session-scan.mjs` (transcript, memories, shell edits of the bundle) and
-`okf-validator.mjs` (the Python validator, also used by `ai1 worktree finish`).
+`okf-validator.mjs` (runs the Node validator in-process, also used by `ai1 worktree finish`).
 The bundle reader `listBundleConcepts` (`src/okf/okf-bundle.mjs`) is shared by okf-recall, design-brief
 and the file map; the file map (`src/okf/okf-file-map.mjs`, which concepts describe a file) by
 okf-file-context, okf-upkeep and the CLAUDE.md check (`okf-claude-md-check.mjs`, used by
@@ -128,7 +128,7 @@ capped at 12,000 characters; 0 to about 1 KB per message (`okf-recall`, `later-r
 # Verified
 
 - `npm test`: 240 Node tests plus 107 Python tests of the OKF toolkit on 2026-11-09 (94 on 2026-10-31,
-  65 on 2026-10-30).
+  65 on 2026-10-30); Node only since 2026-11-15 (572+ tests).
 - Real Claude Code sessions with `--plugin-dir` (2026-10-30): SessionStart brief injected;
   `git reset --hard` stopped by `ask` (headless = refused, work kept); `git commit --no-verify`
   refused by `deny`. Headless `claude -p` on the dev server needs the account wrapper for auth.

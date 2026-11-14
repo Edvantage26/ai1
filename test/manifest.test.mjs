@@ -26,5 +26,6 @@ test('the OKF toolkit ships without the backfill skill, its agents or Python [ok
   assert.equal(existsSync(repoPath('skills/okf-backfill-from-history')), false);
   assert.equal(existsSync(repoPath('agents')), false);
   assert.doesNotMatch(readJson('package.json').scripts.test, /python/);
+  assert.equal(existsSync(repoPath('vendor/yaml')), false);
   assert.match(readFileSync(repoPath('skills/okf-maintain-knowledge/SKILL.md'), 'utf8'), /git log --oneline --no-merges/);
 });
