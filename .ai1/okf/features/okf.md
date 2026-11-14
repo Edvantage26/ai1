@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index and bundle health notes 
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-10T16:45:32Z'
+  at: '2026-11-14T23:25:53Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -81,10 +81,9 @@ sources:
   section, the concept edit; applies after a yes, then validates.
   The best moment to offer it is when the bundle is created, since it is usually written from
   CLAUDE.md and the overlap is largest then, while the hint would only come at the next session start.
-  So the three skills that set up OKF end by running `ai1 claude-md` and offering the skill in one
-  line when there are findings: `/ai1:okf-maintain-knowledge` (produce, new bundle),
-  `/ai1:okf-backfill-from-history` (Finalize) and `/ai1:core-setup-repo` (joined with its offer to fix
-  old paths after a migration). If the person declines, the hint repeats once at the next session
+  So the two skills that set up OKF end by running `ai1 claude-md` and offering the skill in one
+  line when there are findings: `/ai1:okf-maintain-knowledge` (produce, new bundle) and
+  `/ai1:core-setup-repo` (joined with its offer to fix old paths after a migration). If the person declines, the hint repeats once at the next session
   start (the CLI does not write the hint's fingerprint: its state folder may differ from the hook's).
   Measured (2026-11-09) on five real repos with 46-842-line CLAUDE.md files: check 30-140 ms. A
   scratch copy of one of them: the SessionStart entry point told the hint once and nothing on the
@@ -174,16 +173,16 @@ sources:
   transcript was read from its start, and edits committed days before showed as undone (a long session
   of a real repo got a dozen `app/*.py` files listed).
 - **Validation gate (Stop, same module):** when the bundle was changed in the session, the hook
-  runs the bundled validator itself (`python3 skills/okf-validate-bundle/scripts/okf_validate.py --json`, ~0.2 s on a
-  45-concept bundle) and blocks only on ERRORS, listing them; warnings (e.g. v0.1 legacy) never
+  runs the validator in-process (`src/okf/okf-validate.mjs`, the same as `ai1 okf validate`) and
+  blocks only on ERRORS, listing them; warnings (e.g. v0.1 legacy) never
   block. It also runs when `stop_hook_active` is set (the agent was just asked to update the
   bundle), which is exactly when it matters; the upkeep reminder itself is not repeated then.
   Loop guards: the same errors are reported once, and at most 3 validation blocks per session.
-  It tries `python3`, `python` and `py -3` (Windows) in order. Without a Python 3 it fails open and
-  tells the person once per session (`systemMessage`, never blocking); before 2026-11-09 only stderr
-  said it, so on Windows the gate was off without anyone knowing.
-- **Structure check (Stop, same module, since 2026-11-09):** after a clean validation (or when no
-  Python can validate), if this session changed or deleted concepts (any bundle page but an
+  If the validator itself crashes it fails open and tells the person once per session
+  (`systemMessage`, never blocking). Until 2026-11-15 it was the Python script of the toolkit, found
+  as `python3`, `python` or `py -3`: without Python (common on Windows) the gate was off.
+- **Structure check (Stop, same module, since 2026-11-09):** after a clean validation (or when the
+  validator could not run), if this session changed or deleted concepts (any bundle page but an
   `index.md`, a `log.md` and the root `overview.md`; changed since the base HEAD and after the
   session started) without touching the overview or the root `index.md`, the agent is asked to check
   that they still describe the project, or to say in one line that they do; it is also asked to link
@@ -217,9 +216,10 @@ sources:
 
 # Skills and agents
 
-From the [OKF toolkit](../packs/okf-pack.md): `/ai1:okf-maintain-knowledge`, `/ai1:okf-validate-bundle`, `/ai1:okf-visualize-bundle`,
-`/ai1:okf-backfill-from-history`, and the agents `bundle-weaver` and `event-analyzer`. Written in
-ai1: `/ai1:okf-tidy-claude-md` (see okf-claude-md above).
+From the [OKF toolkit](../packs/okf-pack.md): `/ai1:okf-maintain-knowledge`, `/ai1:okf-validate-bundle`, `/ai1:okf-visualize-bundle`, whose
+scripts are the `ai1 okf validate`, `ai1 okf init` and `ai1 okf visualize` commands. Written in ai1:
+`/ai1:okf-tidy-claude-md` (see okf-claude-md above). The backfill skill and its two agents were
+removed on 2026-11-15 (never used; a light history step in produce mode replaces it).
 
 # Coexistence with a standalone OKF setup
 

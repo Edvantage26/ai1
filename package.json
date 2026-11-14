@@ -9,6 +9,6 @@
     "node": ">=18"
   },
   "scripts": {
-    "test": "node --test test/*.test.mjs && python3 -S test/okf-toolkit/test_okf_backfill_events.py"
+    "test": "node --test test/*.test.mjs"
   }
 }

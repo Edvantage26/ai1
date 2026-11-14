@@ -25,7 +25,7 @@ sources:
     title: Later 0001
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-14T20:38:40Z'
+  at: '2026-11-14T23:25:53Z'
 ---
 
 Built 2026-11-09 from later 0001 (phases 0-2); decision in
@@ -76,7 +76,7 @@ worktrees-plan-recipe, session-fork-conversation, later-write, sizing-design-bef
 okf-maintain-knowledge, okf-tidy-claude-md, okf-visualize-bundle, verify-debug-systematically,
 verify-evaluate-llm-prompts,
 storyboard-record-flow, design-review-usability (project and person) and
-core-setup-repo (person only). Excluded, with the reason in the index: okf-backfill-from-history,
+core-setup-repo (person only). Excluded, with the reason in the index:
 core-report-issue, okf-validate-bundle, danger-write-rule, core-customize-skill.
 
 # Around it

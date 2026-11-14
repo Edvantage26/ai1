@@ -20,7 +20,6 @@ export const SKILL_CUSTOMIZATION_INDEX = {
   'reuse-encapsulate': { customizable: true, scopes: PROJECT_AND_USER },
   'design-review-usability': { customizable: true, scopes: PROJECT_AND_USER },
   'core-setup-repo': { customizable: true, scopes: ['user'] },
-  'okf-backfill-from-history': { customizable: false, reason: 'its subagents do not receive what is injected into the skill' },
   'core-report-issue': { customizable: false, reason: 'its privacy guarantee for a public issue lives only in the skill text' },
   'okf-validate-bundle': { customizable: false, reason: 'a deterministic checker; a customization could only change how its errors are read' },
   'core-customize-skill': { customizable: false, reason: 'it writes the customizations; customizing it would let a customization change how customizations are approved' },

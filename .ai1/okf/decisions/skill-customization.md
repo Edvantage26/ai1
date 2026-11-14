@@ -9,7 +9,7 @@ sources:
     title: Customizable ai1 skills - project and user overlays
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-14T20:38:40Z'
+  at: '2026-11-14T23:26:39Z'
 ---
 
 Decided by the person on 2026-11-09; built the same day. How it works:
@@ -24,7 +24,7 @@ Decided by the person on 2026-11-09; built the same day. How it works:
 - **Customizable by default**; a skill is excluded only with a written reason, and a test forces the
   choice for every new skill. Excluded where the rule a customization could weaken protects others or is
   deterministic (report-issue, validate-bundle, danger-write-rule, customize-skill) or the injection
-  cannot reach (backfill's subagents).
+  cannot reach (backfill's subagents; that skill was removed on 2026-11-15).
 - **Fixed rules** in every customizable skill; the customization comes after them and the model is told they win.
 - **Injected at load** by `` !`…` `` through the plugin's own `bin/ai1`: no tokens until a skill runs.
 - Folder per **feature** (the skill prefix), so a skill rename does not move customizations.

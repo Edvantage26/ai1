@@ -108,7 +108,16 @@ is given. Then extend it:
 1. Read [reference/SPEC.md](reference/SPEC.md).
 2. Pick the source(s): **code** (derive concepts from source, READMEs,
    docstrings, config), **docs/wiki** (distill pages into concepts, record the
-   originals in `sources`), **manual** (decisions, playbooks, metrics).
+   originals in `sources`), **manual** (decisions, playbooks, metrics), and for a
+   new bundle in a repo with history, **git history** for the *why* the code no
+   longer shows (only when creating the bundle or when asked; keep it light):
+   - Read `git log --oneline --no-merges` whole, then open at most ~20 commits with
+     `git show --stat <sha>` (and the diff of the few that need it): the largest
+     ones, those touching dependencies, configuration or the architecture, and
+     those whose message says why, instead, replace, drop or revert.
+   - Write a `decisions/` concept only for a choice with a clear reason in the
+     commit (or its PR); cite the commit in `sources` (`resource: git:<sha>`).
+     Never invent a reason the history does not give, and skip routine changes.
 3. Choose a directory layout by domain (e.g. `services/`, `datasets/`,
    `decisions/`). One concept per file.
 4. Write each concept from [templates/concept.md](templates/concept.md): set a
