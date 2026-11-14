@@ -96,5 +96,11 @@ ai1 never drives the browser: the agent captures with its own tool and hands the
   element and can cover its neighbours: acceptable, the frame is what matters.
 - Validate the look by building a demo storyboard from two headless screenshots
   (`chrome --headless --no-sandbox --window-size=1440,900 --screenshot=...`), screenshotting
-  `index.html` and reading the PDF page by page.
+  `index.html` and reading the PDF page by page. The slides view opens on step 1 (a `#step-n` hash
+  does not move it): to see a later step, print the PDF (`--print-to-pdf`) and render that page
+  (`pdftoppm -f n -l n -png`). Done for notes on 2026-11-14 with a script importing `addCapture`,
+  `addStepNote`, `buildStoryboard` from `src/storyboard/`.
+- Snap `chromium-browser` cannot write screenshots under `/tmp` nor in hidden folders of the home
+  (`~/.cache/...`): for scratch captures, pick a Playwright Chromium from `findChromeBinaries()`
+  (the `ms-playwright` paths), which writes anywhere.
 - Tests that serve must stop their servers in `after` (a failed assertion left detached servers).
