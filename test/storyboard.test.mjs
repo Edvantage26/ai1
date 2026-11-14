@@ -322,3 +322,51 @@ test('storyboard-reminder: UI changed and no storyboard after it reminds once; a
   writeFileSync(join(ignoringRoot, 'emails', 'welcome.html'), '<p>hi</p>\n');
   assert.equal(runHookEvent('Stop', { session_id: 'session-2', cwd: ignoringRoot }, hookOptions), null, 'ignored by the repo');
 });
+
+test('usability findings go on their step and show in the HTML, the print view and SUMMARY.md [usability-review:S3]', () => {
+  const projectRoot = createUiRepo();
+  const screenshotPath = writeScreenshot(projectRoot, 'shot.png');
+  runAi1(projectRoot, ['storyboard', 'add', '--slug', 'booking', '--step', 'Opens the calendar', '--image', screenshotPath]);
+  runAi1(projectRoot, ['storyboard', 'add', '--slug', 'booking', '--step', 'Picks a day', '--image', screenshotPath]);
+
+  const noteRun = runAi1(projectRoot, ['storyboard', 'note', '--slug', 'booking', '--step', 'picks-a-day', '--severity', 'P1',
+    '--text', 'Does not see that grey days are full', '--profile', 'Patient', '--viewport', 'mobile', '--fix', 'Write "Full" on full days']);
+  assert.equal(noteRun.status, 0, noteRun.stderr);
+  assert.match(noteRun.stdout, /note n1 \(P1\) on step 2 "Picks a day"/);
+  runAi1(projectRoot, ['storyboard', 'note', '--slug', 'booking', '--step', 'opens-the-calendar', '--severity', 'P3', '--text', 'The <title> is long']);
+
+  const storyboardPath = storyboardDirectory(projectRoot, 'booking');
+  const storyboard = readStoryboard(storyboardPath);
+  assert.equal(storyboard.version, 1, 'notes are additive: the version stays');
+  assert.deepEqual(storyboard.steps[1].notes, [{ id: 'n1', severity: 'P1', text: 'Does not see that grey days are full', profile: 'Patient', fix: 'Write "Full" on full days', viewport: 'mobile' }]);
+
+  runAi1(projectRoot, ['storyboard', 'build', '--slug', 'booking']);
+  const storyboardHtml = readFileSync(join(storyboardPath, 'index.html'), 'utf8');
+  assert.match(storyboardHtml, /id="step-2"[\s\S]*class="note note-p1"[\s\S]*Patient · mobile[\s\S]*grey days are full[\s\S]*Fix: Write &quot;Full&quot;/);
+  assert.match(storyboardHtml, /The &lt;title&gt; is long/, 'notes are escaped');
+  assert.match(storyboardHtml, /findings are synthetic/);
+  assert.doesNotMatch(storyboardHtml, /@media print[^}]*\.notes\{display:none/, 'notes are printed too');
+  const summaryText = readFileSync(join(storyboardPath, 'SUMMARY.md'), 'utf8');
+  assert.match(summaryText, /> Usability findings are synthetic/);
+  assert.match(summaryText, /## 2\. Picks a day\n\nFindings:\n\n- \*\*P1\*\* \(Patient, mobile\): Does not see that grey days are full Fix: Write "Full" on full days/);
+});
+
+test('a second review replaces the notes: --clear removes them; bad step or severity fail with the choices [usability-review:S3]', () => {
+  const projectRoot = createUiRepo();
+  const screenshotPath = writeScreenshot(projectRoot, 'shot.png');
+  runAi1(projectRoot, ['storyboard', 'add', '--slug', 'flow', '--step', 'Home', '--image', screenshotPath]);
+  runAi1(projectRoot, ['storyboard', 'note', '--slug', 'flow', '--step', 'home', '--severity', 'P2', '--text', 'Too many buttons']);
+
+  const unknownStep = runAi1(projectRoot, ['storyboard', 'note', '--slug', 'flow', '--step', 'nope', '--severity', 'P2', '--text', 'x']);
+  assert.notEqual(unknownStep.status, 0);
+  assert.match(unknownStep.stderr + unknownStep.stdout, /step ids: home/);
+  const badSeverity = runAi1(projectRoot, ['storyboard', 'note', '--slug', 'flow', '--step', 'home', '--severity', 'high', '--text', 'x']);
+  assert.match(badSeverity.stderr + badSeverity.stdout, /--severity must be one of P0, P1, P2, P3/);
+
+  const clearRun = runAi1(projectRoot, ['storyboard', 'note', '--slug', 'flow', '--clear']);
+  assert.match(clearRun.stdout, /removed 1 note\(s\)/);
+  const storyboardPath = storyboardDirectory(projectRoot, 'flow');
+  assert.equal(readStoryboard(storyboardPath).steps[0].notes, undefined);
+  buildStoryboard(storyboardPath);
+  assert.doesNotMatch(readFileSync(join(storyboardPath, 'index.html'), 'utf8'), /class="note |findings are synthetic/);
+});

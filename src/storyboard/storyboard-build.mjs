@@ -5,13 +5,14 @@
 
 import { statSync, writeFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
-import { readStoryboard, readImageBytes, stepChange, storyboardHasBefore, VIEWPORTS } from './storyboard-steps.mjs';
+import { readStoryboard, readImageBytes, stepChange, storyboardHasBefore, storyboardHasNotes, VIEWPORTS } from './storyboard-steps.mjs';
 
 export const HTML_FILE_NAME = 'index.html';
 export const SUMMARY_FILE_NAME = 'SUMMARY.md';
 export const HEAVY_STORYBOARD_BYTES = 20 * 1024 * 1024;
 const IMAGE_MIME_TYPES = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' };
 const CHANGE_LABELS = { new: 'New step', removed: 'Removed step' };
+export const SYNTHETIC_NOTES_LINE = 'Usability findings are synthetic: an agent playing the user, not a real person. Confirm P0 and P1 with someone of that profile.';
 
 const escapeHtml = (rawText) => String(rawText).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -34,6 +35,20 @@ function beforeCaptionLine(storyboardStep) {
   return beforeCaption && beforeCaption !== storyboardStep.caption ? `<p class="before-caption">Before: ${escapeHtml(beforeCaption)}</p>` : '';
 }
 
+// One line per note: severity, profile, viewport, finding and the proposed fix.
+function noteLabelParts(stepNote) {
+  return [stepNote.profile, stepNote.viewport].filter(Boolean);
+}
+
+function renderStepNotes(storyboardStep) {
+  if (!storyboardStep.notes?.length) return '';
+  const noteItems = storyboardStep.notes.map((stepNote) => {
+    const labelParts = noteLabelParts(stepNote);
+    return `<li class="note note-${stepNote.severity.toLowerCase()}"><span class="severity">${escapeHtml(stepNote.severity)}</span>${labelParts.length ? `<span class="note-who">${escapeHtml(labelParts.join(' · '))}</span>` : ''}<span class="note-text">${escapeHtml(stepNote.text)}</span>${stepNote.fix ? `<span class="note-fix">Fix: ${escapeHtml(stepNote.fix)}</span>` : ''}</li>`;
+  }).join('');
+  return `<ul class="notes" aria-label="Usability findings">${noteItems}</ul>`;
+}
+
 function renderStep(storyboardPath, storyboardStep, stepNumber, stepCount, hasBefore) {
   const change = stepChange(storyboardStep, hasBefore);
   const shownVariants = hasBefore ? ['before', 'after'] : ['after'];
@@ -46,7 +61,7 @@ function renderStep(storyboardPath, storyboardStep, stepNumber, stepCount, hasBe
   }).join('');
   return `<section class="step${change ? ` step-${change}` : ''}" id="step-${stepNumber}">
 <header class="step-head"><span class="step-number">${stepNumber}<small>/${stepCount}</small></span><div><h2>${escapeHtml(storyboardStep.caption)}</h2>${beforeCaptionLine(storyboardStep)}${storyboardStep.detail ? `<p>${escapeHtml(storyboardStep.detail)}</p>` : ''}</div>${change ? `<span class="badge badge-${change}">${CHANGE_LABELS[change]}</span>` : ''}</header>
-${viewportRows}
+${renderStepNotes(storyboardStep)}${viewportRows}
 </section>`;
 }
 
@@ -68,6 +83,10 @@ main{max-width:1400px;margin:0 auto;padding:24px}
 .shot{margin:0}.shot figcaption{font-size:12px;text-transform:capitalize;color:var(--muted);margin-bottom:6px}
 .shot img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:6px;cursor:zoom-in}
 .step-head .before-caption{color:var(--muted);font-style:italic}
+.notes{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:6px}.note{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;padding:8px 10px;border-radius:6px;background:#f2f1ee;border-left:3px solid var(--line)}
+.note-p0,.note-p1{background:#f6e4e1;border-left-color:var(--removed)}.severity{font-size:12px;font-weight:700}.note-p0 .severity,.note-p1 .severity{color:var(--removed)}
+.note-who{font-size:12px;color:var(--muted)}.note-text{flex:1 1 60%}.note-fix{flex-basis:100%;font-size:13px;color:var(--muted)}
+.synthetic{max-width:1400px;margin:16px auto 0;padding:0 24px;color:var(--muted);font-size:13px}
 .zoom{position:fixed;inset:0;z-index:5;display:grid;place-items:center;background:rgba(20,22,24,.88);cursor:zoom-out;padding:24px}.zoom img{max-width:100%;max-height:100%;border-radius:6px}
 .missing{display:grid;place-items:center;min-height:120px;border:1px dashed var(--line);border-radius:6px;color:var(--muted);font-size:13px}
 body.slides .step{display:none;min-height:calc(100vh - 110px)}body.slides .step.current{display:block}
@@ -100,18 +119,27 @@ export function renderStoryboardHtml(storyboardPath, storyboard) {
 <body><div class="top"><h1>${escapeHtml(storyboard.title)}</h1><span class="meta">${escapeHtml(metaText)}</span>
 <div class="pager"><button id="prev" aria-label="Previous step">&larr;</button><span id="pager-label" class="meta"></span><button id="next" aria-label="Next step">&rarr;</button></div>
 <button id="mode-slides" aria-pressed="true">Slides</button><button id="mode-strip" aria-pressed="false">Strip</button></div>
-<main>${stepSections.join('\n')}</main><script>${STORYBOARD_SCRIPT}</script></body></html>
+${storyboardHasNotes(storyboard) ? `<p class="synthetic">${escapeHtml(SYNTHETIC_NOTES_LINE)}</p>` : ''}<main>${stepSections.join('\n')}</main><script>${STORYBOARD_SCRIPT}</script></body></html>
 `;
 }
 
 export function renderStoryboardSummary(storyboard) {
   const hasBefore = storyboardHasBefore(storyboard);
   const summaryLines = [`# ${storyboard.title}`, ''];
+  if (storyboardHasNotes(storyboard)) summaryLines.push(`> ${SYNTHETIC_NOTES_LINE}`, '');
   storyboard.steps.forEach((storyboardStep, stepIndex) => {
     const change = stepChange(storyboardStep, hasBefore);
     summaryLines.push(`## ${stepIndex + 1}. ${storyboardStep.caption}${change ? ` (${CHANGE_LABELS[change].toLowerCase()})` : ''}`, '');
     if (storyboardStep.before_caption && storyboardStep.before_caption !== storyboardStep.caption) summaryLines.push(`Before: ${storyboardStep.before_caption}`, '');
     if (storyboardStep.detail) summaryLines.push(storyboardStep.detail, '');
+    if (storyboardStep.notes?.length) {
+      summaryLines.push('Findings:', '');
+      for (const stepNote of storyboardStep.notes) {
+        const labelParts = noteLabelParts(stepNote);
+        summaryLines.push(`- **${stepNote.severity}**${labelParts.length ? ` (${labelParts.join(', ')})` : ''}: ${stepNote.text}${stepNote.fix ? ` Fix: ${stepNote.fix}` : ''}`);
+      }
+      summaryLines.push('');
+    }
     for (const stepCapture of storyboardStep.captures) summaryLines.push(`![${stepCapture.variant} ${stepCapture.viewport}](${stepCapture.image})`);
     summaryLines.push('');
   });

@@ -5,7 +5,7 @@ description: Storyboard of the user flow after a visual change - numbered steps 
 tags: [storyboard, ui, screenshots, pdf, worktrees]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-13T14:28:06Z'
+  at: '2026-11-14T15:15:14Z'
 sources:
   - id: storyboard
     resource: src/storyboard/storyboard-steps.mjs
@@ -59,10 +59,16 @@ ai1 never drives the browser: the agent captures with its own tool and hands the
   (decided 2026-11-09, replacing a destination setting with mount checks). A symlinked folder must be
   excluded by that tooling (`.git/info/exclude`): git sees a symlink as a file.
 - **Slug**: `--slug`, else the worktree name (a trailing `-before` stripped), else the only open plan.
-- **CLI** `ai1 storyboard add|build [--pdf]|serve|stop|list|clean` (src/cli/storyboard-command.mjs).
+- **CLI** `ai1 storyboard add|note|build [--pdf]|serve|stop|list|clean` (src/cli/storyboard-command.mjs).
 - **`steps.json`** (contract for publishers, with `SUMMARY.md`): steps keyed by id (from the caption or
   `--id`), captures by variant (before/after) and viewport (desktop/mobile), each with its `source`
   (path, size, mtime) until cleaned. Same step+variant+viewport replaces the image.
+- **Notes** (since v0.37.0, from [/ai1:design-review-usability](design.md#usability-review-ai1design-review-usability-since-v0370)):
+  `ai1 storyboard note --step <id> --severity P0..P3 --text ... [--profile] [--fix] [--viewport]` adds
+  `{ id, severity, text, profile?, fix?, viewport? }` to the step's `notes`; `note --clear` removes all
+  (a new review replaces the last). Additive, so `version` stays 1. Rendered under the step header
+  (P0/P1 in the removed colour), printed in the PDF, listed as `Findings:` in `SUMMARY.md`, with a
+  line saying they are synthetic. The skill offers the review in one line after showing a storyboard.
 - **`index.html`**: one file, images inlined, slides (arrow keys) or strip, before/after columns, steps
   marked new/removed, the base's wording under the new caption when it differs, click a screenshot to
   see it full size; print stylesheet A4 landscape, one step per page, used for the PDF.

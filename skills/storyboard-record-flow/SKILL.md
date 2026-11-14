@@ -54,6 +54,8 @@ When the change modifies an existing flow, capture the same steps on the base:
   same folder with your browser tool (print media; the page has one step per page).
 - `ai1 storyboard serve` and give the person, in two or three lines: the URL, the PDF path, and what
   to look at ("pasos 2 y 4 cambian; el 5 es nuevo").
+- If /ai1:design-review-usability is available, offer it in one more line: whether the flow is
+  intuitive for the people who use it, with the findings on these steps. Run it only after a yes.
 - The storyboard stays in `.ai1/storyboards/<slug>/` (git-ignored). If that folder is linked
   elsewhere by the person's own tooling, it already ended up there.
 

@@ -101,6 +101,47 @@ export function addCapture(storyboardPath, slug, { caption, imageFile, variant =
   return { storyboard, step: storyboardStep, imagePath: imageRelativePath };
 }
 
+// Findings about a step (from /ai1:design-review-usability): `notes` on the step, each
+// { id, severity, text, profile?, fix?, viewport? }. Additive, so STORYBOARD_VERSION stays 1.
+export const NOTE_SEVERITIES = ['P0', 'P1', 'P2', 'P3'];
+
+export function addStepNote(storyboardPath, { stepId, severity, text, profile, fix, viewport }) {
+  const storyboard = readStoryboard(storyboardPath);
+  if (!storyboard?.steps?.length) throw new Error(`no storyboard in ${storyboardPath}: record it first with \`ai1 storyboard add\``);
+  if (!text?.trim()) throw new Error('--text "<what the user would run into>" is required');
+  requireChoice('--severity', severity, NOTE_SEVERITIES);
+  if (viewport !== undefined) requireChoice('--viewport', viewport, VIEWPORTS);
+  const storyboardStep = storyboard.steps.find((existingStep) => existingStep.id === stepId);
+  if (!storyboardStep) throw new Error(`no step "${stepId ?? ''}" in this storyboard; step ids: ${storyboard.steps.map((existingStep) => existingStep.id).join(', ')}`);
+  const noteCount = storyboard.steps.reduce((countSoFar, existingStep) => countSoFar + (existingStep.notes?.length ?? 0), 0);
+  const stepNote = { id: `n${noteCount + 1}`, severity, text: text.trim() };
+  if (profile?.trim()) stepNote.profile = profile.trim();
+  if (fix?.trim()) stepNote.fix = fix.trim();
+  if (viewport) stepNote.viewport = viewport;
+  storyboardStep.notes = [...(storyboardStep.notes ?? []), stepNote];
+  storyboard.updated_at = new Date().toISOString();
+  writeJsonFile(join(storyboardPath, STEPS_FILE_NAME), storyboard);
+  return { storyboard, step: storyboardStep, note: stepNote };
+}
+
+// Removes every note of the storyboard, so a new review replaces the last one. Returns how many went.
+export function clearStepNotes(storyboardPath) {
+  const storyboard = readStoryboard(storyboardPath);
+  if (!storyboard?.steps) return 0;
+  let removedCount = 0;
+  for (const storyboardStep of storyboard.steps) {
+    removedCount += storyboardStep.notes?.length ?? 0;
+    delete storyboardStep.notes;
+  }
+  storyboard.updated_at = new Date().toISOString();
+  writeJsonFile(join(storyboardPath, STEPS_FILE_NAME), storyboard);
+  return removedCount;
+}
+
+export function storyboardHasNotes(storyboard) {
+  return storyboard.steps.some((storyboardStep) => storyboardStep.notes?.length);
+}
+
 // 'new' when a step has only after-captures in a storyboard that has before-captures, 'removed' when
 // it has only before-captures, null otherwise.
 export function stepChange(storyboardStep, storyboardHasBefore) {

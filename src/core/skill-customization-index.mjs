@@ -18,6 +18,7 @@ export const SKILL_CUSTOMIZATION_INDEX = {
   'verify-evaluate-llm-prompts': { customizable: true, scopes: PROJECT_AND_USER },
   'storyboard-record-flow': { customizable: true, scopes: PROJECT_AND_USER },
   'reuse-encapsulate': { customizable: true, scopes: PROJECT_AND_USER },
+  'design-review-usability': { customizable: true, scopes: PROJECT_AND_USER },
   'core-setup-repo': { customizable: true, scopes: ['user'] },
   'okf-backfill-from-history': { customizable: false, reason: 'its subagents do not receive what is injected into the skill' },
   'core-report-issue': { customizable: false, reason: 'its privacy guarantee for a public issue lives only in the skill text' },

@@ -15,7 +15,7 @@
 //   ai1 log [--session <id>] [--since <hours>] [--all] [--json]  what ai1's modules decided here (or in every repo, --all) (src/cli/log-command.mjs)
 //   ai1 skill-context <skill> | --list [--json]  a skill's project and user customization, injected when it loads (src/cli/skill-context-command.mjs)
 //   ai1 reuse search "<keywords>" | dismiss   this repo's past sessions and project skills for a task; a declined proposal (src/cli/reuse-command.mjs)
-//   ai1 storyboard <add|build|serve|stop|list|destination|save>  the storyboard of a visual change (see src/cli/storyboard-command.mjs)
+//   ai1 storyboard <add|note|build|serve|stop|list|clean>  the storyboard of a visual change (see src/cli/storyboard-command.mjs)
 // Run from anywhere inside the repo; files are written at the repo root.
 
 import { findRepoRoot, describeRepo, setupRepo } from '../src/cli/setup-repo.mjs';

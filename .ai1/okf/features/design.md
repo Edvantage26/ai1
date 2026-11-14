@@ -5,7 +5,7 @@ description: UI rules at session start and deterministic design checks on every 
 tags: [design, frontend, ui, hooks, context, impeccable]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-13T14:28:06Z'
+  at: '2026-11-14T15:15:14Z'
 sources:
   - id: design-rules
     resource: src/design/design-rules.mjs
@@ -47,6 +47,33 @@ them current: `type: Product` (who it is for, tone, constraints) and `type: Desi
 (palette, typefaces, type scale, spacing, radii). Impeccable's `PRODUCT.md` / `DESIGN.md` at the
 repo root are listed too, so both tools can share one context. With no context, the brief tells
 the agent to ask the person and record it before a sizeable UI task.
+
+The user profiles live in a `## Users` section of the `Product` concept, one `### <name>` per profile
+(who they are, what they already know, device, what they come to do): the same heading Impeccable
+uses in `PRODUCT.md`, so both read one context.
+
+# Usability review (/ai1:design-review-usability, since v0.37.0)
+
+The rules above check how the UI looks; this checks whether *its* user understands the flow. Asked by
+the person on 2026-11-14 ("que lo que se haga sea intuitivo para el perfil de usuario que lo tenga que
+ver"); prior art reviewed the same day ([prior art](/decisions/prior-art.md#usability-review-skills-2026-11-14)).
+
+- **Profile first**: from `## Users`; with none, the skill asks the person and records it before reviewing.
+- **User-agent**: one subagent per profile (main one by default, at most 3) gets only the profile, a
+  goal in the user's words, the start URL and the viewport - no code, repo, captions or hints - and
+  tries the task in its own browser tab, thinking aloud, up to 25 actions or until it would give up.
+  The idea comes from UXAgent; the agent that built the UI cannot judge it alone.
+- **Walk**: the four cognitive-walkthrough questions on every step (Wharton et al.), plus vocabulary,
+  states, undo, mobile and the cognitive load checklist copied from Impeccable
+  (`skills/design-review-usability/reference/cognitive-load.md`, Apache 2.0, THIRD-PARTY.md).
+- **Findings**: P0 cannot finish, P1 hesitates or errs and recovers, P2 extra effort, P3 polish (the
+  scale Impeccable uses); each with step, profile, observed or judged, one fix. Labelled synthetic
+  everywhere. On the storyboard through `ai1 storyboard note` ([storyboard](storyboard.md)); in the
+  report only when there is none. Fixes only after the person says which; the user-agent then reruns
+  the goals with P0/P1.
+- Page-level critique (Nielsen scores, hierarchy) stays with `/impeccable critique` when installed.
+- Limit: an LLM reads labels too well and rarely gets truly lost; P0/P1 are worth one real person.
+  Its tests pin the skill text (`test/design-review-usability.test.mjs`), not a live run.
 
 # Rules
 

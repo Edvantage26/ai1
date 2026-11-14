@@ -1,17 +1,19 @@
 // `ai1 storyboard ...`: the storyboard of a visual change (see .ai1/okf/features/storyboard.md).
 //   add --step "<caption>" --image <file> [--variant before|after] [--viewport desktop|mobile] [--detail ...] [--id ...] [--title ...] [--base ...]
+//   note --step <id> --severity P0|P1|P2|P3 --text "..." [--profile <name>] [--fix "..."] [--viewport desktop|mobile] | note --clear
+//                                findings on a step (from /ai1:design-review-usability); --clear removes them all
 //   build [--pdf]                index.html + SUMMARY.md (+ storyboard.pdf)
 //   serve [--host <h>] [--port <n>] [--ttl <hours>] | stop | list
 //   clean                        delete the screenshots `add` copied from (worktree finish/drop do it too)
 // Every subcommand takes --slug <name>; without it the slug is the worktree or the only open plan.
 
 import { findMainCheckout } from '../core/project-roots.mjs';
-import { addCapture, cleanResidualScreenshots, resolveStoryboardSlug, storyboardDirectory } from '../storyboard/storyboard-steps.mjs';
+import { addCapture, addStepNote, clearStepNotes, cleanResidualScreenshots, resolveStoryboardSlug, storyboardDirectory } from '../storyboard/storyboard-steps.mjs';
 import { buildStoryboard } from '../storyboard/storyboard-build.mjs';
 import { printStoryboardPdf } from '../storyboard/storyboard-pdf.mjs';
 import { listStoryboards, serveStoryboard, stopStoryboardServer } from '../storyboard/storyboard-serve.mjs';
 
-export const STORYBOARD_USAGE = 'ai1 storyboard add --step "<caption>" --image <file> [--variant before|after] [--viewport desktop|mobile] [--detail "..."] [--id <step-id>] [--title "..."] [--base <branch>] | build [--pdf] | serve [--host <host>] [--port <n>] [--ttl <hours>] | stop | list | clean  (all take --slug <name>)';
+export const STORYBOARD_USAGE = 'ai1 storyboard add --step "<caption>" --image <file> [--variant before|after] [--viewport desktop|mobile] [--detail "..."] [--id <step-id>] [--title "..."] [--base <branch>] | note --step <step-id> --severity P0|P1|P2|P3 --text "..." [--profile <name>] [--fix "..."] [--viewport desktop|mobile] | note --clear | build [--pdf] | serve [--host <host>] [--port <n>] [--ttl <hours>] | stop | list | clean  (all take --slug <name>)';
 
 // Prints the result and returns the exit code.
 export function runStoryboardCommand(treeRoot, commandArguments, { readOption }) {
@@ -30,6 +32,19 @@ export function runStoryboardCommand(treeRoot, commandArguments, { readOption })
     });
     const stepNumber = storyboard.steps.indexOf(step) + 1;
     console.log(`step ${stepNumber} "${step.caption}" (id ${step.id}): ${imagePath} | storyboard ${slug}, ${storyboard.steps.length} steps`);
+    return 0;
+  }
+  if (subcommandName === 'note') {
+    const { slug, storyboardPath } = resolveStoryboard();
+    if (commandArguments.includes('--clear')) {
+      console.log(`removed ${clearStepNotes(storyboardPath)} note(s) from storyboard ${slug}`);
+      return 0;
+    }
+    const { storyboard, step, note } = addStepNote(storyboardPath, {
+      stepId: readOption('--step'), severity: readOption('--severity'), text: readOption('--text'),
+      profile: readOption('--profile'), fix: readOption('--fix'), viewport: readOption('--viewport'),
+    });
+    console.log(`note ${note.id} (${note.severity}) on step ${storyboard.steps.indexOf(step) + 1} "${step.caption}" | rebuild with \`ai1 storyboard build\``);
     return 0;
   }
   if (subcommandName === 'build') {

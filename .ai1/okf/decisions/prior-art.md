@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-13T10:13:21Z'
+  at: '2026-11-14T15:15:14Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -308,6 +308,21 @@ in `scripts/hooks/` and the evaluation in `docs/gateguard/`.
   the transcript, not a tool-call count); treating
   [repo rules](../guards/repo-rules.md) reason text as untrusted data, since ECC disables git-tracked
   rules by default ("opening a repo must not activate repo-authored instructions").
+
+# Usability review skills (2026-11-14)
+
+Asked by the person: a skill that checks a UI is intuitive for its user profile, not only that it works.
+
+| Project | What it is | Taken | Left out |
+|---|---|---|---|
+| [Impeccable `critique`](https://impeccable.style/docs/critique) (Apache 2.0, ~110k stars) | Page critique by two isolated subagents (design review + detector/browser): Nielsen 0-4, cognitive load checklist, emotional journey, generic and `PRODUCT.md ## Users` personas on the primary action, P0-P3 | Cognitive load checklist and working memory rule, copied with attribution; the `## Users` heading and the P0-P3 scale | The command itself: point to it for page critique |
+| [UXAgent](https://github.com/neuhai/UXAgent) (CHI'25; README says MIT, no LICENSE file; 121 stars, last push 2025-11) | Python framework: generated personas as LLM agents doing a task in Playwright, traces, post-run questionnaire; a fork runs on `claude -p` | The idea: an agent that knows only the persona and the goal tries the task | The code (license unclear, heavy, minutes per persona) |
+| sweetclaude `design-ux-review` (AGPL-3.0) | Project personas as independent subagents over flows, consensus vs divergence, findings labelled synthetic | The idea of labelling findings synthetic | Any text (AGPL in an MIT repo) |
+| [awesome-ux-skills](https://github.com/tommyjepsen/awesome-ux-skills) (316 stars, no license) | Loose UX skills: Nielsen review, cognitive load, WCAG, persona building | Nothing new | No cognitive walkthrough, no persona testing |
+
+Gap found: none tests a multi-step flow by task completion with an agent built from the project's own
+profile. Built as [/ai1:design-review-usability](/features/design.md#usability-review-ai1design-review-usability-since-v0370).
+Directory listings (mcpmarket, skillsdirectory...) were all "Nielsen + severity" variants.
 
 # Detecting repeated work to encapsulate it (2026-11-13)
 
