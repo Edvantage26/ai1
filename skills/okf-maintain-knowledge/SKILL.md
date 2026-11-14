@@ -99,7 +99,7 @@ the first files — it scaffolds a conformant `index.md`, `log.md`, and a
 `getting-started.md` concept with full recommended frontmatter in one shot:
 
 ```bash
-python3 "${CLAUDE_SKILL_DIR}/scripts/okf_init.py" <target-dir> [--title "..."]
+"${CLAUDE_PLUGIN_ROOT}/bin/ai1" okf init <target-dir> [--title "..."]
 ```
 
 It refuses to touch a directory that already has `.md` files unless `--force`
@@ -149,11 +149,11 @@ is given. Then extend it:
 ## Validation (do this before declaring done)
 
 Never eyeball conformance — run the deterministic checker. Invoke the companion
-**`okf-validate-bundle`** skill (`/ai1:okf-validate-bundle <bundle-dir> --strict`), which ships the
-checker. If that skill is not installed, run it directly:
+**`okf-validate-bundle`** skill (`/ai1:okf-validate-bundle <bundle-dir> --strict`), or run the
+checker directly:
 
 ```bash
-python3 "${CLAUDE_SKILL_DIR}/../okf-validate-bundle/scripts/okf_validate.py" <bundle-dir> --strict
+"${CLAUDE_PLUGIN_ROOT}/bin/ai1" okf validate <bundle-dir> --strict
 ```
 
 Resolve every `ERROR` (hard §11 failures). Under `--strict` warnings also fail

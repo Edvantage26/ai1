@@ -12,18 +12,14 @@ allowed-tools: Bash
 # Validate an OKF bundle
 
 Run the deterministic conformance checker against the target bundle. Default to
-the project's `.okf/` directory when no path is given.
+the bundle the ai1 brief names (`.ai1/okf/`), or `.okf/`, when no path is given.
 
 ```bash
-python3 "${CLAUDE_SKILL_DIR}/scripts/okf_validate.py" $ARGUMENTS
+"${CLAUDE_PLUGIN_ROOT}/bin/ai1" okf validate $ARGUMENTS
 ```
 
-Needs only `python3` 3.9+: PyYAML ships in this repo's `vendor/`. If it reports
-`No module named 'yaml'` (the skill was installed without that folder), run
-`python3 -m pip install --quiet pyyaml` once.
-
-`${CLAUDE_SKILL_DIR}` is this skill's folder inside the ai1 plugin, so the
-checker is always found alongside the skill.
+It is part of the ai1 CLI (Node, nothing else to install); the okf-upkeep hook and
+`ai1 worktree finish` run the same checker.
 
 Interpret the result:
 
@@ -63,7 +59,7 @@ a bundle the user has not asked to migrate. It is textual (comments, key order
 and quoting survive) and idempotent.
 
 ```bash
-python3 "${CLAUDE_SKILL_DIR}/scripts/okf_validate.py" .okf --migrate --strict
+"${CLAUDE_PLUGIN_ROOT}/bin/ai1" okf validate .ai1/okf --migrate --strict
 ```
 
 It hoists `timestamp` to `generated: { by: process:okf-migrate, at }`, lifts a
