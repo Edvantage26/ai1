@@ -5,7 +5,7 @@ description: The OKF skills, agents and scripts, imported from okf-skills and ma
 tags: [okf, toolkit, third-party]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-13T13:06:58Z'
+  at: '2026-11-14T09:01:31Z'
 sources:
   - id: upstream
     resource: https://github.com/scaccogatto/okf-skills
@@ -34,6 +34,10 @@ Attribution in `THIRD-PARTY.md` and `licenses/`.
   script and its two agents never ran (every hit was moving or adapting their code). The backfill
   script does not import PyYAML (only `git log` and transcript JSON), so `vendor/yaml` is needed only
   by the validator, init and visualize. Context for porting the toolkit to Node.
+- **Backfill cost upstream:** upstream's own map-tier benchmark (its `benchmark/map-tier/RESULTS.md`,
+  2026-09-05) replayed its repo, 147 events, for an estimated 30 to 46 USD and about 2 hours
+  per full replay (436 agents for four arms); the reduce phase (the weaver) costs about as much as
+  the map phase whatever the analyzer tier. Upstream has had no release since v0.12.0 (2026-10-21).
 - **Measuring usage:** scan `~/.claude/projects/**/*.jsonl` for `tool_use` entries (`Bash` commands
   that run a `python3 ... okf_*.py` script, `Skill`, `Agent`) grouped by project; a plain grep
   overcounts, because skill listings and edits of the scripts mention the names too.
