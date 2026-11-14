@@ -1,7 +1,7 @@
 ---
 name: verify-debug-systematically
 description: Verify — Find the root cause of a bug, a failing test or unexpected behaviour before changing code, and stop after repeated failed fixes. Use when a test fails, something behaves unexpectedly or a bug is reported ("no funciona", "falla el test", "sigue fallando", "why does this break", "debug this"), when ai1/fix-loop says several fix attempts in a row have failed, or when the person says "deja de adivinar", "stop guessing", "¿estamos atascados?".
-allowed-tools: Bash("${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context *)
+allowed-tools: Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context *)
 ---
 
 # Debug systematically
@@ -61,6 +61,6 @@ it in the knowledge bundle.
 
 ## Customization
 
-This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context verify-debug-systematically` and apply what it prints.
+This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `"${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context verify-debug-systematically` and apply what it prints.
 
-!`"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context verify-debug-systematically`
+!`"${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context verify-debug-systematically`

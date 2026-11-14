@@ -5,7 +5,7 @@ description: >-
   interactive HTML graph (viz.html) of its concepts and links. Use when asked to visualize, graph, preview, or explore an OKF bundle.
 user-invocable: true
 argument-hint: "<bundle-dir> [-o viz.html]"
-allowed-tools: Bash Bash("${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context *)
+allowed-tools: Bash Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context *)
 ---
 
 # Visualize an OKF bundle
@@ -16,7 +16,7 @@ install, no bundle content leaves the page. The viewer does need network
 access: cytoscape, marked and dompurify load from cdn.jsdelivr.net.
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/bin/ai1" okf visualize $ARGUMENTS
+"${CLAUDE_PLUGIN_DATA}/bin/ai1" okf visualize $ARGUMENTS
 ```
 
 The detail panel shows each concept's `type`, `description`, `tags`, `status`,
@@ -56,6 +56,6 @@ deep-linkable: `?select=<concept-id>` or `#<concept-id>` opens that concept,
 
 ## Customization
 
-This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context okf-visualize-bundle` and apply what it prints.
+This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `"${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context okf-visualize-bundle` and apply what it prints.
 
-!`"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context okf-visualize-bundle`
+!`"${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context okf-visualize-bundle`

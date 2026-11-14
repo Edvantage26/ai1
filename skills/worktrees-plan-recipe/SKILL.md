@@ -1,7 +1,7 @@
 ---
 name: worktrees-plan-recipe
 description: Worktrees — Complete, refine or revise how this repository makes git worktrees, one per change: the project recipe on top of the basic recipe ai1 works out from the repo. Use when `ai1 worktree` reports something the recipe does not cover, when a worktree needed a step by hand, when the person wants worktrees made a particular way here ("cada worktree con su puerto", "comparte la carpeta de datos", "work in a worktree"), or to revise the recipe ("revisa la receta de worktrees", "/ai1:worktrees-plan-recipe revisar").
-allowed-tools: Bash("${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context *)
+allowed-tools: Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context *)
 ---
 
 # Worktrees made the way this project needs
@@ -114,6 +114,6 @@ dry run again. Fields that now match the basic recipe can leave the project reci
 
 ## Customization
 
-This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context worktrees-plan-recipe` and apply what it prints.
+This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `"${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context worktrees-plan-recipe` and apply what it prints.
 
-!`"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context worktrees-plan-recipe`
+!`"${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context worktrees-plan-recipe`

@@ -15,7 +15,7 @@ Run the deterministic conformance checker against the target bundle. Default to
 the bundle the ai1 brief names (`.ai1/okf/`), or `.okf/`, when no path is given.
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/bin/ai1" okf validate $ARGUMENTS
+"${CLAUDE_PLUGIN_DATA}/bin/ai1" okf validate $ARGUMENTS
 ```
 
 It is part of the ai1 CLI (Node, nothing else to install); the okf-upkeep hook and
@@ -59,7 +59,7 @@ a bundle the user has not asked to migrate. It is textual (comments, key order
 and quoting survive) and idempotent.
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/bin/ai1" okf validate .ai1/okf --migrate --strict
+"${CLAUDE_PLUGIN_DATA}/bin/ai1" okf validate .ai1/okf --migrate --strict
 ```
 
 It hoists `timestamp` to `generated: { by: process:okf-migrate, at }`, lifts a

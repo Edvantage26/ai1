@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-14T23:28:33Z'
+  at: '2026-11-14T23:40:25Z'
 ---
 
 # Flow
@@ -15,8 +15,10 @@ generated:
 
 1. `bin/ai1-hook.mjs` reads the hook input JSON from stdin and imports only the modules of this
    event and tool (`loadModulesForEvent` in `src/core/module-index.mjs`). Always exits 0. At
-   SessionStart it first runs the pending [migrations](migrations.md), and their report reaches the agent
-   with the other session-start context.
+   SessionStart, in every repo (active or not), it first installs the stable `ai1` launcher
+   (`src/core/stable-launcher.mjs`, see [plugin layout](plugin-layout.md#the-stable-ai1-launcher)), then
+   runs the pending [migrations](migrations.md), and their report reaches the agent with the other
+   session-start context.
 2. `src/core/hook-dispatch.mjs` (`dispatchHookEvent`) resolves two roots with `src/core/project-roots.mjs` (from the `.git`
    entries on disk, no git process): the **tree root** (`CLAUDE_PROJECT_DIR`, else input `cwd`; it
    follows `cwd` when that is a linked worktree of the same repository, because Claude Code keeps

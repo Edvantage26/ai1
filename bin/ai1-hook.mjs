@@ -10,6 +10,7 @@ import { appendDecisionLog, errorSignature } from '../src/core/decision-log.mjs'
 import { recordPendingErrors } from '../src/core/pending-errors.mjs';
 import { resolveProjectRoots } from '../src/core/project-roots.mjs';
 import { runSessionStartMigrations } from '../src/core/migrations.mjs';
+import { installStableLauncher } from '../src/core/stable-launcher.mjs';
 
 const eventName = process.argv[2];
 
@@ -17,6 +18,8 @@ let hookInput = {};
 try {
   hookInput = await readHookInput();
   const resolvedEventName = eventName || hookInput.hook_event_name;
+  // Before anything else and in every repo (ai1 init needs it too): an `ai1` that survives updates.
+  if (resolvedEventName === 'SessionStart') installStableLauncher();
   // Migrations first, so this session already reads the new names (src/core/migrations.mjs).
   const migrationNotice = resolvedEventName === 'SessionStart' ? runSessionStartMigrations(hookInput) : null;
   const runnableModules = await loadModulesForEvent(resolvedEventName, hookInput.tool_name);

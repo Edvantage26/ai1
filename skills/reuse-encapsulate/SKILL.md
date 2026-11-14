@@ -1,7 +1,7 @@
 ---
 name: reuse-encapsulate
 description: Reuse — Turn work that keeps coming back in this repo into a reusable piece (rule, hook, script, skill, MCP entry) or complete or merge one the project already has, after the person says yes to the one-line proposal. Use when the person accepts a reuse proposal ("sí, encapsúlalo", "hazle una skill", "conviértelo en script", "complétalo en la skill que ya hay"), or says "esto lo hacemos siempre, hazlo reutilizable", "turn this into a skill", "make this reusable". Not for noting it down for later (/ai1:later-write).
-allowed-tools: Bash("${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context *)
+allowed-tools: Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context *)
 ---
 
 # Reuse: encapsulate repeated work in this repo
@@ -64,6 +64,6 @@ repo's usual way of working.
 
 ## Customization
 
-This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context reuse-encapsulate` and apply what it prints.
+This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `"${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context reuse-encapsulate` and apply what it prints.
 
-!`"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context reuse-encapsulate`
+!`"${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context reuse-encapsulate`

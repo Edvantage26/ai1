@@ -25,7 +25,7 @@ sources:
     title: Later 0001
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-14T23:25:53Z'
+  at: '2026-11-14T23:40:25Z'
 ---
 
 Built 2026-11-09 from later 0001 (phases 0-2); decision in
@@ -49,18 +49,21 @@ customization itself.
 # How it reaches the model
 
 Each customizable `SKILL.md` ends with `## Fixed rules`, a `## Customization` paragraph and, as its
-last line, `` !`"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context <skill>` ``. When the skill is invoked,
+last line, `` !`"${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context <skill>` ``. When the skill is invoked,
 Claude Code runs it in the session's directory and puts its output in place of the line, so the model
 gets one block: procedure, fixed rules, then `## ai1 customization` with the project customization (the
 worktree's own first, else the main checkout's), the person's, and a footer: offer once to save a
 correction with /ai1:core-customize-skill, and the precedence (fixed rules > project > person).
 Nothing is loaded before the skill runs.
 
-- `allowed-tools: Bash("${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context *)` in the frontmatter: without
+- `allowed-tools: Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context *)` in the frontmatter: without
   it a clean (non-bypass) session refuses the command and the skill does not load.
-- The plugin's own `bin/ai1`, not `ai1` from PATH: another ai1 earlier on PATH (an older install, a
-  parent session) answered with its usage and exit 1, which broke the skill load (seen in the
-  end-to-end test).
+- The stable launcher `${CLAUDE_PLUGIN_DATA}/bin/ai1` (see
+  [plugin layout](plugin-layout.md#the-stable-ai1-launcher)), not bare `ai1` from PATH: another ai1
+  earlier on PATH (an older install, a parent session) answered with its usage and exit 1, which broke
+  the skill load (seen in the end-to-end test). Until v0.39 the line used
+  `${CLAUDE_PLUGIN_ROOT}/bin/ai1`, which broke once an autoupdate removed the session's version folder
+  (issue #1).
 - `ai1 skill-context` never fails: excluded or unknown skill prints nothing; an unreadable customization
   is a note; one over 8 KB is cut with a note; a file still named `overlay.md` (before v0.38.0) is
   read, with a note to rename it (migration 5 renames it; `customization.md` wins when both exist); any other error prints nothing; exit 0 always.
@@ -95,7 +98,7 @@ core-report-issue, okf-validate-bundle, danger-write-rule, core-customize-skill.
 - A skill's `description` cannot be customized: it loads before any injection, so a customization changes
   how a skill works, not when it triggers.
 - `CLAUDE_PLUGIN_OPTION_*` reaches hooks only; the CLI gets user values from the skill text.
-- Other `ai1 …` commands in skills still use `ai1` from PATH (same stale-PATH risk, outside this work).
+- Other `ai1 …` commands in briefs and skills use `ai1` from PATH, which the stable launcher now heads.
 - Planned (later 0001 phases 3-4): the worktree recipe into `.ai1/skills/worktrees/`, and opening
   core-report-issue once its privacy check is in code.
 

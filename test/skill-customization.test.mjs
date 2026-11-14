@@ -161,10 +161,10 @@ test('every skill folder is in the customization index, and each SKILL.md matche
     const skillText = readFileSync(join(skillsDirectory, skillFolder, 'SKILL.md'), 'utf8');
     const frontmatterText = /^---\n([\s\S]*?)\n---/.exec(skillText)?.[1] ?? '';
     const allowedToolsLine = /^allowed-tools:(.*)$/m.exec(frontmatterText)?.[1] ?? '';
-    const injectionLine = `!\`"\${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context ${skillFolder}\``;
+    const injectionLine = `!\`"\${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context ${skillFolder}\``;
     const lastLine = skillText.trimEnd().split('\n').at(-1);
     if (SKILL_CUSTOMIZATION_INDEX[skillFolder].customizable) {
-      assert.ok(allowedToolsLine.includes('Bash("${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context *)'), `${skillFolder}: allowed-tools must pre-approve the plugin's own ai1 skill-context`);
+      assert.ok(allowedToolsLine.includes('Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context *)'), `${skillFolder}: allowed-tools must pre-approve ai1 skill-context through the stable launcher`);
       assert.match(skillText, /\n## Fixed rules\n+- /, `${skillFolder}: needs a "## Fixed rules" section with at least one bullet`);
       assert.equal(lastLine, injectionLine, `${skillFolder}: the last line must be ${injectionLine}`);
     } else {

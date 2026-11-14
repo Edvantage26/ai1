@@ -8,7 +8,7 @@ description: >-
   "capture this as a concept", or any work in a repo that has an OKF bundle.
 user-invocable: true
 argument-hint: "[produce|maintain|consume] [path]"
-allowed-tools: Read Write Edit Grep Glob Bash Bash("${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context *)
+allowed-tools: Read Write Edit Grep Glob Bash Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context *)
 ---
 
 # Open Knowledge Format (OKF) skill
@@ -99,7 +99,7 @@ the first files — it scaffolds a conformant `index.md`, `log.md`, and a
 `getting-started.md` concept with full recommended frontmatter in one shot:
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/bin/ai1" okf init <target-dir> [--title "..."]
+"${CLAUDE_PLUGIN_DATA}/bin/ai1" okf init <target-dir> [--title "..."]
 ```
 
 It refuses to touch a directory that already has `.md` files unless `--force`
@@ -162,7 +162,7 @@ Never eyeball conformance — run the deterministic checker. Invoke the companio
 checker directly:
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/bin/ai1" okf validate <bundle-dir> --strict
+"${CLAUDE_PLUGIN_DATA}/bin/ai1" okf validate <bundle-dir> --strict
 ```
 
 Resolve every `ERROR` (hard §11 failures). Under `--strict` warnings also fail
@@ -177,6 +177,6 @@ if you only want §11 conformance gated.
 
 ## Customization
 
-This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context okf-maintain-knowledge` and apply what it prints.
+This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `"${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context okf-maintain-knowledge` and apply what it prints.
 
-!`"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context okf-maintain-knowledge`
+!`"${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context okf-maintain-knowledge`

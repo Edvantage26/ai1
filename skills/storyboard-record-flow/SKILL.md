@@ -6,7 +6,7 @@ description: >-
   browser, when ai1/storyboard-reminder asks for it, or when the person says "enséñame el flujo",
   "haz capturas del flujo", "quiero ver cómo queda", "documenta el flujo visualmente", "show me the
   flow", "record a storyboard", "record a walkthrough", "before and after screenshots".
-allowed-tools: Bash("${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context *)
+allowed-tools: Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context *)
 ---
 
 # Record the user flow as a storyboard
@@ -81,6 +81,6 @@ unchanged, untracked images). Without a worktree, run `ai1 storyboard clean` and
 
 ## Customization
 
-This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context storyboard-record-flow` and apply what it prints.
+This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `"${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context storyboard-record-flow` and apply what it prints.
 
-!`"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context storyboard-record-flow`
+!`"${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context storyboard-record-flow`

@@ -7,7 +7,7 @@ description: >-
   when the person asks "¿es intuitivo?", "¿lo entenderá un <perfil>?", "revisa la usabilidad",
   "pruébalo como un usuario", "revisa el comportamiento de la interfaz", "is this intuitive",
   "usability review", "test it as a user would", or accepts the offer after a storyboard.
-allowed-tools: Bash("${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context *)
+allowed-tools: Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context *)
 ---
 
 # Review a flow as its user would
@@ -102,6 +102,6 @@ again on the goals that had P0 or P1 findings and say whether they went away.
 
 ## Customization
 
-This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context design-review-usability` and apply what it prints.
+This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `"${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context design-review-usability` and apply what it prints.
 
-!`"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context design-review-usability`
+!`"${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context design-review-usability`

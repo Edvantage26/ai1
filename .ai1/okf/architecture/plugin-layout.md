@@ -5,7 +5,7 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-14T23:26:39Z'
+  at: '2026-11-14T23:40:25Z'
 ---
 
 # Layout
@@ -96,6 +96,28 @@ and `.ai1/rfc/` of ai1 before v0.18.0 or `.ai1/proposals/` before v0.25.0 (renam
   `~/.claude/plugins/cache/ai1/ai1/<version>/` can go once no session runs from them (a running session
   keeps executing the hooks of the version it started with). The entry comes back at the next session
   start, but on the current version.
+
+# The stable ai1 launcher
+
+Claude Code fixes `${CLAUDE_PLUGIN_ROOT}` and puts the plugin's `bin/` on PATH when a session starts.
+An autoupdate removes the old `~/.claude/plugins/cache/ai1/ai1/<version>/` folder even while sessions
+still point at it (seen 2026-11-14, 0.36.0 -> 0.38.0, issue #1), so skill injections and every `ai1 …`
+in Bash failed with "No such file" or "command not found".
+
+At SessionStart, in every repo, `bin/ai1-hook.mjs` runs `installStableLauncher`
+(`src/core/stable-launcher.mjs`):
+
+- it writes `${CLAUDE_PLUGIN_DATA}/bin/ai1` (POSIX sh; the data folder survives updates) when its text
+  changes, write then rename;
+- it appends `export AI1_PLUGIN_ROOT=<root>` and `export PATH=<data>/bin:"$PATH"` once to
+  `CLAUDE_ENV_FILE`, which Claude Code sources before every Bash command.
+
+The launcher runs `node <root>/bin/ai1` with the first root that still has `bin/ai1`:
+`$AI1_PLUGIN_ROOT` (this session's version), the root that wrote it (the last session started), else
+the highest `X.Y.Z` folder next to it in the cache (never for a `--plugin-dir` root). With none left it
+exits 127 with a message. Skills call `"${CLAUDE_PLUGIN_DATA}/bin/ai1"`. Hooks keep
+`${CLAUDE_PLUGIN_ROOT}`: Claude Code runs them and ai1 cannot redirect them. Tests:
+`test/stable-launcher.test.mjs`.
 
 # Versioning
 

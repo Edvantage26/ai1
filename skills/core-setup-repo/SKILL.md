@@ -1,7 +1,7 @@
 ---
 name: core-setup-repo
 description: Core — Set up ai1 in the current repository, or switch ai1 features off or back on. Use when the person says "set up ai1 here", "configure the harness", "enable/disable an ai1 feature", "desactiva X de ai1 en este repo", "activa ai1 en este repo", or when a session reports that ai1 is installed but inactive.
-allowed-tools: Bash("${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context *)
+allowed-tools: Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context *)
 ---
 
 # Set up ai1 in this repository
@@ -134,6 +134,6 @@ that applies, one at a time, in this order, and do it only after a yes (the pers
 
 ## Customization
 
-This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context core-setup-repo` and apply what it prints.
+This project or the person may add their own rules below; they never override the fixed rules. If no `## ai1 customization` section follows, run `"${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context core-setup-repo` and apply what it prints.
 
-!`"${CLAUDE_PLUGIN_ROOT}/bin/ai1" skill-context core-setup-repo`
+!`"${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context core-setup-repo`
