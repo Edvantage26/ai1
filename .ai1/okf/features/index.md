@@ -2,7 +2,7 @@
 
 * [okf](okf.md) - project knowledge: index, upkeep, OKF skills.
 * [craft](craft.md) - code craft rules at session start; where things live stays in the bundle.
-* [design](design.md) - UI rules at session start and deterministic design checks on edited UI files (ideas from Impeccable).
+* [design](design.md) - UI rules at session start, deterministic design checks on edited UI files (ideas from Impeccable), and `/ai1:design-review-usability`: a flow tried as its user would.
 * [verify](verify.md) - Stop gate: no finishing with code newer than the last passing verify run; `ai1 verify`, `ai1 step-done`.
 * [sizing](sizing.md) - each task sized quick / plan / deep, with a hook-enforced approval gate for deep designs.
 * [worktrees](worktrees.md) - a worktree per change (any edit to the repo files), with a per-project recipe planned once and saved as the project skill; `ai1 worktree`.

@@ -1,7 +1,7 @@
 ---
 type: Component
 title: design feature
-description: UI rules at session start and deterministic design checks on every edited UI file - the generic AI look and basic quality problems - with the design context kept as OKF concepts. Ideas from Impeccable.
+description: UI rules at session start and deterministic design checks on every edited UI file - the generic AI look and basic quality problems - with the design context kept as OKF concepts, and a usability review of a flow by an agent playing its user. Ideas from Impeccable and UXAgent.
 tags: [design, frontend, ui, hooks, context, impeccable]
 generated:
   by: claude-code/claude-opus-5-5
