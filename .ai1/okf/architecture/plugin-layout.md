@@ -5,7 +5,7 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-14T18:03:47Z'
+  at: '2026-11-14T20:33:15Z'
 ---
 
 # Layout
@@ -158,6 +158,21 @@ Checked against the Claude Code docs (plugins reference, skills) on 2026-11-09:
     `pluginConfigs["<plugin>@<marketplace>"].options.<key>` (the docs omit `.options`), read from user,
     `--settings` or managed settings; a `--plugin-dir` plugin is `<plugin>@inline`.
   - `CLAUDE_PLUGIN_OPTION_<KEY>` reaches hooks only, not commands run through the Bash tool.
+- Plugin agents, from the subagents docs (2026-11-14; not yet run, see below):
+  - They keep `tools`, `disallowedTools` and `model`; `hooks`, `mcpServers` and `permissionMode` are
+    ignored, so a plugin agent cannot bring its own MCP server (a browser, for instance).
+  - `tools: mcp__<server>__*` allows a whole MCP server; if no entry resolves, the agent does not
+    launch. MCP server names differ per install (`playwright`, `playwright-rec`,
+    `plugin_playwright_playwright`...), so an allowlist cannot cover "whatever browser the person has".
+  - `disallowedTools` (built-ins only: Read, Grep, Glob, Bash, Edit, Write, NotebookEdit, LSP, WebFetch,
+    WebSearch, Agent, Skill) works whatever the browser server is called, but keeps every other MCP
+    server of the session, and a new built-in tool gets through. Neither form removes
+    `browser_evaluate` / `browser_run_code_unsafe` without naming them per server.
+  - Weighed for the usability user-agent ([design](../features/design.md)): kept as a general-purpose
+    subagent with its brief; a named agent only closes repo access, not page source.
+  - To try an agent: agents are not hot-loaded (a file added to `~/.claude/agents/` mid-session is
+    "not found"); start a new session with `claude --plugin-dir <plugin>`. A nested `claude -p` needs
+    the CLI's own login and fails with "OAuth session expired" when it has lapsed.
   - How to redo it: a plugin folder with `.claude-plugin/plugin.json` (a `userConfig` field) and one
     skill whose body echoes `` !`pwd` ``, `${CLAUDE_PROJECT_DIR}`, `${user_config.KEY}` and a `bin/`
     command; run `claude -p --plugin-dir <plugin> "/<plugin>:<skill>" < /dev/null` from a scratch
