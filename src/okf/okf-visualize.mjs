@@ -10,7 +10,8 @@ import { readFileSync, writeFileSync, statSync } from 'node:fs';
 import { join, dirname, basename, normalize, resolve, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadOkfYaml, isYamlMapping, readOwnField, readOwnFieldOr, pythonText } from './okf-yaml.mjs';
-import { splitOkfFrontmatter, listMarkdownFiles, listLinkTargets, resolveExistingPrefix, isInsideDirectory, readBundleFileText } from './okf-validate.mjs';
+import { splitFrontmatter } from '../core/frontmatter.mjs';
+import { listMarkdownFiles, listLinkTargets, resolveExistingPrefix, isInsideDirectory, readBundleFileText } from './okf-validate.mjs';
 
 const VIZ_TEMPLATE_PATH = fileURLToPath(new URL('../../templates/okf-viz.html', import.meta.url));
 const RESERVED_FILE_NAMES = new Set(['index.md', 'log.md']);
@@ -82,7 +83,7 @@ function readTrust(meta) {
 }
 
 function readFrontmatterMeta(text) {
-  const { frontmatterText, bodyText } = splitOkfFrontmatter(text);
+  const { frontmatterText, bodyText } = splitFrontmatter(text);
   if (frontmatterText === null) return { meta: {}, bodyText: text };
   let meta;
   try {

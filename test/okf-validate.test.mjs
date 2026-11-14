@@ -5,7 +5,8 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
-import { splitOkfFrontmatter, validateOkfBundle, migrateOkfBundle, collectLinkTargets, runOkfValidateCommand } from '../src/okf/okf-validate.mjs';
+import { splitFrontmatter } from '../src/core/frontmatter.mjs';
+import { validateOkfBundle, migrateOkfBundle, collectLinkTargets, runOkfValidateCommand } from '../src/okf/okf-validate.mjs';
 
 const FULL_META = '---\ntype: Reference\ntitle: t\ndescription: d\ntags: [x]\ngenerated: { by: human:tester, at: "2026-01-01T00:00:00Z" }\n---\n\nbody\n';
 
@@ -39,13 +40,13 @@ function assertClean(report, label) {
   assert.deepEqual([report.errors, report.warnings], [[], []], label);
 }
 
-test('splitOkfFrontmatter: block, none, unterminated, bare fence line, trailing spaces, empty block', () => {
-  assert.deepEqual(splitOkfFrontmatter('---\ntype: A\n---\nbody\n'), { frontmatterText: 'type: A\n', bodyText: 'body\n' });
-  assert.deepEqual(splitOkfFrontmatter('just text'), { frontmatterText: null, bodyText: 'just text' });
-  assert.equal(splitOkfFrontmatter('---\ntype: A\nno closing fence\n').frontmatterText, null);
-  assert.equal(splitOkfFrontmatter('---not a fence\ntype: A\n---\n').frontmatterText, null);
-  assert.deepEqual(splitOkfFrontmatter('---  \ntype: A\n---  \nbody'), { frontmatterText: 'type: A\n', bodyText: 'body' });
-  assert.deepEqual(splitOkfFrontmatter('---\n---\nbody'), { frontmatterText: '', bodyText: 'body' });
+test('splitFrontmatter: block, none, unterminated, bare fence line, trailing spaces, empty block', () => {
+  assert.deepEqual(splitFrontmatter('---\ntype: A\n---\nbody\n'), { frontmatterText: 'type: A\n', bodyText: 'body\n' });
+  assert.deepEqual(splitFrontmatter('just text'), { frontmatterText: null, bodyText: 'just text' });
+  assert.equal(splitFrontmatter('---\ntype: A\nno closing fence\n').frontmatterText, null);
+  assert.equal(splitFrontmatter('---not a fence\ntype: A\n---\n').frontmatterText, null);
+  assert.deepEqual(splitFrontmatter('---  \ntype: A\n---  \nbody'), { frontmatterText: 'type: A\n', bodyText: 'body' });
+  assert.deepEqual(splitFrontmatter('---\n---\nbody'), { frontmatterText: '', bodyText: 'body' });
 });
 
 test('concept: full metadata is clean, a BOM is skipped', () => {

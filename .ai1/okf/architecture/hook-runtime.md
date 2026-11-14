@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-14T23:40:25Z'
+  at: '2026-11-14T23:53:05Z'
 ---
 
 # Flow
@@ -100,7 +100,7 @@ verify-gate only count files modified inside a window), `path-glob.mjs` (globs f
 paths), `session-state.mjs` (per-session state files, `readStateJson`, and `claimStopBlock`: the Stop
 loop guard - the same findings block once, at most N blocks per session - of okf-upkeep and
 later-upkeep), `project-paths.mjs` (tool paths relative to the project root; used by sizing and design),
-`frontmatter.mjs` (read and write flat YAML frontmatter; okf, sizing and later), `git.mjs` (`runGit`,
+`frontmatter.mjs` (the one frontmatter splitter, line by line, also used by the OKF validator; flat field reads and writes for okf, sizing and later), `git.mjs` (`runGit`,
 `tryGit`, `listIgnoredPaths`, `readOriginHeadBranch`, `detectTrunkBranch`; every module and the CLI), `json-file.mjs` (`readJsonFile` throws on
 invalid JSON for files about to be rewritten, `readJsonFileIfValid`, `writeJsonFile`),
 `markdown-files.mjs` (recursive markdown listing), `tool-call-paths.mjs` (the files a tool call may

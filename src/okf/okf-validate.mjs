@@ -16,6 +16,7 @@
 import { readFileSync, writeFileSync, readdirSync, statSync, existsSync, realpathSync } from 'node:fs';
 import { join, dirname, resolve, relative, sep } from 'node:path';
 import { loadOkfYaml, isYamlMapping, readOwnField, readOwnFieldOr, pythonText, strippedPythonText } from './okf-yaml.mjs';
+import { splitFrontmatter, splitLines } from '../core/frontmatter.mjs';
 
 export const OKF_VERSION = '0.2';
 // `resource` is left out: the spec (§4.1) says it is absent for concepts about abstract ideas.
@@ -52,41 +53,6 @@ const OKF_VERSION_LINE_PATTERN = /^(okf_version:[ \t]*)["']?0\.1["']?[ \t]*$/m;
 const CITATION_MARKER_PATTERN = /^\s*(?:[-*+]|\[\d+\]|\d+[.)])\s+/;
 // Who wrote content before `generated` existed is not recoverable; a `human:` actor would fake a review.
 export const MIGRATE_ACTOR = 'process:okf-migrate';
-
-// str.splitlines() of Python: the line breaks it knows, no trailing empty line.
-const PYTHON_LINE_BREAK_PATTERN = /\r\n|[\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029]/;
-function splitLines(text) {
-  if (text === '') return [];
-  const lines = text.split(PYTHON_LINE_BREAK_PATTERN);
-  if (PYTHON_LINE_BREAK_PATTERN.test(text.at(-1))) lines.pop();
-  return lines;
-}
-
-// Like splitLines, keeping each line's ending.
-function splitLinesKeepingEnds(text) {
-  const lines = [];
-  const lineBreakPattern = new RegExp(PYTHON_LINE_BREAK_PATTERN.source, 'g');
-  let lineStart = 0;
-  for (const lineBreak of text.matchAll(lineBreakPattern)) {
-    lines.push(text.slice(lineStart, lineBreak.index + lineBreak[0].length));
-    lineStart = lineBreak.index + lineBreak[0].length;
-  }
-  if (lineStart < text.length) lines.push(text.slice(lineStart));
-  return lines;
-}
-
-// { frontmatterText, bodyText }; frontmatterText is null when there is no (terminated) block.
-export function splitOkfFrontmatter(text) {
-  if (!text.startsWith('---')) return { frontmatterText: null, bodyText: text };
-  const lines = splitLinesKeepingEnds(text);
-  if (lines[0].trim() !== '---') return { frontmatterText: null, bodyText: text };
-  for (let lineIndex = 1; lineIndex < lines.length; lineIndex += 1) {
-    if (lines[lineIndex].trim() === '---') {
-      return { frontmatterText: lines.slice(1, lineIndex).join(''), bodyText: lines.slice(lineIndex + 1).join('') };
-    }
-  }
-  return { frontmatterText: null, bodyText: text };
-}
 
 function createReport() {
   const report = { errors: [], warnings: [], concepts: 0, indexes: 0, logs: 0 };
@@ -152,7 +118,7 @@ function checkConcept(filePath, relativePath, bundleDirectory, report) {
   report.concepts += 1;
   const text = readBundleText(filePath, relativePath, report);
   if (text === null) return;
-  const { frontmatterText, bodyText } = splitOkfFrontmatter(text);
+  const { frontmatterText, bodyText } = splitFrontmatter(text);
   if (frontmatterText === null) {
     report.error(relativePath, '§11.1 no parseable YAML frontmatter block (every non-reserved `.md` in a bundle is a concept: add frontmatter with a `type` field, or move the file outside the bundle)');
     return;
@@ -322,7 +288,7 @@ function checkIndex(filePath, relativePath, isRootIndex, report) {
   report.indexes += 1;
   const text = readBundleText(filePath, relativePath, report);
   if (text === null) return;
-  const { frontmatterText } = splitOkfFrontmatter(text);
+  const { frontmatterText } = splitFrontmatter(text);
   if (frontmatterText === null) return;
   if (!isRootIndex) {
     report.warn(relativePath, '§8 index.md should contain no frontmatter');
@@ -350,7 +316,7 @@ function checkLog(filePath, relativePath, report) {
   report.logs += 1;
   const text = readBundleText(filePath, relativePath, report);
   if (text === null) return;
-  if (splitOkfFrontmatter(text).frontmatterText !== null) report.warn(relativePath, '§9 log.md should contain no frontmatter');
+  if (splitFrontmatter(text).frontmatterText !== null) report.warn(relativePath, '§9 log.md should contain no frontmatter');
   for (const line of splitLines(text)) {
     if (!line.startsWith('## ')) continue;
     const heading = line.slice(3).trim();
@@ -503,7 +469,7 @@ function moveCitationsToSources(frontmatterText, bodyText) {
 // One file's v0.1 constructs rewritten to v0.2, or null when nothing changes. Textual on purpose, so
 // comments, key order and quoting survive; each branch is skipped when the v0.2 key is already there.
 export function migrateOkfText(text, isRootIndex) {
-  const { frontmatterText, bodyText } = splitOkfFrontmatter(text);
+  const { frontmatterText, bodyText } = splitFrontmatter(text);
   if (frontmatterText === null) return null;
   if (isRootIndex) {
     const newFrontmatterText = frontmatterText.replace(OKF_VERSION_LINE_PATTERN, `$1"${OKF_VERSION}"`);

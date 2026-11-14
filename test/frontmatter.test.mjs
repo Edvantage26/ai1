@@ -34,3 +34,10 @@ test('readFrontmatterField reads block lists and leaves empty fields empty', () 
   assert.equal(readFrontmatterField('tags: [a, b]', 'tags'), 'a, b');
   assert.equal(readFrontmatterField('title:\nowner: y', 'title'), '');
 });
+
+test('splitFrontmatter closes only on a line that is --- (trailing spaces allowed): one splitter for hooks and the OKF toolkit', () => {
+  assert.deepEqual(splitFrontmatter('---\ntype: A\n---x\nstill: frontmatter\n---\nbody\n'), { frontmatterText: 'type: A\n---x\nstill: frontmatter\n', bodyText: 'body\n' });
+  assert.deepEqual(splitFrontmatter('---  \nstatus: ready\n---\t\nbody'), { frontmatterText: 'status: ready\n', bodyText: 'body' });
+  assert.equal(readPlanStatus('---  \nstatus: ready\n---\n'), 'ready');
+  assert.equal(splitFrontmatter('---\nstatus: ready\n').frontmatterText, null, 'an unclosed block is not frontmatter');
+});
