@@ -5,7 +5,7 @@ description: Sets up ai1 in a repo - asks the features, writes .ai1/config.json 
 tags: [init, cli, setup]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-13T14:28:06Z'
+  at: '2026-11-15T06:41:18Z'
 sources:
   - id: setup-repo
     resource: src/cli/setup-repo.mjs
@@ -107,3 +107,10 @@ sources:
   (the moves sit in the index): check `git status` before re-running.
 - Check afterwards: no `.okf/` left, the OKF validator on `.ai1/okf`, `git status` holds only the
   person's own edits.
+- Moving `.okf/` breaks what other repos point at: sibling repos often link each other's bundle by
+  GitHub URL (`.../blob/<branch>/.okf/...`) and read it with `gh api .../contents/.okf/index.md`.
+  Before running `ai1 init` in one of a group of linked repos, grep the siblings for `/.okf/` and
+  set up the group together, updating those links in the same change (2026-11-15).
+- `ai1 init` has no `--help`: any extra argument it does not know is ignored and the init runs,
+  writing `.ai1/config.json` and `.claude/settings.json`. Read the usage at the top of `bin/ai1`
+  instead (2026-11-15).
