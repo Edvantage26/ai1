@@ -67,3 +67,38 @@ test('repo-rules runs through the dispatcher: deny wins and names the rule', () 
   assert.equal(askOutput.hookSpecificOutput.permissionDecision, 'ask');
   assert.equal(runHookEvent('PreToolUse', bashPayload(repoRoot, 'pnpm install')), null);
 });
+
+test('flags: "i" makes pattern case-insensitive; other flags are refused [okf-skill-findings:S8]', () => {
+  const caseInsensitiveRule = { id: 'no-group-by', on: 'bash', pattern: 'from\\s+prices\\b[\\s\\S]*group\\s+by', flags: 'i', action: 'ask', message: 'Use the summary table.' };
+  assert.deepEqual(listRepoRuleProblems(caseInsensitiveRule), []);
+  const bashCall = (commandLine) => ({ tool_name: 'Bash', tool_input: { command: commandLine } });
+  assert.equal(findRepoRuleMatches(bashCall('psql -c "SELECT x FROM PRICES GROUP BY x"'), '/repo', [caseInsensitiveRule]).length, 1);
+  assert.equal(findRepoRuleMatches(bashCall('psql -c "SELECT x FROM PRICES GROUP BY x"'), '/repo', [{ ...caseInsensitiveRule, flags: undefined }]).length, 0, 'without flags the case matters');
+  assert.match(listRepoRuleProblems({ ...caseInsensitiveRule, flags: 'g' }).join(), /"flags" may only hold i, m, s or u/);
+});
+
+test('mcp rules: tool against the MCP tool name, pattern against its JSON input; only for mcp rules [okf-skill-findings:S8]', () => {
+  const mcpRule = { id: 'no-scan-via-mcp', on: 'mcp', tool: '^mcp__postgres__', pattern: 'from\\s+prices\\b[\\s\\S]*group\\s+by', flags: 'i', action: 'ask', message: 'Use the summary table.' };
+  assert.deepEqual(listRepoRuleProblems(mcpRule), []);
+  const mcpCall = (toolName, sqlText) => ({ tool_name: toolName, tool_input: { sql: sqlText } });
+  assert.equal(findRepoRuleMatches(mcpCall('mcp__postgres__query', 'select x from prices group by x'), '/repo', [mcpRule]).length, 1);
+  assert.equal(findRepoRuleMatches(mcpCall('mcp__redis__get', 'select x from prices group by x'), '/repo', [mcpRule]).length, 0, 'another MCP server');
+  assert.equal(findRepoRuleMatches(mcpCall('mcp__postgres__query', 'select x from prices limit 5'), '/repo', [mcpRule]).length, 0);
+  assert.equal(findRepoRuleMatches({ tool_name: 'Bash', tool_input: { command: 'select x from prices group by x' } }, '/repo', [mcpRule]).length, 0, 'an mcp rule never applies to Bash');
+  assert.match(listRepoRuleProblems({ id: 'x', on: 'mcp', action: 'ask', message: 'm' }).join(), /an mcp rule needs "tool", "pattern" or both/);
+  assert.match(listRepoRuleProblems({ id: 'x', on: 'bash', tool: 'a', pattern: 'b', action: 'ask', message: 'm' }).join(), /"tool" only applies to mcp rules/);
+  assert.match(listRepoRuleProblems({ id: 'x', on: 'mcp', tool: 'a', paths: ['x'], action: 'ask', message: 'm' }).join(), /"paths" only applies to edit rules/);
+});
+
+test('an MCP tool call loads only repo-rules, which asks for a matching mcp rule (also in bypass mode) [okf-skill-findings:S8]', async () => {
+  const { loadModulesForEvent } = await import('../src/core/module-index.mjs');
+  const { mkdtempSync, mkdirSync, writeFileSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  assert.deepEqual((await loadModulesForEvent('PreToolUse', 'mcp__postgres__query')).map((loadedModule) => loadedModule.id), ['repo-rules']);
+  const projectRoot = mkdtempSync(join(tmpdir(), 'ai1-mcp-rule-'));
+  mkdirSync(join(projectRoot, '.ai1'));
+  writeFileSync(join(projectRoot, '.ai1', 'config.json'), JSON.stringify({ rules: [{ id: 'no-scan-via-mcp', on: 'mcp', tool: '^mcp__postgres__', pattern: 'group\\s+by', flags: 'i', action: 'ask', message: 'Use the summary table.' }] }));
+  const hookOutput = runHookEvent('PreToolUse', { session_id: 's', cwd: projectRoot, tool_name: 'mcp__postgres__query', tool_input: { sql: 'SELECT x FROM prices GROUP BY x' }, permission_mode: 'bypassPermissions' }, { environment: { AI1_DECISION_LOG: '0' }, reportInternalError: () => {} });
+  assert.equal(hookOutput.hookSpecificOutput.permissionDecision, 'ask');
+  assert.match(hookOutput.hookSpecificOutput.permissionDecisionReason, /no-scan-via-mcp/);
+});

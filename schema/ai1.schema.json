@@ -798,9 +798,10 @@
           "on": {
             "enum": [
               "bash",
-              "edit"
+              "edit",
+              "mcp"
             ],
-            "description": "bash: each simple command of a shell call; edit: Edit/Write/MultiEdit/NotebookEdit."
+            "description": "bash: each simple command of a shell call; edit: Edit/Write/MultiEdit/NotebookEdit; mcp: MCP tool calls (tool against the tool name, pattern against its JSON input)."
           },
           "pattern": {
             "type": "string",
@@ -828,6 +829,17 @@
             "type": "string",
             "minLength": 1,
             "description": "Why, and what to do instead."
+          },
+          "flags": {
+            "type": "string",
+            "pattern": "^[imsu]*$",
+            "description": "Regular expression flags for pattern and tool: i (case-insensitive), m, s, u."
+          },
+          "tool": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "description": "mcp rules: regular expression matched against the MCP tool name (e.g. ^mcp__postgres__)."
           }
         }
       }

@@ -16,7 +16,7 @@ sources:
     title: Later 0006
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T13:24:58Z'
+  at: '2026-11-15T14:49:27Z'
 ---
 
 Feature `danger` (on by default), PreToolUse on Edit, Write, MultiEdit, NotebookEdit and Bash.
@@ -35,6 +35,13 @@ Built 2026-11-09 from later 0006; decision in [harness guards](../decisions/harn
   `shell-parse` (words joined by one space, quotes removed; `bash -c`, `eval` and `find -exec` unwrapped).
 - `on: edit`: `paths` (globs from the repo root) limit the files; `pattern` is tested against the new
   text only (`new_string`, written `content`, MultiEdit new strings, `new_source`). At least one of the two.
+- `on: mcp` (since v0.42.3): `tool` (regex) is tested against the MCP tool name and `pattern` against the
+  call's `tool_input` as JSON (capped at 20,000 characters); at least one of the two. The PreToolUse
+  matcher in hooks/hooks.json includes `mcp__.*`, and only repo-rules loads for MCP calls (its `toolNames`
+  has `mcp__*`, a prefix match in `modulesForEvent`). Found setting up a repo whose database is also
+  reachable through an MCP server: a heavy query that way escaped every rule.
+- `flags` (since v0.42.3): `i`, `m`, `s`, `u` for `pattern` and `tool`. Without them a case-insensitive
+  rule had to spell `[Ss][Ee][Ll]...`, which also hit the 300-character limit.
 - `action`: `ask` or `deny` (deny wins when several match; the reason lists every match as `[id] message`).
 - Validation (`src/core/repo-rules-config.mjs`): kebab-case unique `id`, known fields only, `message`
   required, `pattern` compiles and is at most 300 characters. A bad rule is **dropped with a notice**

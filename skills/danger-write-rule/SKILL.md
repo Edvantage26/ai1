@@ -13,7 +13,8 @@ forget. Rules live in `rules` of `.ai1/config.json`, which is versioned: the who
 
 From the correction or the CLAUDE.md line, work out, asking only what is missing:
 
-- **what** it catches: a shell command (`on: "bash"`) or an edit to files (`on: "edit"`);
+- **what** it catches: a shell command (`on: "bash"`), an edit to files (`on: "edit"`) or an MCP tool
+  call (`on: "mcp"`, e.g. a database query through an MCP server);
 - **how bad** it is: `deny` when it must never happen (generated code, a forbidden tool), `ask`
   when it is sometimes right and the person decides (migrations, deploy scripts);
 - **what to do instead**: the message must say why and the right way, because the agent reads it.
@@ -36,6 +37,10 @@ From the correction or the CLAUDE.md line, work out, asking only what is missing
 - `edit`: `paths` (globs, from the repo root; `*.ts` matches at any depth) limit the files, and the
   optional `pattern` is tested against the new text only (the inserted `new_string` or the written
   content). `paths` alone = any edit to those files.
+- `mcp`: `tool` (regex) is tested against the MCP tool name (`mcp__<server>__<tool>`, e.g.
+  `^mcp__postgres__`) and `pattern` against the call's input as JSON; one of the two at least.
+- `"flags": "i"` makes `pattern` and `tool` case-insensitive (also `m`, `s`, `u`): write `group\\s+by`
+  with `"flags": "i"` instead of spelling every letter in both cases.
 - Check the pattern against two or three real commands or snippets that must match and two that
   must not, with `node -e` (e.g. `node -e 'console.log(/^npm i\b/.test("npm install"))'`).
 

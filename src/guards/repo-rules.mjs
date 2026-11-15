@@ -1,7 +1,8 @@
 // repo-rules (PreToolUse, feature `danger`): the repo's own rules from `rules` in .ai1/config.json,
 // so a project rule ("use pnpm", "never edit generated/") is a mechanism instead of a CLAUDE.md line.
 // `bash` rules test each simple command of the line (words joined, quotes removed); `edit` rules
-// limit by `paths` and/or test `pattern` against the new text. Rules were validated when the config
+// limit by `paths` and/or test `pattern` against the new text; `mcp` rules test `tool` against the MCP tool
+// name and `pattern` against its JSON input. `flags` (e.g. "i") apply to both. Rules were validated when the config
 // loaded (core/repo-rules-config). Inputs are capped so a slow pattern stays bounded.
 
 import { relative } from 'node:path';
@@ -19,15 +20,30 @@ function newTextOfEdit(toolInput) {
   return toolInput.new_string ?? toolInput.new_source ?? '';
 }
 
+function ruleRegExp(repoRule, patternText) {
+  return new RegExp(patternText, repoRule.flags || '');
+}
+
+export function isMcpToolName(toolName) {
+  return typeof toolName === 'string' && toolName.startsWith('mcp__');
+}
+
 export function findRepoRuleMatches(hookInput, projectRoot, repoRules = []) {
   const toolInput = hookInput.tool_input || {};
   const isBash = hookInput.tool_name === 'Bash';
-  const applicableRules = repoRules.filter((repoRule) => repoRule.on === (isBash ? 'bash' : 'edit'));
+  const isMcp = isMcpToolName(hookInput.tool_name);
+  const ruleEvent = isBash ? 'bash' : isMcp ? 'mcp' : 'edit';
+  const applicableRules = repoRules.filter((repoRule) => repoRule.on === ruleEvent);
   if (applicableRules.length === 0) return [];
+  if (isMcp) {
+    const inputText = JSON.stringify(toolInput).slice(0, MAX_TESTED_CHARACTERS);
+    return applicableRules.filter((repoRule) => (repoRule.tool === undefined || ruleRegExp(repoRule, repoRule.tool).test(hookInput.tool_name))
+      && (repoRule.pattern === undefined || ruleRegExp(repoRule, repoRule.pattern).test(inputText)));
+  }
   if (isBash) {
     const commandTexts = splitSimpleCommands(String(toolInput.command || '')).map(({ text }) => text.slice(0, MAX_TESTED_CHARACTERS));
     return applicableRules.filter((repoRule) => {
-      const rulePattern = new RegExp(repoRule.pattern);
+      const rulePattern = ruleRegExp(repoRule, repoRule.pattern);
       return commandTexts.some((commandText) => rulePattern.test(commandText));
     });
   }
@@ -36,13 +52,13 @@ export function findRepoRuleMatches(hookInput, projectRoot, repoRules = []) {
   const relativePath = relative(projectRoot, editedPath).split('\\').join('/');
   const newText = String(newTextOfEdit(toolInput)).slice(0, MAX_TESTED_CHARACTERS);
   return applicableRules.filter((repoRule) => (!repoRule.paths || matchesAnyGlob(relativePath, repoRule.paths))
-    && (repoRule.pattern === undefined || new RegExp(repoRule.pattern).test(newText)));
+    && (repoRule.pattern === undefined || ruleRegExp(repoRule, repoRule.pattern).test(newText)));
 }
 
 export default {
   id: MODULE_ID,
   event: 'PreToolUse',
-  toolNames: ['Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'Bash'],
+  toolNames: ['Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'Bash', 'mcp__*'],
   feature: 'danger',
   description: 'Applies the repo\'s own rules (`rules` in .ai1/config.json): ask or refuse matching commands and edits.',
   run({ hookInput, projectRoot, config, environment }) {
