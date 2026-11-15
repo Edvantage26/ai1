@@ -5,6 +5,8 @@
 // Overrides that only make sense on this machine (switching off plugins of the person that overlap
 // with ai1, see src/core/plugin-overlaps.mjs) go to .claude/settings.local.json, personal and kept out of git.
 
+import { listRelatedCandidates } from '../okf/okf-related.mjs';
+import { splitRelatedEntries } from '../core/related-config.mjs';
 import { tryGit, detectTrunkBranch } from '../core/git.mjs';
 import { splitRepoRules } from '../core/repo-rules-config.mjs';
 import { REPORT_MODES } from '../core/issue-offer.mjs';
@@ -98,6 +100,8 @@ export function describeRepo(repoRoot, { userSettingsPath = DEFAULT_USER_SETTING
     // Against every feature, not only the enabled ones: the setup skill keeps those that overlap with
     // the features the person picks.
     overlappingPlugins: findOverlappingPlugins(readEnabledPlugins(repoRoot, userSettingsPath), SELECTABLE_FEATURE_IDS),
+    // Repositories the docs name that are not in `related` yet, shaped as entries (see okf-related.mjs).
+    relatedCandidates: listRelatedCandidates(repoRoot, splitRelatedEntries(ai1Config?.related).validEntries, join(repoRoot, KNOWLEDGE_BUNDLE_PATH)),
     features: SELECTABLE_FEATURES.map((featureDefinition) => ({
       id: featureDefinition.id,
       title: featureDefinition.title,

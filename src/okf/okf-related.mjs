@@ -92,6 +92,20 @@ function escapeRegExp(text) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+// Whether the docs name `repoName` as a repository, not as an ordinary word or an inner folder: as a code
+// span of its own (`name` or `owner/name`), as a sibling path (`../name`), as a link text, or, for a compound name (with - or _), anywhere as
+// a whole word.
+export function isNamedAsRepository(docsText, repoName) {
+  const escapedName = escapeRegExp(repoName);
+  const repositoryForms = [
+    `\`(?:[\\w.-]+/)?${escapedName}\``,
+    `(^|[^\\w.])\\.\\./${escapedName}(?=[/\\s)\`'"]|$)`,
+    `\\[${escapedName}\\]`,
+  ];
+  if (/[-_]/.test(repoName)) repositoryForms.push(`(^|[^\\w-])${escapedName}([^\\w-]|$)`);
+  return new RegExp(repositoryForms.join('|'), 'im').test(docsText);
+}
+
 // Repositories the docs name that are not in `related` yet, each shaped as an entry to add:
 // git repositories next to this one named as a whole word, and remote URLs with this repo's owner.
 export function listRelatedCandidates(projectRoot, relatedEntries = [], bundleDirectory = null) {
@@ -116,7 +130,7 @@ export function listRelatedCandidates(projectRoot, relatedEntries = [], bundleDi
     const siblingRoot = join(parentDirectory, siblingName);
     if (!siblingEntry.isDirectory() || siblingName.length < MIN_CANDIDATE_NAME_LENGTH || siblingRoot === mainCheckout) continue;
     if (!existsSync(join(siblingRoot, '.git')) || relatedRoots.has(findMainCheckout(siblingRoot))) continue;
-    if (!new RegExp(`(^|[^\\w-])${escapeRegExp(siblingName)}([^\\w-]|$)`, 'i').test(docsText)) continue;
+    if (!isNamedAsRepository(docsText, siblingName)) continue;
     const siblingRemote = remoteIdentity(readOriginUrl(siblingRoot));
     if (siblingRemote && relatedRemotes.has(siblingRemote)) continue;
     candidates.set(siblingRemote || siblingName, { name: siblingName, path: `../${siblingName}`, ...(siblingRemote ? { remote: siblingRemote } : {}), has_bundle: Boolean(findBundleIndex(siblingRoot)) });

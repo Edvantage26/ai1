@@ -92,6 +92,7 @@ try {
       const { repoRules } = repoDescription;
       if (repoRules.active.length || repoRules.ignored.length) console.log(`repo rules: ${repoRules.active.join(', ') || 'none active'}${repoRules.ignored.map((ignoredNotice) => `\n  ${ignoredNotice}`).join('')}`);
       if (repoDescription.detectedVerifyCommands.length) console.log(`detected verify commands: ${repoDescription.detectedVerifyCommands.join(', ')}`);
+      if (repoDescription.relatedCandidates.length) console.log(`related repositories the docs name (not in \`related\` yet): ${repoDescription.relatedCandidates.map((relatedCandidate) => `${relatedCandidate.name} (${relatedCandidate.path || relatedCandidate.remote})`).join(', ')}`);
       for (const overlappingPlugin of repoDescription.overlappingPlugins) {
         console.log(`plugin overlap (${overlappingPlugin.action === 'disable' ? 'disable it here with ai1 init --disable-plugins' : 'only a warning'}): ${describeOverlap(overlappingPlugin)}`);
       }

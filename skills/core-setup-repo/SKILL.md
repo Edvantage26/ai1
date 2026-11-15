@@ -114,6 +114,10 @@ that applies, one at a time, in this order, and do it only after a yes (the pers
 - `okf` and there is a bundle: run `ai1 claude-md`. If it reports findings, offer
   `/ai1:okf-tidy-claude-md`; when the migration listed CLAUDE.md among the files with old paths,
   make it one offer (the skill fixes those paths too).
+- `okf` and `ai1 status` lists `relatedCandidates` (other repositories the docs name as such, not in
+  `related` yet): tell the person in one line which ones and offer to relate them; for each one they
+  pick, add an entry to `related` in `.ai1/config.json` (`name`, `path` or `remote`, `owns` if they say
+  what it owns; fields in /ai1:okf-maintain-knowledge). Only the ones they pick.
 - `design` and the bundle has no concept of type `Product` or `DesignSystem`: capture who uses the
   product (under `## Users` of `Product`, one `### <name>` per profile: who they are, what they already
   know, device, what they come to do; /ai1:design-review-usability reads them) and its tone; palette,

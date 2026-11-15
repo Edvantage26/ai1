@@ -71,16 +71,17 @@ test('candidates: sibling repos the docs name and same-owner URLs, not related y
   createRepository(workspaceRoot, 'worker', { origin: 'git@github.com:acme/worker.git', files: { '.ai1/okf/index.md': '# w\n' } });
   createRepository(workspaceRoot, 'api');
   createRepository(workspaceRoot, 'unmentioned');
+  createRepository(workspaceRoot, 'retries');
   createRepository(workspaceRoot, 'already');
   const appRoot = createRepository(workspaceRoot, 'app', { origin: 'git@github.com:acme/app.git', files: {
-    'CLAUDE.md': 'The worker sends to the api. See also already.\n',
+    'CLAUDE.md': 'The `worker` sends to the `api`. See also `already`. Agents and workers as words do not count: the worker retries.\n',
     '.ai1/okf/index.md': 'Contract with [billing](https://github.com/acme/billing) and https://github.com/other/thing.\n',
   } });
   const candidates = listRelatedCandidates(appRoot, [{ name: 'already', path: '../already' }], join(appRoot, '.ai1', 'okf'));
   assert.deepEqual(candidates, [
     { name: 'worker', path: '../worker', remote: 'acme/worker', has_bundle: true },
     { name: 'billing', path: null, remote: 'acme/billing', has_bundle: null },
-  ], 'api is too short, unmentioned is not named, already is related, other/thing has another owner');
+  ], 'api is too short, unmentioned is not named, retries is only a word, already is related, other/thing has another owner');
 });
 
 function readPayload(launchRoot, filePath, sessionId = 'session-1') {
@@ -143,4 +144,12 @@ test('at session start the related repositories are listed with where their know
   assert.ok(sessionContext.includes('- gone: not found at `../gone` on this machine'));
   const { appRoot: plainAppRoot, options: plainOptions } = createRelatedWorkspace();
   assert.doesNotMatch(contextOf(runHookEvent('SessionStart', { session_id: 'session-1', cwd: plainAppRoot, source: 'startup' }, plainOptions)), /Related repositories/, 'nothing without related');
+});
+
+test('ai1 status lists the related candidates for setup to offer [related-repositories:S4]', async () => {
+  const { describeRepo } = await import('../src/cli/setup-repo.mjs');
+  const workspaceRoot = createWorkspace();
+  createRepository(workspaceRoot, 'other-service', { files: { '.ai1/okf/index.md': '# other\n' } });
+  const appRoot = createRepository(workspaceRoot, 'app', { files: { 'README.md': 'Talks to other-service over HTTP.\n' } });
+  assert.deepEqual(describeRepo(appRoot, { userSettingsPath: join(workspaceRoot, 'no-settings.json') }).relatedCandidates, [{ name: 'other-service', path: '../other-service', has_bundle: true }]);
 });
