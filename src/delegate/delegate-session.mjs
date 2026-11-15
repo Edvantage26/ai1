@@ -27,9 +27,12 @@ export const DELEGATE_PROTOCOL = [
   '## How to finish (ai1 delegate)',
   'You were started by another Claude Code session to make this change in this repository; the person is not watching this session.',
   'Follow this repository\'s own rules (CLAUDE.md, worktrees, commits). Do not push.',
+  'Before reading much, check that you can do what the task needs (write in this repository, run the commands it names). If a tool is denied, stop at once and say which, with the needs-input line below, instead of trying other routes.',
+  '`.ai1/work/` is local scratch, ignored by git: files there are not committed. If the task asks to commit one, leave it there and say so.',
   'If you need a decision only the person can take, do not guess: stop and end your last message with the line `AI1-DELEGATE: needs-input: <the question>`.',
   'If a guard of this repository refuses or asks to confirm an action, do not reach the same result another way: stop and say what you wanted to run and why.',
-  'When the change is done and checked, end your last message with a short summary and the line `AI1-DELEGATE: done`.',
+  'When the change is done and checked, end your last message with the line `AI1-DELEGATE: done`.',
+  'Your last message is the only thing the caller receives: make it the complete report (what changed, what was left out and why, open points), never a reference to an earlier message.',
 ].join('\n');
 
 function git(repoRoot, gitArguments, runCommand) {
@@ -200,7 +203,7 @@ export function resumeDelegation({ sessionId, answerText, allowOnceSubject, perm
   const resumeText = [
     `The person answered: ${String(answerText).trim()}`,
     ...(allowOnceSubject ? [`They confirmed this action once; run it exactly as written: ${allowOnceSubject}`] : []),
-    'Carry on and finish as described before (`AI1-DELEGATE: done` or `AI1-DELEGATE: needs-input: ...`).',
+    'Carry on and finish as described before (`AI1-DELEGATE: done` or `AI1-DELEGATE: needs-input: ...`), with the complete report in your last message: the caller receives only that message, so repeat what an earlier one said instead of pointing to it.',
   ].join('\n');
   const commandResult = runClaude({
     repoRoot: baseRecord.repo,

@@ -5,7 +5,7 @@ description: An edit to a file of another repository with ai1 active is refused 
 tags: [delegate, foreign-repo, cross-repo, claude-p, submodules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T14:33:15Z'
+  at: '2026-11-15T14:37:56Z'
 ---
 
 # What it does
@@ -31,7 +31,13 @@ generated:
 
 - `ai1 delegate --cwd <repo> (--brief <file> | "<task>")` runs `claude -p --output-format json
   --session-id <uuid>` in that repository, with the brief plus a fixed protocol (follow that repo's
-  rules, do not push, end with `AI1-DELEGATE: done` or `AI1-DELEGATE: needs-input: <question>`).
+  rules, do not push, end with `AI1-DELEGATE: done` or `AI1-DELEGATE: needs-input: <question>`). Since
+  2026-11-15 it also says: check early that you can write and run what the task needs and stop at the
+  first denied tool (a run without permissions read the spec and the plan before stopping, ~1 USD
+  each); `.ai1/work/` is local and not committed (a brief asked to commit a file there); and the last
+  message is the whole report, never "my earlier report" (`claude -p` returns only the last message,
+  and a resumed run once answered with a pointer to an earlier one, losing the report). A resume
+  repeats that last rule.
   `CLAUDE_PROJECT_DIR` is set to the repo so its hooks resolve there. Claude Code is started with
   `claude`, or the command given with `--claude-command` / `AI1_CLAUDE_COMMAND` (a resume reuses it). A
   plain `claude` launched from a tool call may not be logged in (seen 2026-11-15: "OAuth session

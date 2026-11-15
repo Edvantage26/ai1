@@ -86,6 +86,9 @@ test('a delegated change runs claude -p in the other repo and reports status, su
   assert.ok(programArguments.includes('--session-id'));
   assert.equal(programArguments[programArguments.indexOf('--permission-mode') + 1], 'bypassPermissions', 'inherits the caller session\'s mode');
   assert.match(programArguments.at(-1), /Create CHANGELOG\.md[\s\S]*AI1-DELEGATE: done/, 'the brief plus the protocol');
+  assert.match(programArguments.at(-1), /If a tool is denied, stop at once/, 'stops early when it lacks permissions');
+  assert.match(programArguments.at(-1), /`\.ai1\/work\/` is local scratch/, 'knows the work folder is not committed');
+  assert.match(programArguments.at(-1), /last message is the only thing the caller receives[\s\S]*never a reference to an earlier message/, 'the report is self-contained');
 });
 
 test('a question stops the delegated session and the answer resumes the same one [foreign-repo-delegation:S3]', () => {
@@ -104,6 +107,7 @@ test('a question stops the delegated session and the answer resumes the same one
   const resumeArguments = claudeCalls[1].programArguments;
   assert.equal(resumeArguments[resumeArguments.indexOf('--resume') + 1], firstRecord.session_id, 'resumes the same session');
   assert.match(resumeArguments.at(-1), /The person answered: márcala como obsoleta/);
+  assert.match(resumeArguments.at(-1), /complete report in your last message/, 'a resumed run also ends with the whole report');
 });
 
 test('a guard that asked shows as blocked; a confirmed command is allowed once in that session [foreign-repo-delegation:S3]', () => {
