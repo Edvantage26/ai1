@@ -45,6 +45,15 @@ fields, unknown types, and broken links — never reject a bundle over them.
   `upkeep: enforced` opt-in flag, plus `recursive: true` (or a depth `n`: levels below the root, `true` is 6) to make the hook
   watch nested git repos) and `log.md` (ISO-dated history, newest
   first). Never use these names for concepts.
+- **Related repositories:** when this repo depends on the knowledge of another one (a contract it
+  consumes, a schema another repo owns), record it in `related` of `.ai1/config.json`, not in prose:
+  `{ "name", "path" (where it is usually cloned, e.g. `../other`) and/or "remote" (`owner/name`),
+  "branch", "bundle" (default `.ai1/okf`, else `.okf`), "read_without_clone" (a command that prints its
+  bundle `index.md` when it is not cloned here, whatever works for that repo), "owns" (what it owns that
+  this repo uses) }`. Each fact lives in the repository that changes it; this repo's concepts only link
+  to it, never copy it. ai1 lists `related` at session start and points to that bundle when the agent
+  reads the other repo. Add an entry only after the person's yes (ai1 offers it when it notices the
+  other repo; `config-guard` asks before the file changes).
 - **What goes in `log.md`:** lifecycle events only, written in the bundle-root
   `log.md`: a bundle **created**, a concept **deprecated** or retired, one
   concept **superseding** another, concepts **regenerated** after their source

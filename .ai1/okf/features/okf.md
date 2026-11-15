@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index and bundle health notes 
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-14T23:25:53Z'
+  at: '2026-11-15T10:20:44Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -232,3 +232,23 @@ a real session on 2026-10-31: only `ai1:*` skills listed, a single upkeep remind
 
 `${CLAUDE_PLUGIN_DATA}/state` (else `~/.cache/ai1`), files `<session>-<hash(project)>.base` and
 `.reminded`, removed after 7 days.
+
+# Related repositories
+
+Other repositories whose knowledge this one needs are listed in `related` of `.ai1/config.json`
+(structured and validated, `src/core/related-config.mjs`; never parsed from prose: the person rejected
+matching headings or names in `index.md`, 2026-11-15). Code in `src/okf/okf-related.mjs`.
+
+- **Session start** (`okf-index`): each entry with where its knowledge is on this machine (its bundle
+  index, or `read_without_clone`, or "not found at <path>") and what it owns; the agent reads the
+  relevant one before changing what depends on it.
+- **While working** (`okf-file-context`): a read or edit of a file of another repository (not a
+  submodule, inside or outside the project folder) whose bundle exists (`bundle`, else `.ai1/okf`, else
+  `.okf`) gets one line per repository and session: its bundle; and, when it is not in `related`
+  (compared by main checkout, or `origin` against `remote`), the offer to relate it after the person's yes.
+- **Setup** (`ai1 status` -> `relatedCandidates`, offered by `/ai1:core-setup-repo`): git repositories
+  next to this one that `CLAUDE.md`, `README.md`, `PROJECT.md` or the bundle name **as a repository**
+  (a code span of its own, `../name`, `[name]`, or a compound name with - or _ anywhere), and remote URLs
+  with this repo's owner; at most 10, shaped as entries. A bare word does not count (it matched ordinary
+  words such as "agents" on 2026-11-15).
+- The rule written with it: each fact lives in the repository that changes it; the other only links.
