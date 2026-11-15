@@ -37,7 +37,7 @@ export const FEATURES = [
   {
     id: 'later',
     title: 'Undecided changes noted down for later',
-    description: 'Large changes and future features that are not decided yet are noted down for later in .ai1/later/ (one versioned file each, idea or full size, called by its number: later 0003), apart from the knowledge bundle because they are not the system. Created only when the person asks for it ("apúntalo para luego"), or picks it in the one-line offer the agent makes when a clearly different subject comes up mid-task (do it here, fork the conversation, or note it down for later). Lists the open ones at session start, points to the related ones on each message, and when the session touched them checks they are consistent and that accepted ones are recorded in the bundle. Skill /ai1:later-write; `ai1 later new|set|index|check`.',
+    description: 'Large changes and future features that are not decided yet are noted down for later in .ai1/later/ (one versioned file each, idea or full size, called by its number: later 0003), apart from the knowledge bundle because they are not the system. Only on demand: created only when the person asks for it ("apúntalo para luego"); the agent never offers it. Lists the open ones at session start, points to the related ones on each message, and when the session touched them checks they are consistent and that accepted ones are recorded in the bundle. Skill /ai1:later-write; `ai1 later new|set|index|check`.',
     enabledByDefault: true,
   },
   {

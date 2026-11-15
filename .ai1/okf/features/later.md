@@ -1,11 +1,11 @@
 ---
 type: Component
 title: later feature
-description: Later - large changes and future features not decided yet, noted down for later in .ai1/later/ (one file each, called by its number, "later 0003"), apart from the bundle; created only on the person's explicit request for that entry (a yes to a reply with other proposals is not one); brief, recall and a Stop check that accepted ones are carried to the bundle; /ai1:later-write and ai1 later. Called rfc until v0.17 and proposals until v0.24.
+description: Later - large changes and future features not decided yet, noted down for later in .ai1/later/ (one file each, called by its number, "later 0003"), apart from the bundle; only on demand (created only when the person asks for it, never offered by the agent); brief, recall and a Stop check that accepted ones are carried to the bundle; /ai1:later-write and ai1 later. Called rfc until v0.17 and proposals until v0.24.
 tags: [later, proposals, roadmap, hooks, cli, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T07:02:35Z'
+  at: '2026-11-15T07:06:30Z'
 sources:
   - id: later-documents
     resource: src/later/later-documents.mjs
@@ -68,35 +68,34 @@ The lifecycle it fills:
 | Being built | a deep plan with `later: <number>` in its frontmatter |
 | Built | the feature's concept in the bundle; entry `implemented` |
 
-# Creation: only on an explicit request
+# Creation: only on demand
 
-An entry is created only when the person explicitly asks for that entry, in their own words
-("apúntalo para luego", "anótalo en later", "apárcalo"), or picks "later" when the agent asked about
-later alone. A "sí", "adelante" or "ok" to a reply that also carried other proposals is not permission
-for the later part: the agent does the rest and leaves later out. The agent never notes one down on
-its own, never as a step or recommendation inside a larger reply, never as the "next step" of what it
-is doing; when unsure, it asks in one line, about later only, and waits. Decided by the person on
-2026-11-15: another session closed its replies on cross-repo delegation with "Apuntar las tres ideas en
-`later`" and "dejo apuntado en `later` el orquestador con el SDK como paso siguiente"; the person
-answered "Si adelante" to the whole message and the agent created later 0007, which the person did not
-consider an explicit permission ("¿Por qué metes en later sin mi permiso explícito?"). The rule then
-read "a yes means the way you recommended", which a bundled yes satisfied.
+Later is only on demand: an entry is created only when the person explicitly asks for it, in their own
+words ("apúntalo para luego", "anótalo en later", "apárcalo"). The agent never offers it, recommends it
+or mentions it as an option, for any subject, never notes one down on its own or as a step inside a
+larger reply, and never reads a "sí", "adelante" or "ok" to a reply as a request for it. Decided by the
+person on 2026-11-15 in two steps. First, another session closed its replies on cross-repo delegation
+with "Apuntar las tres ideas en `later`" and "dejo apuntado en `later` el orquestador con el SDK como
+paso siguiente"; the person answered "Si adelante" to the whole message and the agent created later
+0007, which the person did not consider an explicit permission ("¿Por qué metes en later sin mi permiso
+explícito?"). The rule then read "a yes means the way you recommended", which a bundled yes satisfied;
+it became "explicit request only, a bundled yes does not count, ask about later alone when unsure".
+The same day the person went further ("Deja el later solo a demanda"): the agent no longer offers
+later at all, not even for a tangent, so there is nothing to answer yes to.
 
-The subject the person is talking about is never offered for later or fork, however large, nor its
-ideas, details, steps, follow-ups or next steps: on 2026-11-13 the agent closed a design conversation
-offering "apúntalo como later" for the very idea being discussed, and the person ruled that the
-default for the current subject is to offer building it now (a deep one starts with its design);
-details and follow-ups were excluded on 2026-11-09. Later and fork are only for a tangent: when, while
-working on one subject, a clearly different and large one comes up (a new feature unrelated to the
-task at hand), the agent mentions it in one line at the end of its report with the way it recommends
-(do it here, fork it into a new one with [session fork](session-fork.md), or note it down for later)
-and does not stop to ask. A yes means here or fork when one of them was recommended; for later the
-rule above applies. A small fix found on the way is done here. Until 2026-11-09 it asked "¿lo hacemos
+The tangent offer keeps two ways: when, while working on one subject, a clearly different and large
+one comes up (a new feature unrelated to the task at hand), the agent mentions it in one line at the
+end of its report with the way it recommends (do it here, or fork it into a new one with
+[session fork](session-fork.md)) and does not stop to ask. Until 2026-11-09 it asked "¿lo hacemos
 aquí, lo abro en un fork o lo apunto para luego?" and waited: in the transcripts of that week it was
-asked 69 times, so the person dropped it the same day. Once created, the agent confirms in one line
-("Apuntado para luego como later 0007: «...»"). Said in the brief and in the skill (description, body
-and fixed rules); the offer lives in this feature, so with it off the agent does not make it.
-Accepting, rejecting or resuming one is done only for an entry the person names (by number or title).
+asked 69 times, so the person dropped the question the same day; from then to 2026-11-15 the line also
+offered later. The subject the person is talking about is never offered for fork, however large, nor
+its ideas, details, steps, follow-ups or next steps (2026-11-09 and 2026-11-13): the default is to
+offer building it now (a deep one starts with its design). A small fix found on the way is done here.
+Once created, the agent confirms in one line ("Apuntado para luego como later 0007: «...»"). Said in
+the brief and in the skill (description, body and fixed rules); the tangent offer is in this feature's
+brief, so with `later` off the agent does not make it. Accepting, rejecting or resuming one is done
+only for an entry the person names (by number or title).
 `ai1 later new` does not ask in the permission prompt: the `ai1-later-new` danger rule (added on
 2026-11-09 after an agent read a bundled "ok" as a yes to a proposal) was removed the same day, since
 noting something down loses nothing. Decided by the person on 2026-11-09: ai1 asks only for what is truly delicate (losing work or data for good, publishing, production, a deep design); the rest the agent does and reports. Writing an entry file with Write/Edit is not gated (the skill forbids
@@ -157,12 +156,11 @@ the rename); move it to `.../skills/later/` by hand.
 - Whether the Outcome section is really filled in is not checked; only the `decided` date is.
 - Whether the skill loads on "propuesta" is up to the model reading its description: the exclusion is
   text in the description, the brief and the skill's first section, not a hook.
-- The explicit-request rule is text too (brief, skill), not a hook. A PreToolUse check on
-  `ai1 later new` against the last user prompt was considered on 2026-11-15 and not added: telling an
-  explicit request from a bundled yes needs the agent's previous reply as well as the prompt, a
-  keyword match on the prompt alone would refuse legitimate answers ("sí" to "¿Apunto X en later?")
-  and let "adelante" through when it means "más adelante", and a hook that blocks or asks needs the
-  person's approval (ai1 asks only for what is truly delicate, see Creation above).
+- The on-demand rule is text too (brief, skill), not a hook. A PreToolUse check on `ai1 later new`
+  against the last user prompt was considered on 2026-11-15 and not added: a keyword match on the
+  prompt alone misreads "adelante" (which may mean "más adelante") and phrasings it does not know, and
+  a hook that blocks or asks needs the person's approval (ai1 asks only for what is truly delicate,
+  see Creation above).
 
 # Verified
 
