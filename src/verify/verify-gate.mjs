@@ -115,11 +115,25 @@ export function listSessionChangedCode(projectRoot, sessionBase, ignoredPaths) {
     .filter((changedFile) => !isVerifiedIntegration(changedFile.relativePath, changedFile.modifiedMilliseconds));
 }
 
-// { kind: 'stale' | 'failed', ... } for the first verify command not satisfied, or null.
-export function findUnverifiedChange(changedFiles, verifyCommands, lastRuns) {
-  if (changedFiles.length === 0) return null;
-  const newestChangeMilliseconds = Math.max(...changedFiles.map((changedFile) => changedFile.modifiedMilliseconds));
+// The folder a verify command runs in when it starts with `cd <dir> &&` (repo-relative, ending in `/`),
+// or null: such a command checks only that folder, so changes elsewhere (a submodule it does not cover,
+// the knowledge bundle) do not ask for it. Found on a superproject whose only check was the frontend
+// tests of one submodule, asked for after a bump of another submodule.
+export function verifyCommandFolder(verifyCommand) {
+  const folderMatch = /^\s*cd\s+(['"]?)([^\s&;'"]+)\1\s*&&/.exec(String(verifyCommand || ''));
+  if (!folderMatch || folderMatch[2].startsWith('/') || folderMatch[2].startsWith('~')) return null;
+  const folderPath = folderMatch[2].replace(/^\.\//, '').replace(/\/+$/, '');
+  return folderPath && folderPath !== '.' ? `${folderPath}/` : null;
+}
+
+// { kind: 'stale' | 'failed', ... } for the first verify command not satisfied, or null. Each command
+// counts only the changed files it can check (see verifyCommandFolder).
+export function findUnverifiedChange(allChangedFiles, verifyCommands, lastRuns) {
   for (const [verifyIndex, verifyCommand] of verifyCommands.entries()) {
+    const commandFolder = verifyCommandFolder(verifyCommand);
+    const changedFiles = commandFolder ? allChangedFiles.filter((changedFile) => changedFile.relativePath.startsWith(commandFolder)) : allChangedFiles;
+    if (changedFiles.length === 0) continue;
+    const newestChangeMilliseconds = Math.max(...changedFiles.map((changedFile) => changedFile.modifiedMilliseconds));
     const lastRun = lastRuns[verifyIndex];
     if (!lastRun || lastRun.endMilliseconds < newestChangeMilliseconds) {
       const staleFiles = changedFiles.filter((changedFile) => !lastRun || changedFile.modifiedMilliseconds > lastRun.endMilliseconds);

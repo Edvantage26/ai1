@@ -308,3 +308,19 @@ test('describeScenarioCoverage: covered so far for step-done, nothing for a plan
   writeScenarioPlan(projectRoot, 'plain', 'approved', '');
   assert.equal(describeScenarioCoverage(projectRoot, projectRoot, 'plain', []), null);
 });
+
+test('a verify command that cd-s into a folder counts only changes inside it; others count every change [okf-findings-2:S6]', async () => {
+  const { verifyCommandFolder, findUnverifiedChange } = await import('../src/verify/verify-gate.mjs');
+  assert.equal(verifyCommandFolder('cd web/frontend && npx vitest run'), 'web/frontend/');
+  assert.equal(verifyCommandFolder("cd './web/' && npm test"), 'web/');
+  assert.equal(verifyCommandFolder('npm test'), null);
+  assert.equal(verifyCommandFolder('cd /abs && make'), null, 'absolute folders are not repo folders');
+  const frontendCommand = 'cd web/frontend && npx vitest run';
+  const submoduleBump = [{ relativePath: 'core/Production/worker.py', modifiedMilliseconds: 2000 }];
+  assert.equal(findUnverifiedChange(submoduleBump, [frontendCommand], {}), null, 'a change the command cannot check does not ask for it');
+  const frontendChange = [{ relativePath: 'web/frontend/src/app.ts', modifiedMilliseconds: 3000 }];
+  assert.equal(findUnverifiedChange([...submoduleBump, ...frontendChange], [frontendCommand], {}).kind, 'stale');
+  assert.deepEqual(findUnverifiedChange([...submoduleBump, ...frontendChange], [frontendCommand], {}).staleFiles.map((staleFile) => staleFile.relativePath), ['web/frontend/src/app.ts'], 'only the covered file is listed');
+  assert.equal(findUnverifiedChange(submoduleBump, ['npm test'], {}).kind, 'stale', 'a repo-wide command still asks');
+  assert.equal(findUnverifiedChange(frontendChange, [frontendCommand], { 0: { endMilliseconds: 4000, passed: true } }), null);
+});
