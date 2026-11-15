@@ -7,7 +7,9 @@
 // - Changes are judged by file modification time against the end of the run, so edits made by
 //   subagents or shell commands count too. Only files modified inside one of the session's write
 //   windows (core/session-writes) are asked about: the rest belong to another session or predate it.
-// - Asked at most twice for the same situation, then it lets the agent stop (fail open).
+// - Asked at most twice for the same stale files, then it lets the agent stop (fail open). A failed run
+//   is asked about once: the reason already says to fix it or tell the person that it fails and why, and
+//   a second block after that answer only repeats it (seen 2026-11-15, a red test waiting on a decision).
 
 import { existsSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -22,7 +24,7 @@ import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
 import { integratedFileMatcher } from '../worktrees/worktree-integrations.mjs';
 
 const MODULE_ID = 'verify-gate';
-const MAX_BLOCKS_PER_SITUATION = 2;
+const MAX_BLOCKS_PER_SITUATION = { stale: 2, failed: 1 };
 const MAX_LISTED_FILES = 10;
 export const DEFAULT_IGNORED_PATHS = ['*.md', '.claude/**', '.ai1/**'];
 const FAILURE_SUMMARIES = [
@@ -168,7 +170,7 @@ export default {
       : `stale:${shortHash(unverifiedChange.staleFiles.map((changedFile) => `${changedFile.relativePath}@${changedFile.modifiedMilliseconds}`).join('\n'))}`;
     const blocksPath = sessionStatePath(stateDirectory, hookInput.session_id, projectRoot, 'verify-blocks');
     const blockCounts = readStateJson(blocksPath);
-    if ((blockCounts[situation] || 0) >= MAX_BLOCKS_PER_SITUATION) return allowDecision();
+    if ((blockCounts[situation] || 0) >= MAX_BLOCKS_PER_SITUATION[unverifiedChange.kind]) return allowDecision();
     blockCounts[situation] = (blockCounts[situation] || 0) + 1;
     writeStateText(blocksPath, JSON.stringify(blockCounts));
     return blockDecision(MODULE_ID, buildVerifyReminder(unverifiedChange));

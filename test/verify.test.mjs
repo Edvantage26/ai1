@@ -97,15 +97,20 @@ test('verify-gate: a change after the passing run needs a new run', () => {
   assert.doesNotMatch(stopOutput.reason, /app\.js/, 'only files newer than the run are listed');
 });
 
-test('verify-gate: a failed run blocks twice at most, then lets the agent stop', () => {
+test('verify-gate: a failed run blocks once, then lets the agent stop; a new failing run blocks again', () => {
   const projectRoot = createVerifyRepo();
   const options = hookOptions();
   const sessionStart = startSession(projectRoot, options);
   changeFile(projectRoot, 'src/app.js', sessionStart + 10 * SECOND);
   const transcriptPath = writeTranscript(options, [{ command: 'npm test', endMilliseconds: sessionStart + 20 * SECOND, isError: true, output: 'Exit code 1\n# fail 2' }]);
   assert.match(stopSession(projectRoot, options, transcriptPath).reason, /last run of `npm test` after your changes failed/);
-  assert.equal(stopSession(projectRoot, options, transcriptPath).decision, 'block');
-  assert.equal(stopSession(projectRoot, options, transcriptPath), null);
+  assert.equal(stopSession(projectRoot, options, transcriptPath), null, 'the agent answered the first block: fix it or say it fails');
+  changeFile(projectRoot, 'src/app.js', sessionStart + 30 * SECOND);
+  const rerunTranscript = writeTranscript(options, [
+    { command: 'npm test', endMilliseconds: sessionStart + 20 * SECOND, isError: true, output: 'Exit code 1\n# fail 2' },
+    { command: 'npm test', endMilliseconds: sessionStart + 40 * SECOND, isError: true, output: 'Exit code 1\n# fail 1' },
+  ]);
+  assert.equal(stopSession(projectRoot, options, rerunTranscript).decision, 'block', 'another failing run is a new situation');
 });
 
 test('verify-gate: a failure hidden by a pipe is caught from the summary', () => {

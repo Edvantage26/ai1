@@ -5,7 +5,7 @@ description: Stop gate - the agent cannot finish while code it changed is newer 
 tags: [verify, hooks, evidence, cli]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-14T20:38:40Z'
+  at: '2026-11-15T13:47:38Z'
 sources:
   - id: verify-gate
     resource: src/verify/verify-gate.mjs
@@ -147,7 +147,8 @@ change); the cost is a shared customization: `.ai1/skills/verify/customization.m
    for exit codes hidden by a pipe.
 3. Blocks when a changed file is newer than the end of the last run (lists those files and asks to
    run the command as is), or when that run failed (asks to fix it or say plainly that it fails).
-   At most 2 blocks per situation, then it lets the agent stop.
+   At most 2 blocks for the same stale files and 1 for a failed run (since 2026-11-15: the reason already
+   says to fix it or tell the person, a second block only repeated it), then it lets the agent stop.
    Only files modified inside one of the session's **write windows** count
    (`src/core/session-writes.mjs`): each call that may write opens a window from its tool_use to its
    tool_result (subagents, background shells and events without a time stay open; ±2 s slack), and a
