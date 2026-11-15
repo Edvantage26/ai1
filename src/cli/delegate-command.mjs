@@ -1,9 +1,10 @@
 // `ai1 delegate`: a change to another repository made by a session started there (see
 // src/delegate/delegate-session.mjs).
-//   ai1 delegate --cwd <repo> (--brief <file> | "<task>") [--permission-mode <mode>] [--max-turns <n>] [--timeout <minutes>]
+//   ai1 delegate --cwd <repo> (--brief <file> | "<task>") [--permission-mode <mode>] [--max-turns <n>] [--timeout <minutes>] [--claude-command "<cmd>"]
 //   ai1 delegate --resume <session-id> [--allow-once "<command>"] "<the person's answer>" [--timeout <minutes>]
 //   ai1 delegate allow <repo> --because "<the person's words>"   edits of <repo> allowed for this session
 //   ai1 delegate show <session-id>                              the saved result of a delegation
+// --claude-command (or AI1_CLAUDE_COMMAND): how to start Claude Code, default `claude`; a resume reuses it.
 // The result is JSON on stdout (also saved under .ai1/work/delegations/). The session that runs it is
 // the caller: its launch directory (CLAUDE_PROJECT_DIR) and id (CLAUDE_CODE_SESSION_ID) key the state.
 
@@ -13,9 +14,9 @@ import { readDelegationRecord, resumeDelegation, startDelegation } from '../dele
 import { allowRepository } from '../delegate/delegate-state.mjs';
 import { runExternalCommand } from '../session/fork-session.mjs';
 
-export const DELEGATE_USAGE = 'usage: ai1 delegate --cwd <repo> (--brief <file> | "<task>") [--permission-mode <mode>] [--max-turns <n>] [--timeout <minutes>] | --resume <session-id> [--allow-once "<command>"] "<answer>" | allow <repo> --because "<the person\'s words>" | show <session-id>';
+export const DELEGATE_USAGE = 'usage: ai1 delegate --cwd <repo> (--brief <file> | "<task>") [--permission-mode <mode>] [--max-turns <n>] [--timeout <minutes>] [--claude-command "<cmd>"] | --resume <session-id> [--allow-once "<command>"] "<answer>" | allow <repo> --because "<the person\'s words>" | show <session-id>';
 
-const OPTIONS_WITH_VALUE = new Set(['--cwd', '--brief', '--permission-mode', '--max-turns', '--timeout', '--resume', '--allow-once', '--because']);
+const OPTIONS_WITH_VALUE = new Set(['--cwd', '--brief', '--permission-mode', '--max-turns', '--timeout', '--resume', '--allow-once', '--because', '--claude-command']);
 
 // The arguments that are not options or option values (the inline task or the answer).
 function listPositionalArguments(commandArguments) {
@@ -55,7 +56,7 @@ export function runDelegateCommand(workingDirectory, commandArguments, { readOpt
   }
   const positionalText = listPositionalArguments(commandArguments).join(' ').trim();
   if (readOption('--resume')) {
-    printJson(resumeDelegation({ sessionId: readOption('--resume'), answerText: positionalText, allowOnceSubject: readOption('--allow-once'), timeoutMinutes: readOption('--timeout'), launchRoot, environment, runCommand }));
+    printJson(resumeDelegation({ sessionId: readOption('--resume'), answerText: positionalText, allowOnceSubject: readOption('--allow-once'), timeoutMinutes: readOption('--timeout'), claudeCommand: readOption('--claude-command'), launchRoot, environment, runCommand }));
     return 0;
   }
   if (readOption('--cwd')) {
@@ -66,6 +67,7 @@ export function runDelegateCommand(workingDirectory, commandArguments, { readOpt
       permissionMode: readOption('--permission-mode'),
       maxTurns: readOption('--max-turns'),
       timeoutMinutes: readOption('--timeout'),
+      claudeCommand: readOption('--claude-command'),
       launchRoot,
       callerSessionId,
       environment,

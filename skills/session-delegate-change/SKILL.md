@@ -48,6 +48,8 @@ It can take minutes: run it in the background (Bash `run_in_background`) and rea
 ends. The result is JSON (also saved; `ai1 delegate show <session-id>` prints it again):
 `status`, `question`, `summary`, `session_id`, `commits`, `changed_files`, `new_worktrees`, `denied`.
 The delegated run inherits this session's permission mode (`--permission-mode` overrides it).
+Claude Code is started with `claude`; where a plain `claude` is not logged in, pass how to start it
+(`--claude-command "<cmd>"`, or `AI1_CLAUDE_COMMAND`): the person's customization below says which, if any.
 
 ## 3. Act on the status
 

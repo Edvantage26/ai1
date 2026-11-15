@@ -5,7 +5,10 @@
 // caller asks the person and resumes the same session (`--resume`), with a one-time allow for a
 // confirmed command (danger and repo-rules honour it once in that session; a deny stays a deny).
 // Every run is saved as JSON in `.ai1/work/delegations/<session>.json` of the caller's repo (temp dir
-// where the caller has no ai1). External programs go through `runCommand` so tests fake `claude`.
+// where the caller has no ai1). Claude Code is started with `claude`, or the command given with
+// `--claude-command` / `AI1_CLAUDE_COMMAND` (a wrapper that logs in an account, for instance: what a
+// machine needs belongs in a skill customization, not here). External programs go through
+// `runCommand` so tests fake `claude`.
 
 import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -13,7 +16,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { AI1_DIRECTORY, WORK_DIRECTORY } from '../core/config.mjs';
 import { describeOwningRepository } from '../core/owning-repo.mjs';
-import { resolvePaseoClaudeLauncher, runExternalCommand } from '../session/fork-session.mjs';
+import { runExternalCommand } from '../session/fork-session.mjs';
 import { ensureWorkDirectoryIgnored } from '../sizing/sizing-work.mjs';
 import { grantOneTimeAllow, readRememberedPermissionMode } from './delegate-state.mjs';
 
@@ -128,29 +131,20 @@ export function readDelegationRecord(launchRoot, sessionId) {
   return null;
 }
 
-// The `claude` command Paseo uses for this session's provider (it may inject the account), else `claude`.
-function resolveClaudeLauncher(environment, runCommand) {
-  let providerId = 'claude';
-  if (environment.PASEO_AGENT_ID) {
-    const inspectResult = runCommand('paseo', ['inspect', environment.PASEO_AGENT_ID, '--json'], { timeoutMilliseconds: 20_000 });
-    try {
-      const agentJson = JSON.parse(inspectResult.stdout);
-      providerId = (Array.isArray(agentJson) ? agentJson[0] : agentJson)?.provider || providerId;
-    } catch {
-      // keep the default provider
-    }
-  }
-  return resolvePaseoClaudeLauncher(environment, providerId);
+// The program and leading arguments that start Claude Code: the explicit command, AI1_CLAUDE_COMMAND,
+// else `claude`. Split on spaces (a path with spaces is not supported).
+export function resolveClaudeCommand(claudeCommand, environment = process.env) {
+  const commandText = String(claudeCommand || environment.AI1_CLAUDE_COMMAND || 'claude').trim();
+  return commandText.split(/\s+/).filter(Boolean);
 }
 
-function runClaude({ repoRoot, claudeArguments, environment, runCommand, timeoutMinutes }) {
-  const claudeLauncher = resolveClaudeLauncher(environment, runCommand);
-  const [launcherProgram, ...launcherArguments] = claudeLauncher.command;
+function runClaude({ repoRoot, claudeArguments, claudeCommand, environment, runCommand, timeoutMinutes }) {
+  const [launcherProgram, ...launcherArguments] = resolveClaudeCommand(claudeCommand, environment);
   return runCommand(launcherProgram, [...launcherArguments, ...claudeArguments], {
     cwd: repoRoot,
     timeoutMilliseconds: Math.max(1, Number(timeoutMinutes) || DEFAULT_TIMEOUT_MINUTES) * 60_000,
     // Its hooks resolve the project from CLAUDE_PROJECT_DIR: the other repository, not this session's.
-    extraEnvironment: { ...claudeLauncher.environment, CLAUDE_PROJECT_DIR: repoRoot },
+    extraEnvironment: { CLAUDE_PROJECT_DIR: repoRoot },
   });
 }
 
@@ -180,7 +174,7 @@ function finishRun({ launchRoot, baseRecord, commandResult, runCommand }) {
 }
 
 // Starts a delegated session in `targetDirectory` with the brief (a file) or an inline task.
-export function startDelegation({ targetDirectory, briefPath, taskText, permissionMode, maxTurns, timeoutMinutes, launchRoot, callerSessionId, environment = process.env, runCommand = runExternalCommand }) {
+export function startDelegation({ targetDirectory, briefPath, taskText, permissionMode, maxTurns, timeoutMinutes, claudeCommand, launchRoot, callerSessionId, environment = process.env, runCommand = runExternalCommand }) {
   const repoRoot = describeOwningRepository(resolve(targetDirectory), resolve(targetDirectory))?.repoRoot;
   if (!repoRoot) throw new Error(`${targetDirectory} is not inside a git repository`);
   let briefText = taskText ? String(taskText).trim() : '';
@@ -195,17 +189,18 @@ export function startDelegation({ targetDirectory, briefPath, taskText, permissi
   const commandResult = runClaude({
     repoRoot,
     claudeArguments: ['-p', '--output-format', 'json', '--session-id', sessionId, ...permissionArguments(effectivePermissionMode), ...(maxTurns ? ['--max-turns', String(maxTurns)] : []), `${briefText}\n\n${DELEGATE_PROTOCOL}`],
+    claudeCommand,
     environment,
     runCommand,
     timeoutMinutes,
   });
-  const baseRecord = { session_id: sessionId, repo: repoRoot, brief_path: briefPath || null, permission_mode: effectivePermissionMode, start_snapshot: startSnapshot, started_at: new Date().toISOString() };
+  const baseRecord = { session_id: sessionId, repo: repoRoot, brief_path: briefPath || null, permission_mode: effectivePermissionMode, claude_command: claudeCommand || null, start_snapshot: startSnapshot, started_at: new Date().toISOString() };
   return finishRun({ launchRoot, baseRecord, commandResult, runCommand });
 }
 
 // Resumes a delegated session with the person's answer; `allowOnceSubject` is a command (or file) a
 // guard asked about that the person confirmed, allowed once in that session.
-export function resumeDelegation({ sessionId, answerText, allowOnceSubject, timeoutMinutes, launchRoot, environment = process.env, runCommand = runExternalCommand }) {
+export function resumeDelegation({ sessionId, answerText, allowOnceSubject, timeoutMinutes, claudeCommand, launchRoot, environment = process.env, runCommand = runExternalCommand }) {
   const baseRecord = readDelegationRecord(launchRoot, sessionId);
   if (!baseRecord) throw new Error(`no delegation ${sessionId} recorded for this repository`);
   if (!answerText || !String(answerText).trim()) throw new Error('give the person\'s answer to resume with');
@@ -218,6 +213,7 @@ export function resumeDelegation({ sessionId, answerText, allowOnceSubject, time
   const commandResult = runClaude({
     repoRoot: baseRecord.repo,
     claudeArguments: ['-p', '--output-format', 'json', '--resume', sessionId, ...permissionArguments(baseRecord.permission_mode), resumeText],
+    claudeCommand: claudeCommand || baseRecord.claude_command,
     environment,
     runCommand,
     timeoutMinutes,

@@ -32,7 +32,7 @@ function createWorkspace() {
   const workspaceRoot = realpathSync(mkdtempSync(join(tmpdir(), 'ai1-delegate-')));
   const launchRoot = createRepository(workspaceRoot, 'launch', { features: {} });
   const targetRoot = createRepository(workspaceRoot, 'target', { features: {} });
-  const environment = { AI1_DECISION_LOG: '0', CLAUDE_PLUGIN_DATA: join(workspaceRoot, '.plugin-data'), PASEO_HOME: join(workspaceRoot, 'no-paseo'), CLAUDE_PROJECT_DIR: launchRoot, CLAUDE_CODE_SESSION_ID: 'caller-session' };
+  const environment = { AI1_DECISION_LOG: '0', CLAUDE_PLUGIN_DATA: join(workspaceRoot, '.plugin-data'), CLAUDE_PROJECT_DIR: launchRoot, CLAUDE_CODE_SESSION_ID: 'caller-session' };
   return { workspaceRoot, launchRoot, targetRoot, environment };
 }
 
@@ -40,7 +40,7 @@ function createWorkspace() {
 function fakeRunner(respond) {
   const claudeCalls = [];
   const runCommand = (programName, programArguments, commandOptions = {}) => {
-    if (programName === 'claude') {
+    if (programName === 'claude' || programName === '/opt/bin/claude-wrapper') {
       claudeCalls.push({ programArguments, commandOptions });
       return respond(programArguments, commandOptions);
     }
@@ -140,4 +140,24 @@ test('ai1 delegate allow records the person\'s words for this session [foreign-r
   const stateFiles = execFileSync('ls', [join(environment.CLAUDE_PLUGIN_DATA, 'state')], { encoding: 'utf8' });
   assert.match(stateFiles, /delegate-allow/);
   assert.match(readFileSync(join(environment.CLAUDE_PLUGIN_DATA, 'state', stateFiles.split('\n').find((fileName) => fileName.includes('delegate-allow'))), 'utf8'), /hazlo aquí/);
+});
+
+test('Claude is started with the given command, from --claude-command or AI1_CLAUDE_COMMAND, and a resume reuses it [foreign-repo-delegation:S2]', () => {
+  const { launchRoot, targetRoot, environment } = createWorkspace();
+  const programsRun = [];
+  const { runCommand } = fakeRunner(() => claudeJson({ session_id: 'x', result: 'Need one thing.\nAI1-DELEGATE: needs-input: ¿sigo?' }));
+  const recordingRunner = (programName, programArguments, commandOptions) => {
+    if (programName !== 'git') programsRun.push([programName, ...programArguments.slice(0, 2)]);
+    return runCommand(programName, programArguments, commandOptions);
+  };
+  const firstRecord = startDelegation({ targetDirectory: targetRoot, taskText: 'Do it', claudeCommand: '/opt/bin/claude-wrapper --account work', launchRoot, callerSessionId: 'caller-session', environment, runCommand: recordingRunner });
+  resumeDelegation({ sessionId: firstRecord.session_id, answerText: 'sí', launchRoot, environment, runCommand: recordingRunner });
+  startDelegation({ targetDirectory: targetRoot, taskText: 'Do it', launchRoot, callerSessionId: 'caller-session', environment: { ...environment, AI1_CLAUDE_COMMAND: '/opt/bin/claude-wrapper' }, runCommand: recordingRunner });
+  startDelegation({ targetDirectory: targetRoot, taskText: 'Do it', launchRoot, callerSessionId: 'caller-session', environment, runCommand: recordingRunner });
+  assert.deepEqual(programsRun, [
+    ['/opt/bin/claude-wrapper', '--account', 'work'],
+    ['/opt/bin/claude-wrapper', '--account', 'work'],
+    ['/opt/bin/claude-wrapper', '-p', '--output-format'],
+    ['claude', '-p', '--output-format'],
+  ]);
 });

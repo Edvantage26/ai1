@@ -5,7 +5,7 @@ description: An edit to a file of another repository with ai1 active is refused 
 tags: [delegate, foreign-repo, cross-repo, claude-p, submodules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T07:29:27Z'
+  at: '2026-11-15T07:45:13Z'
 ---
 
 # What it does
@@ -32,9 +32,11 @@ generated:
 - `ai1 delegate --cwd <repo> (--brief <file> | "<task>")` runs `claude -p --output-format json
   --session-id <uuid>` in that repository, with the brief plus a fixed protocol (follow that repo's
   rules, do not push, end with `AI1-DELEGATE: done` or `AI1-DELEGATE: needs-input: <question>`).
-  `CLAUDE_PROJECT_DIR` is set to the repo so its hooks resolve there. Claude is started with the
-  launcher Paseo uses for the provider (`resolvePaseoClaudeLauncher`): a plain `claude` from a tool call
-  may not be logged in.
+  `CLAUDE_PROJECT_DIR` is set to the repo so its hooks resolve there. Claude Code is started with
+  `claude`, or the command given with `--claude-command` / `AI1_CLAUDE_COMMAND` (a resume reuses it). A
+  plain `claude` launched from a tool call may not be logged in (seen 2026-11-15: "OAuth session
+  expired"); the command a machine needs (a wrapper that logs in its account) goes in the person's skill
+  customization, never in the plugin: host-specific tooling is not part of ai1's code.
 - The permission mode is inherited from the calling session (recorded by `foreign-repo` from the hook
   input), `--permission-mode` overrides it. Hooks run in every mode, so the repo's guards always apply.
 - **Status:** `done` / `needs-input` from the status line; `blocked` when `permission_denials` is not
