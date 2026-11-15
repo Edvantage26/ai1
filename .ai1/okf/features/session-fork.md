@@ -1,11 +1,11 @@
 ---
 type: Feature
 title: Session fork (/ai1:session-fork-conversation, ai1 fork)
-description: Fork the current conversation into a new one - full copy or a scoped brief - opened the native way on Paseo, VS Code, terminal or Claude Desktop.
-tags: [session, fork, paseo, vscode, desktop, handoff]
+description: Fork the current conversation into a new one - full copy or a scoped brief - opened the native way in VS Code, terminal or Claude Desktop, or in any other tool through the person's own opener command.
+tags: [session, fork, vscode, desktop, handoff, open-command]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-11T07:38:33Z'
+  at: '2026-11-15T08:56:48Z'
 sources:
   - id: cli-sessions
     resource: https://code.claude.com/docs/en/sessions
@@ -20,14 +20,14 @@ sources:
 
 Module `session`: a skill and a CLI command, no hooks and no entry in `.ai1/config.json`, so it works
 in any repo while the plugin is enabled (ai1 is installed at user scope). Code in `src/session/`
-(`fork-host.mjs`, `fork-session.mjs`) and `src/cli/fork-command.mjs`; tests in `test/fork.test.mjs`.
+(`fork-host.mjs`, `fork-session.mjs`, `claude-command.mjs`) and `src/cli/fork-command.mjs`; tests in `test/fork.test.mjs`.
 
 # Modes
 
 - **full** - `claude -p --resume $CLAUDE_CODE_SESSION_ID --fork-session --session-id <new uuid>
   --tools "" "<seed>"` (no tools in that turn) copies the whole conversation into a new session (one short turn; the
-  original is untouched). Forks lose "allow for this session" grants and plan mode. Refused on the
-  web, without `CLAUDE_CODE_SESSION_ID`, and on a non-Claude Paseo agent.
+  original is untouched), started with `claude` or `--claude-command` / `AI1_CLAUDE_COMMAND`. Forks lose
+  "allow for this session" grants and plan mode. Refused on the web and without `CLAUDE_CODE_SESSION_ID`.
 - **brief** - a clean conversation whose first message is a handoff file the skill writes
   (task, needed context with sources, files, limits, done when, report back), in
   `.ai1/work/handoffs/<slug>.md` (`ai1 fork brief-path <slug>`) or the temp dir in repos without `.ai1/`;
@@ -39,18 +39,31 @@ in any repo while the plugin is enabled (ai1 is installed at user scope). Code i
 
 | Host | Detected by | full | brief |
 |---|---|---|---|
-| Paseo | `PASEO_AGENT_ID` | `paseo import <id>` with labels `ai1=fork`, `fork_mode`, `forked_from`, renamed; `--task` sent with `paseo send --no-wait` | `paseo run -d` with the current provider/model/mode, then `paseo agent detach` |
 | VS Code | `CLAUDE_CODE_ENTRYPOINT=claude-vscode` or `TERM_PROGRAM=vscode` | `code --open-url vscode://anthropic.claude-code/open?session=<id>` | same with `?prompt=` |
 | Terminal / JetBrains / SDK / Desktop | default (Desktop has no signal) | prints `claude --resume <id>` (+ `claude --desktop --resume` on macOS/Windows) | prints `claude "$(cat <file>)"` (+ `claude://code/new?q=`) |
 | Web | `CLAUDE_CODE_REMOTE=true` | refused: brief or `/branch` | paste the brief |
 
-The person can override detection with the plugin option `fork_opener` (`/config`: `auto`, `paseo`,
-`vscode`, `desktop`, `terminal`), which the skill passes as `--opener '${user_config.fork_opener}'`
+The person can override detection with the plugin option `fork_opener` (`/config`: `auto`, `vscode`,
+`desktop`, `terminal`), which the skill passes as `--opener '${user_config.fork_opener}'`
 (`applyForkOpener` in `fork-host.mjs`): unset, `auto` or a literal `${…}` keep detection; an unknown
 value keeps it with a note; the web ignores it; `desktop` where Desktop cannot open (Linux) keeps
-detection with a note. `paseo` from another host starts plain Claude with Paseo's defaults, labelled
-`forked_from=<session id>`; `desktop` lists the Desktop command first. See
+detection with a note; `desktop` lists the Desktop command first. `paseo`, built in until v0.39, keeps
+detection with a note pointing to the guided setup below. See
 [skill customization](/architecture/skill-customization.md).
+
+# Any other tool: the person's opener command
+
+No agent manager or other third-party tool is built in (decision:
+[host tooling stays out](/decisions/host-tooling-out-of-plugin.md)). `ai1 fork full|brief --open-command
+"<cmd>"` (or `AI1_FORK_COMMAND`; the option wins) replaces the built-in opening (not on the web, where it
+is ignored with a note): placeholders `{mode}` `{cwd}` `{title}` `{brief_file}` `{task_file}`
+`{original_session_id}` `{session_id}` filled shell-quoted (unused ones empty), run with `sh -c` in
+`{cwd}` with this session's environment, 180 s at most; stdout is shown (`opened: "command"`), a non-zero
+exit is an error with its last lines (a brief also prints the built-in ways). In a full fork the command
+creates the session itself (`claude -p --resume <orig> --fork-session --session-id <new>`), so it can use
+the person's launcher and model. When a fork is only given as commands, the CLI adds a note pointing to
+the skill's "Open forks in another tool": the guided setup (ask the tool, write a script in the person's
+own config, try it once, save a personal customization that passes `--open-command`).
 
 `CLAUDE_CODE_ENTRYPOINT` values are observed, not documented, so detection falls back to terminal and
 every way to open the result is always printed. Native alternatives the skill mentions: `/branch`,

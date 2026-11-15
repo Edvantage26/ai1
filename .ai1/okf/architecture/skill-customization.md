@@ -25,7 +25,7 @@ sources:
     title: Later 0001
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-14T23:40:25Z'
+  at: '2026-11-15T08:56:48Z'
 ---
 
 Built 2026-11-09 from later 0001 (phases 0-2); decision in
@@ -87,9 +87,13 @@ core-report-issue, okf-validate-bundle, danger-write-rule, core-customize-skill.
 - `/ai1:core-customize-skill` writes customizations after the person approves the exact text; points data
   to its place (`/config`, `modules.*`, the recipe) and "never do X" to /ai1:danger-write-rule.
 - [config-guard](../guards/config-guard.md) asks before any change under `.ai1/skills/`.
-- `fork_opener` (`auto|paseo|vscode|desktop|terminal`, default auto): the fork skill passes
+- `fork_opener` (`auto|vscode|desktop|terminal`, default auto; `paseo` retired in v0.40): the fork skill passes
   `--opener '${user_config.fork_opener}'` to `ai1 fork` (single quotes: unset, the literal reaches
   the CLI and means auto). See [session fork](../features/session-fork.md).
+- A personal customization may carry how the person's machine runs a tool: `--open-command` for forks,
+  `--claude-command` for `ai1 delegate` / `ai1 fork full`. The script it names lives in the person's own
+  config; the plugin only offers the generic option and the fork skill guides the setup
+  ([host tooling stays out](../decisions/host-tooling-out-of-plugin.md)).
 - `/ai1:core-setup-repo` closes with one line on customization.
 
 # Limits

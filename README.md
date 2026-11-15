@@ -140,7 +140,8 @@ prints its customization at the end, from two places:
   (`<feature>` is the skill's prefix: `.ai1/skills/later/customization.md` for `/ai1:later-write`);
 - **you**: `~/.config/ai1/skills/<feature>/customization.md` in every repo, and plugin options in `/config`
   (today **Fork opener**: where `/ai1:session-fork-conversation` opens new conversations - `auto`,
-  `paseo`, `vscode`, `desktop`, `terminal`).
+  `vscode`, `desktop`, `terminal`). Any other tool (an agent manager...) opens forks through your own
+  command, which the fork skill helps you set up once and saves as your customization.
 
 A customization is a few markdown bullets. It adds to the skill but never overrides its **Fixed rules**;
 where the two disagree, the project's wins over yours. When you correct how a skill works, the agent
@@ -195,7 +196,7 @@ others or are deterministic (`core-report-issue`, `okf-validate-bundle`, `danger
 | Skill customization: project (`.ai1/skills/<feature>/customization.md`) and personal (`~/.config/ai1/...`) customizations injected when a skill loads, Fixed rules that win, `/ai1:core-customize-skill`, `ai1 skill-context --list`; every skill is customizable or excluded with a reason (a test checks it) | — | — | works |
 | `foreign-repo`: an edit of another repository with ai1 refused, pointing to delegation; one line of context for a repo without ai1 (runs where the launch directory has no ai1 too) | delegate | PreToolUse | works |
 | `/ai1:session-delegate-change` + `ai1 delegate`: a change made by a `claude -p` session started in the other repo, stop-ask-resume, one-time allow for a confirmed command | delegate | — | works |
-| `/ai1:session-fork-conversation` + `ai1 fork`: a new conversation from this one, `full` (a copy of the whole conversation) or `brief` (only a written handoff), opened natively in Paseo (an agent), VS Code (the extension URI), a terminal or Claude Desktop (the commands to open it); the **Fork opener** option in `/config` chooses where instead of detecting it. Needs no feature: works in any repo while the plugin is enabled | — | — | works |
+| `/ai1:session-fork-conversation` + `ai1 fork`: a new conversation from this one, `full` (a copy of the whole conversation) or `brief` (only a written handoff), opened natively in VS Code (the extension URI), a terminal or Claude Desktop (the commands to open it), or in any other tool through your own `--open-command` (set up with the skill's guide, kept in your personal customization); the **Fork opener** option in `/config` chooses where instead of detecting it. Needs no feature: works in any repo while the plugin is enabled | — | — | works |
 | `/ai1:core-report-issue` + `ai1 issue`: report a problem with ai1 as an issue on this repo; gathers versions and features (`ai1 issue env`), writes a minimal reproduction without private paths, hosts, names or code, checks duplicates and creates it with `gh` (or a prefilled link, `ai1 issue url`) only after you approve the text. Needs no feature | — | — | works |
 | OKF toolkit skills and agents (`skills/okf-*`, `agents/`) | okf | — | works |
 | `prod`: blocks writes to production resources declared in `.ai1/config.json` | prod | PreToolUse | planned |
