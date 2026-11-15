@@ -65,6 +65,12 @@ export const FEATURES = [
     enabledByDefault: true,
   },
   {
+    id: 'delegate',
+    title: 'Edits of another repo delegated to a session there',
+    description: 'An edit to a file of another repository that has ai1 active is refused and delegated to a session started in that repository (`ai1 delegate`, skill /ai1:session-delegate-change), so its own config, hooks, CLAUDE.md and skills apply; the delegated session stops and returns its questions and blocked confirmations, and is resumed with the answer. The edited repository decides with this feature; it applies even where the session was launched without ai1.',
+    enabledByDefault: true,
+  },
+  {
     id: 'core',
     title: 'Harness brief',
     description: 'Tells the agent at session start which harness runs in the repo. Always on.',

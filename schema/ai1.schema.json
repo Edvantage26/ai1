@@ -58,6 +58,11 @@
           "default": true,
           "description": "Verification gate: no finishing while code changed after the last passing run of the verify commands."
         },
+        "delegate": {
+          "type": "boolean",
+          "default": true,
+          "description": "Edits of this repository from a session launched elsewhere are refused and delegated to a session started here (ai1 delegate, /ai1:session-delegate-change)."
+        },
         "later": {
           "type": "boolean",
           "default": true,
@@ -653,6 +658,22 @@
                 }
               },
               "additionalProperties": false
+            }
+          ]
+        },
+        "foreign-repo": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              }
             }
           ]
         },

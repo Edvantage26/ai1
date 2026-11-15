@@ -32,8 +32,9 @@ export function dispatchHookEvent(eventName, hookInput, { environment = process.
   if (loadedConfig.status === 'missing' && sharedRoot !== projectRoot) loadedConfig = loadHarnessConfig(sharedRoot, KNOWN_MODULE_IDS);
 
   if (loadedConfig.status === 'missing') {
-    // Inactive without a contract: one line at session start so the agent can mention it, nothing else.
-    if (eventName !== 'SessionStart') return null;
+    // Inactive without a contract: one line at session start so the agent can mention it, and only the
+    // modules the edited repository decides (foreign-repo), which have no launch config to read.
+    if (eventName !== 'SessionStart') return runTargetDecidedModules(eventName, hookInput, { projectRoot, sharedRoot, environment, homeDirectory, moduleDefinitions, runnableModules, reportInternalError });
     if (hasLegacyLayout(sharedRoot)) return buildHookOutput(eventName, contextDecision('setup', `ai1 plugin is installed but inactive here: no ${CONFIG_RELATIVE_PATH}, but the repo has the old layout (.claude/jig.json, .okf/, docs/rfc/ or .jig/work/). Tell the person that /ai1:core-setup-repo moves it to .ai1/.`));
     return buildHookOutput(eventName, contextDecision('setup', `ai1 plugin is installed but inactive here: no ${CONFIG_RELATIVE_PATH}. To set it up, the person can run /ai1:core-setup-repo.`));
   }
@@ -46,9 +47,28 @@ export function dispatchHookEvent(eventName, hookInput, { environment = process.
   const { config } = loadedConfig;
   const enabledModules = moduleDefinitions.filter((moduleDefinition) => isModuleEnabled(moduleDefinition, config));
   const runnableById = new Map(runnableModules.map((runnableModule) => [runnableModule.id, runnableModule]));
-  const eventModules = modulesForEvent(eventName, hookInput.tool_name, enabledModules)
+  const dispatchedModules = [...enabledModules, ...moduleDefinitions.filter((moduleDefinition) => moduleDefinition.decidedByTarget && !enabledModules.includes(moduleDefinition))];
+  const eventModules = modulesForEvent(eventName, hookInput.tool_name, dispatchedModules)
     .map((moduleDefinition) => runnableById.get(moduleDefinition.id))
     .filter(Boolean);
+  const { moduleDecisions } = runModules(eventModules, eventName, hookInput, { config, projectRoot, sharedRoot, environment, homeDirectory, enabledModules, reportInternalError });
+  if (migrationNotice && eventName === 'SessionStart') moduleDecisions.push(contextDecision('migrations', migrationNotice));
+  for (const configNotice of loadedConfig.notices) {
+    reportInternalError(configNotice);
+    if (eventName === 'SessionStart') moduleDecisions.push(contextDecision('setup', configNotice));
+  }
+  if (loadedConfig.unknownEntries.length) {
+    const unknownText = loadedConfig.unknownEntries.join(', ');
+    reportInternalError(`${loadedConfig.configPath} mentions ${unknownText}, unknown to this ai1 version; ignored`);
+    if (eventName === 'SessionStart') {
+      moduleDecisions.push(contextDecision('setup', `${CONFIG_RELATIVE_PATH} mentions ${unknownText}, which this ai1 version does not know; they are ignored and the rest of ai1 works. Tell the person to update the ai1 plugin.`));
+    }
+  }
+  return buildHookOutput(eventName, combineDecisions(moduleDecisions));
+}
+
+// Runs the given modules, logs their decisions and returns them (internal failures fail open).
+function runModules(eventModules, eventName, hookInput, { config, projectRoot, sharedRoot, environment, homeDirectory, enabledModules, reportInternalError }) {
   const moduleDecisions = [];
   const logEntries = [];
   for (const moduleDefinition of eventModules) {
@@ -63,7 +83,7 @@ export function dispatchHookEvent(eventName, hookInput, { environment = process.
         environment,
         homeDirectory,
         enabledModules,
-        moduleOptions: getModuleOptions(moduleDefinition.id, config),
+        moduleOptions: config ? getModuleOptions(moduleDefinition.id, config) : {},
       });
       moduleDecision = relaxAskForPermissionMode(moduleDefinition.id, moduleDecision, hookInput.permission_mode);
       moduleDecisions.push(moduleDecision);
@@ -88,19 +108,19 @@ export function dispatchHookEvent(eventName, hookInput, { environment = process.
   }
   appendDecisionLog(logEntries, sharedRoot, environment);
   recordPendingErrors(logEntries.filter((logEntry) => logEntry.decision === 'error'), sharedRoot, environment);
-  if (migrationNotice && eventName === 'SessionStart') moduleDecisions.push(contextDecision('migrations', migrationNotice));
-  for (const configNotice of loadedConfig.notices) {
-    reportInternalError(configNotice);
-    if (eventName === 'SessionStart') moduleDecisions.push(contextDecision('setup', configNotice));
-  }
-  if (loadedConfig.unknownEntries.length) {
-    const unknownText = loadedConfig.unknownEntries.join(', ');
-    reportInternalError(`${loadedConfig.configPath} mentions ${unknownText}, unknown to this ai1 version; ignored`);
-    if (eventName === 'SessionStart') {
-      moduleDecisions.push(contextDecision('setup', `${CONFIG_RELATIVE_PATH} mentions ${unknownText}, which this ai1 version does not know; they are ignored and the rest of ai1 works. Tell the person to update the ai1 plugin.`));
-    }
-  }
-  return buildHookOutput(eventName, combineDecisions(moduleDecisions));
+  return { moduleDecisions };
+}
+
+// Where the launch directory has no ai1: only the modules the edited repository decides, with no config.
+function runTargetDecidedModules(eventName, hookInput, { projectRoot, sharedRoot, environment, homeDirectory, moduleDefinitions, runnableModules, reportInternalError }) {
+  const runnableById = new Map(runnableModules.map((runnableModule) => [runnableModule.id, runnableModule]));
+  const eventModules = modulesForEvent(eventName, hookInput.tool_name, moduleDefinitions.filter((moduleDefinition) => moduleDefinition.decidedByTarget))
+    .map((moduleDefinition) => runnableById.get(moduleDefinition.id))
+    .filter(Boolean);
+  if (!eventModules.length) return null;
+  const { moduleDecisions } = runModules(eventModules, eventName, hookInput, { config: null, projectRoot, sharedRoot, environment, homeDirectory, enabledModules: [], reportInternalError });
+  const combinedDecision = combineDecisions(moduleDecisions);
+  return combinedDecision.kind === 'allow' ? null : buildHookOutput(eventName, combinedDecision);
 }
 
 function defaultErrorReporter(errorMessage) {

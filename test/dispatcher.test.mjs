@@ -148,7 +148,7 @@ test('the module index agrees with each module file, and an event loads only its
     );
   }
   const bashModules = await loadModulesForEvent('PreToolUse', 'Bash');
-  assert.deepEqual(bashModules.map((loadedModule) => loadedModule.id), ['danger', 'config-guard', 'repo-rules', 'sizing-gate', 'sizing-escalate', 'test-guard', 'tool-loop']);
+  assert.deepEqual(bashModules.map((loadedModule) => loadedModule.id), ['danger', 'config-guard', 'repo-rules', 'sizing-gate', 'sizing-escalate', 'test-guard', 'tool-loop', 'foreign-repo']);
   assert.deepEqual((await loadModulesForEvent('PostToolUse', 'Read')).map((loadedModule) => loadedModule.id), ['okf-file-context']);
 });
 

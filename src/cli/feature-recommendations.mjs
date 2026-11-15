@@ -153,6 +153,7 @@ export function recommendFeatures(repoRoot, { hasKnowledgeBundle }) {
       worktrees: recommendWorktrees(repoRoot),
       later: recommendLater(repoRoot),
       reuse: recommendReuse(repoRoot),
+      delegate: { recommended: true, reason: 'edits of this repo from a session launched elsewhere go through a session started here, with its own rules', evidence: [] },
       design: designRecommendation,
       storyboard: designRecommendation.recommended
         ? { ...designRecommendation, reason: 'the repo has a frontend whose user flow can be reviewed as a storyboard' }

@@ -2,7 +2,8 @@
 // point imports just the modules of the event it runs (a tool call pays for one or two modules, not
 // all of them); the dispatcher decides with this metadata, which is all `enabledModules` needs.
 // `feature` is an id from src/core/features.mjs. `toolNames` (PreToolUse/PostToolUse) limits the
-// module to those tools. `modulePath` is relative to this file; the module's default export repeats
+// module to those tools. `decidedByTarget`: the repository a call edits decides whether the module
+// applies (its own features), so it runs whatever the launch repo enables. `modulePath` is relative to this file; the module's default export repeats
 // id, event, feature and toolNames (test/dispatcher.test.mjs checks they agree).
 // Adding a module means one line here and its entry in the schema; hooks/hooks.json does not change.
 
@@ -36,6 +37,7 @@ export const MODULE_INDEX = [
   { id: 'later-upkeep', event: 'Stop', feature: 'later', modulePath: '../later/later-upkeep.mjs' },
   { id: 'reuse-brief', event: 'SessionStart', feature: 'reuse', modulePath: '../reuse/reuse-brief.mjs' },
   { id: 'reuse-check', event: 'Stop', feature: 'reuse', modulePath: '../reuse/reuse-check.mjs' },
+  { id: 'foreign-repo', event: 'PreToolUse', feature: 'delegate', decidedByTarget: true, toolNames: ['Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'Bash'], modulePath: '../delegate/foreign-repo.mjs' },
 ];
 
 export const KNOWN_MODULE_IDS = MODULE_INDEX.map((moduleEntry) => moduleEntry.id);
