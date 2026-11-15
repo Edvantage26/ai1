@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-14T23:53:05Z'
+  at: '2026-11-15T05:51:15Z'
 ---
 
 # Flow
@@ -28,6 +28,16 @@ generated:
    the worktree has none.
    - Missing: ai1 is inactive; only a one-line note at SessionStart.
    - Invalid: inactive; SessionStart tells the agent why.
+   - **Nested repositories (git submodules) are not resolved.** A `cwd` in another repository (a
+     submodule) keeps the launch root, so a session launched in a superproject uses only its
+     `.ai1/config.json`; a child's config counts only when Claude is launched in the child. Modules
+     that match commands or paths (danger, repo-rules, craft, okf) still cover the whole tree, but
+     the git-based ones do not see inside submodules: `listFilesChangedSinceBase`
+     (`src/core/session-base.mjs`) runs `git diff --name-only` in the tree root, where a change in a
+     submodule shows as the submodule path only, so verify-gate cannot require a child's checks; the
+     protected branch and worktrees are those of the superproject. There is no config inheritance
+     either (no `extends`), so rules shared by several repos are copied into each. Seen on a
+     superproject with three submodules, 2026-11-15.
 3. It decides with the metadata of every module (`MODULE_INDEX`): the enabled ones (feature, per-repo
    module switches) are `enabledModules`; of those, the ones for the event and tool that were loaded
    run. `src/core/dispatcher.mjs` (`runHookEvent`) does the same with every module loaded
