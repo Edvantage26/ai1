@@ -259,3 +259,14 @@ test('ai1 okf validate: exit codes, --strict, --max-warnings, --json', () => {
   const jsonReport = JSON.parse(printed.join('\n'));
   assert.deepEqual([jsonReport.conformant, jsonReport.passed, jsonReport.counts.concepts, jsonReport.errors.length], [false, false, 1, 1]);
 });
+
+test('a generated.at or verified.at later than now is warned; stale_after in the future is fine [okf-findings-2:S4]', () => {
+  assert.match(onlyWarning(validateConcept("generated: { by: human:x, at: '2999-01-01T00:00:00Z' }\n")), /`generated\.at` `2999-01-01T00:00:00Z` is later than now/);
+  assert.match(onlyWarning(validateConcept("generated: { by: human:x, at: '2026-01-01T00:00:00Z' }\nverified: { by: human:x, at: '2999-01-01T00:00:00Z' }\n")), /`verified\[0\]\.at`|`verified\.at`|later than now/);
+  assertClean(validateConcept("generated: { by: human:x, at: '2026-01-01T00:00:00Z' }\nstale_after: '2999-01-01T00:00:00Z'\n"), 'stale_after may be in the future');
+});
+
+test('sources[].role other than evidence is warned (ai1 reads only evidence) [okf-findings-2:S2]', () => {
+  assertClean(validateConcept("generated: { by: human:x, at: '2026-01-01T00:00:00Z' }\nsources:\n  - { id: a, resource: src/a.py, role: evidence }\n"), 'evidence is accepted');
+  assert.match(onlyWarning(validateConcept("generated: { by: human:x, at: '2026-01-01T00:00:00Z' }\nsources:\n  - { id: a, resource: src/a.py, role: proof }\n")), /`sources\[0\]\.role` `proof` is not `evidence`/);
+});

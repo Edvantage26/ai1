@@ -51,19 +51,29 @@ export function resolveResourcePath(resourceValue, bundleRelativePath, conceptRe
 }
 
 // Every `resource` in the `sources` block: block mappings (`- id: a` / `  resource: x`), inline
-// mappings (`- { id: a, resource: x }`) and plain string items (`- src/x.mjs`).
+// mappings (`- { id: a, resource: x }`) and plain string items (`- src/x.mjs`). A source with
+// `role: evidence` proves a claim of the concept without the concept describing that file, so it does
+// not claim it: it is left out here (found building a large bundle, where evidence citations tied
+// with the concept that really describes the file).
 export function readSourceResources(frontmatterText) {
   const frontmatterLines = (frontmatterText || '').split(/\r?\n/);
   const sourcesLineIndex = frontmatterLines.findIndex((frontmatterLine) => /^sources:\s*$/.test(frontmatterLine));
   if (sourcesLineIndex < 0) return [];
-  const sourceResources = [];
+  const sourceItems = [];
   for (const blockLine of frontmatterLines.slice(sourcesLineIndex + 1)) {
     if (/^[^\s-]/.test(blockLine)) break;
-    const resourceMatch = /resource:\s*([^,}]+)/.exec(blockLine);
+    if (/^\s*-\s/.test(blockLine) || /^\s*-$/.test(blockLine)) sourceItems.push([blockLine]);
+    else if (sourceItems.length) sourceItems[sourceItems.length - 1].push(blockLine);
+  }
+  const sourceResources = [];
+  for (const itemLines of sourceItems) {
+    const itemText = itemLines.join('\n');
+    if (/\brole:\s*['"]?evidence\b/.test(itemText)) continue;
+    const resourceMatch = /resource:\s*([^,}\n]+)/.exec(itemText);
     if (resourceMatch) sourceResources.push(resourceMatch[1].trim());
     else {
-      const plainItemMatch = /^\s*-\s*([^:{}\s][^:{}]*)$/.exec(blockLine);
-      if (plainItemMatch) sourceResources.push(plainItemMatch[1].trim());
+      const plainItemMatch = /^\s*-\s*([^:{}\s][^:{}]*)$/.exec(itemLines[0]);
+      if (plainItemMatch && itemLines.length === 1) sourceResources.push(plainItemMatch[1].trim());
     }
   }
   return sourceResources;
@@ -175,13 +185,16 @@ export function runOkfFileMapCommand(projectRoot, fileMapArguments, writeOutput 
   const fileMap = buildFileMap(join(projectRoot, KNOWLEDGE_BUNDLE_PATH), KNOWLEDGE_BUNDLE_PATH);
   const fileResults = repoFilePaths.map((repoFilePath) => {
     const normalizedPath = posix.normalize(repoFilePath.split('\\').join('/'));
-    return { file: normalizedPath, concepts: findConceptsForFile(fileMap, normalizedPath) };
+    const matchedConcepts = findConceptsForFile(fileMap, normalizedPath);
+    // findConceptsForFile returns more than one concept only when they tie in score and matched length.
+    return { file: normalizedPath, concepts: matchedConcepts, tie: matchedConcepts.length > 1 };
   });
   if (fileMapArguments.includes('--json')) writeOutput(JSON.stringify(fileResults, null, 2));
   else {
     for (const fileResult of fileResults) {
       if (!fileResult.concepts.length) writeOutput(`${fileResult.file} -> no concept`);
       for (const matchedConcept of fileResult.concepts) writeOutput(`${fileResult.file} -> ${matchedConcept.repoPath} (${matchedConcept.title})`);
+      if (fileResult.tie) writeOutput(`  warning: ${fileResult.file} ties between ${fileResult.concepts.length} concepts: give the one that describes it its path in \`resource\`, or mark the other citations \`role: evidence\``);
     }
   }
   return fileResults.every((fileResult) => fileResult.concepts.length) ? 0 : 1;

@@ -158,9 +158,22 @@ function checkActor(actorValue, fieldWhere, relativePath, report) {
 }
 
 // §5.2 - `at` values are RFC 3339; a date-only value is tolerated.
-function checkInstant(instantValue, fieldWhere, relativePath, report) {
+// A recorded moment (`generated.at`, `verified.at`) cannot be later than now: a time written by hand
+// ahead of the clock would make the concept look fresher than it is. A few minutes of clock skew pass.
+const FUTURE_TOLERANCE_MILLISECONDS = 5 * 60 * 1000;
+
+function instantMilliseconds(instantValue) {
+  if (instantValue instanceof Date) return instantValue.getTime();
+  return Date.parse(strippedPythonText(instantValue));
+}
+
+function checkInstant(instantValue, fieldWhere, relativePath, report, { notInFuture = false } = {}) {
   if (instantValue != null && !RFC3339_PATTERN.test(strippedPythonText(instantValue))) {
     report.warn(relativePath, `§5.2 \`${fieldWhere}\` \`${pythonText(instantValue)}\` is not an RFC 3339 timestamp`);
+    return;
+  }
+  if (instantValue != null && notInFuture && instantMilliseconds(instantValue) > Date.now() + FUTURE_TOLERANCE_MILLISECONDS) {
+    report.warn(relativePath, `\`${fieldWhere}\` \`${pythonText(instantValue)}\` is later than now: write the real time (\`date -u +%Y-%m-%dT%H:%M:%SZ\`)`);
   }
 }
 
@@ -176,7 +189,7 @@ function checkTrust(meta, relativePath, report) {
     report.warn(relativePath, '§5.2 `generated.by` is required within `generated`');
   } else {
     checkActor(generated.by, 'generated.by', relativePath, report);
-    checkInstant(readOwnField(generated, 'at'), 'generated.at', relativePath, report);
+    checkInstant(readOwnField(generated, 'at'), 'generated.at', relativePath, report, { notInFuture: true });
   }
 
   const verified = readOwnField(meta, 'verified');
@@ -193,7 +206,7 @@ function checkTrust(meta, relativePath, report) {
       return;
     }
     checkActor(verificationEntry.by, `verified[${entryIndex}].by`, relativePath, report);
-    checkInstant(readOwnField(verificationEntry, 'at'), `verified[${entryIndex}].at`, relativePath, report);
+    checkInstant(readOwnField(verificationEntry, 'at'), `verified[${entryIndex}].at`, relativePath, report, { notInFuture: true });
   });
 }
 
@@ -261,6 +274,10 @@ function checkSources(meta, bodyText, relativePath, report) {
     }
     if (!strippedPythonText(readOwnFieldOr(sourceEntry, 'resource', ''))) report.warn(relativePath, `§5.1 \`sources[${sourceIndex}]\` is missing the required \`resource\``);
     if (Object.hasOwn(sourceEntry, 'id')) sourceIds.add(pythonText(sourceEntry.id));
+    // ai1 extension: `role: evidence` cites a file as proof without the concept describing it (file map).
+    if (readOwnField(sourceEntry, 'role') != null && pythonText(sourceEntry.role) !== 'evidence') {
+      report.warn(relativePath, `\`sources[${sourceIndex}].role\` \`${pythonText(sourceEntry.role)}\` is not \`evidence\` (the only role ai1 reads; omit it otherwise)`);
+    }
     if (readOwnField(sourceEntry, 'author') != null) checkActor(sourceEntry.author, `sources[${sourceIndex}].author`, relativePath, report);
     // `usage_count` is framed by a `usage_window`, a sibling of `sources` or overridden on the entry.
     const usageWindow = readOwnFieldOr(sourceEntry, 'usage_window', readOwnField(meta, 'usage_window'));

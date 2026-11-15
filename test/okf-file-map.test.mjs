@@ -112,6 +112,20 @@ test('ai1 okf file-map prints the concepts ai1 names per file and exits 1 when o
   assert.deepEqual(printedLines, ['src/guards/danger.mjs -> .ai1/okf/guards/danger.md (danger guard)', 'src/core/config.mjs -> .ai1/okf/architecture/config.md (Config contract)']);
   const jsonLines = [];
   assert.equal(runOkfFileMapCommand(projectRoot, ['README.md', '--json'], (line) => jsonLines.push(line)), 1);
-  assert.deepEqual(JSON.parse(jsonLines[0]), [{ file: 'README.md', concepts: [] }]);
+  assert.deepEqual(JSON.parse(jsonLines[0]), [{ file: 'README.md', concepts: [], tie: false }]);
   assert.equal(runOkfFileMapCommand(projectRoot, [], () => {}, () => {}), 2);
+});
+
+test('a source with role: evidence proves a claim without claiming the file; a tie is flagged [okf-findings-2:S2] [okf-findings-2:S3]', () => {
+  const projectRoot = createTemporaryProject();
+  writeConcept(projectRoot, 'operations/mcp.md', '---\ntype: Service\nresource: mcp/monitoring.py\n---\nThe monitoring MCP.\n');
+  writeConcept(projectRoot, 'pipeline/coordination.md', '---\ntype: Concept\nsources:\n  - id: mcp\n    resource: mcp/monitoring.py\n    role: evidence\n  - id: tracker\n    resource: src/tracker.py\n---\nCoordination.[^mcp]\n');
+  writeConcept(projectRoot, 'pipeline/inline.md', '---\ntype: Concept\nsources:\n  - { id: m, resource: mcp/monitoring.py, role: evidence }\n---\nInline.\n');
+  const fileMap = buildFileMap(join(projectRoot, BUNDLE_PATH), BUNDLE_PATH);
+  assert.deepEqual(findConceptsForFile(fileMap, 'mcp/monitoring.py').map((conceptMatch) => conceptMatch.conceptPath), ['operations/mcp.md'], 'evidence citations do not compete');
+  assert.deepEqual(findConceptsForFile(fileMap, 'src/tracker.py').map((conceptMatch) => conceptMatch.conceptPath), ['pipeline/coordination.md'], 'the other sources still count');
+  writeConcept(projectRoot, 'pipeline/second.md', '---\ntype: Concept\nsources:\n  - id: t\n    resource: src/tracker.py\n---\nAlso cites it.\n');
+  const printedLines = [];
+  runOkfFileMapCommand(projectRoot, ['src/tracker.py'], (line) => printedLines.push(line));
+  assert.match(printedLines.at(-1), /warning: src\/tracker\.py ties between 2 concepts/);
 });
