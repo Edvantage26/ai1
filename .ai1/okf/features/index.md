@@ -9,6 +9,7 @@
 * [later](later.md) - undecided changes and future features noted down for later in `.ai1/later/` ("later 0003"), apart from the bundle until decided, only on demand (never offered); `/ai1:later-write`, `ai1 later`. Called `proposals` until v0.24.
 * [reuse](reuse.md) - repeated work in this repo judged at stop, searched in this repo's own sessions and skills (`ai1 reuse search`), proposed for encapsulation or for completing an existing piece; `/ai1:reuse-encapsulate`.
 * [/ai1:core-setup-repo and the CLI](init.md) - per-repo setup.
+* [delegate](delegate.md) - an edit of another repo with ai1 refused and delegated to a `claude -p` session there (`ai1 delegate`, `/ai1:session-delegate-change`), stop-ask-resume; changes inside submodules seen from the superproject.
 * [session fork](session-fork.md) - `/ai1:session-fork-conversation` and `ai1 fork`: full or brief fork of the conversation, opened natively per host.
 * [issue report](issue-report.md) - `/ai1:core-report-issue` and `ai1 issue`: a problem with ai1 filed on its public repo, cleaned of private data and approved by the person; offered by the `issue-offer` hook when ai1 itself fails.
 * [storyboard](storyboard.md) - storyboard of the user flow after a visual change (steps, screenshots, before/after, local URL, PDF) in `.ai1/storyboards/`; `/ai1:storyboard-record-flow`, `ai1 storyboard`.

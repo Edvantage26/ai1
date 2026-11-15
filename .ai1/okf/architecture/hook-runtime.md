@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T05:51:15Z'
+  at: '2026-11-15T07:29:37Z'
 ---
 
 # Flow
@@ -28,19 +28,19 @@ generated:
    the worktree has none.
    - Missing: ai1 is inactive; only a one-line note at SessionStart.
    - Invalid: inactive; SessionStart tells the agent why.
-   - **Nested repositories (git submodules) are not resolved.** A `cwd` in another repository (a
-     submodule) keeps the launch root, so a session launched in a superproject uses only its
-     `.ai1/config.json`; a child's config counts only when Claude is launched in the child. Modules
-     that match commands or paths (danger, repo-rules, craft, okf) still cover the whole tree, but
-     the git-based ones do not see inside submodules: `listFilesChangedSinceBase`
-     (`src/core/session-base.mjs`) runs `git diff --name-only` in the tree root, where a change in a
-     submodule shows as the submodule path only, so verify-gate cannot require a child's checks; the
-     protected branch and worktrees are those of the superproject. There is no config inheritance
-     either (no `extends`), so rules shared by several repos are copied into each. Seen on a
-     superproject with three submodules, 2026-11-15.
+   - Missing, but a call edits a repository with ai1: only the modules that repository decides
+     (`decidedByTarget`, today `foreign-repo`) run, with no config; nothing else (see
+     [delegate](../features/delegate.md)).
+   - **Other repositories.** A `cwd` in another repository keeps the launch root: only the launch
+     `.ai1/config.json` is read. Edits of another repository with ai1 are refused and delegated to a
+     session started there ([delegate](../features/delegate.md)). Submodules are part of the launch
+     project: command and path modules cover them, and `listFilesChangedSinceBase` lists the files
+     changed inside them (against each submodule's HEAD at session start), so verify-gate sees them;
+     the protected branch and worktrees stay those of the superproject. There is no config
+     inheritance (no `extends`): rules shared by several repos are copied into each.
 3. It decides with the metadata of every module (`MODULE_INDEX`): the enabled ones (feature, per-repo
-   module switches) are `enabledModules`; of those, the ones for the event and tool that were loaded
-   run. `src/core/dispatcher.mjs` (`runHookEvent`) does the same with every module loaded
+   module switches) are `enabledModules`; of those, plus the `decidedByTarget` ones (they check the
+   edited repository's own config), the ones for the event and tool that were loaded run. `src/core/dispatcher.mjs` (`runHookEvent`) does the same with every module loaded
    (`src/core/registry.mjs`), for tests and in-process callers.
 4. `src/core/hook-io.mjs` combines decisions (deny/block > ask > context > allow) and prints the
    JSON each event expects (PreToolUse `permissionDecision`, Stop `decision: block`,

@@ -5,7 +5,7 @@ description: What ai1 is, the four pieces of a harness, and what exists today.
 tags: [overview, harness]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-14T23:55:25Z'
+  at: '2026-11-15T07:29:58Z'
 ---
 
 # What it is
@@ -45,7 +45,7 @@ recall, upkeep and the [OKF toolkit](packs/okf-pack.md), Node-only since v0.39.0
 [config-guard](guards/config-guard.md), the repo's own [rules](guards/repo-rules.md) and the
 [test-guard](guards/test-guard.md). Every module run goes to the local [decision log](architecture/decision-log.md) (`ai1 log`). Also on:
 [sizing](features/sizing.md), [later](features/later.md), [design](features/design.md),
-[storyboard](features/storyboard.md), [reuse](features/reuse.md) and [worktrees](features/worktrees.md). Plus the [session fork](features/session-fork.md) and [issue report](features/issue-report.md) skills and CLI.
+[storyboard](features/storyboard.md), [reuse](features/reuse.md), [worktrees](features/worktrees.md) and [delegate](features/delegate.md) (edits of another ai1 repo delegated to a session there). Plus the [session fork](features/session-fork.md) and [issue report](features/issue-report.md) skills and CLI.
 Any customizable skill takes project and personal customizations ([skill customization](architecture/skill-customization.md)).
 After 3 failed fix attempts in a row the agent is told to stop and find the root cause ([verify feature](features/verify.md)).
 The verify feature also ships a method skill for LLM steps (extraction, classification, judges): find the cause of failures before blaming the model, and compare models or prompts as a tournament ([verify feature](features/verify.md)).
@@ -60,9 +60,9 @@ Next steps in the [roadmap](roadmap.md).
 - `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`: see [plugin layout](architecture/plugin-layout.md).
 - `bin/ai1-hook.mjs`, `src/core/`: hook runtime (see [hook runtime](architecture/hook-runtime.md)).
 - `src/<feature>/`: one folder per feature (`okf`, `guards`, `craft`, `verify`, `sizing`, `later`,
-  `reuse`, `design`, `storyboard`, `worktrees`, `session`, `context` for the brief).
+  `reuse`, `design`, `storyboard`, `worktrees`, `session`, `delegate`, `context` for the brief).
 - `bin/ai1`, `src/cli/`, `skills/core-setup-repo/`, `skills/core-report-issue/`: the CLI (`status`, `init`, `verify`, `step-done`,
-  `later`, `reuse`, `worktree`, `storyboard`, `fork`, `issue`, `claude-md`, `log`, `okf`), `/ai1:core-setup-repo` and `/ai1:core-report-issue`.
+  `later`, `reuse`, `worktree`, `storyboard`, `fork`, `delegate`, `issue`, `claude-md`, `log`, `okf`), `/ai1:core-setup-repo` and `/ai1:core-report-issue`.
 - `skills/okf-*/`, `src/okf/okf-validate.mjs`, `okf-init.mjs`, `okf-visualize.mjs`, `vendor/`: OKF toolkit, owned by ai1 (see [OKF toolkit](packs/okf-pack.md)); `skills/okf-tidy-claude-md/` is ai1's own.
 - `schema/ai1.schema.json`, `templates/config.json`: the per-repo contract.
 - `test/`: `npm test` (node:test suite).
