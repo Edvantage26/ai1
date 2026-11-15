@@ -5,7 +5,7 @@ description: Sets up ai1 in a repo - asks the features, writes .ai1/config.json 
 tags: [init, cli, setup]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T06:41:18Z'
+  at: '2026-11-15T11:21:29Z'
 sources:
   - id: setup-repo
     resource: src/cli/setup-repo.mjs
@@ -111,6 +111,12 @@ sources:
   GitHub URL (`.../blob/<branch>/.okf/...`) and read it with `gh api .../contents/.okf/index.md`.
   Before running `ai1 init` in one of a group of linked repos, grep the siblings for `/.okf/` and
   set up the group together, updating those links in the same change (2026-11-15).
+- Feature branches of a repo just set up (2026-11-15, two sibling repos and three worktrees): commit
+  the activation on the integration branch, then `git cherry-pick` it onto each feature branch. Git's
+  directory-rename detection moves the concepts that exist only on that branch into `.ai1/okf/` and marks
+  them `AU`; check they have no conflict markers, `git add` them, `cherry-pick --continue`, then grep for
+  `.okf/` and run the validator on each branch. Set `trunk` to the branch work starts from (`develop` where
+  `main` is production), not the default `main`.
 - `ai1 init` has no `--help`: any extra argument it does not know is ignored and the init runs,
   writing `.ai1/config.json` and `.claude/settings.json`. Read the usage at the top of `bin/ai1`
   instead (2026-11-15).
