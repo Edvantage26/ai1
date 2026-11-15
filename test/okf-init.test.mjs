@@ -1,7 +1,7 @@
 // `ai1 okf init` (src/okf/okf-init.mjs): the scaffold validates strict-clean and refuses a used folder.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runOkfInitCommand } from '../src/okf/okf-init.mjs';
@@ -21,6 +21,16 @@ test('ai1 okf init scaffolds a strict-clean bundle, titled from the folder or --
   assert.equal(runOkfInitCommand(['--title', 'Auth: tokens # v2', titledBundle], silent, silent), 0);
   assert.deepEqual(validateOkfBundle(titledBundle).warnings, []);
   assert.match(readFileSync(join(titledBundle, 'getting-started.md'), 'utf8'), /\ntitle: "Getting started — Auth: tokens # v2"\n/);
+});
+
+test('ai1 okf init --no-starter writes only index and log, the creation entry linking to the index', () => {
+  const bundleDirectory = join(mkdtempSync(join(tmpdir(), 'ai1-okf-init-')), 'acme');
+  assert.equal(runOkfInitCommand([bundleDirectory, '--no-starter', '--title', 'Acme'], silent, silent), 0);
+  assert.equal(existsSync(join(bundleDirectory, 'getting-started.md')), false);
+  const { errors, warnings } = validateOkfBundle(bundleDirectory);
+  assert.deepEqual({ errors, warnings }, { errors: [], warnings: [] });
+  assert.doesNotMatch(readFileSync(join(bundleDirectory, 'index.md'), 'utf8'), /getting-started/);
+  assert.match(readFileSync(join(bundleDirectory, 'log.md'), 'utf8'), /\[index\]\(index\.md\)/);
 });
 
 test('ai1 okf init refuses a folder with .md files unless --force, and a file as target', () => {

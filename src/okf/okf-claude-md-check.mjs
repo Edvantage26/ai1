@@ -2,7 +2,8 @@
 // session, while the bundle is read on demand, so knowledge that piles up in CLAUDE.md costs tokens
 // every time and drifts from the bundle. Deterministic, no LLM: per section of each CLAUDE.md it
 // reports overlap with a concept, long sections no concept covers, and references that no longer
-// exist. Used by the okf-claude-md hook (okf-claude-md.mjs, one hint at session start) and by `ai1 claude-md` (the
+// exist. A section holding a literal secret is reported as secret-in-claude-md instead, never as a
+// candidate to move: the bundle is committed and must not get it (line numbers only, no value). Used by the okf-claude-md hook (okf-claude-md.mjs, one hint at session start) and by `ai1 claude-md` (the
 // full report for /ai1:okf-tidy-claude-md, which does the judging and rewriting on request).
 
 import { existsSync, readFileSync } from 'node:fs';
@@ -12,6 +13,7 @@ import { listBundleConcepts } from './okf-bundle.mjs';
 import { normalizeKeywords } from './okf-recall.mjs';
 import { readBodyCodePaths, stripLocation } from './okf-file-map.mjs';
 import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
+import { findSecretLines } from '../core/secret-lines.mjs';
 
 export const MAX_CLAUDE_MD_LINES = 80;
 export const MAX_CLAUDE_MD_CHARACTERS = 6000;
@@ -157,7 +159,13 @@ export function checkClaudeMdText(projectRoot, claudeMdPath, claudeMdText, overl
   if (lineCount > MAX_CLAUDE_MD_LINES || claudeMdText.length > MAX_CLAUDE_MD_CHARACTERS) {
     claudeMdFindings.push({ kind: 'too-long', line: 1, lineCount, characterCount: claudeMdText.length });
   }
+  const secretLines = findSecretLines(claudeMdText);
   for (const section of splitClaudeMdSections(claudeMdText)) {
+    const sectionSecretLines = secretLines.filter((secretLine) => secretLine >= section.line && secretLine <= section.endLine);
+    if (sectionSecretLines.length) {
+      claudeMdFindings.push({ kind: 'secret-in-claude-md', line: section.line, endLine: section.endLine, section: section.heading, secretLines: sectionSecretLines });
+      continue;
+    }
     if (section.contentLineCount < MIN_OVERLAP_SECTION_LINES) continue;
     const overlappingConcept = findOverlappingConcept(`${section.heading}\n${section.bodyText}`, overlapCatalog);
     if (overlappingConcept) {
@@ -197,6 +205,7 @@ export function formatClaudeMdReport(claudeMdReports) {
       if (finding.kind === 'too-long') reportLines.push(`${location} too-long: ${finding.lineCount} lines, ${finding.characterCount} characters (limits ${MAX_CLAUDE_MD_LINES} / ${MAX_CLAUDE_MD_CHARACTERS})`);
       if (finding.kind === 'duplicates-concept') reportLines.push(`${location} duplicates-concept: section ${sectionName} overlaps ${KNOWLEDGE_BUNDLE_PATH}/${finding.conceptPath} (${finding.conceptTitle})`);
       if (finding.kind === 'knowledge-without-concept') reportLines.push(`${location} knowledge-without-concept: section ${sectionName} (${finding.lineCount} lines) matches no concept; candidate to move into the bundle`);
+      if (finding.kind === 'secret-in-claude-md') reportLines.push(`${location} secret-in-claude-md: section ${sectionName} has what looks like a literal secret on line(s) ${finding.secretLines.join(', ')}; replace it with where it lives (secret manager, deploy env) and rotate it, never move it into the bundle`);
       if (finding.kind === 'stale-reference') reportLines.push(`${location} stale-reference: \`${finding.reference}\` does not exist`);
     }
   }
@@ -212,6 +221,7 @@ export function summarizeClaudeMdReports(claudeMdReports) {
   if (longFiles.length) summaryParts.push(`${longFiles.map((claudeMdReport) => claudeMdReport.path).join(', ')} over ${MAX_CLAUDE_MD_LINES} lines or ${MAX_CLAUDE_MD_CHARACTERS} characters`);
   if (countOf('duplicates-concept')) summaryParts.push(`${countOf('duplicates-concept')} section(s) overlap bundle concepts`);
   if (countOf('knowledge-without-concept')) summaryParts.push(`${countOf('knowledge-without-concept')} long section(s) look like knowledge with no concept`);
+  if (countOf('secret-in-claude-md')) summaryParts.push(`${countOf('secret-in-claude-md')} section(s) hold what looks like a literal secret`);
   if (countOf('stale-reference')) summaryParts.push(`${countOf('stale-reference')} reference(s) no longer exist`);
   return summaryParts.join('; ');
 }

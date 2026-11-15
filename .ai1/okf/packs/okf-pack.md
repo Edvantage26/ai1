@@ -1,11 +1,11 @@
 ---
 type: Component
 title: OKF toolkit (owned by ai1)
-description: The OKF skills, imported from okf-skills and maintained in ai1 itself, and their Node commands (ai1 okf validate, init, visualize); where they live and how they run.
+description: The OKF skills, imported from okf-skills and maintained in ai1 itself, and their Node commands (ai1 okf validate, init, visualize, file-map); where they live and how they run.
 tags: [okf, toolkit, third-party]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T05:09:16Z'
+  at: '2026-11-15T14:35:17Z'
 sources:
   - id: upstream
     resource: https://github.com/scaccogatto/okf-skills
@@ -23,6 +23,13 @@ Attribution in `THIRD-PARTY.md` and `licenses/`.
   `ai1 okf validate` (`src/okf/okf-validate.mjs`, also run in-process by okf-upkeep and
   `ai1 worktree finish`), `ai1 okf init` (`okf-init.mjs`) and `ai1 okf visualize` (`okf-visualize.mjs`,
   page in `templates/okf-viz.html`). Claude Code discovers `skills/` by default.
+- **Produce mode, from a real use (2026-11-15):** building a large multi-repo bundle area by area
+  turned up gaps the skill now covers: build from a session of the owning repo (else delegate), read
+  only §3–§9 of the spec, `okf init --no-starter`, the repo's language, docs as claims to check
+  against the code, live sources with a dated scope descriptor and `stale_after`, secrets found in
+  sources (never copied, reported), phased bundles, the `generated.by` value in Claude Code, and a
+  *Citing code* section on how ai1's file map reads paths (and why broad concepts cite folders only in
+  the body), checked with `ai1 okf file-map`.
 - **Paths:** the skills default to `.okf/` but follow the bundle path the ai1 brief names
   (always `.ai1/okf/`); they call `"${CLAUDE_PLUGIN_ROOT}/bin/ai1" okf ...`.
 - **Runtime:** Node only, since 2026-11-15. YAML is read with js-yaml 4.1.0 vendored in

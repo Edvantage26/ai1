@@ -90,6 +90,18 @@ test('claude-md: a long section no concept covers is knowledge-without-concept; 
   assert.deepEqual(findingKinds(checkRepo(projectRoot)), ['knowledge-without-concept']);
 });
 
+test('claude-md: a section with a literal secret is secret-in-claude-md, never a candidate to move, and the value is not reported', () => {
+  const fakePassword = ['Qw8', 'Er5', 'Ty2', 'Ui7'].join('');
+  const secretSection = sectionOf('Environment Variables', [...Array.from({ length: 12 }, (_, lineIndex) => `- variable ${lineIndex}`), `| Password | \`${fakePassword}\` |`]);
+  const projectRoot = createRepoWithClaudeMd({ 'CLAUDE.md': secretSection.join('\n') });
+  const claudeMdReports = checkRepo(projectRoot);
+  assert.deepEqual(findingKinds(claudeMdReports), ['secret-in-claude-md']);
+  assert.deepEqual(claudeMdReports[0].findings[0].secretLines, [14]);
+  const reportText = formatClaudeMdReport(claudeMdReports);
+  assert.match(reportText, /secret-in-claude-md: section "Environment Variables" .* line\(s\) 14; .*never move it into the bundle/);
+  assert.doesNotMatch(reportText, new RegExp(fakePassword));
+});
+
 test('claude-md: missing paths and links are stale; subproject-relative, placeholder and non-path text is not', () => {
   const claudeMdText = [
     'Gone: `backend/old_module.py`, `missing/folder/`, [design](docs/design.md).',

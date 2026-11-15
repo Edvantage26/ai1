@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index and bundle health notes 
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T11:56:07Z'
+  at: '2026-11-15T14:35:17Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -30,6 +30,9 @@ sources:
     title: PostToolUse module
   - id: okf-file-map
     resource: src/okf/okf-file-map.mjs
+  - id: secret-lines
+    resource: src/core/secret-lines.mjs
+    title: Literal secret detector used by the CLAUDE.md drift check
     title: File to concept map
   - id: okf-claude-md
     resource: src/okf/okf-claude-md.mjs
@@ -66,6 +69,13 @@ sources:
     `repo`... matched every section), or cites a path the concept has as `resource`/`sources` (body
     citations would make overview concepts match everything);
   - `knowledge-without-concept`: a section of >= 12 non-blank lines that overlaps no concept;
+  - `secret-in-claude-md`: a section with a line that looks like a literal secret
+    (`src/core/secret-lines.mjs`: known token prefixes, a URL with a password, or a label such as
+    password, token or API key next to a literal of 12+ characters; placeholders, env var names and
+    values with a `/` are not secrets). It replaces the two findings above for that section: moving it
+    would put the secret in the committed bundle. Only line numbers are reported, never the value.
+    Added 2026-11-15 after `ai1 claude-md` proposed moving a section of plaintext credentials into a
+    real project's bundle;
   - `stale-reference`: a backticked path (with a `/` and an extension or a trailing `/`; not
     absolute, `~`, `@/`, placeholders) or a relative link that exists neither from the CLAUDE.md's
     folder, nor the repo root, nor as the end of a repo file path (`app/main.py` written for a
@@ -122,7 +132,9 @@ sources:
   a file before a folder, then the longest matched path, then the concept citing fewer paths (the
   specific one over an overview); at most 2 concepts per file. No disk check, so the map depends
   only on the bundle; cached in the state directory and rebuilt when the bundle's newest mtime
-  changes. Measured on this repo (2026-11-09): build about 15 ms, cached load about 1.6 ms, a match
+  changes. `ai1 okf file-map <file>...` (from the project root, `--json`) prints the concepts ai1
+  names for each file, exit 1 when one has none: the check a producer runs after writing concepts that
+  cite code (before it, the only way was importing the module by hand). Measured on this repo (2026-11-09): build about 15 ms, cached load about 1.6 ms, a match
   about 0.03 ms. Writing `resource` or `sources` in a concept is how a repo makes it show up.
 - **okf-upkeep (Stop):** blocks finishing when the session left knowledge newer than the last
   bundle update: repo files changed since the session's base HEAD (tracked diff + untracked)
@@ -218,7 +230,8 @@ sources:
 # Skills and agents
 
 From the [OKF toolkit](../packs/okf-pack.md): `/ai1:okf-maintain-knowledge`, `/ai1:okf-validate-bundle`, `/ai1:okf-visualize-bundle`, whose
-scripts are the `ai1 okf validate`, `ai1 okf init` and `ai1 okf visualize` commands. Written in ai1:
+scripts are the `ai1 okf validate`, `ai1 okf init` (`--no-starter`: index and log only, for a
+producer about to write the real concepts) and `ai1 okf visualize` commands. Written in ai1:
 `/ai1:okf-tidy-claude-md` (see okf-claude-md above). The backfill skill and its two agents were
 removed on 2026-11-15 (never used; a light history step in produce mode replaces it).
 

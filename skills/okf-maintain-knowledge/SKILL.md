@@ -18,9 +18,12 @@ It is minimal by design: no schema registry, no runtime, no SDK. Your job is to
 produce, maintain, and consume OKF bundles **conformant with the spec**, not your
 memory of it.
 
-**Always read the canonical spec before non-trivial work:**
+**Read the canonical spec before non-trivial work:**
 [reference/SPEC.md](reference/SPEC.md). It is the verbatim OKF v0.2 specification
-and the source of truth for every rule below.
+and the source of truth for every rule below. It is long (~1,000 lines): for
+producing or maintaining concepts read §3–§9 (structure, frontmatter,
+provenance, trust, lifecycle, links, index, log); §10 only for an Attested
+Computation; §12–§13 and Appendix A only for versioning or a v0.1 bundle.
 
 ## The one hard rule
 
@@ -68,7 +71,9 @@ fields, unknown types, and broken links — never reject a bundle over them.
   one entry). Write `by` in the **actor convention** (§7): `<producer>/<version>`
   for an agent, `human:<id>` for a person, `process:<id>` for an automated job.
   Use `human:` whenever a person authored or signed off — consumers key trust
-  tiers off that prefix.
+  tiers off that prefix. In Claude Code the agent writes `claude-code/<model id>`
+  (e.g. `claude-code/claude-opus-5-5`), with the real UTC time from
+  `date -u +%Y-%m-%dT%H:%M:%SZ` in `at`.
 - **Lifecycle (§5.4–5.5):** `status: draft|stable|deprecated` (absent means
   stable) and `stale_after`, an absolute ISO 8601 datetime (a bare date is
   tolerated), not a TTL.
@@ -103,21 +108,34 @@ location or a harness names one for the session (for example `.ai1/okf/`). Commi
 
 ### produce — create or extend a bundle
 
+**First, the right session.** Build a bundle from a session started in the
+repository that owns it: its hooks, rules and customizations only apply there.
+If the bundle belongs to another repository with ai1, do not write it from here:
+delegate it with `/ai1:session-delegate-change`.
+
 **Starting a brand-new bundle?** Use the init fast-path instead of hand-writing
-the first files — it scaffolds a conformant `index.md`, `log.md`, and a
-`getting-started.md` concept with full recommended frontmatter in one shot:
+the first files. When you are about to write the real concepts, pass
+`--no-starter`: it writes only `index.md` and a `log.md` whose Creation entry
+links to the index (without it you also get a `getting-started.md` placeholder
+in English, which you would delete, leaving the append-only log pointing to a
+missing file):
 
 ```bash
-"${CLAUDE_PLUGIN_DATA}/bin/ai1" okf init <target-dir> [--title "..."]
+"${CLAUDE_PLUGIN_DATA}/bin/ai1" okf init <target-dir> --no-starter [--title "..."]
 ```
 
 It refuses to touch a directory that already has `.md` files unless `--force`
-is given. Then extend it:
+is given. Translate the index heading and the log line to the language of the
+repo's docs, and write every concept in that language too. Until the bundle is
+first committed, its log can still be adjusted. Then extend it:
 
-1. Read [reference/SPEC.md](reference/SPEC.md).
+1. Read [reference/SPEC.md](reference/SPEC.md) (§3–§9).
 2. Pick the source(s): **code** (derive concepts from source, READMEs,
    docstrings, config), **docs/wiki** (distill pages into concepts, record the
-   originals in `sources`), **manual** (decisions, playbooks, metrics), and for a
+   originals in `sources`), **live systems** (a deploy panel's API, a database
+   catalog, a server: cite them in `sources` as a scope descriptor with the date
+   you read them, and give the concept a `stale_after`, since that state drifts
+   without any commit), **manual** (decisions, playbooks, metrics), and for a
    new bundle in a repo with history, **git history** for the *why* the code no
    longer shows (only when creating the bundle or when asked; keep it light):
    - Read `git log --oneline --no-merges` whole, then open at most ~20 commits with
@@ -127,18 +145,52 @@ is given. Then extend it:
    - Write a `decisions/` concept only for a choice with a clear reason in the
      commit (or its PR); cite the commit in `sources` (`resource: git:<sha>`).
      Never invent a reason the history does not give, and skip routine changes.
+   - **A doc is a claim, not a fact.** READMEs, CLAUDE.md files and wikis go
+     stale: check each claim against the code (or the live system) before you
+     write it; leave out, or mark as not verified, what you cannot check; and
+     list the discrepancies you found for the person (they are candidates for
+     `/ai1:okf-tidy-claude-md`).
+   - **Secrets in a source:** never copy one. Write where it lives (secret
+     manager item, deploy environment variable), and tell the person in your
+     summary which committed files hold a secret in clear text.
 3. Choose a directory layout by domain (e.g. `services/`, `datasets/`,
-   `decisions/`). One concept per file.
+   `decisions/`). One concept per file. A large project built in phases (one
+   area at a time, each reviewed): fix the whole layout up front, list in the
+   indexes only the concepts already written (a short "pending" note in the root
+   index says what comes later), link forward only where it carries meaning, and
+   keep the plan of the remaining areas in a work file, not in the bundle.
 4. Write each concept from [templates/concept.md](templates/concept.md): set a
    descriptive `type`, fill recommended fields, record `generated` and the
-   `sources` you actually read, cross-link related concepts.
+   `sources` you actually read, cross-link related concepts. Cite the code it
+   describes (see *Citing code* below).
 5. Add/refresh `index.md` per directory (and `okf_version: "0.2"` in the root
    index). A new bundle gets a dated **Creation** entry in `log.md`. Extending
    an existing one does not.
-6. Validate (see below). Fix every error before finishing.
+6. Validate (see below). Fix every error before finishing. Where the `ai1` CLI
+   is available, check that the code you cited links back: from the project root,
+   `ai1 okf file-map <file>...` prints the concept ai1 names for each file
+   (exit 1 when one has none).
 7. A new bundle, where the `ai1` CLI is on the PATH: run `ai1 claude-md`. If it reports findings,
    offer `/ai1:okf-tidy-claude-md` in one line (CLAUDE.md now repeats or should move into the
-   bundle); do not tidy without a yes.
+   bundle); do not tidy without a yes. A `secret-in-claude-md` finding is never moved: tell the person
+   (clean it from CLAUDE.md, rotate it).
+
+#### Citing code
+
+ai1 tells the agent which concept describes a file when it opens or edits it,
+from the paths each concept cites:
+
+- Where: `resource` (strongest), then `sources[].resource`, then paths in
+  backticks in the body (weakest). A file beats a folder. Paths inside fenced
+  blocks are ignored; a folder in the body needs two segments (`src/core/`).
+- Form: a bare path (`src/core/config.mjs`) is read **from the repository root**
+  (an ai1 convention: the spec would read it from the concept); a leading `/` is
+  the bundle root. In a repo with submodules, cite from the root that holds the
+  bundle (`svc/lib/db.py`).
+- The rule that follows: a **specific** concept puts its own files in `resource`
+  or `sources`; a **broad** one (overview, operations) cites big folders only in
+  its body. A broad concept with `src/` in `sources` would win over every
+  specific concept that cites a file of `src/` only in its body.
 
 ### maintain — keep a bundle in sync with reality
 1. Identify which concepts the change affects (search by `resource`, path, or

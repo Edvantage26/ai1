@@ -20,7 +20,7 @@ the agent needs in every session, and everything else in the bundle, said once.
 
 Run `ai1 claude-md --json`. It lists, per CLAUDE.md of the repo, deterministic findings:
 `too-long`, `duplicates-concept` (section lines + concept), `knowledge-without-concept` (long section,
-no concept), `stale-reference` (path or link that no longer exists, e.g. an old `.okf/` bundle path
+no concept), `secret-in-claude-md` (a section with a literal secret), `stale-reference` (path or link that no longer exists, e.g. an old `.okf/` bundle path
 after the move to `.ai1/okf/`). If the person named one file, work on that one only; otherwise one
 proposal per CLAUDE.md with findings, the root one first. Read `.ai1/okf/index.md`, then only the
 flagged sections and the concepts they would go to: do not read the whole bundle.
@@ -42,6 +42,11 @@ For each `duplicates-concept`, compare the section with the concept. When they *
 not pick a side: check the code (or `git log`) for which is true, and if the code does not tell,
 list it for the person to decide. For each `stale-reference`, find the current path (`git log
 --follow`, a search) or mark the line for removal.
+
+A `secret-in-claude-md` (section lines + the lines that look like a literal secret, never the value)
+is never moved: the bundle is committed too. In the proposal, replace each value with where it lives
+(secret manager item, deploy environment variable) and tell the person to rotate it, since it is
+already in the git history.
 
 ## 3. Propose, do not apply
 

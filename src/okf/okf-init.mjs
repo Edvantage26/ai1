@@ -1,6 +1,8 @@
-// `ai1 okf init <dir> [--title "..."] [--force]`: a conformant starter OKF v0.2 bundle - a root
-// index.md (frontmatter with only okf_version), a log.md with the creation entry under today's date,
-// and one getting-started.md concept with every recommended field. `ai1 okf validate --strict`
+// `ai1 okf init <dir> [--title "..."] [--no-starter] [--force]`: a conformant starter OKF v0.2 bundle - a
+// root index.md (frontmatter with only okf_version), a log.md with the creation entry under today's date,
+// and one getting-started.md concept with every recommended field. `--no-starter` leaves the concept
+// out (an agent about to write the real ones would have to delete it, and the append-only log would then
+// link to a missing file): the index lists nothing yet and the creation entry links to the index. `ai1 okf validate --strict`
 // passes it with no warnings. Ported from okf_init.py (okf-skills, MIT).
 
 import { existsSync, statSync, mkdirSync, writeFileSync, readdirSync } from 'node:fs';
@@ -14,7 +16,7 @@ const INIT_ACTOR = 'process:okf_init';
 const PLAIN_YAML_SCALAR_PATTERN = /^[^\s\-?:,[\]{}#&*!|>'"%@`][^\n]*$/;
 const YAML_SPECIAL_WORD_PATTERN = /^(?:~|null|true|false|yes|no|on|off|[-+.]?\d[\d_.eE+-]*)$/i;
 
-export const OKF_INIT_USAGE = 'ai1 okf init <target-dir> [--title "<title>"] [--force]';
+export const OKF_INIT_USAGE = 'ai1 okf init <target-dir> [--title "<title>"] [--no-starter] [--force]';
 
 function yamlScalar(text) {
   const isPlainSafe = PLAIN_YAML_SCALAR_PATTERN.test(text) && !/: |\s#|\s$/.test(text) && !YAML_SPECIAL_WORD_PATTERN.test(text);
@@ -27,12 +29,14 @@ function humanizeDirectoryName(directoryName) {
   return words ? words.replace(/\p{L}+/gu, (word) => word[0].toUpperCase() + word.slice(1).toLowerCase()) : 'Untitled';
 }
 
-function buildIndexText(bundleTitle) {
-  return `---\nokf_version: '${OKF_VERSION}'\n---\n\n# ${bundleTitle}\n\n* [Getting started](${STARTER_CONCEPT}) - starting point for this bundle.\n`;
+function buildIndexText(bundleTitle, withStarter) {
+  const starterEntry = withStarter ? `\n* [Getting started](${STARTER_CONCEPT}) - starting point for this bundle.\n` : '';
+  return `---\nokf_version: '${OKF_VERSION}'\n---\n\n# ${bundleTitle}\n${starterEntry}`;
 }
 
-function buildLogText(todayDate, bundleTitle) {
-  return `# Update Log\n\n## ${todayDate}\n* **Creation**: Scaffolded the ${bundleTitle} bundle with \`ai1 okf init\` — see [getting started](${STARTER_CONCEPT}).\n`;
+function buildLogText(todayDate, bundleTitle, withStarter) {
+  const linkedEntry = withStarter ? `see [getting started](${STARTER_CONCEPT})` : 'see the [index](index.md)';
+  return `# Update Log\n\n## ${todayDate}\n* **Creation**: Scaffolded the ${bundleTitle} bundle with \`ai1 okf init\` — ${linkedEntry}.\n`;
 }
 
 function buildStarterConceptText(bundleTitle, nowInstant) {
@@ -83,10 +87,11 @@ export function runOkfInitCommand(initArguments, writeOutput = console.log, writ
   }
   const bundleTitle = titleIndex >= 0 ? initArguments[titleIndex + 1] : humanizeDirectoryName(basename(resolve(targetDirectory)));
   const nowInstant = now.toISOString().replace(/\.\d{3}Z$/, 'Z');
+  const withStarter = !initArguments.includes('--no-starter');
   mkdirSync(targetDirectory, { recursive: true });
-  writeFileSync(join(targetDirectory, 'index.md'), buildIndexText(bundleTitle));
-  writeFileSync(join(targetDirectory, 'log.md'), buildLogText(nowInstant.slice(0, 10), bundleTitle));
-  writeFileSync(join(targetDirectory, STARTER_CONCEPT), buildStarterConceptText(bundleTitle, nowInstant));
+  writeFileSync(join(targetDirectory, 'index.md'), buildIndexText(bundleTitle, withStarter));
+  writeFileSync(join(targetDirectory, 'log.md'), buildLogText(nowInstant.slice(0, 10), bundleTitle, withStarter));
+  if (withStarter) writeFileSync(join(targetDirectory, STARTER_CONCEPT), buildStarterConceptText(bundleTitle, nowInstant));
   writeOutput(`created OKF bundle scaffold at ${targetDirectory}`);
   writeOutput(`hint: validate it - ai1 okf validate ${targetDirectory} --strict (or /ai1:okf-validate-bundle)`);
   return 0;

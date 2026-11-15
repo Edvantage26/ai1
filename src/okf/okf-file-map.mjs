@@ -8,6 +8,7 @@ import { join, posix } from 'node:path';
 import { readFrontmatterField } from '../core/frontmatter.mjs';
 import { readStateText, writeStateText, shortHash } from '../core/session-state.mjs';
 import { listBundleConcepts, newestModificationMilliseconds } from './okf-bundle.mjs';
+import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
 
 const MAX_CONCEPTS_PER_FILE = 2;
 // Strength of where a path is cited; the score of a match is strength * 2, minus 1 for a folder.
@@ -157,4 +158,31 @@ export function findConceptsForFile(fileMap, relativeFilePath) {
       || firstMatch.conceptPath.localeCompare(secondMatch.conceptPath))
     .slice(0, MAX_CONCEPTS_PER_FILE)
     .map(({ conceptPath, repoPath, title }) => ({ conceptPath, repoPath, title }));
+}
+
+export const OKF_FILE_MAP_USAGE = 'ai1 okf file-map <file>... [--json]';
+
+// `ai1 okf file-map <file>...`, run from the project root: the concepts ai1 names when the agent opens
+// each file (what okf-file-context says), so whoever writes concepts checks that the code they cite
+// links back. Prints `<file> -> <concept> (<title>)` per match or `<file> -> no concept`; exit 1 if a
+// file has none.
+export function runOkfFileMapCommand(projectRoot, fileMapArguments, writeOutput = console.log, writeError = console.error) {
+  const repoFilePaths = fileMapArguments.filter((fileMapArgument) => !fileMapArgument.startsWith('--'));
+  if (!repoFilePaths.length) {
+    writeError(`usage: ${OKF_FILE_MAP_USAGE}`);
+    return 2;
+  }
+  const fileMap = buildFileMap(join(projectRoot, KNOWLEDGE_BUNDLE_PATH), KNOWLEDGE_BUNDLE_PATH);
+  const fileResults = repoFilePaths.map((repoFilePath) => {
+    const normalizedPath = posix.normalize(repoFilePath.split('\\').join('/'));
+    return { file: normalizedPath, concepts: findConceptsForFile(fileMap, normalizedPath) };
+  });
+  if (fileMapArguments.includes('--json')) writeOutput(JSON.stringify(fileResults, null, 2));
+  else {
+    for (const fileResult of fileResults) {
+      if (!fileResult.concepts.length) writeOutput(`${fileResult.file} -> no concept`);
+      for (const matchedConcept of fileResult.concepts) writeOutput(`${fileResult.file} -> ${matchedConcept.repoPath} (${matchedConcept.title})`);
+    }
+  }
+  return fileResults.every((fileResult) => fileResult.concepts.length) ? 0 : 1;
 }

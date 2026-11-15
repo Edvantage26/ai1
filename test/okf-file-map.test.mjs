@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, readdirSync, writeFileSync, utimesSync } from '
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  buildFileMap, findConceptsForFile, loadFileMap, readBodyCodePaths, readSourceResources, resolveResourcePath,
+  buildFileMap, findConceptsForFile, loadFileMap, readBodyCodePaths, readSourceResources, resolveResourcePath, runOkfFileMapCommand,
 } from '../src/okf/okf-file-map.mjs';
 import { createTemporaryProject } from './helpers.mjs';
 
@@ -103,4 +103,15 @@ test('buildFileMap reads CRLF concepts and a v0.1 bundle without sources', () =>
   writeConcept(projectRoot, 'legacy.md', '---\r\ntype: Service\r\ntimestamp: 2026-01-01\r\n---\r\n# Citations\r\n- `services/api/main.py`\r\n');
   const fileMap = buildFileMap(join(projectRoot, BUNDLE_PATH), BUNDLE_PATH);
   assert.deepEqual(findConceptsForFile(fileMap, 'services/api/main.py').map((conceptMatch) => conceptMatch.conceptPath), ['legacy.md']);
+});
+
+test('ai1 okf file-map prints the concepts ai1 names per file and exits 1 when one has none', () => {
+  const projectRoot = createMappedBundle();
+  const printedLines = [];
+  assert.equal(runOkfFileMapCommand(projectRoot, ['./src/guards/danger.mjs', 'src/core/config.mjs'], (line) => printedLines.push(line)), 0);
+  assert.deepEqual(printedLines, ['src/guards/danger.mjs -> .ai1/okf/guards/danger.md (danger guard)', 'src/core/config.mjs -> .ai1/okf/architecture/config.md (Config contract)']);
+  const jsonLines = [];
+  assert.equal(runOkfFileMapCommand(projectRoot, ['README.md', '--json'], (line) => jsonLines.push(line)), 1);
+  assert.deepEqual(JSON.parse(jsonLines[0]), [{ file: 'README.md', concepts: [] }]);
+  assert.equal(runOkfFileMapCommand(projectRoot, [], () => {}, () => {}), 2);
 });
