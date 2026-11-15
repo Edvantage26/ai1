@@ -10,6 +10,7 @@
 //   ai1 later index | ai1 later check            regenerate .ai1/later/README.md | report what is inconsistent
 //   ai1 worktree <create|list|run|finish|drop>  worktrees from the project recipe (see src/cli/worktree-cli.mjs)
 //   ai1 fork <full|brief|brief-path|host>        a new conversation from this one (see src/cli/fork-command.mjs)
+//   ai1 delegate --cwd <repo> --brief <file> | --resume <id> "<answer>" | allow | show  a change made by a session started in another repo (src/cli/delegate-command.mjs)
 //   ai1 issue <env|url>                          facts and a prefilled link for a bug report on ai1 (see src/cli/issue-command.mjs)
 //   ai1 claude-md [--json]                       where the repo's CLAUDE.md files drift from the OKF bundle (src/okf/okf-claude-md-check.mjs)
 //   ai1 log [--session <id>] [--since <hours>] [--all] [--json]  what ai1's modules decided here (or in every repo, --all) (src/cli/log-command.mjs)
@@ -30,6 +31,7 @@ import { runReuseCommand, REUSE_USAGE } from '../src/cli/reuse-command.mjs';
 import { runStoryboardCommand, STORYBOARD_USAGE } from '../src/cli/storyboard-command.mjs';
 import { runOkfCommand, OKF_USAGE } from '../src/cli/okf-command.mjs';
 import { runForkCommand, FORK_USAGE } from '../src/cli/fork-command.mjs';
+import { runDelegateCommand } from '../src/cli/delegate-command.mjs';
 import { runIssueCommand, ISSUE_USAGE } from '../src/cli/issue-command.mjs';
 import { runLogCommand } from '../src/cli/log-command.mjs';
 import { runSkillContextCommand, SKILL_CONTEXT_USAGE } from '../src/cli/skill-context-command.mjs';
@@ -162,6 +164,8 @@ try {
     console.log(runLogCommand(findMainCheckout(repoRoot), { sessionId: readOption('--session'), sinceHours, wantsJson, allRepos: commandArguments.includes('--all') }));
   } else if (commandName === 'fork') {
     process.exitCode = runForkCommand(repoRoot, commandArguments, { readOption });
+  } else if (commandName === 'delegate') {
+    process.exitCode = runDelegateCommand(process.cwd(), commandArguments, { readOption });
   } else if (commandName === 'issue') {
     process.exitCode = runIssueCommand(repoRoot, commandArguments, { readOption });
   } else if (commandName === 'later') {
@@ -173,7 +177,7 @@ try {
   } else if (commandName === 'okf') {
     process.exitCode = runOkfCommand(commandArguments);
   } else {
-    console.log(`usage: ai1 status [--json] | ai1 init [--disable <feature,...> | --disable none] [--verify "<command>" ...] [--disable-plugins a@x,b@y] [--deny-credentials] [--report-errors ask|auto|off] [--json] | ai1 verify | ai1 step-done <slug> "<step>" | ai1 plan-done <slug> | ai1 claude-md [--json] | ai1 log [--session <id>] [--since <hours>] [--all] [--json] | ${LATER_USAGE}`);
+    console.log(`usage: ai1 status [--json] | ai1 init [--disable <feature,...> | --disable none] [--verify "<command>" ...] [--disable-plugins a@x,b@y] [--deny-credentials] [--report-errors ask|auto|off] [--json] | ai1 delegate --cwd <repo> --brief <file> | ai1 verify | ai1 step-done <slug> "<step>" | ai1 plan-done <slug> | ai1 claude-md [--json] | ai1 log [--session <id>] [--since <hours>] [--all] [--json] | ${LATER_USAGE}`);
     console.log(WORKTREE_USAGE);
     console.log(FORK_USAGE);
     console.log(ISSUE_USAGE);

@@ -33,8 +33,25 @@ export function noteRepositoryOnce(sessionId, launchRoot, repoRoot, environment 
   return true;
 }
 
+// The permission mode of the calling session, seen by the hook, so a delegated run inherits it (R1).
+export function rememberPermissionMode(sessionId, launchRoot, permissionMode, environment = process.env) {
+  if (!sessionId || !permissionMode) return;
+  const modePath = statePath(sessionId, launchRoot, 'permission-mode', environment);
+  if (readStateJson(modePath, null) !== permissionMode) writeStateText(modePath, JSON.stringify(permissionMode));
+}
+
+export function readRememberedPermissionMode(sessionId, launchRoot, environment = process.env) {
+  if (!sessionId) return null;
+  return readStateJson(statePath(sessionId, launchRoot, 'permission-mode', environment), null);
+}
+
 function commandKey(commandText) {
   return createHash('sha256').update(String(commandText).trim()).digest('hex').slice(0, 24);
+}
+
+// What a one-time allow is bound to: the shell command, or the edited file.
+export function oneTimeAllowSubject(toolInput = {}) {
+  return toolInput.command || toolInput.file_path || toolInput.notebook_path || '';
 }
 
 export function grantOneTimeAllow(delegatedSessionId, repoRoot, commandText, environment = process.env) {

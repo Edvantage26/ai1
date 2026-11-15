@@ -5,6 +5,7 @@
 //   ignore_rules: rule ids to switch off in this repo, e.g. ["rm-recursive-force"].
 
 import { askDecision, denyDecision, allowDecision } from '../core/hook-io.mjs';
+import { consumeOneTimeAllow } from '../delegate/delegate-state.mjs';
 import { isAbsolute, resolve } from 'node:path';
 import { splitSimpleCommands, baseName, hasShortFlag, hasLongFlag } from '../core/shell-parse.mjs';
 import { listIgnoredPaths } from '../core/git.mjs';
@@ -230,7 +231,7 @@ export default {
   toolNames: ['Bash'],
   feature: 'danger',
   description: 'Confirms or refuses shell commands that destroy work, history or data with no undo.',
-  run({ hookInput, projectRoot, moduleOptions }) {
+  run({ hookInput, projectRoot, moduleOptions, environment }) {
     const commandLine = hookInput.tool_input?.command;
     if (typeof commandLine !== 'string' || !commandLine.trim()) return allowDecision();
     const dangerFindings = findDangerousCommands(commandLine, moduleOptions.ignore_rules ?? [], { workingDirectory: hookInput.cwd || projectRoot });
@@ -239,6 +240,8 @@ export default {
     if (dangerFindings.some((dangerFinding) => dangerFinding.action === 'deny')) {
       return denyDecision(MODULE_ID, `${findingLines.join(' ')} Do not reach the same result another way; explain the risk and let the person decide.`, dangerFindings.map((dangerFinding) => dangerFinding.ruleId));
     }
+    // The person confirmed this exact command once for a delegated session (ai1 delegate --allow-once).
+    if (consumeOneTimeAllow(hookInput.session_id, projectRoot, commandLine, environment)) return allowDecision();
     return askDecision(MODULE_ID, findingLines.join(' '), dangerFindings.map((dangerFinding) => dangerFinding.ruleId));
   },
 };

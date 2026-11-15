@@ -12,7 +12,7 @@ import { isModuleEnabled, loadHarnessConfig } from '../core/config.mjs';
 import { describeOwningRepository } from '../core/owning-repo.mjs';
 import { findMainCheckout } from '../core/project-roots.mjs';
 import { listToolCallChanges } from '../core/tool-call-paths.mjs';
-import { noteRepositoryOnce, readAllowedRepositories } from './delegate-state.mjs';
+import { noteRepositoryOnce, readAllowedRepositories, rememberPermissionMode } from './delegate-state.mjs';
 
 const MODULE_ID = 'foreign-repo';
 const MODULE_FEATURE = 'delegate';
@@ -58,6 +58,7 @@ export default {
   run({ hookInput, projectRoot, config, environment }) {
     const { delegatedRepositories, plainRepositories } = describeForeignEdits(hookInput, projectRoot, Boolean(config), environment);
     if (delegatedRepositories.size) {
+      rememberPermissionMode(hookInput.session_id, projectRoot, hookInput.permission_mode, environment);
       const [repoRoot, rawPath] = [...delegatedRepositories][0];
       return denyDecision(MODULE_ID, [
         `${quotePath(rawPath)} belongs to another repository, ${quotePath(repoRoot)}, which has ai1 active and its own rules (config, hooks, CLAUDE.md, knowledge).`,

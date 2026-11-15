@@ -8,6 +8,7 @@ import { relative } from 'node:path';
 import { allowDecision, askDecision, denyDecision } from '../core/hook-io.mjs';
 import { matchesAnyGlob } from '../core/path-glob.mjs';
 import { splitSimpleCommands } from '../core/shell-parse.mjs';
+import { consumeOneTimeAllow, oneTimeAllowSubject } from '../delegate/delegate-state.mjs';
 
 const MODULE_ID = 'repo-rules';
 const MAX_TESTED_CHARACTERS = 20000;
@@ -44,13 +45,15 @@ export default {
   toolNames: ['Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'Bash'],
   feature: 'danger',
   description: 'Applies the repo\'s own rules (`rules` in .ai1/config.json): ask or refuse matching commands and edits.',
-  run({ hookInput, projectRoot, config }) {
+  run({ hookInput, projectRoot, config, environment }) {
     const matchedRules = findRepoRuleMatches(hookInput, projectRoot, config.rules);
     if (matchedRules.length === 0) return allowDecision();
     const ruleLines = matchedRules.map((repoRule) => `[${repoRule.id}] ${repoRule.message}`).join(' ');
     if (matchedRules.some((repoRule) => repoRule.action === 'deny')) {
       return denyDecision(MODULE_ID, `${ruleLines} (a rule of this repo). Do not reach the same result another way; if it seems wrong, tell the person.`, matchedRules.map((repoRule) => repoRule.id));
     }
+    // The person confirmed this exact call once for a delegated session (ai1 delegate --allow-once).
+    if (consumeOneTimeAllow(hookInput.session_id, projectRoot, oneTimeAllowSubject(hookInput.tool_input), environment)) return allowDecision();
     return askDecision(MODULE_ID, `${ruleLines} (a rule of this repo). The person confirms.`, matchedRules.map((repoRule) => repoRule.id));
   },
 };
