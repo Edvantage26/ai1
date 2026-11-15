@@ -6,11 +6,10 @@ import { allowDecision, contextDecision } from '../core/hook-io.mjs';
 
 const MODULE_ID = 'reuse-brief';
 
+// The proposal itself (wording, containers, dismiss) comes with reuse-check at Stop, when there is work to judge.
 export const REUSE_BRIEF_TEXT = [
   'Reuse: work that comes back in this repo becomes a reusable piece instead of being worked out again.',
-  '- When a request sounds like something done before here ("otra vez", "como la última vez", setting up or operating the same thing again), run `ai1 reuse search "<3-5 keywords>"` first: it lists this repo\'s past sessions that did it and the project skills, commands or MCP servers that already cover it; reuse how it was done.',
-  '- When the work will clearly recur, or the search shows it already did, propose in one line at the end of your report how to encapsulate it, with its evidence: a rule, hook, script, skill, MCP entry, or completing or merging an existing project piece. Do not stop the task to ask. A yes means loading /ai1:reuse-encapsulate; a no means `ai1 reuse dismiss <slug> --keywords "<words>" "<why>"`, and a dismissed one is never proposed again.',
-  '- Only this repo: never search, cite or propose from other repos\' sessions.',
+  '- When a request sounds like something done before here ("otra vez", "como la última vez", setting up or operating the same thing again), run `ai1 reuse search "<3-5 keywords>"` first and reuse how it was done. Only this repo: never search, cite or propose from other repos\' sessions.',
 ].join('\n');
 
 export default {

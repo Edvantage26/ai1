@@ -5,7 +5,7 @@ description: Later - large changes and future features not decided yet, noted do
 tags: [later, proposals, roadmap, hooks, cli, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T07:06:30Z'
+  at: '2026-11-15T11:56:07Z'
 sources:
   - id: later-documents
     resource: src/later/later-documents.mjs
@@ -121,7 +121,7 @@ numbering by hand).
 
 | Module | Event | What it does |
 |---|---|---|
-| `later-brief` | SessionStart | Where entries live, that they are not the system, that "propuesta" in the conversation is never this feature, the creation rule and the offer, when to load `/ai1:later-write`, and the open entries (draft, review, accepted; at most 15). Skipped on `resume`. |
+| `later-brief` | SessionStart | Where entries live, that they are not the system, that "propuesta" in the conversation is never this feature, the creation rule and the offer, when to load `/ai1:later-write`, and the open entries (draft, review, accepted; at most 3, 15 until 2026-11-15, titles cut to 60 characters, with how many more in the index). How to create and number entries is in `/ai1:later-write`, and `later-upkeep` checks it at Stop. Skipped on `resume`. |
 | `later-recall` | UserPromptSubmit | Ranks entries against the message with the [okf-recall](okf.md) keyword scoring (`buildKeywordCatalog`) and lists the hits with their status. |
 | `later-upkeep` | Stop | Only when the session changed `.ai1/later/`: runs the `ai1 later check` rules (frontmatter, duplicate or mismatched numbers, sizes, statuses, dates, `decided`, `superseded_by`, index in sync and, with okf on, an accepted or implemented entry that no bundle file cites). Also, when a deep plan with `later: <n>` was marked done in the session and entry n is still accepted, asks to mark it implemented. Same problems reported once, at most 3 blocks per session (`claimStopBlock`). |
 

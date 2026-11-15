@@ -185,7 +185,7 @@ test('a session start drops the false values an old init wrote, shows their skil
   const skillOverrides = JSON.parse(readFileSync(join(projectRoot, '.claude', 'settings.json'), 'utf8')).skillOverrides;
   assert.deepEqual(skillOverrides, { 'ai1:worktrees-plan-recipe': 'off' }, 'ai1 shows the skills it hid; the person\'s own off stays');
   assert.match(contextText, /ai1 v0\.36\.0 turns every feature on unless the repo switches it off and migrated this repo: changed \.ai1\/config\.json, \.claude\/settings\.json; switched on: worktrees, later, design; to switch one off again, `ai1 init --disable <feature,\.\.\.>`/);
-  assert.match(contextText, /- later: Undecided changes noted down for later/, 'on in this same session');
+  assert.match(contextText, /Features on in \.ai1\/config\.json: .*\blater\b/, 'on in this same session');
 
   const clonedRoot = createTemporaryProject({ version: 2, features: { design: false } });
   startSessionThroughEntrypoint(clonedRoot, createUserHome());

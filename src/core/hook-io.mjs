@@ -3,6 +3,8 @@
 // Modules never write to stdout themselves: they return decisions, and this file turns the
 // combined decision into the shape each event expects.
 
+import { isContextList, renderContextParts } from './context-list.mjs';
+
 export const DECISION_KINDS = ['allow', 'ask', 'deny', 'block', 'context', 'notice'];
 
 // Higher rank wins when several modules decide on the same event.
@@ -26,9 +28,12 @@ export function blockDecision(moduleId, reason) {
   return { kind: 'block', moduleId, reason };
 }
 
-// SessionStart / UserPromptSubmit / PostToolUse only: text added to the agent's context.
-export function contextDecision(moduleId, text) {
-  return { kind: 'context', moduleId, text };
+// SessionStart / UserPromptSubmit / PostToolUse only: text added to the agent's context. `textOrParts`:
+// a string, or parts (strings and `contextList` lists, core/context-list.mjs) whose list items are left
+// out first when the event goes over the budget.
+export function contextDecision(moduleId, textOrParts) {
+  if (!Array.isArray(textOrParts)) return { kind: 'context', moduleId, text: textOrParts };
+  return { kind: 'context', moduleId, text: renderContextParts(textOrParts), parts: textOrParts };
 }
 
 // Any event: a message shown to the person (`systemMessage`), not to the agent; it never blocks
@@ -91,15 +96,54 @@ export function fitTextsToBudget(textEntries, separator, budgetCharacters = MAX_
   };
 }
 
+// Leaves out list items (contextList parts) until the texts fit `budgetCharacters`, one item at a time
+// from the longest list, so rule text is never cut while a list still has items to give.
+// `contextDecisions`: [{ moduleId, text, parts? }]. Returns [{ moduleId, text, droppedItems, removedCharacters }].
+export function dropListItemsToBudget(contextDecisions, separator, budgetCharacters = MAX_FIELD_CHARACTERS) {
+  const fittedEntries = contextDecisions.map((decision) => ({
+    moduleId: decision.moduleId,
+    originalLength: decision.text.length,
+    parts: decision.parts ? decision.parts.map((contextPart) => (isContextList(contextPart) ? { ...contextPart } : contextPart)) : null,
+    text: decision.text,
+    droppedItems: 0,
+  }));
+  const totalLength = () => fittedEntries.reduce((lengthSoFar, entry) => lengthSoFar + entry.text.length, 0)
+    + separator.length * Math.max(0, fittedEntries.length - 1);
+  while (totalLength() > budgetCharacters) {
+    let longestList = null;
+    let longestEntry = null;
+    for (const entry of fittedEntries) {
+      for (const contextPart of entry.parts || []) {
+        if (!isContextList(contextPart) || contextPart.shownCount === 0) continue;
+        if (!longestList || renderContextParts([contextPart]).length > renderContextParts([longestList]).length) {
+          longestList = contextPart;
+          longestEntry = entry;
+        }
+      }
+    }
+    if (!longestList) break;
+    longestList.shownCount -= 1;
+    longestEntry.droppedItems += 1;
+    longestEntry.text = renderContextParts(longestEntry.parts);
+  }
+  return fittedEntries.map((entry) => ({
+    moduleId: entry.moduleId,
+    text: entry.text,
+    droppedItems: entry.droppedItems,
+    removedCharacters: entry.originalLength - entry.text.length,
+  }));
+}
+
 export function combineDecisions(moduleDecisions) {
   const meaningfulDecisions = moduleDecisions.filter((decision) => decision && decision.kind !== 'allow');
   const noticeEntries = meaningfulDecisions.filter((decision) => decision.kind === 'notice')
     .map((decision) => ({ moduleId: decision.moduleId, text: `ai1/${decision.moduleId}: ${decision.text}` }));
   const fittedNotices = fitTextsToBudget(noticeEntries, NOTICE_SEPARATOR);
-  const contextEntries = meaningfulDecisions.filter((decision) => decision.kind === 'context')
-    .map((decision) => ({ moduleId: decision.moduleId, text: decision.text }));
-  const fittedContext = fitTextsToBudget(contextEntries, CONTEXT_SEPARATOR);
-  const trimmedModules = [...fittedContext.trimmedModules, ...fittedNotices.trimmedModules];
+  const listFittedEntries = dropListItemsToBudget(meaningfulDecisions.filter((decision) => decision.kind === 'context'), CONTEXT_SEPARATOR);
+  const fittedContext = fitTextsToBudget(listFittedEntries, CONTEXT_SEPARATOR);
+  const listTrims = listFittedEntries.filter((entry) => entry.droppedItems > 0)
+    .map((entry) => ({ moduleId: entry.moduleId, removedCharacters: entry.removedCharacters, droppedItems: entry.droppedItems }));
+  const trimmedModules = [...listTrims, ...fittedContext.trimmedModules, ...fittedNotices.trimmedModules];
   const withNotice = (combinedDecision) => ({
     ...combinedDecision,
     ...(fittedNotices.texts.length ? { notice: fittedNotices.texts.join(NOTICE_SEPARATOR) } : {}),

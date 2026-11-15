@@ -17,7 +17,7 @@ const MODULE_ID = 'okf-claude-md';
 
 export function buildClaudeMdHint(claudeMdReports) {
   return `ai1/okf: CLAUDE.md drifts from the bundle: ${summarizeClaudeMdReports(claudeMdReports)}. `
-    + 'Tell the person in one line and offer /ai1:okf-tidy-claude-md (details: `ai1 claude-md`); do not tidy it unasked.';
+    + 'Tell the person in one line and offer /ai1:okf-tidy-claude-md (`ai1 claude-md` has the details); never tidy it unasked.';
 }
 
 // What the findings are, not where they were seen: the same drift in another worktree is not news.

@@ -334,8 +334,8 @@ test('okf-index: names concepts changed after the overview and concepts no index
   writeFileSync(join(projectRoot, '.ai1', 'okf', 'app.md'), VALID_CONCEPT);
   commitAll(projectRoot, 'add a concept without touching the overview');
   const contextText = startSession(projectRoot, hookOptions()).hookSpecificOutput.additionalContext;
-  assert.match(contextText, /changed in commits after the last one that touched `\.ai1\/okf\/overview\.md`[^\n]*\n {2}- \.ai1\/okf\/app\.md/);
-  assert.match(contextText, /not linked from any index\.md[^\n]*\n {2}- \.ai1\/okf\/app\.md/);
+  assert.match(contextText, /Changed after the last commit that touched `\.ai1\/okf\/overview\.md`[^\n]*\n {2}- \.ai1\/okf\/app\.md/);
+  assert.match(contextText, /Not linked from any index\.md[^\n]*\n {2}- \.ai1\/okf\/app\.md/);
 });
 
 test('okf-index: a bundle in step with its overview and indexes gets no health notes', () => {
@@ -346,8 +346,8 @@ test('okf-index: a bundle in step with its overview and indexes gets no health n
   writeFileSync(join(projectRoot, '.ai1', 'okf', 'overview.md'), '---\ntype: Overview\n---\nHello, with features.\n');
   commitAll(projectRoot, 'add a linked concept and the overview');
   const contextText = startSession(projectRoot, hookOptions()).hookSpecificOutput.additionalContext;
-  assert.doesNotMatch(contextText, /changed in commits after/);
-  assert.doesNotMatch(contextText, /not linked from any index\.md/);
+  assert.doesNotMatch(contextText, /Changed after the last commit/);
+  assert.doesNotMatch(contextText, /Not linked from any index\.md/);
 });
 
 test('structure: a concept changed without a look at the overview asks once', () => {

@@ -25,7 +25,7 @@ export const PLUGIN_OVERLAPS = [
     pluginPattern: /^superpowers@/,
     features: ['sizing', 'worktrees', 'verify', 'craft'],
     action: 'disable',
-    reason: 'its session start makes the agent run its own skills on every task (brainstorming, writing-plans, using-git-worktrees, test-driven-development, verification-before-completion), which compete with the sizing, worktrees and verify gate of ai1',
+    reason: 'its session start makes the agent run its own planning, worktree and verification skills on every task, competing with ai1\'s sizing, worktrees and verify gate',
   },
   {
     pluginPattern: /^feature-dev@/,

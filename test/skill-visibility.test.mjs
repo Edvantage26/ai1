@@ -42,8 +42,8 @@ test('skill visibility: drift lists skills shown though their feature is off, or
 
 test('skill visibility: the session brief warns only on drift', () => {
   const syncedSettings = applySkillVisibility({}, LATER_OFF_CONFIG);
-  assert.doesNotMatch(buildHarnessBrief(LATER_OFF_CONFIG, [], [], syncedSettings), /do not match its features/);
-  assert.match(buildHarnessBrief(LATER_OFF_CONFIG, [], [], {}), /do not match its features \(.*ai1:later-write.*\).*`ai1 init`/);
+  assert.doesNotMatch(buildHarnessBrief(LATER_OFF_CONFIG, [], syncedSettings), /do not match its features/);
+  assert.match(buildHarnessBrief(LATER_OFF_CONFIG, [], {}), /do not match its features \(.*ai1:later-write.*\).*`ai1 init`/);
 });
 
 test('skill visibility: ai1 init writes skillOverrides for the features left off', () => {

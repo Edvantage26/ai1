@@ -5,7 +5,7 @@ description: A worktree per change (any edit to the repo files, created before t
 tags: [worktrees, git, skills, cli, hooks]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-14T23:51:36Z'
+  at: '2026-11-15T11:56:07Z'
 sources:
   - id: worktree-create
     resource: src/worktrees/worktree-create.mjs
@@ -71,7 +71,7 @@ that sets every field.
 | `/ai1:worktrees-plan-recipe` | `skills/worktrees-plan-recipe/SKILL.md` | Complete the project recipe when the basic recipe falls short (by the agent, reported in one line); refine it with the person (ports, services, shared data); `revisar`: update it. |
 | Project recipe | `<repo>/.claude/skills/worktree/recipe.json` (+ optional `SKILL.md`, `scripts/`) | Committed. Only the fields that differ from the basic recipe; prose rules when there are any. Template in `templates/worktree-skill/`. |
 | Engine | `ai1 worktree create\|list\|run\|finish\|drop` (`src/worktrees/`, `src/cli/worktree-cli.mjs`) | Deterministic operations driven by `recipe.json` (schema `schema/worktree-recipe.schema.json`). |
-| `worktree-brief` | SessionStart | The worktree rules, the basic recipe in one line and how to complete the project recipe; inside a worktree, names it. Byte-stable. |
+| `worktree-brief` | SessionStart | The worktree rules (a worktree before the first edit, its name in every progress report, close it without asking, fix recipe gaps yourself) with the `ai1 worktree` commands and /ai1:worktrees-plan-recipe as pointers; the project skill `/worktree` named only when the repo has it; inside a worktree, names it. Byte-stable. |
 | `worktree-reminder` | UserPromptSubmit | Active worktrees when they change and every `reminder_every` prompts, marking this session's. |
 | `danger` rules | PreToolUse | `git worktree remove --force` asks; plain remove asks when it would delete ignored files; `ai1 worktree drop --discard-uncommitted` asks; `finish` and a plain `drop` do not (since 2026-11-09: the agent commits in the branch and finishes once the work is verified, nothing is pushed, and drop keeps the commits in a bundle). |
 

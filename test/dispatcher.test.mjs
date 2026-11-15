@@ -6,6 +6,7 @@ import { MODULE_INDEX, loadModulesForEvent } from '../src/core/module-index.mjs'
 import { dispatchHookEvent } from '../src/core/hook-dispatch.mjs';
 import { KNOWN_FEATURE_IDS } from '../src/core/features.mjs';
 import { allowDecision, askDecision, blockDecision, noticeDecision, contextDecision, combineDecisions, buildHookOutput, fitTextsToBudget, MAX_FIELD_CHARACTERS } from '../src/core/hook-io.mjs';
+import { contextList, shortenListTitle, MAX_LIST_TITLE_CHARACTERS } from '../src/core/context-list.mjs';
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -50,19 +51,19 @@ test('a module switched off in .ai1/config.json does not run', () => {
   assert.equal(runHookEvent('PreToolUse', bashPayload(projectRoot, 'git reset --hard'), quietOptions), null);
 });
 
-test('session brief describes features, hooks and verify', () => {
+test('session brief names the features on and the verify commands', () => {
   const projectRoot = createTemporaryProject({ verify: ['npm test'], features: { okf: false } });
   const briefText = runHookEvent('SessionStart', { cwd: projectRoot }, quietOptions).hookSpecificOutput.additionalContext;
-  assert.match(briefText, /- danger:/);
-  assert.doesNotMatch(briefText, /- okf:/);
+  assert.match(briefText, /^Features on in \.ai1\/config\.json: .*\bdanger\b.*\.$/m);
+  assert.doesNotMatch(briefText, /Features on in .*\bokf\b/);
   assert.match(briefText, /`npm test`/);
 });
 
-test('session brief: a feature with its own session-start text gets only its title', () => {
+test('session brief: features are one line of ids, each feature with its own brief explains itself there', () => {
   const projectRoot = createTemporaryProject({ features: { okf: false, craft: true, danger: true } });
   const briefText = runHookEvent('SessionStart', { cwd: projectRoot }, quietOptions).hookSpecificOutput.additionalContext;
-  assert.match(briefText, /^- craft: Code craft rules$/m, 'craft explains itself in craft-brief');
-  assert.match(briefText, /^- danger: Confirms or refuses shell commands/m, 'danger has no brief of its own');
+  assert.match(briefText, /^Features on in \.ai1\/config\.json: (?=.*\bcraft\b)(?=.*\bdanger\b)/m);
+  assert.doesNotMatch(briefText, /Confirms or refuses shell commands|Hooks enforcing them/, 'no reference lists at session start');
   assert.match(briefText, /Craft: keep the code growing in order/, 'the craft brief still comes');
 });
 
@@ -152,11 +153,11 @@ test('the module index agrees with each module file, and an event loads only its
   assert.deepEqual((await loadModulesForEvent('PostToolUse', 'Read')).map((loadedModule) => loadedModule.id), ['okf-file-context']);
 });
 
-test('dispatchHookEvent lists every enabled module but runs only the loaded ones', () => {
+test('dispatchHookEvent names every enabled feature but runs only the loaded modules', () => {
   const projectRoot = createTemporaryProject({ verify: ['npm test'] });
   const briefModule = ALL_MODULES.find((loadedModule) => loadedModule.id === 'brief');
   const briefText = dispatchHookEvent('SessionStart', { cwd: projectRoot }, { ...quietOptions, runnableModules: [briefModule] }).hookSpecificOutput.additionalContext;
-  assert.match(briefText, /Hooks enforcing them: .*danger.*verify-gate/, 'the brief names modules that were not loaded');
+  assert.match(briefText, /Features on in .*\bdanger\b.*\bverify\b/, 'the brief names features whose modules were not loaded');
   assert.doesNotMatch(briefText, /Craft: keep the code growing/, 'craft-brief was not loaded, so it did not run');
 });
 
@@ -187,6 +188,31 @@ test('over the hook limit the longest texts are cut first, at a line end, and th
   assert.deepEqual(combinedDecision.trimmedModules.map((trimmedModule) => trimmedModule.moduleId), ['brief', 'okf-index']);
   const fittedTexts = fitTextsToBudget([{ moduleId: 'brief', text: longLines('a', 60) }, { moduleId: 'okf-index', text: longLines('b', 60) }], '\n\n');
   assert.ok(Math.abs(fittedTexts.texts[0].length - fittedTexts.texts[1].length) < 120, 'both cut to about the same length');
+});
+
+test('over the hook limit list items go first, from the longest list, and the rule text stays whole [session-start-diet:S2]', () => {
+  const ruleText = 'r'.repeat(5000);
+  const listItems = (letter, itemCount) => Array.from({ length: itemCount }, (_, itemNumber) => `- ${letter.repeat(90)} ${itemNumber}`);
+  const combinedDecision = combineDecisions([
+    contextDecision('brief', ruleText),
+    contextDecision('later-brief', ['Open later entries:', contextList(listItems('a', 60), (leftOutCount) => `- ... and ${leftOutCount} more in .ai1/later/README.md`)]),
+    contextDecision('sizing-brief', ['Unfinished plans:', contextList(listItems('b', 4), (leftOutCount) => `- ... and ${leftOutCount} more in .ai1/work/`)]),
+  ]);
+  assert.ok(combinedDecision.text.length <= MAX_FIELD_CHARACTERS);
+  assert.ok(combinedDecision.text.includes(ruleText), 'the rule text is not cut');
+  assert.doesNotMatch(combinedDecision.text, /characters left out/, 'no generic cut while lists had items');
+  assert.match(combinedDecision.text, /- \.\.\. and \d+ more in \.ai1\/later\/README\.md/);
+  assert.match(combinedDecision.text, /b{90} 3/, 'the short list keeps its items');
+  assert.deepEqual(combinedDecision.trimmedModules.map((trimmedModule) => trimmedModule.moduleId), ['later-brief']);
+  assert.ok(combinedDecision.trimmedModules[0].droppedItems > 0);
+});
+
+test('a list shows at most its shownAtMost items and says how many more; titles are shortened at a word', () => {
+  const shownList = contextDecision('later-brief', ['Open:', contextList(['- one', '- two', '- three', '- four'], (leftOutCount) => `- ... and ${leftOutCount} more`, { shownAtMost: 3 })]);
+  assert.equal(shownList.text, 'Open:\n- one\n- two\n- three\n- ... and 1 more');
+  const shortTitle = shortenListTitle('Guard writes to production databases when the agent runs migrations from a worktree');
+  assert.ok(shortTitle.length <= MAX_LIST_TITLE_CHARACTERS && shortTitle.endsWith('...'), shortTitle);
+  assert.equal(shortenListTitle('Short title'), 'Short title');
 });
 
 test('a session start over the hook limit is cut and logged as trimmed, not reported as an error', () => {

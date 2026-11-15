@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T11:08:25Z'
+  at: '2026-11-15T11:56:07Z'
 ---
 
 # Flow
@@ -47,8 +47,12 @@ generated:
    SessionStart, UserPromptSubmit, PreToolUse and PostToolUse `additionalContext`). A `notice` never competes:
    it is added as `systemMessage` (shown to the person, not the agent) to whatever was decided.
    The context texts, and the notices, of one event share a budget of 9,500 characters
-   (`MAX_FIELD_CHARACTERS`, under Claude Code's 10,000 per field, see Platform limits): over it,
-   `fitTextsToBudget` cuts the longest texts first, all to the same length and at a line end, with a
+   (`MAX_FIELD_CHARACTERS`, under Claude Code's 10,000 per field, see Platform limits). A module can
+   return its context as parts with `contextList` lists (`src/core/context-list.mjs`: the index lines,
+   concepts to check, related repositories, unfinished plans, open later entries); over the budget,
+   `dropListItemsToBudget` first leaves out list items, one at a time from the longest list, and each
+   list says how many it left out and where the full list is, so no rule text is cut while a list
+   has items. Only then `fitTextsToBudget` cuts the longest texts first, all to the same length and at a line end, with a
    marker naming the module, so short texts (often this session's state) stay whole. A cut module
    gets a `trimmed` entry in the [decision log](decision-log.md) with the characters left out; it is not
    an internal error. Since the cut takes the end, a module puts what depends on the repo or session
@@ -140,9 +144,14 @@ See [features](features.md), [okf feature](/features/okf.md), [sizing feature](/
 Measured 2026-11-09 on a Bash call in this repo (average of 10): about 162 ms per hook when every
 module was imported on every event, about 122 ms since v0.17.0 with only the event's modules (Node
 alone takes about 74 ms; a module of a feature the repo turned off is still imported for its event,
-the config is read after loading). Context at SessionStart: the `brief` gives a feature with its own
-session-start text only its title (about 1.1 KB less here); `okf-index` grows with the bundle index,
-capped at 6,000 characters (12,000 until 2026-11-15); 0 to about 1 KB per message (`okf-recall`, `later-recall`, when they match).
+the config is read after loading). Context at SessionStart (since 2026-11-15): the `brief` names the
+features in one line of ids; the briefs hold the rules and name the skill or `ai1` command that has
+each procedure; `okf-index` shows the index up to 3,000 characters (12,000 until 2026-11-15) and the
+lists show at most 3 items with titles cut to 60 characters. `test/session-start-budget.test.mjs`
+holds it: this repo and a default repo under 8,500 characters, a generated worst case (every feature,
+5 plans, 10 later entries, 12 unindexed concepts, a long index, 3 related) within the 9,500 budget with
+every rule text whole. This repo went from 12,217 to about 7,800 characters; the worst case lands right at the budget, with its lists absorbing the excess. 0 to about 1 KB per message
+(`okf-recall`, `later-recall`, when they match).
 
 Measured 2026-11-15 with `ai1 log` (17,005 runs, 29 sessions): guards per tool call 3-7 ms average;
 the slow one is `okf-upkeep` (332 ms average, 2.2 s max, it runs the validator); the SessionStart
@@ -168,6 +177,17 @@ From the hooks reference (code.claude.com/docs/en/hooks), checked 2026-11-15:
   the process), `PostToolBatch` (once per batch of tool calls), `FileChanged` (any source of a file
   change), `PostCompact`, `async` / `asyncRewake`, `InstructionsLoaded`. Newer than some installed
   Claude Code versions: check the minimum version before depending on them.
+
+Measured 2026-11-15 while shrinking the briefs: in a worst-case repo (every feature on, 5 unfinished
+plans, 10 open later entries, 12 concepts missing from the index, a long index, 3 related repos) the
+fixed rule texts of the session-start modules come to about 8,000 characters and the dynamic lists
+to about 7,000 more, so lists, not rules, are what grows with a repo.
+
+To measure one repo's session start without touching the person's log: pipe
+`{"hook_event_name":"SessionStart","source":"startup","session_id":"m","cwd":"<repo>"}` into
+`CLAUDE_PLUGIN_DATA=$(mktemp -d) node bin/ai1-hook.mjs SessionStart`; the decision log in that
+temporary `state/` directory has the characters of each module. `test/session-start-budget.test.mjs`
+does the same on generated repos and prints the per-module sizes when it fails.
 
 How to check: `ai1 log` for time and characters per module; the size of a SessionStart output shows
 in the session as `<persisted-output>` when it went over the cap.

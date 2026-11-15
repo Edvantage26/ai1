@@ -133,13 +133,13 @@ test('reuse-check is silent under the threshold, with the feature off, and honou
   assert.equal(stopTurn(tunedRepo, tunedOptions, tunedTranscript).decision, 'block');
 });
 
-test('reuse-brief: look up past work before redoing it, how to propose, only this repo; silent on resume and when off', () => {
+test('reuse-brief: look up past work before redoing it, only this repo; how to propose comes with reuse-check at Stop; silent on resume and when off', () => {
   const repoRoot = createReuseRepo();
   const startSession = (projectRoot, source) => runHookEvent('SessionStart', { session_id: 'session-1', cwd: projectRoot, source }, hookOptions());
   const contextText = startSession(repoRoot, 'startup').hookSpecificOutput.additionalContext;
   assert.match(contextText, /Reuse: work that comes back in this repo becomes a reusable piece/);
   assert.match(contextText, /run `ai1 reuse search "<3-5 keywords>"` first/);
-  assert.match(contextText, /Do not stop the task to ask\. A yes means loading \/ai1:reuse-encapsulate/);
+  assert.doesNotMatch(contextText, /reuse-encapsulate/, 'the proposal rules come with reuse-check at Stop');
   assert.match(contextText, /Only this repo: never search, cite or propose from other repos' sessions\./);
   assert.doesNotMatch(startSession(repoRoot, 'resume')?.hookSpecificOutput?.additionalContext || '', /Reuse:/);
   const offRepo = createTemporaryProject({ version: 1, features: { reuse: false } });

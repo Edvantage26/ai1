@@ -13,6 +13,7 @@ import {
   listPlanRoots, listWorkPlans, isPlanFinished, isSessionPlan, readSessionPlanSlugs, readApprovals, isPlanApproved, ensureWorkDirectoryIgnored,
 } from './sizing-work.mjs';
 import { WORK_DIRECTORY } from '../core/config.mjs';
+import { contextList, shortenListTitle } from '../core/context-list.mjs';
 
 const MODULE_ID = 'sizing-brief';
 const PROGRESS_TAIL_LINES = 15;
@@ -22,9 +23,9 @@ export function buildSizingRecipe(verifyCommands, usesWorktrees = false) {
   return [
     'Sizing: size every new task before acting and say the size in one line ("Size: quick, because ...").',
     `- quick: a clear, contained change that could be resumed from the request and \`git diff\` alone (a bug, a wording, a small tweak). Do it, run ${verifyText}, report.`,
-    '- plan: several pieces but a clear goal. Read the relevant code, say the plan in a few lines (files, steps, how you will verify) and start; do not wait for a yes. Only when it has more than about 3 steps or may not finish in one go, also write it to `' + WORK_DIRECTORY + '/<slug>/plan.md` (frontmatter `size: plan`, `status: active`, `title`; the goal, steps as `- [ ]` checkboxes, how you will verify) so it survives compaction; tick each step as you finish it and close with `ai1 plan-done <slug>`.',
-    '- deep: unclear goal, design choices, a risky area (auth, data or irreversible effects, money, migrations, a public API or contract others use, concurrency, deploy or environment, code no test would catch breaking) or hours of work. Load the /ai1:sizing-design-before-code skill and follow it: questions, a design in `' + WORK_DIRECTORY + '/<slug>/plan.md`, approval by the person, then step by step.',
-    ...(usesWorktrees ? ['- plan and deep tasks are built in their own worktree (see Worktrees); name it in the plan so it survives compaction.'] : []),
+    '- plan: several pieces, a clear goal. Say the plan in a few lines (files, steps, how you will verify) and start; do not wait for a yes. Over about 3 steps or more than one go, also write `' + WORK_DIRECTORY + '/<slug>/plan.md` (frontmatter `size: plan`, `status: active`, `title`; steps as `- [ ]`), tick each step and close with `ai1 plan-done <slug>`.',
+    '- deep: unclear goal, design choices, a risky area (auth, data or irreversible effects, money, migrations, a public API or contract others use, concurrency, deploy or environment, code no test would catch breaking) or hours of work. Load /ai1:sizing-design-before-code and follow it (a design the person approves before code).',
+    ...(usesWorktrees ? ['- plan and deep tasks are built in their own worktree; name it in the plan.'] : []),
     'Pick the lightest size that fits; the number of files never decides it. "rápido"/"quick" or "piénsalo bien"/"think it through" from the person sets the size. When a quick task grows, stop and move to plan.',
   ].join('\n');
 }
@@ -35,18 +36,26 @@ function readProgressTail(planPath) {
   return readFileSync(progressPath, 'utf8').trimEnd().split('\n').slice(-PROGRESS_TAIL_LINES).join('\n');
 }
 
+const MAX_LISTED_PLANS = 3;
+
+// Parts for contextDecision. After a compaction, this session's plans come whole with their progress
+// (the work depends on them); at startup the repo's unfinished plans are a list that can lose items.
 export function describeUnfinishedPlans(workPlans, approvals, { withProgress }) {
-  if (workPlans.length === 0) return '';
-  const planLines = ['Unfinished plans in this repo:'];
-  for (const workPlan of workPlans) {
+  if (workPlans.length === 0) return [];
+  const describePlan = (workPlan) => {
     const approvalText = workPlan.size === 'plan' ? 'plan task' : isPlanApproved(workPlan, approvals) ? 'approved by the person' : 'not approved yet';
-    planLines.push(`- \`${workPlan.relativePath}\` "${workPlan.title}" (status: ${workPlan.status}, ${approvalText})`);
-    if (withProgress) planLines.push(`  Last progress:\n${readProgressTail(workPlan.planPath).replace(/^/gm, '    ')}`);
-  }
-  planLines.push(withProgress
-    ? 'Context was compacted: trust these files and `git log` over your memory of the work. Re-read the plan before the next step.'
-    : 'Resume one only if the person asks for it; mark a plan `status: abandoned` when the person drops it.');
-  return planLines.join('\n');
+    const titleText = withProgress ? workPlan.title : shortenListTitle(workPlan.title || '');
+    const planLine = `- \`${workPlan.relativePath}\` "${titleText}" (status: ${workPlan.status}, ${approvalText})`;
+    return withProgress ? `${planLine}\n  Last progress:\n${readProgressTail(workPlan.planPath).replace(/^/gm, '    ')}` : planLine;
+  };
+  const planItems = workPlans.map(describePlan);
+  return [
+    'Unfinished plans in this repo:',
+    withProgress ? planItems.join('\n') : contextList(planItems, (leftOutCount) => `- ... and ${leftOutCount} more in \`${WORK_DIRECTORY}/\``, { shownAtMost: MAX_LISTED_PLANS }),
+    withProgress
+      ? 'Context was compacted: trust these files and `git log` over your memory of the work. Re-read the plan before the next step.'
+      : 'Resume one only if the person asks for it; mark a plan `status: abandoned` when the person drops it.',
+  ];
 }
 
 export default {
@@ -71,10 +80,10 @@ export default {
       : [];
     const contextParts = [buildSizingRecipe(config.verify, isFeatureEnabled('worktrees', config))];
     const approvals = readApprovals(sharedRoot, environment);
-    const planDescription = plansToRestore.length
+    const planParts = plansToRestore.length
       ? describeUnfinishedPlans(plansToRestore, approvals, { withProgress: true })
       : describeUnfinishedPlans(unfinishedPlans, approvals, { withProgress: false });
-    if (planDescription) contextParts.push(planDescription);
-    return contextDecision(MODULE_ID, contextParts.join('\n\n'));
+    if (planParts.length) contextParts.push('', ...planParts);
+    return contextDecision(MODULE_ID, contextParts);
   },
 };

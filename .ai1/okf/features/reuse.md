@@ -5,7 +5,7 @@ description: Reuse - after real work the session judges whether it will recur in
 tags: [reuse, skills, hooks, cli, transcripts]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-14T20:38:40Z'
+  at: '2026-11-15T11:56:07Z'
 sources:
   - id: reuse-history
     resource: src/reuse/reuse-history.mjs
@@ -31,7 +31,8 @@ Built 2026-11-13 (deep plan `reuse`). On by default since v0.36.0 ([all features
   background observer (unlike ECC continuous-learning), no counting ledger: the repo's own transcripts
   are the count.
 - `reuse-brief` (SessionStart): before a task that sounds done before here, run `ai1 reuse search`
-  and reuse how it was done; how to word a proposal; only this repo.
+  and reuse how it was done; only this repo. How to word a proposal comes with `reuse-check` at Stop
+  (since 2026-11-15, to keep the session start under the hook limit).
 - `reuse-check` (Stop): tool calls counted from the transcript (incremental) across turns; at
   `modules.reuse-check.minToolCalls` (default 8) since the last check it blocks once asking for a silent judgement:
   low → finish without a word to the person (asked on 2026-11-13: a check that found nothing must not reach them); medium → `ai1 reuse search` and propose only with evidence, else silent; high → propose. The count

@@ -55,7 +55,7 @@ function writePlan(projectRoot, slug, status, title = 'Billing export') {
 
 const editCode = (projectRoot) => ({ file_path: join(projectRoot, 'src', 'app.js'), old_string: '1', new_string: '2' });
 
-test('sizing-brief: the recipe names the three sizes, the verify command and the deep skill [rename-lanes-to-sizing:S1]', () => {
+test('sizing-brief: the recipe names the three sizes, the verify command and the deep skill [rename-lanes-to-sizing:S1] [session-start-diet:S3]', () => {
   const projectRoot = createSizingRepo();
   const contextText = startSession(projectRoot, hookOptions()).hookSpecificOutput.additionalContext;
   assert.ok(contextText.includes('Sizing: size every new task before acting and say the size in one line ("Size: quick, because ...").'));

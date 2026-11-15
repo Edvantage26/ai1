@@ -17,11 +17,11 @@ export function buildCraftRecipe(config) {
     : 'the code';
   return [
     'Craft: keep the code growing in order.',
-    '- Simplicity: write the minimum code that solves the task. No features, options or abstractions nobody asked for, no handling for cases that cannot happen.',
-    '- Surgical changes: every changed line traces to the request. Match the style of the surrounding code; do not reformat or "improve" code next to yours. Remove only what your own change left unused.',
+    '- Simplicity: the minimum code that solves the task; no features, options or abstractions nobody asked for, no handling for cases that cannot happen.',
+    '- Surgical changes: every changed line traces to the request; match the surrounding style, do not reformat or "improve" code next to yours, remove only what your change left unused.',
     `- Reuse before writing: before adding a function, helper or pattern, look in ${reuseSources} for one that already does it, and follow the existing way of adding that kind of piece.`,
-    '- Refactors: when you see duplicated code, dead code, or an abstraction that is missing or not needed, mention it in one line (what and why) at the end of your report, without stopping to ask; apply it right away only when it is trivial.',
-    '- Names: self-explanatory, saying what a variable holds or what a function does, even if long. No single letters or cryptic abbreviations; follow the casing of the language and the repo.',
+    '- Refactors: duplicated or dead code, or an abstraction missing or not needed: mention it in one line (what and why) at the end of your report, without stopping to ask; apply it at once only when trivial.',
+    '- Names: self-explanatory (what a variable holds, what a function does), even if long; no single letters or cryptic abbreviations; the casing of the language and the repo.',
   ].join('\n');
 }
 

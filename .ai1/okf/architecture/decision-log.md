@@ -16,7 +16,7 @@ sources:
     title: Later 0005
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T11:08:25Z'
+  at: '2026-11-15T11:56:07Z'
 ---
 
 Built 2026-11-09 from later 0005; decision in [harness guards](../decisions/harness-guards.md).
@@ -30,7 +30,7 @@ by its worktrees):
 
 `{ at, session, event, tool, module, decision, ms, chars, toolUse?, rules?, error?, removed? }` - `decision` is
 the module's kind (`allow` included, `error` when it threw, `trimmed` for an extra entry when its text
-was cut to fit the hook limit, with `removed` the characters left out; `ai1 log` counts it as a cut, not a run), `chars` the length of the context text or
+was cut to fit the hook limit, with `removed` the characters left out and `droppedItems` the list items left out, if any; `ai1 log` counts it as a cut, not a run), `chars` the length of the context text or
 reason it added, `toolUse` the PreToolUse `tool_use_id` (an opaque id, so the [retro](../features/retro.md)
 can find the person's answer), `rules` the rule ids behind an ask or deny (`ruleIds` of
 `askDecision`/`denyDecision`: danger, test-guard, repo-rules, config-guard), `error` the signature of a

@@ -82,6 +82,7 @@ function combineAndLogTrims(moduleDecisions, eventName, hookInput, { sharedRoot,
     ms: 0,
     chars: 0,
     removed: trimmedModule.removedCharacters,
+    ...(trimmedModule.droppedItems ? { droppedItems: trimmedModule.droppedItems } : {}),
   })), sharedRoot, environment);
   return combinedDecision;
 }

@@ -139,7 +139,7 @@ test('later index: keeps what people wrote around the generated table', () => {
   assert.match(indexText, /0002-secret-scan/);
 });
 
-test('later-brief: the recipe and the open entries; silent on resume; off with features.later false', () => {
+test('later-brief: the recipe and the open entries; silent on resume; off with features.later false [session-start-diet:S3]', () => {
   const projectRoot = createLaterEntryRepo();
   createLaterEntry(projectRoot, { slug: 'prod-guard', size: 'idea', title: 'Guard writes to production' });
   createLaterEntry(projectRoot, { slug: 'old-idea' });

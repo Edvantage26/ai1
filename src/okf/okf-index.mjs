@@ -3,6 +3,7 @@
 // this session changed.
 
 import { contextDecision } from '../core/hook-io.mjs';
+import { contextList } from '../core/context-list.mjs';
 import { recordSessionBaseHead } from '../core/session-base.mjs';
 import {
   resolveBundleDirectory, readBundleIndex, readBundleSpecVersion, buildMaintenanceRules, overviewFileName,
@@ -13,22 +14,35 @@ import { describeBundleLocation, resolveRelatedEntries } from './okf-related.mjs
 
 const MODULE_ID = 'okf-index';
 // Under the 9,500 characters all session-start texts share (MAX_FIELD_CHARACTERS in core/hook-io.mjs),
-// so a long index is cut here, with the pointer to index.md, before the generic cut.
-const MAX_INDEX_CHARACTERS = 6000;
-const MAX_LISTED_CONCEPTS = 10;
+// so a long index is cut here, with the pointer to index.md, before the generic cut. The index is a map
+// (its first lines matter most); okf-recall and okf-file-context bring the concepts on demand.
+const MAX_INDEX_CHARACTERS = 3000;
+const MAX_LISTED_CONCEPTS = 3;
 
 // The related repositories of .ai1/config.json, with where each one's knowledge is on this machine.
-export function buildRelatedLines(projectRoot, relatedEntries = []) {
+export function buildRelatedParts(projectRoot, relatedEntries = []) {
   if (!relatedEntries.length) return [];
   return [
     '',
-    'Related repositories (`related` in .ai1/config.json): their knowledge lives in their own bundles. Read the relevant one before changing anything that depends on it; each fact lives in the repository that changes it, this repo only links to it:',
-    ...resolveRelatedEntries(projectRoot, relatedEntries).map((resolvedEntry) => {
+    'Related repositories (`related` in .ai1/config.json), each with its own knowledge: read it before changing what depends on it:',
+    contextList(resolveRelatedEntries(projectRoot, relatedEntries).map((resolvedEntry) => {
       const { entry } = resolvedEntry;
       const detailText = [entry.branch ? `branch \`${entry.branch}\`` : null, entry.owns?.length ? `owns: ${entry.owns.join('; ')}` : null].filter(Boolean).join(', ');
       return `- ${entry.name}${detailText ? ` (${detailText})` : ''}: ${describeBundleLocation(projectRoot, resolvedEntry)}`;
-    }),
+    }), (leftOutCount) => `- ... and ${leftOutCount} more under \`related\` in .ai1/config.json`),
   ];
+}
+
+// The index as lines that can be left out from the end: its first lines (the map's top) matter most.
+function buildIndexList(indexText, bundleRelativePath) {
+  const indexLines = indexText.split('\n');
+  let shownLines = 0;
+  let shownLength = 0;
+  while (shownLines < indexLines.length && shownLength + indexLines[shownLines].length + 1 <= MAX_INDEX_CHARACTERS) {
+    shownLength += indexLines[shownLines].length + 1;
+    shownLines += 1;
+  }
+  return contextList(indexLines, (leftOutCount) => `[... ${leftOutCount} more lines of the index; read ${bundleRelativePath}/index.md]`, { shownAtMost: Math.max(1, shownLines) });
 }
 
 export default {
@@ -45,19 +59,16 @@ export default {
     }
     recordSessionBaseHead(hookInput, projectRoot, environment);
     const specVersion = readBundleSpecVersion(indexText);
-    const visibleIndex = indexText.length > MAX_INDEX_CHARACTERS
-      ? `${indexText.slice(0, MAX_INDEX_CHARACTERS)}\n[... index truncated; read ${bundleRelativePath}/index.md]`
-      : indexText;
     return contextDecision(MODULE_ID, [
       `This repo keeps its knowledge in an OKF bundle at \`${bundleRelativePath}/\` (spec ${specVersion || 'unknown'}). READ IT BEFORE touching code: start from the index below and follow the links relevant to the task.`,
       'After a change that affects a documented asset (service, API, schema, feature, decision):',
       ...buildMaintenanceRules(bundleRelativePath, specVersion).map((maintenanceRule) => `- ${maintenanceRule}`),
       ...buildBundleHealthNotes(projectRoot, bundleDirectory, bundleRelativePath),
-      ...buildRelatedLines(projectRoot, config?.related),
+      ...buildRelatedParts(projectRoot, config?.related),
       '',
       `--- ${bundleRelativePath}/index.md ---`,
-      visibleIndex,
-    ].join('\n'));
+      buildIndexList(indexText, bundleRelativePath),
+    ]);
   },
 };
 
@@ -65,20 +76,18 @@ export default {
 // overview was last committed, and concepts no index.md links to.
 function buildBundleHealthNotes(projectRoot, bundleDirectory, bundleRelativePath) {
   const healthNotes = [];
-  const listPaths = (conceptPaths) => [
-    ...conceptPaths.slice(0, MAX_LISTED_CONCEPTS).map((conceptPath) => `  - ${conceptPath}`),
-    ...(conceptPaths.length > MAX_LISTED_CONCEPTS ? [`  - ... and ${conceptPaths.length - MAX_LISTED_CONCEPTS} more`] : []),
-  ];
+  const listPaths = (conceptPaths, whereAll) => [contextList(conceptPaths.map((conceptPath) => `  - ${conceptPath}`),
+    (leftOutCount) => `  - ... and ${leftOutCount} more (${whereAll})`, { shownAtMost: MAX_LISTED_CONCEPTS })];
   const overviewPath = `${bundleRelativePath}/${overviewFileName(bundleDirectory)}`;
   const conceptsChangedSinceOverview = listConceptsChangedSinceOverview(projectRoot, bundleRelativePath);
   if (conceptsChangedSinceOverview.length) {
-    healthNotes.push('', `These concepts changed in commits after the last one that touched \`${overviewPath}\`, so the overview may not describe them yet. Read them before trusting the overview and, if the task touches them, bring the overview up to date:`);
-    healthNotes.push(...listPaths(conceptsChangedSinceOverview));
+    healthNotes.push('', `Changed after the last commit that touched \`${overviewPath}\` (the overview may not describe them yet; if the task touches them, update the overview):`);
+    healthNotes.push(...listPaths(conceptsChangedSinceOverview, `\`git log --name-only\` of ${bundleRelativePath}/ since the overview's last commit lists them`));
   }
   const conceptsMissingFromIndex = listConceptsMissingFromIndex(bundleDirectory);
   if (conceptsMissingFromIndex.length) {
-    healthNotes.push('', 'These concepts are not linked from any index.md of the bundle (nobody finds them from the index); link each one from the index.md of its folder when you next edit the bundle:');
-    healthNotes.push(...listPaths(conceptsMissingFromIndex.map((conceptPath) => `${bundleRelativePath}/${conceptPath}`)));
+    healthNotes.push('', 'Not linked from any index.md (link each from its folder\'s index.md when you next edit the bundle):');
+    healthNotes.push(...listPaths(conceptsMissingFromIndex.map((conceptPath) => `${bundleRelativePath}/${conceptPath}`), 'the concept files no index.md links to'));
   }
   return healthNotes;
 }

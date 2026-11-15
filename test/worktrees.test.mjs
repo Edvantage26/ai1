@@ -349,12 +349,14 @@ function hookOptions(mainRoot) {
 
 const contextOf = (hookOutput) => hookOutput?.hookSpecificOutput?.additionalContext ?? '';
 
-test('worktree-brief: gives the rules with the basic recipe or a project recipe, says how to complete the project recipe, names the session worktree', () => {
+test('worktree-brief: gives the rules with the basic recipe or a project recipe, says how to complete the project recipe, names the session worktree [session-start-diet:S3]', () => {
   const bareRoot = createTemporaryProject({ features: { okf: false, worktrees: true } });
   runGit(bareRoot, ['init', '-q']);
   const bareContext = contextOf(runHookEvent('SessionStart', { session_id: 's', cwd: bareRoot, source: 'startup' }, hookOptions(bareRoot)));
   assert.match(bareContext, /Worktrees: any change to the files of this repo happens in a worktree/, 'no recipe file needed');
-  assert.match(bareContext, /ai1 works it out from the repo[\s\S]*add the fix there yourself \(only the fields that differ[\s\S]*say it in one line; propose it first when it would share a folder that holds state or delete data/);
+  assert.match(bareContext, /add the fix to \.claude\/skills\/worktree\/recipe\.json yourself \(\/ai1:worktrees-plan-recipe\) and say it in one line; propose it first when it would share a folder that holds state or delete data/);
+  assert.match(bareContext, /Start every progress report with one line naming the worktree you work in/);
+  assert.match(bareContext, /Close it yourself, without asking, once the work is done and verified/);
   assert.doesNotMatch(bareContext, /no worktree recipe/);
   const mainRoot = createRecipeRepo();
   mkdirSync(join(mainRoot, '.ai1'), { recursive: true });

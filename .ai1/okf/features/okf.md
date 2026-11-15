@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index and bundle health notes 
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T11:08:25Z'
+  at: '2026-11-15T11:56:07Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -44,11 +44,12 @@ sources:
 
 # What it does
 
-- **okf-index (SessionStart):** reads `.ai1/okf/index.md`, injects it (up to
-  6,000 characters, under the shared session-start budget of [hook runtime](../architecture/hook-runtime.md)) with the maintenance rules, and records the HEAD at session start in the
+- **okf-index (SessionStart):** reads `.ai1/okf/index.md`, injects it (its first lines up to
+  3,000 characters, the rest left out with a pointer to `index.md`; the lines are a list the shared
+  session-start budget of [hook runtime](../architecture/hook-runtime.md) can shorten further) with the maintenance rules, and records the HEAD at session start in the
   session state. Without a bundle it suggests creating one with `/ai1:okf-maintain-knowledge`.
-  Since 2026-11-09 it adds, only when there is something to say, two bundle health notes (at most 10
-  paths each): concepts changed in commits after the last commit that touched the overview
+  Since 2026-11-09 it adds, only when there is something to say, two bundle health notes (at most 3
+  paths each, 10 until 2026-11-15, with how many more and how to find them): concepts changed in commits after the last commit that touched the overview
   (`overview.md`, or the root `index.md` when the bundle has none), so the overview may not describe
   them; and concepts no `index.md` of the bundle links to (a link starting with `/` is read from the
   bundle root). The overview itself is not injected: the index links to it, and injecting it would

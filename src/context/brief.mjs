@@ -15,7 +15,7 @@ import { join } from 'node:path';
 
 const MODULE_ID = 'brief';
 
-export function buildHarnessBrief(config, enabledModules, enabledPluginIds = [], projectSettings = {}) {
+export function buildHarnessBrief(config, enabledPluginIds = [], projectSettings = {}) {
   const activeFeatures = FEATURES.filter((featureDefinition) => !featureDefinition.alwaysOn && isFeatureEnabled(featureDefinition.id, config));
   // Most important first: when the session-start texts go over the hook limit, the cut takes the end
   // (core/hook-io.mjs). Warnings about this repo, then how to work, then the reference lists.
@@ -29,7 +29,7 @@ export function buildHarnessBrief(config, enabledModules, enabledPluginIds = [],
   }
   const driftedSkills = findSkillVisibilityDrift(projectSettings, config);
   if (driftedSkills.length) {
-    briefLines.push(`The skills listed for this repo do not match its features (${driftedSkills.join(', ')}): .ai1/config.json changed without /ai1:core-setup-repo. Tell the person once; running \`ai1 init\` again with the same features fixes \`skillOverrides\` in .claude/settings.json.`);
+    briefLines.push(`The skills listed for this repo do not match its features (${driftedSkills.join(', ')}): tell the person once; \`ai1 init\` again with the same features fixes \`skillOverrides\`.`);
   }
   briefLines.push('When an ai1 hook asks or refuses, follow its reason; do not work around it.');
   briefLines.push('Ask the person only for what is truly delicate: a deep design, publishing (push, tag, release), production, or what an ai1 guard flags. Everything else (creating, committing in and finishing a worktree, a plan, a step you recommend) you do, then report in one line; the person can stop you. Do not end a reply with a question you could answer yourself, do not re-ask a pending question, and a yes covers what you recommended.');
@@ -39,19 +39,11 @@ export function buildHarnessBrief(config, enabledModules, enabledPluginIds = [],
       ? `Before saying a change is done, run: ${verifyList}, in full (no filters); the verify gate checks it when you stop.`
       : `Before saying a change is done, run: ${verifyList}.`);
   }
-  // A feature with its own session-start text explains itself there: here only its title.
-  const featuresWithOwnBrief = new Set(enabledModules
-    .filter((moduleDefinition) => moduleDefinition.event === 'SessionStart' && moduleDefinition.id !== MODULE_ID)
-    .map((moduleDefinition) => moduleDefinition.feature));
+  // The features as one line of ids: each one with its own session-start text explains itself there,
+  // the others are enforced by their hooks at the moment (`ai1 status` lists them for the person).
   if (activeFeatures.length) {
-    briefLines.push('Features enabled in .ai1/config.json:');
-    for (const featureDefinition of activeFeatures) {
-      const featureSummary = featuresWithOwnBrief.has(featureDefinition.id) ? featureDefinition.title : featureDefinition.description;
-      briefLines.push(`- ${featureDefinition.id}: ${featureSummary}`);
-    }
+    briefLines.push(`Features on in .ai1/config.json: ${activeFeatures.map((featureDefinition) => featureDefinition.id).join(', ')}.`);
   }
-  const hookModules = enabledModules.filter((moduleDefinition) => moduleDefinition.id !== MODULE_ID);
-  if (hookModules.length) briefLines.push(`Hooks enforcing them: ${hookModules.map((moduleDefinition) => moduleDefinition.id).join(', ')}.`);
   return briefLines.join('\n');
 }
 
@@ -60,11 +52,11 @@ export default {
   event: 'SessionStart',
   feature: 'core',
   description: 'Summarizes the active harness for the agent at session start.',
-  run({ hookInput, config, projectRoot, environment, homeDirectory = homedir(), enabledModules }) {
+  run({ hookInput, config, projectRoot, environment, homeDirectory = homedir() }) {
     // Every feature that judges "what this session changed" needs the HEAD at session start.
     recordSessionBaseHead(hookInput, projectRoot, environment);
     const enabledPluginIds = readEnabledPlugins(projectRoot, join(homeDirectory, '.claude', 'settings.json'));
     const projectSettings = readJsonFileIfValid(join(projectRoot, '.claude', 'settings.json')) ?? {};
-    return contextDecision(MODULE_ID, buildHarnessBrief(config, enabledModules, enabledPluginIds, projectSettings));
+    return contextDecision(MODULE_ID, buildHarnessBrief(config, enabledPluginIds, projectSettings));
   },
 };
