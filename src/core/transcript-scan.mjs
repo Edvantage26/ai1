@@ -47,3 +47,29 @@ export function eventContentBlocks(transcriptEvent, blockType) {
   const contentBlocks = transcriptEvent?.message?.content;
   return Array.isArray(contentBlocks) ? contentBlocks.filter((contentBlock) => contentBlock?.type === blockType) : [];
 }
+
+// A prompt the person typed: a user event that is not a tool result and not text injected by
+// Claude Code (skill bodies, reminders: `isMeta`).
+export function isPersonPromptEvent(transcriptEvent) {
+  if (transcriptEvent?.type !== 'user' || transcriptEvent.isMeta) return false;
+  const messageContent = transcriptEvent.message?.content;
+  if (typeof messageContent === 'string') return true;
+  return Array.isArray(messageContent)
+    && messageContent.some((contentBlock) => contentBlock?.type === 'text')
+    && !messageContent.some((contentBlock) => contentBlock?.type === 'tool_result');
+}
+
+// The events of the agent's last turn: what follows the person's last prompt, read from the end of
+// the transcript. The prompt being submitted may already be written: a prompt with nothing after it
+// is skipped. A turn longer than the tail read is cut at its start. Null without a transcript.
+export function readLastAgentTurnEvents(transcriptPath, tailBytes = 4 * 1024 * 1024) {
+  if (!transcriptPath || !existsSync(transcriptPath)) return null;
+  const transcriptSize = statSync(transcriptPath).size;
+  const scanState = { offset: Math.max(0, transcriptSize - tailBytes) };
+  const tailEvents = readNewTranscriptEvents(transcriptPath, scanState, ['"type":"user"', '"type":"assistant"'])?.events ?? [];
+  let turnEnd = tailEvents.length;
+  while (turnEnd > 0 && isPersonPromptEvent(tailEvents[turnEnd - 1])) turnEnd -= 1;
+  let turnStart = turnEnd;
+  while (turnStart > 0 && !isPersonPromptEvent(tailEvents[turnStart - 1])) turnStart -= 1;
+  return tailEvents.slice(turnStart, turnEnd);
+}

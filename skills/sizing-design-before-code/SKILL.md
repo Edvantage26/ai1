@@ -88,7 +88,10 @@ minor (your ruling, recorded), and the person's (ask them, in one message).
 Set `status: ready` and show the person a short summary: goal, behaviour scenarios, chosen approach, steps, risks,
 and the rulings you made. Ask them to approve or to say what to change. A plain yes from them
 ("aprobado", "adelante", "ok", "go ahead") is recorded by the `sizing-approval` hook and opens code
-edits. If they ask for changes, update the plan, keep `status: ready` and ask again.
+edits, but only right after a turn of yours that wrote the plan: ask in the same turn you set it
+ready or update it. If they ask for changes or question the design, update the plan, keep
+`status: ready` and ask again in that turn; a yes to any other question ("shall I change it?")
+approves nothing.
 
 ## 7. Build step by step
 

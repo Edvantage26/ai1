@@ -338,6 +338,56 @@ test('sizing-approval: a yes approves this session\'s ready design, never anothe
   assert.match(readFileSync(otherPlanPath, 'utf8'), /status: ready/);
 });
 
+// A transcript of whole turns: each entry is a person's prompt (string) or the agent's tool calls.
+function writeConversation(options, sessionId, turns) {
+  const transcriptPath = join(options.homeDirectory, `${sessionId}.jsonl`);
+  const transcriptLines = turns.flatMap((turn, turnIndex) => (typeof turn === 'string'
+    ? [JSON.stringify({ type: 'user', message: { role: 'user', content: turn } })]
+    : turn.map((toolUse, toolIndex) => JSON.stringify({ type: 'assistant', message: { content: [{ type: 'tool_use', id: `t${turnIndex}-${toolIndex}`, ...toolUse }] } }))));
+  writeFileSync(transcriptPath, `${transcriptLines.join('\n')}\n`);
+  return transcriptPath;
+}
+
+test('sizing-approval: a yes to another question after the design was presented approves nothing', () => {
+  const projectRoot = createSizingRepo();
+  const options = hookOptions();
+  const planPath = writePlan(projectRoot, 'billing', 'ready');
+  const presentPlan = [{ name: 'Edit', input: { file_path: planPath, old_string: 'status: draft', new_string: 'status: ready' } }];
+  const answerOnly = [{ name: 'Read', input: { file_path: join(projectRoot, 'src', 'app.js') } }];
+  // Seen on 2026-11-15: the person questioned a ready design, the agent asked "shall I change it and
+  // present it again?" and the "Si" approved the old design.
+  const transcriptPath = writeConversation(options, 'session-a', ['diseña el export', presentPlan, '¿no es peligroso depender de un texto?', answerOnly]);
+  runAs('session-a', transcriptPath, 'SessionStart', projectRoot, options, { source: 'startup' });
+  const yesOutput = runAs('session-a', transcriptPath, 'UserPromptSubmit', projectRoot, options, { prompt: 'Si' });
+  assert.match(yesOutput.hookSpecificOutput.additionalContext, /billing\/plan\.md` is NOT approved/);
+  assert.match(readFileSync(planPath, 'utf8'), /status: ready/);
+  assert.equal(runAs('session-a', transcriptPath, 'PreToolUse', projectRoot, options, { tool_name: 'Edit', tool_input: editCode(projectRoot) }).hookSpecificOutput.permissionDecision, 'deny');
+  // The agent re-presents the plan in its turn: now the yes approves, also with the prompt already written.
+  writeConversation(options, 'session-a', ['diseña el export', presentPlan, '¿no es peligroso?', answerOnly, 'Si', presentPlan, 'Si']);
+  assert.match(runAs('session-a', transcriptPath, 'UserPromptSubmit', projectRoot, options, { prompt: 'Si' }).hookSpecificOutput.additionalContext, /approved the design/);
+  assert.match(readFileSync(planPath, 'utf8'), /status: approved/);
+});
+
+test('readLastAgentTurnEvents: the turn after the last prompt, skipping meta and tool results', async () => {
+  const { readLastAgentTurnEvents } = await import('../src/core/transcript-scan.mjs');
+  const transcriptPath = join(mkdtempSync(join(tmpdir(), 'ai1-turn-')), 't.jsonl');
+  const transcriptLines = [
+    { type: 'user', message: { content: 'first' } },
+    { type: 'assistant', message: { content: [{ type: 'tool_use', id: 'old', name: 'Read', input: {} }] } },
+    { type: 'user', message: { content: [{ type: 'text', text: 'second' }] } },
+    { type: 'assistant', message: { content: [{ type: 'tool_use', id: 'new', name: 'Read', input: {} }] } },
+    { type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'new', content: 'x' }] } },
+    { type: 'user', isMeta: true, message: { content: [{ type: 'text', text: 'skill body' }] } },
+    { type: 'assistant', message: { content: [{ type: 'text', text: 'shall I?' }] } },
+  ];
+  writeFileSync(transcriptPath, `${transcriptLines.map((line) => JSON.stringify(line)).join('\n')}\n`);
+  const turnIds = (events) => events.flatMap((event) => event.message.content).map((block) => block.id ?? block.tool_use_id ?? block.text);
+  assert.deepEqual(turnIds(readLastAgentTurnEvents(transcriptPath)), ['new', 'new', 'skill body', 'shall I?']);
+  writeFileSync(transcriptPath, `${JSON.stringify({ type: 'user', message: { content: 'yes' } })}\n`, { flag: 'a' });
+  assert.deepEqual(turnIds(readLastAgentTurnEvents(transcriptPath)), ['new', 'new', 'skill body', 'shall I?'], 'the prompt being submitted is skipped');
+  assert.equal(readLastAgentTurnEvents(join(tmpdir(), 'missing-transcript.jsonl')), null);
+});
+
 test('listPlanSlugsWrittenBy: writes to a plan count, reading it does not', () => {
   const planPath = '/repo/.ai1/work/billing/plan.md';
   assert.deepEqual(listPlanSlugsWrittenBy({ name: 'Edit', input: { file_path: planPath } }), ['billing']);
