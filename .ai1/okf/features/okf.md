@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index and bundle health notes 
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T14:35:17Z'
+  at: '2026-11-15T14:50:34Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -108,6 +108,18 @@ sources:
   fewer than 2 meaningful words and slash commands add nothing. ~25 ms on a 46-concept bundle.
   Reason: field data showed the agent consulted the bundle on only part of the messages once the
   session-start index was far behind in a long conversation.
+  Measured 2026-11-15 on 18 real prompts of this repo labelled with their relevant concepts: 20%
+  of the suggestions relevant, a relevant one for 9 of 16 prompts that need one, 3 suggestions on the
+  2 that need none. The noise comes from Spanish words read as English ones ("resumes" as resume,
+  "internet" cut to "intern" as internal) and from words many concepts carry (`hooks`, `plugin`,
+  `skill`) reaching the score alone. Tried and not kept: discounting common words in every field
+  (hits fell to 1-5 of 16: most real matches go through those words), a higher minimum score or fewer
+  suggestions (hits fell faster than noise), a floor relative to the best score (no gain), trimming
+  plurals (worse). 8-letter prefixes plus Spanish false friends as stop words gave 28% and 10 of 16,
+  but on 8 other prompts it came out slightly worse than today (2 of 6 against 3 of 6): fitted to the
+  set, not better. The limit is the language gap (Spanish messages, an English bundle), which
+  keyword matching cannot bridge. To try a change again: score both sets with `rankConceptsForPrompt`
+  and keep it only if the held-out set improves too.
 - **okf-file-context (PostToolUse Read/Edit/Write/MultiEdit, since v0.15.0):** when the agent reads
   or edits a file a concept describes, names that concept right then (``ai1/okf: `src/x` is described
   by `.ai1/okf/y.md` (title). Read it before changing this code...``), so the knowledge arrives when

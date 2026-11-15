@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T11:56:07Z'
+  at: '2026-11-15T14:50:34Z'
 ---
 
 # Flow
@@ -182,6 +182,13 @@ Measured 2026-11-15 while shrinking the briefs: in a worst-case repo (every feat
 plans, 10 open later entries, 12 concepts missing from the index, a long index, 3 related repos) the
 fixed rule texts of the session-start modules come to about 8,000 characters and the dynamic lists
 to about 7,000 more, so lists, not rules, are what grows with a repo.
+
+Checked 2026-11-15 and not done: the `if` field of hooks.json would spare no process, because on every
+Bash, Edit, Write and Read some module needs every call (`tool-loop` counts repeats, `sizing-escalate`
+the size of the change, `okf-file-context` each file); merging `fix-loop` and `tool-loop` would save
+nothing measurable (they already share `core/transcript-scan`, run on different events, 5 and 25 ms).
+`okf-upkeep`'s 306 ms average mixed in runs from before the validator moved in-process: since
+2026-11-15 its median is 60 ms (the validator itself 30-60 ms on this bundle).
 
 To measure one repo's session start without touching the person's log: pipe
 `{"hook_event_name":"SessionStart","source":"startup","session_id":"m","cwd":"<repo>"}` into
