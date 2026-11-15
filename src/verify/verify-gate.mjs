@@ -103,7 +103,7 @@ export function scanVerifyRuns(transcriptPath, verifyCommands, scanState, projec
 // by `ai1 worktree finish` after its pre-finish ran the verify commands, and untouched since, are left out.
 export function listSessionChangedCode(projectRoot, sessionBase, ignoredPaths) {
   const isVerifiedIntegration = integratedFileMatcher(projectRoot, 'verified');
-  return listFilesChangedSinceBase(projectRoot, sessionBase.baseHead)
+  return listFilesChangedSinceBase(projectRoot, sessionBase)
     .filter((relativePath) => !matchesAnyGlob(relativePath, ignoredPaths))
     .map((relativePath) => {
       const absolutePath = join(projectRoot, relativePath);

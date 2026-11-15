@@ -44,9 +44,9 @@ const INVESTIGATION_CALLS_BEFORE_REMINDER = 10;
 // feature is on: later-upkeep handles them, and a later entry must not be written into the bundle).
 // `.ai1/work/` (plans and handoffs) is scratch: never knowledge, even where its own .gitignore is missing
 // (a plan written by hand in a worktree shows up as untracked).
-export function listSessionChangedFiles(projectRoot, baseHead, bundleRelativePath, ignoredDirectories = []) {
+export function listSessionChangedFiles(projectRoot, sessionBase, bundleRelativePath, ignoredDirectories = []) {
   const ignoredPrefixes = [bundleRelativePath, WORK_DIRECTORY, ...ignoredDirectories].map((directoryPath) => `${directoryPath.replace(/\/+$/, '')}/`);
-  return listFilesChangedSinceBase(projectRoot, baseHead)
+  return listFilesChangedSinceBase(projectRoot, sessionBase)
     .filter((changedPath) => !ignoredPrefixes.some((ignoredPrefix) => changedPath.startsWith(ignoredPrefix)) && !IGNORED_PATHS.has(changedPath));
 }
 
@@ -64,8 +64,8 @@ export function buildInvestigationReminder(bundleRelativePath, investigationCall
 // Files this session edited (Write/Edit, from the transcript) that show no change against the base
 // HEAD now: something tried and undone. Files outside the repo, under `.ai1/` or `.claude/`, and
 // files git ignores (their changes never show in a diff) are left out.
-export function listDiscardedEdits(projectRoot, baseHead, editedFilePaths) {
-  const changedPaths = new Set(listFilesChangedSinceBase(projectRoot, baseHead));
+export function listDiscardedEdits(projectRoot, sessionBase, editedFilePaths) {
+  const changedPaths = new Set(listFilesChangedSinceBase(projectRoot, sessionBase));
   const candidatePaths = [...editedFilePaths]
     .map((editedPath) => relative(projectRoot, editedPath))
     .filter((repoPath) => repoPath && !repoPath.startsWith('..') && !isAbsolute(repoPath)
@@ -149,10 +149,10 @@ export function buildStructureReminder(bundleRelativePath, overviewPath, concept
 // overview, and concepts it changed that no index.md links to. Asked once per set of findings.
 // Bundle files `ai1 worktree finish` brought in after its OKF checks, and untouched since, are not
 // this session's changes (until 2026-11-09 they were, so every finish that brought concepts asked).
-function checkBundleStructure({ hookInput, projectRoot, stateDirectory, bundleDirectory, bundleRelativePath, baseHead, sessionStartMilliseconds }) {
+function checkBundleStructure({ hookInput, projectRoot, stateDirectory, bundleDirectory, bundleRelativePath, sessionBase, sessionStartMilliseconds }) {
   const bundlePrefix = `${bundleRelativePath}/`;
   const isKnowledgeCheckedIntegration = integratedFileMatcher(projectRoot, 'knowledge_checked');
-  const bundleFilesChangedInSession = listFilesChangedSinceBase(projectRoot, baseHead)
+  const bundleFilesChangedInSession = listFilesChangedSinceBase(projectRoot, sessionBase)
     .filter((changedPath) => changedPath.startsWith(bundlePrefix))
     .filter((changedPath) => {
       const absolutePath = join(projectRoot, changedPath);
@@ -207,10 +207,10 @@ export default {
     const stateDirectory = resolveStateDirectory(environment);
     const sessionBase = readSessionBase(hookInput, projectRoot, environment);
     if (!sessionBase) return allowDecision();
-    const { baseHead, sessionStartMilliseconds } = sessionBase;
+    const { sessionStartMilliseconds } = sessionBase;
     const bundleUpdatedMilliseconds = newestModificationMilliseconds(bundleDirectory);
     const validityContext = {
-      hookInput, projectRoot, stateDirectory, bundleDirectory, bundleRelativePath, environment, baseHead, sessionStartMilliseconds,
+      hookInput, projectRoot, stateDirectory, bundleDirectory, bundleRelativePath, environment, sessionBase, sessionStartMilliseconds,
     };
     const bundleChangedInSession = bundleUpdatedMilliseconds >= sessionStartMilliseconds;
 
@@ -231,7 +231,7 @@ export default {
     const writeWindows = transcriptScan ? transcriptScan.writeWindows : null;
     const sessionMayHaveWritten = !writeWindows || writeWindows.length > 0;
     const isKnowledgeCheckedIntegration = integratedFileMatcher(projectRoot, 'knowledge_checked');
-    const pendingFiles = (sessionMayHaveWritten ? listSessionChangedFiles(projectRoot, baseHead, bundleRelativePath, isFeatureEnabled('later', config) ? [LATER_DIRECTORY] : []) : [])
+    const pendingFiles = (sessionMayHaveWritten ? listSessionChangedFiles(projectRoot, sessionBase, bundleRelativePath, isFeatureEnabled('later', config) ? [LATER_DIRECTORY] : []) : [])
       .map((changedPath) => {
         const absolutePath = join(projectRoot, changedPath);
         // A deleted file has no mtime: it is pending, with a fixed signature so it is asked only once.
@@ -261,7 +261,7 @@ export default {
     // file behind, so a long run of investigation without touching the bundle asks for it too.
     // An attempt undone before the stop leaves no diff, so the file reminder misses it.
     const finishWithoutUpkeepReminder = () => {
-      const discardedPaths = transcriptScan ? listDiscardedEdits(projectRoot, baseHead, transcriptScan.editedFilePaths) : [];
+      const discardedPaths = transcriptScan ? listDiscardedEdits(projectRoot, sessionBase, transcriptScan.editedFilePaths) : [];
       const discardedStatePath = sessionStatePath(stateDirectory, hookInput.session_id, projectRoot, 'discarded');
       if (discardedPaths.length && claimStopBlock(discardedStatePath, discardedPaths.join('\n'), MAX_DISCARDED_BLOCKS_PER_SESSION)) {
         scanState.investigationCalls = 0;

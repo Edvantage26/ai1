@@ -46,7 +46,7 @@ export default {
     const sessionBase = readSessionBase(hookInput, projectRoot, environment);
     if (!sessionBase) return allowDecision();
     const ignoredGlobs = moduleOptions.ignore ?? [];
-    const changedUiFiles = listFilesChangedSinceBase(projectRoot, sessionBase.baseHead)
+    const changedUiFiles = listFilesChangedSinceBase(projectRoot, sessionBase)
       .filter((changedPath) => classifyUiFile(changedPath) && !matchesAnyGlob(changedPath, ignoredGlobs))
       .filter((changedPath) => existsSync(join(projectRoot, changedPath)))
       .map((changedPath) => ({ changedPath, modifiedMilliseconds: statSync(join(projectRoot, changedPath)).mtimeMs }))

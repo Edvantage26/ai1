@@ -49,7 +49,7 @@ export default {
     const laterEntries = listLaterEntries(projectRoot);
     // Plans live in the main checkout (shared root), the later entries in the checkout being worked on.
     const builtEntryReminders = listBuiltLaterReminders(sharedRoot, laterEntries, sessionBase.sessionStartMilliseconds);
-    const laterTouched = listFilesChangedSinceBase(projectRoot, sessionBase.baseHead).some((changedPath) => changedPath.startsWith(`${LATER_DIRECTORY}/`));
+    const laterTouched = listFilesChangedSinceBase(projectRoot, sessionBase).some((changedPath) => changedPath.startsWith(`${LATER_DIRECTORY}/`));
     if (!laterTouched && !builtEntryReminders.length) return allowDecision();
 
     const laterProblems = [
