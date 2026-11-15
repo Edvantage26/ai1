@@ -9,6 +9,7 @@ const PROJECT_AND_USER = ['project', 'user'];
 export const SKILL_CUSTOMIZATION_INDEX = {
   'worktrees-plan-recipe': { customizable: true, scopes: PROJECT_AND_USER },
   'session-fork-conversation': { customizable: true, scopes: PROJECT_AND_USER },
+  'session-delegate-change': { customizable: true, scopes: PROJECT_AND_USER },
   'later-write': { customizable: true, scopes: PROJECT_AND_USER },
   'sizing-design-before-code': { customizable: true, scopes: PROJECT_AND_USER },
   'okf-maintain-knowledge': { customizable: true, scopes: PROJECT_AND_USER },
