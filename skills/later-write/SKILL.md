@@ -1,6 +1,6 @@
 ---
 name: later-write
-description: Later — Note down for later large changes and future features that are NOT decided yet, in .ai1/later/ (called by number, "later 0003"). Use when the person asks to note something down for later ("apúntalo para luego", "anótalo para más adelante", "déjalo para luego", "apárcalo", "note it down for later", "park it"), picks "for later" in your one-line offer (here, fork or later) for a different subject, or names an existing entry by its number to update, accept, reject or resume it ("acepta la 0003", "retoma later 0005"). NOT when the person says "propuesta", "proposal", "proponme algo", "hazme una propuesta" or "acepto la propuesta": that is your own proposal in the conversation, to answer or build. Never note one down on your own. Not for recording facts or decisions already taken (that is /ai1:okf-maintain-knowledge) nor for planning how to build something already accepted (that is a plan or /ai1:sizing-design-before-code).
+description: Later — Note down for later large changes and future features that are NOT decided yet, in .ai1/later/ (called by number, "later 0003"). Use when the person asks to note something down for later ("apúntalo para luego", "anótalo para más adelante", "déjalo para luego", "apárcalo", "note it down for later", "park it"), picks "later" when asked about later alone for a different subject, or names an existing entry by its number to update, accept, reject or resume it ("acepta la 0003", "retoma later 0005"). NOT when the person says "propuesta", "proposal", "proponme algo", "hazme una propuesta" or "acepto la propuesta": that is your own proposal in the conversation, to answer or build. Never note one down on your own, nor on a general yes to a reply that also carried other proposals. Not for recording facts or decisions already taken (that is /ai1:okf-maintain-knowledge) nor for planning how to build something already accepted (that is a plan or /ai1:sizing-design-before-code).
 allowed-tools: Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context *)
 ---
 
@@ -11,13 +11,26 @@ allowed-tools: Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context *)
 "Propuesta", "proposal", "proponme algo", "hazme una propuesta", "acepto la propuesta", "me parece
 bien la propuesta" mean **your own proposal in this conversation** (a plan, an approach, a name you
 suggested): answer it, or build it by its size. They never mean this skill. If the person did not ask
-to note something down for later, did not pick "for later" in your offer, and did not name an
+to note something down for later, did not pick "later" when asked about it alone, and did not name an
 existing entry by its number, stop here and go back to the task.
 
-## Only on request or acceptance
+## Only on an explicit request
 
-Never note one down on your own initiative. Do it when the person asks for it ("apúntalo para luego",
-"déjalo para más adelante", "apárcalo").
+An entry is created only when the person explicitly asks for **that** entry, in their own words
+("apúntalo para luego", "anótalo en later", "déjalo para más adelante", "apárcalo", "note it down for
+later"), or picks "later" when you asked them about later alone. Nothing else counts:
+
+- A "sí", "adelante", "ok" or "dale" to a message that also carried other proposals is **not**
+  permission for the later part. Do the rest and leave later out.
+- Never note one down on your own initiative, never as a step or recommendation inside a larger reply
+  ("apunto las tres ideas en later", "y dejo apuntado en later X como paso siguiente"), never as the
+  next step of what you are doing.
+- When unsure, ask in one line, about later only ("¿Apunto X en later?"), and wait for the answer.
+
+The subject the person is talking about is never offered for later or fork, however large or
+undecided, nor its ideas, details, steps, follow-ups, next steps or improvements: the default is to
+build it now, so close with its size and offer to do it here (a deep one starts with its design).
+Later and fork are only for a tangent.
 
 Offer it only in this situation: the conversation is about one subject and a clearly different one
 comes up (a large new feature unrelated to the task at hand). Then mention it in one line at the end
@@ -27,15 +40,13 @@ apuntarlo para luego." / "Different subject: X. I recommend noting it down for l
 - **here**: it is done in this conversation (after the current task, unless the person says now);
 - **fork**: a new conversation takes it, with /ai1:session-fork-conversation (brief mode, usually,
   so it starts with only the context it needs);
-- **later**: it is noted down with this skill.
+- **later**: it is noted down with this skill, once the person asks for it as above.
 
-A yes means the way you recommended; if there is no answer, carry on with the current task and drop
-it. A small fix found on the way is done here without asking. The subject the person is talking about is never offered for later or fork, however large or
-undecided, nor its details, steps, follow-ups or improvements: the default is to build it now, so close
-with its size and offer to do it here (a deep one starts with its design). Later and fork are only for a
-tangent. Updating, accepting or rejecting an existing entry follows the person's
-request too, and only for an entry they name (by number or title).
-
+A yes to that line means here or fork when you recommended one of them; for later, a yes to a reply
+that carried anything else is not enough: ask about later alone. If there is no answer, carry on with
+the current task and drop it. A small fix found on the way is done here without asking. Updating,
+accepting or rejecting an existing entry follows the person's request too, and only for an entry they
+name (by number or title).
 
 When it is created, confirm in one line: "Apuntado para luego como later 0007: «<title>»."
 
@@ -139,7 +150,9 @@ subject. Nothing of the design.
 
 ## Fixed rules
 
-- Never note one down on your own initiative; "propuesta" in the conversation is never a request for this skill.
+- Create an entry only on the person's explicit request for that entry; a yes to a reply with other proposals is not one, and when unsure ask about later alone and wait.
+- Never offer later (or fork) for the subject being worked on, nor its ideas, follow-ups or next steps.
+- "Propuesta" in the conversation is never a request for this skill.
 - Never number, rename or index entries by hand: `ai1 later` does it.
 - Only the person accepts or rejects; an undecided design never goes into the knowledge bundle as if it were real.
 

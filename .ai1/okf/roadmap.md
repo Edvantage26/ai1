@@ -20,7 +20,7 @@ Order changed on 2026-10-30: build the generic structure in ai1 first, then prov
    edited UI files, ideas from Impeccable. See [design feature](features/design.md).
 2e. **Later** (done 2026-11-08 as `rfc`, renamed `proposals` in v0.18.0 and `later` in v0.25.0, both
    2026-11-09): undecided changes and future features noted down for later in `.ai1/later/`, apart
-   from the bundle until decided, only on request or when picked in an offer. See
+   from the bundle until decided, only on the person's explicit request. See
    [later feature](features/later.md).
 2f. **Worktrees** (phase 1 done 2026-11-08): a worktree per change with a per-project
    recipe planned once (`/ai1:worktrees-plan-recipe`), engine `ai1 worktree`, brief and reminder. Phase 2 (planned):
