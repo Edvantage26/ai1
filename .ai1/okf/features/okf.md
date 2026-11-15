@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index and bundle health notes 
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T14:50:34Z'
+  at: '2026-11-15T16:42:31Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -148,6 +148,15 @@ sources:
   names for each file, exit 1 when one has none: the check a producer runs after writing concepts that
   cite code (before it, the only way was importing the module by hand). Measured on this repo (2026-11-09): build about 15 ms, cached load about 1.6 ms, a match
   about 0.03 ms. Writing `resource` or `sources` in a concept is how a repo makes it show up.
+  A source with `role: evidence` is left out of the map: it proves a claim without the concept
+  describing that file (on a large bundle, MCP server code cited as evidence tied with the concept
+  that describes the server). `ai1 okf file-map` marks a file whose top concepts tie (`tie` in JSON
+  and a warning line). The validator warns on a `role` other than `evidence`.
+- **`ai1 okf scan-secrets <path>...`** (`src/okf/okf-scan-secrets.mjs`): `file:line` of the lines that
+  look like a literal secret, with the heuristic of `src/core/secret-lines.mjs` (shell defaults such
+  as `${PG_PASSWORD:-value}` included), never the value; produce runs it on the sources it cites.
+- **Validator dates:** `generated.at` and `verified.at` later than now (5 minutes of skew pass) are
+  warned: a time written by hand ahead of the clock makes a concept look fresher than it is.
 - **okf-upkeep (Stop):** blocks finishing when the session left knowledge newer than the last
   bundle update: repo files changed since the session's base HEAD (tracked diff + untracked)
   modified after the session started and after the newest bundle file (except files `ai1 worktree
@@ -177,6 +186,10 @@ sources:
   web) since the session last edited the bundle; at 10 or more, with no file/memory reminder due,
   the agent is asked to record findings, ways to validate and ways of working (or to say in one
   line that nothing is worth keeping). The count starts over after any reminder or bundle edit.
+  While agents the session launched in the background have not reported back (an Agent tool result
+  "Async agent launched successfully" with no later `<task-notification>` carrying its
+  `<tool-use-id>` and a finished `<status>`), the reminder waits: before, it pushed a concept written
+  before the reports arrived (2026-11-15).
   A bundle edit is a Write/Edit on a bundle path or a Bash command that writes there
   (`shellCommandWritesBundle`: redirects, `tee`, `sed -i`, `mv`/`cp` into it, `rm`, inline
   python/node scripts naming a bundle file); reading or validating the bundle does not count.

@@ -5,7 +5,7 @@ description: Stop gate - the agent cannot finish while code it changed is newer 
 tags: [verify, hooks, evidence, cli]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T13:47:38Z'
+  at: '2026-11-15T16:42:31Z'
 sources:
   - id: verify-gate
     resource: src/verify/verify-gate.mjs
@@ -139,6 +139,9 @@ change); the cost is a shared customization: `.ai1/skills/verify/customization.m
 1. Files changed in the session: `git diff --name-only <base HEAD>` + untracked, modified after the
    session started, minus ignored globs (`*.md`, `.claude/**`, `.ai1/work/**`, the knowledge bundle,
    plus `modules.verify-gate.ignore_paths`).
+   A verify command that starts with `cd <dir> &&` (`verifyCommandFolder`) is asked only by changed
+   files inside `<dir>`; a command without it, by every change. Before, a superproject whose only check
+   was one submodule's frontend tests was asked to run them after a bump of another submodule.
 2. Runs of each verify command, from the transcript (incremental, `src/core/transcript-scan.mjs`):
    a Bash call whose simple commands contain the full command (redirects and pipes allowed; extra
    arguments or filters do not count; compound commands must appear in order), or `ai1 verify` /
