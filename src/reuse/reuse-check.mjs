@@ -8,7 +8,8 @@
 
 import { allowDecision, blockDecision } from '../core/hook-io.mjs';
 import { resolveStateDirectory, sessionStatePath, readStateJson, writeStateText } from '../core/session-state.mjs';
-import { readNewTranscriptEvents, eventContentBlocks } from '../core/transcript-scan.mjs';
+import { readNewTranscriptEvents, eventContentBlocks, TOOL_USE_MARKER } from '../core/transcript-scan.mjs';
+import { BACKGROUND_AGENT_MARKERS, updatePendingBackgroundAgents } from '../core/background-agents.mjs';
 
 const MODULE_ID = 'reuse-check';
 const DEFAULT_MIN_TOOL_CALLS = 8;
@@ -32,12 +33,14 @@ export default {
   run({ hookInput, projectRoot, environment, moduleOptions }) {
     const statePath = sessionStatePath(resolveStateDirectory(environment), hookInput.session_id, projectRoot, 'reuse-check');
     const checkState = { offset: 0, toolCallsSinceCheck: 0, checks: 0, ...readStateJson(statePath) };
-    const newTranscript = readNewTranscriptEvents(hookInput.transcript_path, checkState);
+    const newTranscript = readNewTranscriptEvents(hookInput.transcript_path, checkState, [TOOL_USE_MARKER, ...BACKGROUND_AGENT_MARKERS]);
     if (!newTranscript) return allowDecision();
     if (newTranscript.restarted) checkState.toolCallsSinceCheck = 0;
+    checkState.backgroundAgents = updatePendingBackgroundAgents(newTranscript.restarted ? [] : checkState.backgroundAgents, newTranscript.events);
     checkState.toolCallsSinceCheck += newTranscript.events.reduce((total, transcriptEvent) => total + eventContentBlocks(transcriptEvent, 'tool_use').length, 0);
     const minToolCalls = moduleOptions.minToolCalls ?? DEFAULT_MIN_TOOL_CALLS;
-    const shouldCheck = checkState.toolCallsSinceCheck >= minToolCalls && checkState.checks < MAX_CHECKS_PER_SESSION;
+    // Background agents still reading: the task has not finished, so the question waits for their reports.
+    const shouldCheck = checkState.toolCallsSinceCheck >= minToolCalls && checkState.checks < MAX_CHECKS_PER_SESSION && checkState.backgroundAgents.length === 0;
     const toolCallCount = checkState.toolCallsSinceCheck;
     if (shouldCheck) {
       checkState.checks += 1;

@@ -158,3 +158,15 @@ test('/ai1:reuse-encapsulate picks the container from its table, completes befor
   assert.match(skillText, /## Fixed rules/);
   assert.deepEqual(SKILL_CUSTOMIZATION_INDEX['reuse-encapsulate'], { customizable: true, scopes: ['project', 'user'] });
 });
+
+test('reuse-check waits while background agents the session launched have not reported back [okf-findings-3:S2]', () => {
+  const repoRoot = createReuseRepo();
+  const options = hookOptions();
+  const transcriptPath = join(options.homeDirectory, 'transcript.jsonl');
+  appendFileSync(transcriptPath, `${JSON.stringify({ type: 'assistant', timestamp: '2026-11-13T10:00:00Z', message: { content: [{ type: 'tool_use', id: 'toolu_agent', name: 'Agent', input: { description: 'Read code', run_in_background: true } }] } })}\n`
+    + `${JSON.stringify({ type: 'user', timestamp: '2026-11-13T10:00:01Z', message: { content: [{ type: 'tool_result', tool_use_id: 'toolu_agent', content: [{ type: 'text', text: 'Async agent launched successfully.\nagentId: a1' }] }] } })}\n`);
+  appendToolCalls(transcriptPath, 10);
+  assert.equal(stopTurn(repoRoot, options, transcriptPath), null, 'the session stopped only to wait for its agent');
+  appendFileSync(transcriptPath, `${JSON.stringify({ type: 'user', timestamp: '2026-11-13T10:05:00Z', message: { content: '<task-notification>\n<tool-use-id>toolu_agent</tool-use-id>\n<status>completed</status>\n</task-notification>' } })}\n`);
+  assert.equal(stopTurn(repoRoot, options, transcriptPath).decision, 'block', 'after the report the question comes');
+});
