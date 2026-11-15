@@ -195,3 +195,15 @@ test('ai1 fork --opener reaches the host and an unknown value prints a note', ()
   runForkCommand('/repo', badArguments, { readOption: (optionName) => badArguments[badArguments.indexOf(optionName) + 1], environment: {}, runCommand: createFakeRunner().runCommand, platformName: 'linux', writeOutput: (outputText) => badLines.push(outputText) });
   assert.match(badLines[0], /^note: unknown fork opener "nope"/);
 });
+
+test('a real opener script gets the placeholders as positional arguments, in the documented order, quotes intact [fork-without-paseo:S4]', () => {
+  const scriptDirectory = mkdtempSync(join(tmpdir(), 'ai1-opener-'));
+  const scriptPath = join(scriptDirectory, 'opener.sh');
+  writeFileSync(scriptPath, '#!/bin/sh\nprintf "%s|" "$1" "$2" "$3" "$4" "$5" "$6" "$7"\n', { mode: 0o755 });
+  const briefPath = writeBrief("# It's the login\nbody");
+  const briefResult = startBriefConversation({
+    environment: {}, cwd: scriptDirectory, host: detectForkHost({}, 'linux'), briefPath,
+    openCommand: `${scriptPath} {mode} {cwd} {title} {brief_file} {task_file} {original_session_id} {session_id}`,
+  });
+  assert.equal(briefResult.output, `brief|${scriptDirectory}|It's the login|${briefPath}||||`);
+});
