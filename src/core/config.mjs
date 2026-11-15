@@ -7,6 +7,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { KNOWN_FEATURE_IDS, isFeatureEnabled } from './features.mjs';
 import { splitRepoRules } from './repo-rules-config.mjs';
+import { splitRelatedEntries } from './related-config.mjs';
 
 // Everything ai1 writes in a repo lives under `.ai1/`: config, knowledge bundle, later entries, work plans.
 export const AI1_DIRECTORY = '.ai1';
@@ -27,7 +28,7 @@ export const CURRENT_CONFIG_VERSION = 2;
 export const SUPPORTED_CONFIG_VERSIONS = [1, CURRENT_CONFIG_VERSION];
 
 // `knowledge` is retired, not unknown: it gets its own notice (see readRetiredKnowledgeNotice).
-const KNOWN_TOP_LEVEL_FIELDS = new Set(['$schema', 'version', 'features', 'trunk', 'verify', 'knowledge', 'modules', 'rules']);
+const KNOWN_TOP_LEVEL_FIELDS = new Set(['$schema', 'version', 'features', 'trunk', 'verify', 'knowledge', 'modules', 'rules', 'related']);
 
 const DEFAULT_CONFIG = {
   version: CURRENT_CONFIG_VERSION,
@@ -154,6 +155,7 @@ export function validateHarnessConfig(rawConfig) {
   }
   // A bad rule is dropped with a notice (splitRepoRules); only a `rules` that is not a list is an error.
   if (rawConfig.rules !== undefined && !Array.isArray(rawConfig.rules)) validationErrors.push('"rules" must be a list of rule objects');
+  if (rawConfig.related !== undefined && !Array.isArray(rawConfig.related)) validationErrors.push('"related" must be a list of related repository objects');
   return validationErrors;
 }
 
@@ -184,7 +186,8 @@ export function loadHarnessConfig(projectRoot, knownModuleIds = []) {
   if (validationErrors.length) return { status: 'invalid', configPath, errors: validationErrors };
   const { knowledge: retiredKnowledgeSetting, ...supportedConfig } = rawConfig;
   const { validRules, notices: ruleNotices } = splitRepoRules(rawConfig.rules);
-  const configNotices = [readRetiredKnowledgeNotice(rawConfig), readRenamedNamesNotice(rawConfig, projectRoot), ...ruleNotices].filter(Boolean);
+  const { validEntries: validRelated, notices: relatedNotices } = splitRelatedEntries(rawConfig.related);
+  const configNotices = [readRetiredKnowledgeNotice(rawConfig), readRenamedNamesNotice(rawConfig, projectRoot), ...ruleNotices, ...relatedNotices].filter(Boolean);
   return {
     status: 'ok',
     configPath,
@@ -192,7 +195,7 @@ export function loadHarnessConfig(projectRoot, knownModuleIds = []) {
     notices: configNotices,
     // Whether the repo sets `trunk` (otherwise the default 'main' is a guess: see detectTrunkBranch).
     trunkConfigured: typeof rawConfig.trunk === 'string',
-    config: { ...DEFAULT_CONFIG, ...supportedConfig, features: { ...rawConfig.features }, modules: { ...rawConfig.modules }, rules: validRules },
+    config: { ...DEFAULT_CONFIG, ...supportedConfig, features: { ...rawConfig.features }, modules: { ...rawConfig.modules }, rules: validRules, related: validRelated },
   };
 }
 

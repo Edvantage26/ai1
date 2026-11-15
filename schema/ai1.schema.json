@@ -10,7 +10,10 @@
       "type": "string"
     },
     "version": {
-      "enum": [1, 2],
+      "enum": [
+        1,
+        2
+      ],
       "description": "Contract version. 2: every feature is on unless set to false here (opt-out). 1: written by ai1 before v0.36.0, when init listed every feature; a session start migrates it to 2, dropping the false values."
     },
     "features": {
@@ -825,6 +828,70 @@
             "type": "string",
             "minLength": 1,
             "description": "Why, and what to do instead."
+          }
+        }
+      }
+    },
+    "related": {
+      "type": "array",
+      "default": [],
+      "description": "Other repositories whose knowledge this one needs: where their knowledge bundle is and what they own. Each fact lives in the repository that changes it; this repo only links to it. Read by okf-index (listed at session start) and okf-file-context (a read of another repository with a bundle). An entry that does not validate is ignored with a notice at session start.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "path"
+            ]
+          },
+          {
+            "required": [
+              "remote"
+            ]
+          }
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Short name of the repository."
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Where it is usually cloned, relative to this repo's root (e.g. ../other-repo) or absolute."
+          },
+          "remote": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Its remote as owner/name (matched against the origin URL of a clone)."
+          },
+          "branch": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The branch whose knowledge counts (e.g. main, develop)."
+          },
+          "bundle": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Its knowledge bundle folder; default .ai1/okf, else .okf."
+          },
+          "read_without_clone": {
+            "type": "string",
+            "minLength": 1,
+            "description": "A command that prints its bundle index.md when it is not cloned here."
+          },
+          "owns": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "What it owns that this repo uses (a contract, a schema...)."
           }
         }
       }
