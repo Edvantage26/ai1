@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T07:29:37Z'
+  at: '2026-11-15T10:49:56Z'
 ---
 
 # Flow
@@ -136,6 +136,32 @@ alone takes about 74 ms; a module of a feature the repo turned off is still impo
 the config is read after loading). Context at SessionStart: the `brief` gives a feature with its own
 session-start text only its title (about 1.1 KB less here); `okf-index` grows with the bundle index,
 capped at 12,000 characters; 0 to about 1 KB per message (`okf-recall`, `later-recall`, when they match).
+
+Measured 2026-11-15 with `ai1 log` (17,005 runs, 29 sessions): guards per tool call 3-7 ms average;
+the slow one is `okf-upkeep` (332 ms average, 2.2 s max, it runs the validator); the SessionStart
+output of this repo was 11.7 KB, over the platform cap below, so the agent got only a 2 KB preview.
+`fix-loop`, `tool-loop` and `later-upkeep` had never intervened (all `allow`).
+
+# Platform limits (Claude Code hooks)
+
+From the hooks reference (code.claude.com/docs/en/hooks), checked 2026-11-15:
+
+- `additionalContext`, `systemMessage` and plain stdout are capped at **10,000 characters per field
+  and per hook command**. Over it, the text goes to a file and the agent sees the path plus a
+  2,000-character preview, without being asked to read it. No setting raises it. The combined
+  output of one event must stay under it; `okf-index`'s own 12,000 cap is above it.
+- Stop: `decision: "block"` shows as a hook error; `hookSpecificOutput.additionalContext` continues the
+  same way but shows as "Stop hook feedback". Both are bounded by `stop_hook_active` and a cap of
+  8 consecutive continuations.
+- Write context as facts, not imperative "system" instructions (prompt-injection defences); static
+  conventions belong in CLAUDE.md, rules or skills, `additionalContext` is for dynamic state.
+- Available and unused here: the `if` field (permission-rule syntax, tool events only, skips spawning
+  the process), `PostToolBatch` (once per batch of tool calls), `FileChanged` (any source of a file
+  change), `PostCompact`, `async` / `asyncRewake`, `InstructionsLoaded`. Newer than some installed
+  Claude Code versions: check the minimum version before depending on them.
+
+How to check: `ai1 log` for time and characters per module; the size of a SessionStart output shows
+in the session as `<persisted-output>` when it went over the cap.
 
 # Verified
 
