@@ -129,6 +129,12 @@ is given. Translate the index heading and the log line to the language of the
 repo's docs, and write every concept in that language too. Until the bundle is
 first committed, its log can still be adjusted. Then extend it:
 
+0. **Read the revision that runs.** For each repository or submodule you will
+   read: `git fetch` and `git log --oneline HEAD..origin/<deployed branch>`. If the
+   checkout is behind, ask the person to update it, or read that branch
+   (`git archive origin/<branch> | tar -x -C <tmp dir>`); write the revision you
+   read in the concept. A checkout months behind documents a system that no
+   longer exists.
 1. Read [reference/SPEC.md](reference/SPEC.md) (§3–§9).
 2. Pick the source(s): **code** (derive concepts from source, READMEs,
    docstrings, config), **docs/wiki** (distill pages into concepts, record the
@@ -152,13 +158,34 @@ first committed, its log can still be adjusted. Then extend it:
      `/ai1:okf-tidy-claude-md`).
    - **Secrets in a source:** never copy one. Write where it lives (secret
      manager item, deploy environment variable), and tell the person in your
-     summary which committed files hold a secret in clear text.
+     summary which committed files hold a secret in clear text:
+     `ai1 okf scan-secrets <paths you cite>` lists them (`file:line`, never the value).
+   - **The project's MCP servers** (their code, and their read-only tools) say
+     how the team really operates the system: which tables, keys, containers and
+     checks. Contrast the operations, data and monitoring concepts with them; use
+     their read-only tools as live checks. If one does not start, read its code
+     and say so.
+   - **A live database:** say first, in one line, where you connect and with what
+     limits. Catalog only (`information_schema`, `pg_catalog`), in a read-only
+     transaction with a statement timeout; never read data tables. Document a
+     map by domain (not table by table), the relations that are really declared,
+     partitioning, and dead or frozen tables. Statistics are cumulative and may
+     have been reset: "0 writes" means "none since the counters start", and a
+     table that is not written may still be read.
+   - **An incident found while documenting** (a service that does not answer, a
+     risky query in the code): write it as observed state with the date and a
+     short `stale_after`, list it for the person, and do not fix it.
 3. Choose a directory layout by domain (e.g. `services/`, `datasets/`,
    `decisions/`). One concept per file. A large project built in phases (one
    area at a time, each reviewed): fix the whole layout up front, list in the
    indexes only the concepts already written (a short "pending" note in the root
    index says what comes later), link forward only where it carries meaning, and
    keep the plan of the remaining areas in a work file, not in the bundle.
+   **A large area** (tens of thousands of lines): split the reading across
+   subagents, each with a brief (revision to read, questions, paths, "never copy
+   secrets", claims of the docs to verify, reads inside the repository). Their
+   reports sound equally sure when wrong: check 3–5 claims of each in the code
+   before writing them.
 4. Write each concept from [templates/concept.md](templates/concept.md): set a
    descriptive `type`, fill recommended fields, record `generated` and the
    `sources` you actually read, cross-link related concepts. Cite the code it
@@ -169,7 +196,9 @@ first committed, its log can still be adjusted. Then extend it:
 6. Validate (see below). Fix every error before finishing. Where the `ai1` CLI
    is available, check that the code you cited links back: from the project root,
    `ai1 okf file-map <file>...` prints the concept ai1 names for each file
-   (exit 1 when one has none).
+   (exit 1 when one has none). Run it on the files you cited **and** on a few
+   undescribed files next to them (a folder cited in a body claims all its
+   files), and resolve the ties it warns about.
 7. A new bundle, where the `ai1` CLI is on the PATH: run `ai1 claude-md`. If it reports findings,
    offer `/ai1:okf-tidy-claude-md` in one line (CLAUDE.md now repeats or should move into the
    bundle); do not tidy without a yes. A `secret-in-claude-md` finding is never moved: tell the person
@@ -191,8 +220,15 @@ from the paths each concept cites:
   or `sources`; a **broad** one (overview, operations) cites big folders only in
   its body. A broad concept with `src/` in `sources` would win over every
   specific concept that cites a file of `src/` only in its body.
+- A concept of a service or worker puts its entry file in `resource`: it then
+  beats every concept that only cites that file in `sources`.
+- A file that only **proves** a claim (an MCP server's code used as evidence)
+  goes in `sources` with `role: evidence`: it supports the claim without the
+  concept claiming the file. A path in backticks in the body always claims it.
 
 ### maintain — keep a bundle in sync with reality
+Before reading code to correct a concept, check its revision as in produce step 0.
+
 1. Identify which concepts the change affects (search by `resource`, path, or
    topic). This bookkeeping is exactly what agents are good at — touch every
    affected file in one pass.
