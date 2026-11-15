@@ -142,3 +142,15 @@ test('ai1 log --all: every repo named by its sidecar, with what the person answe
   assert.match(allText, /test-guard: 4 runs \(ask 4\).*asks answered: approved 3, refused 1; rules: test-skip-added 4/);
   assert.equal(summarizeAllRepos({ environment: {}, homeDirectory, sinceHours: 1, now: Date.parse('2026-11-10T00:00:00Z') }).length, 0, '--since applies');
 });
+
+test('a trimmed entry is counted as a cut of its module, not as one more run', () => {
+  const now = Date.parse('2026-11-15T12:00:00Z');
+  const logEntries = [
+    { at: '2026-11-15T11:00:00Z', session: 's', event: 'SessionStart', module: 'brief', decision: 'context', ms: 10, chars: 3000 },
+    { at: '2026-11-15T11:00:00Z', session: 's', event: 'SessionStart', module: 'brief', decision: 'trimmed', ms: 0, chars: 0, removed: 1980 },
+  ];
+  const briefSummary = summarizeDecisionLog(logEntries, { now }).modules[0];
+  assert.equal(briefSummary.runs, 1);
+  assert.equal(briefSummary.avgMs, 10);
+  assert.match(formatDecisionSummary(summarizeDecisionLog(logEntries, { now })), /brief: 1 runs \(context 1\);.*cut to fit the hook limit 1 time\(s\), 1980 chars left out/);
+});

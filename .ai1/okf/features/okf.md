@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index and bundle health notes 
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T10:20:44Z'
+  at: '2026-11-15T11:08:25Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -45,7 +45,7 @@ sources:
 # What it does
 
 - **okf-index (SessionStart):** reads `.ai1/okf/index.md`, injects it (up to
-  12,000 characters) with the maintenance rules, and records the HEAD at session start in the
+  6,000 characters, under the shared session-start budget of [hook runtime](../architecture/hook-runtime.md)) with the maintenance rules, and records the HEAD at session start in the
   session state. Without a bundle it suggests creating one with `/ai1:okf-maintain-knowledge`.
   Since 2026-11-09 it adds, only when there is something to say, two bundle health notes (at most 10
   paths each): concepts changed in commits after the last commit that touched the overview

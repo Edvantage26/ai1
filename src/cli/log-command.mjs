@@ -27,6 +27,13 @@ export function summarizeDecisionLog(logEntries, { sessionId, sinceHours, now = 
   const moduleSummaries = new Map();
   for (const logEntry of selectedEntries) {
     const moduleSummary = moduleSummaries.get(logEntry.module) || { module: logEntry.module, runs: 0, decisions: {}, totalMs: 0, maxMs: 0, chars: 0 };
+    // A `trimmed` entry is not a run: its module's text was cut to fit the hook limit (core/hook-dispatch).
+    if (logEntry.decision === 'trimmed') {
+      moduleSummary.trims = (moduleSummary.trims || 0) + 1;
+      moduleSummary.trimmedChars = (moduleSummary.trimmedChars || 0) + (logEntry.removed || 0);
+      moduleSummaries.set(logEntry.module, moduleSummary);
+      continue;
+    }
     moduleSummary.runs += 1;
     moduleSummary.decisions[logEntry.decision] = (moduleSummary.decisions[logEntry.decision] || 0) + 1;
     moduleSummary.totalMs += logEntry.ms || 0;
@@ -42,7 +49,7 @@ export function summarizeDecisionLog(logEntries, { sessionId, sinceHours, now = 
     entries: selectedEntries.length,
     sessions: new Set(selectedEntries.map((logEntry) => logEntry.session)).size,
     modules: [...moduleSummaries.values()]
-      .map((moduleSummary) => ({ ...moduleSummary, totalMs: roundMilliseconds(moduleSummary.totalMs), avgMs: roundMilliseconds(moduleSummary.totalMs / moduleSummary.runs) }))
+      .map((moduleSummary) => ({ ...moduleSummary, totalMs: roundMilliseconds(moduleSummary.totalMs), avgMs: roundMilliseconds(moduleSummary.totalMs / (moduleSummary.runs || 1)) }))
       .sort((firstSummary, secondSummary) => secondSummary.totalMs - firstSummary.totalMs),
     recent: selectedEntries.filter((logEntry) => NOTEWORTHY_DECISIONS.has(logEntry.decision)).slice(-RECENT_ENTRY_COUNT),
   };
@@ -55,6 +62,7 @@ export function formatDecisionSummary(decisionSummary) {
     const decisionCounts = Object.entries(moduleSummary.decisions).map(([decisionKind, decisionCount]) => `${decisionKind} ${decisionCount}`).join(', ');
     const listCounts = (counts) => Object.entries(counts).map(([countedKey, countValue]) => `${countedKey} ${countValue}`).join(', ');
     outputLines.push(`  ${moduleSummary.module}: ${moduleSummary.runs} runs (${decisionCounts}); ${moduleSummary.totalMs} ms total, ${moduleSummary.avgMs} avg, ${moduleSummary.maxMs} max; ${moduleSummary.chars} chars added`
+      + (moduleSummary.trims ? `; cut to fit the hook limit ${moduleSummary.trims} time(s), ${moduleSummary.trimmedChars} chars left out` : '')
       + (moduleSummary.asks ? `; asks answered: ${listCounts(moduleSummary.asks)}` : '')
       + (moduleSummary.rules ? `; rules: ${listCounts(moduleSummary.rules)}` : '')
       + (moduleSummary.errors ? `; errors: ${listCounts(moduleSummary.errors)}` : ''));

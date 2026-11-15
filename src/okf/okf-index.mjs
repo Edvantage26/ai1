@@ -12,7 +12,9 @@ import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
 import { describeBundleLocation, resolveRelatedEntries } from './okf-related.mjs';
 
 const MODULE_ID = 'okf-index';
-const MAX_INDEX_CHARACTERS = 12000;
+// Under the 9,500 characters all session-start texts share (MAX_FIELD_CHARACTERS in core/hook-io.mjs),
+// so a long index is cut here, with the pointer to index.md, before the generic cut.
+const MAX_INDEX_CHARACTERS = 6000;
 const MAX_LISTED_CONCEPTS = 10;
 
 // The related repositories of .ai1/config.json, with where each one's knowledge is on this machine.

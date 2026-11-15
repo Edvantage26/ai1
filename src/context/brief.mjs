@@ -17,9 +17,28 @@ const MODULE_ID = 'brief';
 
 export function buildHarnessBrief(config, enabledModules, enabledPluginIds = [], projectSettings = {}) {
   const activeFeatures = FEATURES.filter((featureDefinition) => !featureDefinition.alwaysOn && isFeatureEnabled(featureDefinition.id, config));
+  // Most important first: when the session-start texts go over the hook limit, the cut takes the end
+  // (core/hook-io.mjs). Warnings about this repo, then how to work, then the reference lists.
   const briefLines = [
     `ai1 harness is active in this repo (protected branch: ${config.trunk}).`,
   ];
+  const pluginsToDisable = findOverlappingPlugins(enabledPluginIds, activeFeatures.map((featureDefinition) => featureDefinition.id))
+    .filter((overlappingPlugin) => overlappingPlugin.action === 'disable');
+  if (pluginsToDisable.length) {
+    briefLines.push(`Plugins that overlap with ai1 are enabled here: ${pluginsToDisable.map(describeOverlap).join('; ')}. Tell the person once and offer to disable them in this repo with /ai1:core-setup-repo (personal settings only, nothing committed).`);
+  }
+  const driftedSkills = findSkillVisibilityDrift(projectSettings, config);
+  if (driftedSkills.length) {
+    briefLines.push(`The skills listed for this repo do not match its features (${driftedSkills.join(', ')}): .ai1/config.json changed without /ai1:core-setup-repo. Tell the person once; running \`ai1 init\` again with the same features fixes \`skillOverrides\` in .claude/settings.json.`);
+  }
+  briefLines.push('When an ai1 hook asks or refuses, follow its reason; do not work around it.');
+  briefLines.push('Ask the person only for what is truly delicate: a deep design, publishing (push, tag, release), production, or what an ai1 guard flags. Everything else (creating, committing in and finishing a worktree, a plan, a step you recommend) you do, then report in one line; the person can stop you. Do not end a reply with a question you could answer yourself, do not re-ask a pending question, and a yes covers what you recommended.');
+  if (config.verify.length) {
+    const verifyList = config.verify.map((verifyCommand) => `\`${verifyCommand}\``).join(', ');
+    briefLines.push(isFeatureEnabled('verify', config)
+      ? `Before saying a change is done, run: ${verifyList}, in full (no filters); the verify gate checks it when you stop.`
+      : `Before saying a change is done, run: ${verifyList}.`);
+  }
   // A feature with its own session-start text explains itself there: here only its title.
   const featuresWithOwnBrief = new Set(enabledModules
     .filter((moduleDefinition) => moduleDefinition.event === 'SessionStart' && moduleDefinition.id !== MODULE_ID)
@@ -33,23 +52,6 @@ export function buildHarnessBrief(config, enabledModules, enabledPluginIds = [],
   }
   const hookModules = enabledModules.filter((moduleDefinition) => moduleDefinition.id !== MODULE_ID);
   if (hookModules.length) briefLines.push(`Hooks enforcing them: ${hookModules.map((moduleDefinition) => moduleDefinition.id).join(', ')}.`);
-  if (config.verify.length) {
-    const verifyList = config.verify.map((verifyCommand) => `\`${verifyCommand}\``).join(', ');
-    briefLines.push(isFeatureEnabled('verify', config)
-      ? `Before saying a change is done, run: ${verifyList}, in full (no filters); the verify gate checks it when you stop.`
-      : `Before saying a change is done, run: ${verifyList}.`);
-  }
-  briefLines.push('When an ai1 hook asks or refuses, follow its reason; do not work around it.');
-  briefLines.push('Ask the person only for what is truly delicate: a deep design, publishing (push, tag, release), production, or what an ai1 guard flags. Everything else (creating, committing in and finishing a worktree, a plan, a step you recommend) you do, then report in one line; the person can stop you. Do not end a reply with a question you could answer yourself, do not re-ask a pending question, and a yes covers what you recommended.');
-  const pluginsToDisable = findOverlappingPlugins(enabledPluginIds, activeFeatures.map((featureDefinition) => featureDefinition.id))
-    .filter((overlappingPlugin) => overlappingPlugin.action === 'disable');
-  if (pluginsToDisable.length) {
-    briefLines.push(`Plugins that overlap with ai1 are enabled here: ${pluginsToDisable.map(describeOverlap).join('; ')}. Tell the person once and offer to disable them in this repo with /ai1:core-setup-repo (personal settings only, nothing committed).`);
-  }
-  const driftedSkills = findSkillVisibilityDrift(projectSettings, config);
-  if (driftedSkills.length) {
-    briefLines.push(`The skills listed for this repo do not match its features (${driftedSkills.join(', ')}): .ai1/config.json changed without /ai1:core-setup-repo. Tell the person once; running \`ai1 init\` again with the same features fixes \`skillOverrides\` in .claude/settings.json.`);
-  }
   return briefLines.join('\n');
 }
 

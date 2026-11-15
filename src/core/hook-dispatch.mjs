@@ -64,7 +64,26 @@ export function dispatchHookEvent(eventName, hookInput, { environment = process.
       moduleDecisions.push(contextDecision('setup', `${CONFIG_RELATIVE_PATH} mentions ${unknownText}, which this ai1 version does not know; they are ignored and the rest of ai1 works. Tell the person to update the ai1 plugin.`));
     }
   }
-  return buildHookOutput(eventName, combineDecisions(moduleDecisions));
+  return buildHookOutput(eventName, combineAndLogTrims(moduleDecisions, eventName, hookInput, { sharedRoot, environment }));
+}
+
+// Combines the decisions; a module whose text was cut to fit Claude Code's per-field limit gets a
+// `trimmed` entry in the decision log (with how much was cut), so `ai1 log` and the retro see it.
+// Not an internal error: the cut is expected behaviour, the log is where it is measured.
+function combineAndLogTrims(moduleDecisions, eventName, hookInput, { sharedRoot, environment }) {
+  const combinedDecision = combineDecisions(moduleDecisions);
+  if (!combinedDecision.trimmedModules?.length) return combinedDecision;
+  appendDecisionLog(combinedDecision.trimmedModules.map((trimmedModule) => ({
+    at: new Date().toISOString(),
+    session: hookInput.session_id,
+    event: eventName,
+    module: trimmedModule.moduleId,
+    decision: 'trimmed',
+    ms: 0,
+    chars: 0,
+    removed: trimmedModule.removedCharacters,
+  })), sharedRoot, environment);
+  return combinedDecision;
 }
 
 // Runs the given modules, logs their decisions and returns them (internal failures fail open).
@@ -119,7 +138,7 @@ function runTargetDecidedModules(eventName, hookInput, { projectRoot, sharedRoot
     .filter(Boolean);
   if (!eventModules.length) return null;
   const { moduleDecisions } = runModules(eventModules, eventName, hookInput, { config: null, projectRoot, sharedRoot, environment, homeDirectory, enabledModules: [], reportInternalError });
-  const combinedDecision = combineDecisions(moduleDecisions);
+  const combinedDecision = combineAndLogTrims(moduleDecisions, eventName, hookInput, { sharedRoot, environment });
   return combinedDecision.kind === 'allow' ? null : buildHookOutput(eventName, combinedDecision);
 }
 

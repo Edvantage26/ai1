@@ -5,8 +5,8 @@ import { ALL_MODULES } from '../src/core/registry.mjs';
 import { MODULE_INDEX, loadModulesForEvent } from '../src/core/module-index.mjs';
 import { dispatchHookEvent } from '../src/core/hook-dispatch.mjs';
 import { KNOWN_FEATURE_IDS } from '../src/core/features.mjs';
-import { allowDecision, askDecision, blockDecision, noticeDecision, combineDecisions, buildHookOutput } from '../src/core/hook-io.mjs';
-import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { allowDecision, askDecision, blockDecision, noticeDecision, contextDecision, combineDecisions, buildHookOutput, fitTextsToBudget, MAX_FIELD_CHARACTERS } from '../src/core/hook-io.mjs';
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createTemporaryProject, bashPayload } from './helpers.mjs';
@@ -165,6 +165,47 @@ test('a notice reaches the person as systemMessage and rides along a block', () 
   assert.deepEqual(noticeOnly, { systemMessage: 'ai1/okf-upkeep: no Python' });
   const withBlock = buildHookOutput('Stop', combineDecisions([noticeDecision('okf-upkeep', 'no Python'), blockDecision('verify-gate', 'run npm test')]));
   assert.deepEqual(withBlock, { decision: 'block', reason: 'ai1/verify-gate: run npm test', systemMessage: 'ai1/okf-upkeep: no Python' });
+});
+
+test('texts that fit the hook limit pass untouched', () => {
+  const combinedDecision = combineDecisions([contextDecision('brief', 'a'.repeat(4000)), contextDecision('later-brief', 'b'.repeat(4000))]);
+  assert.equal(combinedDecision.text, `${'a'.repeat(4000)}\n\n${'b'.repeat(4000)}`);
+  assert.equal(combinedDecision.trimmedModules, undefined);
+});
+
+test('over the hook limit the longest texts are cut first, at a line end, and the short ones stay whole', () => {
+  const longLines = (letter, lineCount) => Array.from({ length: lineCount }, () => letter.repeat(99)).join('\n');
+  const shortText = 'worktrees: fix-brief (this session)';
+  const combinedDecision = combineDecisions([
+    contextDecision('brief', longLines('a', 60)),
+    contextDecision('worktree-brief', shortText),
+    contextDecision('okf-index', longLines('b', 60)),
+  ]);
+  assert.ok(combinedDecision.text.length <= MAX_FIELD_CHARACTERS, `${combinedDecision.text.length} characters`);
+  assert.ok(combinedDecision.text.includes(shortText));
+  assert.match(combinedDecision.text, /a\n\[ai1\/brief: \d+ more characters left out to stay under Claude Code's 10,000-character hook limit\]/);
+  assert.deepEqual(combinedDecision.trimmedModules.map((trimmedModule) => trimmedModule.moduleId), ['brief', 'okf-index']);
+  const fittedTexts = fitTextsToBudget([{ moduleId: 'brief', text: longLines('a', 60) }, { moduleId: 'okf-index', text: longLines('b', 60) }], '\n\n');
+  assert.ok(Math.abs(fittedTexts.texts[0].length - fittedTexts.texts[1].length) < 120, 'both cut to about the same length');
+});
+
+test('a session start over the hook limit is cut and logged as trimmed, not reported as an error', () => {
+  const projectRoot = createTemporaryProject({ version: 1, features: {} });
+  const stateDirectory = mkdtempSync(join(tmpdir(), 'ai1-trim-'));
+  const reportedErrors = [];
+  const bigModule = (moduleId) => ({ id: moduleId, event: 'SessionStart', feature: 'core', run: () => contextDecision(moduleId, 'x'.repeat(6000)) });
+  const moduleDefinitions = [{ id: 'brief', event: 'SessionStart', feature: 'core' }, { id: 'issue-offer', event: 'SessionStart', feature: 'core' }];
+  const sessionOutput = dispatchHookEvent('SessionStart', { cwd: projectRoot, session_id: 'trim-test' }, {
+    environment: { CLAUDE_PLUGIN_DATA: stateDirectory },
+    reportInternalError: (errorMessage) => reportedErrors.push(errorMessage),
+    moduleDefinitions,
+    runnableModules: [bigModule('brief'), bigModule('issue-offer')],
+  });
+  assert.ok(sessionOutput.hookSpecificOutput.additionalContext.length <= MAX_FIELD_CHARACTERS);
+  assert.deepEqual(reportedErrors, []);
+  const logText = readdirSync(join(stateDirectory, 'state')).filter((fileName) => fileName.endsWith('.jsonl'))
+    .map((fileName) => readFileSync(join(stateDirectory, 'state', fileName), 'utf8')).join('');
+  assert.match(logText, /"module":"brief","decision":"trimmed"/);
 });
 
 test('in bypass or auto mode only the asks that guard against losing data (danger) and the repo rules reach the person', () => {

@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T10:49:56Z'
+  at: '2026-11-15T11:08:25Z'
 ---
 
 # Flow
@@ -46,6 +46,13 @@ generated:
    JSON each event expects (PreToolUse `permissionDecision`, Stop `decision: block`,
    SessionStart, UserPromptSubmit, PreToolUse and PostToolUse `additionalContext`). A `notice` never competes:
    it is added as `systemMessage` (shown to the person, not the agent) to whatever was decided.
+   The context texts, and the notices, of one event share a budget of 9,500 characters
+   (`MAX_FIELD_CHARACTERS`, under Claude Code's 10,000 per field, see Platform limits): over it,
+   `fitTextsToBudget` cuts the longest texts first, all to the same length and at a line end, with a
+   marker naming the module, so short texts (often this session's state) stay whole. A cut module
+   gets a `trimmed` entry in the [decision log](decision-log.md) with the characters left out; it is not
+   an internal error. Since the cut takes the end, a module puts what depends on the repo or session
+   first and its fixed rules or reference lists last (`brief`, `design-brief`). Since 2026-11-15.
    In the `bypassPermissions`, `auto` and `dontAsk` permission modes (`permission_mode` of the hook
    input), an `ask` from any module other than `danger` and `repo-rules` becomes `allow`
    (`relaxAskForPermissionMode`, logged as `relaxedAsk`): the person chose not to be asked, so only
@@ -135,7 +142,7 @@ module was imported on every event, about 122 ms since v0.17.0 with only the eve
 alone takes about 74 ms; a module of a feature the repo turned off is still imported for its event,
 the config is read after loading). Context at SessionStart: the `brief` gives a feature with its own
 session-start text only its title (about 1.1 KB less here); `okf-index` grows with the bundle index,
-capped at 12,000 characters; 0 to about 1 KB per message (`okf-recall`, `later-recall`, when they match).
+capped at 6,000 characters (12,000 until 2026-11-15); 0 to about 1 KB per message (`okf-recall`, `later-recall`, when they match).
 
 Measured 2026-11-15 with `ai1 log` (17,005 runs, 29 sessions): guards per tool call 3-7 ms average;
 the slow one is `okf-upkeep` (332 ms average, 2.2 s max, it runs the validator); the SessionStart
@@ -149,7 +156,9 @@ From the hooks reference (code.claude.com/docs/en/hooks), checked 2026-11-15:
 - `additionalContext`, `systemMessage` and plain stdout are capped at **10,000 characters per field
   and per hook command**. Over it, the text goes to a file and the agent sees the path plus a
   2,000-character preview, without being asked to read it. No setting raises it. The combined
-  output of one event must stay under it; `okf-index`'s own 12,000 cap is above it.
+  output of one event must stay under it, which the 9,500-character budget of `hook-io.mjs` does
+  since 2026-11-15. With every feature on, the session start of this repo was 12.2 KB and that of
+  a default frontend repo also went over: the budget is a safety net, the briefs themselves have to shrink.
 - Stop: `decision: "block"` shows as a hook error; `hookSpecificOutput.additionalContext` continues the
   same way but shows as "Stop hook feedback". Both are bounded by `stop_hook_active` and a cap of
   8 consecutive continuations.

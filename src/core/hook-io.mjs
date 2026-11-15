@@ -44,14 +44,70 @@ export async function readHookInput(inputStream = process.stdin) {
   return JSON.parse(rawInput);
 }
 
+// Claude Code caps `additionalContext` and `systemMessage` at 10,000 characters per field and hook
+// command; over it the agent only gets a 2,000-character preview and a file path. ai1 sends one hook
+// per event, so the texts of all its modules share this budget (kept under the cap with a margin).
+export const MAX_FIELD_CHARACTERS = 9500;
+
+const CONTEXT_SEPARATOR = '\n\n';
+const NOTICE_SEPARATOR = '\n';
+
+function buildTrimMarker(moduleId, removedCharacters) {
+  return `\n[ai1/${moduleId}: ${removedCharacters} more characters left out to stay under Claude Code's 10,000-character hook limit]`;
+}
+
+// Cuts one text to at most `maxCharacters`, marker included, at a line end when one is near.
+function trimTextToLength(moduleId, text, maxCharacters) {
+  if (text.length <= maxCharacters) return { text, removedCharacters: 0 };
+  const reservedForMarker = buildTrimMarker(moduleId, text.length).length;
+  const keptLength = Math.max(0, maxCharacters - reservedForMarker);
+  const lastLineEnd = text.lastIndexOf('\n', keptLength);
+  const cutPosition = lastLineEnd >= keptLength / 2 ? lastLineEnd : keptLength;
+  const removedCharacters = text.length - cutPosition;
+  return { text: `${text.slice(0, cutPosition)}${buildTrimMarker(moduleId, removedCharacters)}`, removedCharacters };
+}
+
+// Fits the texts of several modules, joined by `separator`, into `budgetCharacters`. The longest
+// texts are cut first, all to the same length, so short ones (often dynamic state) stay whole.
+// `textEntries`: [{ moduleId, text }]. Returns { texts, trimmedModules: [{ moduleId, removedCharacters }] }.
+export function fitTextsToBudget(textEntries, separator, budgetCharacters = MAX_FIELD_CHARACTERS) {
+  const fittedSize = (entries) => entries.reduce((totalLength, entry) => totalLength + entry.text.length, 0)
+    + separator.length * Math.max(0, entries.length - 1);
+  const untrimmed = { texts: textEntries.map((entry) => entry.text), trimmedModules: [] };
+  if (fittedSize(textEntries) <= budgetCharacters) return untrimmed;
+  const trimAll = (lengthCap) => textEntries.map((entry) => ({ moduleId: entry.moduleId, ...trimTextToLength(entry.moduleId, entry.text, lengthCap) }));
+  let lowestCap = 0;
+  let highestCap = Math.max(...textEntries.map((entry) => entry.text.length));
+  while (lowestCap < highestCap) {
+    const middleCap = Math.ceil((lowestCap + highestCap) / 2);
+    if (fittedSize(trimAll(middleCap)) <= budgetCharacters) lowestCap = middleCap;
+    else highestCap = middleCap - 1;
+  }
+  const trimmedEntries = trimAll(lowestCap);
+  return {
+    texts: trimmedEntries.map((entry) => entry.text),
+    trimmedModules: trimmedEntries.filter((entry) => entry.removedCharacters > 0)
+      .map((entry) => ({ moduleId: entry.moduleId, removedCharacters: entry.removedCharacters })),
+  };
+}
+
 export function combineDecisions(moduleDecisions) {
   const meaningfulDecisions = moduleDecisions.filter((decision) => decision && decision.kind !== 'allow');
-  const noticeTexts = meaningfulDecisions.filter((decision) => decision.kind === 'notice').map((decision) => `ai1/${decision.moduleId}: ${decision.text}`);
-  const withNotice = (combinedDecision) => (noticeTexts.length ? { ...combinedDecision, notice: noticeTexts.join('\n') } : combinedDecision);
-  const contextTexts = meaningfulDecisions.filter((decision) => decision.kind === 'context').map((decision) => decision.text);
+  const noticeEntries = meaningfulDecisions.filter((decision) => decision.kind === 'notice')
+    .map((decision) => ({ moduleId: decision.moduleId, text: `ai1/${decision.moduleId}: ${decision.text}` }));
+  const fittedNotices = fitTextsToBudget(noticeEntries, NOTICE_SEPARATOR);
+  const contextEntries = meaningfulDecisions.filter((decision) => decision.kind === 'context')
+    .map((decision) => ({ moduleId: decision.moduleId, text: decision.text }));
+  const fittedContext = fitTextsToBudget(contextEntries, CONTEXT_SEPARATOR);
+  const trimmedModules = [...fittedContext.trimmedModules, ...fittedNotices.trimmedModules];
+  const withNotice = (combinedDecision) => ({
+    ...combinedDecision,
+    ...(fittedNotices.texts.length ? { notice: fittedNotices.texts.join(NOTICE_SEPARATOR) } : {}),
+    ...(trimmedModules.length ? { trimmedModules } : {}),
+  });
   const blockingDecisions = meaningfulDecisions.filter((decision) => !['context', 'notice'].includes(decision.kind));
   if (blockingDecisions.length === 0) {
-    return withNotice(contextTexts.length ? { kind: 'context', text: contextTexts.join('\n\n') } : allowDecision());
+    return withNotice(fittedContext.texts.length ? { kind: 'context', text: fittedContext.texts.join(CONTEXT_SEPARATOR) } : allowDecision());
   }
   const highestRank = Math.max(...blockingDecisions.map((decision) => DECISION_RANK[decision.kind]));
   const winningDecisions = blockingDecisions.filter((decision) => DECISION_RANK[decision.kind] === highestRank);

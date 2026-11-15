@@ -61,13 +61,10 @@ export function buildDesignRecipe({ contextFiles, canRecordInBundle, hasImpeccab
       : 'write them down in the repo';
     contextRule = `- Context first: there is no product or design-system context yet. Before a sizeable UI task, ask the person who uses the product, its tone and its brand (colours, typefaces), then ${recordWhere} and follow them.`;
   }
+  // What depends on this repo first, the fixed rules last: an over-limit session start is cut at the end.
   const recipeLines = [
     'Design: UI in this repo comes from its own context, not from defaults.',
     contextRule,
-    '- Avoid the generic AI look: no Inter / Roboto / Geist by reflex, no purple-violet gradients or gradient text, no coloured glows, no thick accent border on one side of a card, no icon tile above every heading, no tiny uppercase kicker above headings, no cream background by reflex, no marketing buzzwords (seamless, empower, cutting-edge...).',
-    '- Quality floor: text contrast of at least 4.5:1 (WCAG AA), no text under 11px, heading levels in order, real images (no empty or placeholder src), spacing with rhythm (tight inside a group, generous between sections).',
-    '- The design-detect hook checks every UI file you edit and reports what the edit introduced: fix each finding or say in one line why the choice is deliberate.',
-    '- Whether a flow is intuitive for the people who use it (the profiles under `## Users` of the `Product` context) is checked with /ai1:design-review-usability, offered after a storyboard.',
   ];
   if (hasFrontendDesign) {
     recipeLines.push(`- The frontend-design skill is installed: use it to set the visual direction of new UI or a redesign, then record the palette, typefaces and type scale it decides in the design-system context${canRecordInBundle ? ' (the `DesignSystem` concept)' : ''}, so later sessions and design-detect build on them.`);
@@ -75,6 +72,12 @@ export function buildDesignRecipe({ contextFiles, canRecordInBundle, hasImpeccab
   if (hasImpeccable) {
     recipeLines.push('- The impeccable skill is installed: for a deeper pass use /impeccable critique or /impeccable audit to review, and /impeccable polish before calling UI work done.');
   }
+  recipeLines.push(
+    '- Avoid the generic AI look: no Inter / Roboto / Geist by reflex, no purple-violet gradients or gradient text, no coloured glows, no thick accent border on one side of a card, no icon tile above every heading, no tiny uppercase kicker above headings, no cream background by reflex, no marketing buzzwords (seamless, empower, cutting-edge...).',
+    '- Quality floor: text contrast of at least 4.5:1 (WCAG AA), no text under 11px, heading levels in order, real images (no empty or placeholder src), spacing with rhythm (tight inside a group, generous between sections).',
+    '- The design-detect hook checks every UI file you edit and reports what the edit introduced: fix each finding or say in one line why the choice is deliberate.',
+    '- Whether a flow is intuitive for the people who use it (the profiles under `## Users` of the `Product` context) is checked with /ai1:design-review-usability, offered after a storyboard.',
+  );
   return recipeLines.join('\n');
 }
 
