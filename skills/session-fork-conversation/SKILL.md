@@ -25,12 +25,11 @@ ai1 fork host --opener '${user_config.fork_opener}'
 ```
 
 The person chooses where forks open with the plugin option **Fork opener** (`/config` -> ai1:
-`auto`, `paseo`, `vscode`, `desktop`, `terminal`); pass `--opener '${user_config.fork_opener}'` exactly as written to every
+`auto`, `vscode`, `desktop`, `terminal`); pass `--opener '${user_config.fork_opener}'` exactly as written to every
 `ai1 fork` command (unset, it means auto). If they say where they want it, point them to that option.
-
-- `paseo`: the new conversation becomes a Paseo agent (same provider, model and mode as this one,
-  labelled `ai1=fork`, `fork_mode`, `forked_from`), independent from this agent. Chosen from
-  another host, it starts as plain Claude with Paseo's defaults.
+Any other tool (an agent manager, a multiplexer) opens forks through the person's own command: see
+[Open forks in another tool](#open-forks-in-another-tool); their customization below says whether they
+have one (pass its `--open-command` to `ai1 fork full` and `ai1 fork brief`).
 - `desktop` (chosen, macOS and Windows): the Claude Desktop command or link comes first.
 - `vscode`: the extension is opened on it (`vscode://anthropic.claude-code/open?...`).
 - `terminal` (CLI, JetBrains, SDK and Claude Desktop, which has no signal): you get the commands
@@ -47,9 +46,11 @@ conversation from here" on a message in VS Code.
 ai1 fork full --opener '${user_config.fork_opener}' [--title "<what the fork explores>"] [--task "<first instruction for the fork>"]
 ```
 
-With `--task`, Paseo sends it to the new agent right away; elsewhere it is printed to paste. A fork
-loses "allow for this session" permissions and plan mode. It fails, saying why, without a Claude
-Code session id, on the web, or when the Paseo agent is not a Claude one (use `brief` then).
+With the person's `--open-command`, their command creates the forked session and opens it (and sends
+the task, if their tool can); otherwise ai1 creates it (`--claude-command "<cmd>"` when a plain
+`claude` is not logged in) and the task is printed to paste. A fork loses "allow for this session"
+permissions and plan mode. It fails, saying why, without a Claude Code session id or on the web
+(use `brief` then).
 
 ## 2b. Brief
 
@@ -92,10 +93,49 @@ Code session id, on the web, or when the Paseo agent is not a Claude one (use `b
 
 ## 3. Report
 
-Say what was created (Paseo agent id or session id), how to open it (the CLI prints every way:
-`paseo agent open`, `claude --resume`, the VS Code URI, `claude --desktop --resume` on macOS and
-Windows, the Desktop link for a brief) and, for a full fork with a task outside Paseo, the task to
+Say what was created (session id, and what the person's command printed), how to open it (the CLI
+prints every way: `claude --resume`, the VS Code URI, `claude --desktop --resume` on macOS and
+Windows, the Desktop link for a brief) and, when it was not opened by their command, the task to
 paste. Do not keep working on the forked line here unless the person asks.
+
+## Open forks in another tool
+
+ai1 knows the terminal, VS Code, Claude Desktop and the web. To open forks in anything else (an agent
+manager, a terminal multiplexer, a team tool), the person sets up their own command once, and you guide
+them, when they ask for it, when `ai1 fork` says the opener they chose is not built in, or when it adds
+the note about another tool and they want it:
+
+1. **Ask which tool, and how it starts a conversation** from a prompt or file, and how it would take an
+   existing Claude Code session by id (for a full fork). Read its docs or `--help` together.
+2. **What ai1 gives the command**: placeholders, filled shell-quoted (never quote them yourself, write
+   `{title}`, not `'{title}'`), unused ones empty: `{mode}` (`full` or `brief`), `{cwd}`, `{title}`,
+   `{brief_file}` (brief), `{task_file}` (full, empty without `--task`), `{original_session_id}` and
+   `{session_id}` (full: the new id to create). It runs with `sh -c` in `{cwd}`, with this session's
+   environment, 180 s at most; what it prints is shown to the person; a non-zero exit is an error.
+3. **For a full fork the command creates the session itself**, so it can use the person's launcher and
+   model: `claude -p --resume <original> --fork-session --session-id <new> --tools '' "Reply only: ready."`,
+   then hands `<new>` to the tool.
+4. **Write a small script in the person's own config** (their dotfiles or config repo, never the
+   plugin nor a project repo), for example:
+
+   ```sh
+   #!/bin/sh
+   # ai1 fork opener: $1 mode, $2 cwd, $3 title, $4 brief file, $5 task file, $6 original id, $7 new id
+   mode="$1"; cwd="$2"; title="$3"
+   if [ "$mode" = brief ]; then
+     my-tool new --cwd "$cwd" --title "$title" --prompt-file "$4"
+   else
+     claude -p --resume "$6" --fork-session --session-id "$7" --tools '' "Reply only: ready." >/dev/null &&
+       my-tool import "$7" --cwd "$cwd" --title "$title"
+   fi
+   ```
+
+   and the command: `<path to script> {mode} {cwd} {title} {brief_file} {task_file} {original_session_id} {session_id}`.
+5. **Try it once** with a throwaway brief (`ai1 fork brief --open-command "<command>" --file <brief>`)
+   and check with the person that it opened where they wanted.
+6. **Save it as their personal customization** of this skill with /ai1:core-customize-skill: "pass
+   `--open-command \"<command>\"` to `ai1 fork full` and `ai1 fork brief`" (and `--claude-command` if a
+   plain `claude` is not logged in on their machine). From then on every fork opens there.
 
 ## Fixed rules
 

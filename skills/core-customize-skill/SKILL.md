@@ -1,6 +1,6 @@
 ---
 name: core-customize-skill
-description: Core — Customize how an ai1 skill works for this project or only for the person. Use when the person corrects or adjusts how an ai1 skill works and wants it kept ("aquí siempre…", "en este repo los briefs…", "para mí, abre los forks en Paseo", "personaliza la skill de later", "customize this skill", "from now on in this repo…"), or when a skill's customization footer offers it and they say yes.
+description: Core — Customize how an ai1 skill works for this project or only for the person. Use when the person corrects or adjusts how an ai1 skill works and wants it kept ("aquí siempre…", "en este repo los briefs…", "para mí, abre los forks en mi gestor de agentes", "personaliza la skill de later", "customize this skill", "from now on in this repo…"), or when a skill's customization footer offers it and they say yes.
 ---
 
 # Customize an ai1 skill
@@ -22,6 +22,9 @@ customizations.
   - how worktrees are made: the worktree recipe (/ai1:worktrees-plan-recipe `revisar`).
 - "Never let the agent do X" (a command or an edit) is a guard, not a customization: use
   /ai1:danger-write-rule.
+- A customization may carry how this machine runs a tool (`--open-command "<script> ..."` for forks,
+  `--claude-command "<wrapper>"`): that is the person's own tooling, so it is **personal**, and the script
+  it names lives in their own config (dotfiles, config repo), never in the plugin or a project repo.
 
 ## 2. Project or personal
 
