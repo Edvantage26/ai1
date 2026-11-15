@@ -5,7 +5,7 @@ description: Reuse - after real work the session judges whether it will recur in
 tags: [reuse, skills, hooks, cli, transcripts]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T11:56:07Z'
+  at: '2026-11-15T18:21:34Z'
 sources:
   - id: reuse-history
     resource: src/reuse/reuse-history.mjs
@@ -37,6 +37,9 @@ Built 2026-11-13 (deep plan `reuse`). On by default since v0.36.0 ([all features
   `modules.reuse-check.minToolCalls` (default 8) since the last check it blocks once asking for a silent judgement:
   low → finish without a word to the person (asked on 2026-11-13: a check that found nothing must not reach them); medium → `ai1 reuse search` and propose only with evidence, else silent; high → propose. The count
   restarts after each check; at most 2 per session.
+- While agents the session launched in the background have not reported back, reuse-check does not ask:
+  the session stopped only to wait for them (`src/core/background-agents.mjs`, the detector okf-upkeep
+  uses). Found on a large bundle build where six reading agents ran (2026-11-15).
 - `ai1 reuse search "<keywords>" [--days 90] [--json]`: terms = lowercased words of 3+ letters (2 with a
   digit: o2, s3) minus stopwords; a session or a project piece matches with half or more of the terms.
   Searches real user prompts (not meta, not `<`-wrapped), Bash commands, MCP tool calls and Skill

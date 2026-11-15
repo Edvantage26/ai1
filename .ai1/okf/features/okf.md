@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index and bundle health notes 
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T16:42:31Z'
+  at: '2026-11-15T18:21:34Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -189,7 +189,8 @@ sources:
   While agents the session launched in the background have not reported back (an Agent tool result
   "Async agent launched successfully" with no later `<task-notification>` carrying its
   `<tool-use-id>` and a finished `<status>`), the reminder waits: before, it pushed a concept written
-  before the reports arrived (2026-11-15).
+  before the reports arrived (2026-11-15). The detector is `src/core/background-agents.mjs`, shared
+  with reuse-check.
   A bundle edit is a Write/Edit on a bundle path or a Bash command that writes there
   (`shellCommandWritesBundle`: redirects, `tee`, `sed -i`, `mv`/`cp` into it, `rm`, inline
   python/node scripts naming a bundle file); reading or validating the bundle does not count.
