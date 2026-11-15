@@ -12,5 +12,4 @@ Create and change entries with `ai1 later new` and `ai1 later set`; this table i
 | [0004](0004-credential-deny-rules.md) | Offer credential deny rules in the setup assistant | idea | implemented | 2026-11-09 | 2026-11-09 |
 | [0005](0005-hook-decision-log.md) | Local log of hook decisions | idea | implemented | 2026-11-09 | 2026-11-09 |
 | [0006](0006-repo-rules.md) | Repo-declared block and warn rules | idea | implemented | 2026-11-09 | 2026-11-09 |
-| [0007](0007-sdk-orchestrator.md) | A companion orchestrator on the Claude Agent SDK for delegated sessions | idea | draft | 2026-11-15 | 2026-11-15 |
 <!-- later-index:end -->
