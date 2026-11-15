@@ -9,10 +9,25 @@ import {
   listConceptsChangedSinceOverview, listConceptsMissingFromIndex,
 } from './okf-bundle.mjs';
 import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
+import { describeBundleLocation, resolveRelatedEntries } from './okf-related.mjs';
 
 const MODULE_ID = 'okf-index';
 const MAX_INDEX_CHARACTERS = 12000;
 const MAX_LISTED_CONCEPTS = 10;
+
+// The related repositories of .ai1/config.json, with where each one's knowledge is on this machine.
+export function buildRelatedLines(projectRoot, relatedEntries = []) {
+  if (!relatedEntries.length) return [];
+  return [
+    '',
+    'Related repositories (`related` in .ai1/config.json): their knowledge lives in their own bundles. Read the relevant one before changing anything that depends on it; each fact lives in the repository that changes it, this repo only links to it:',
+    ...resolveRelatedEntries(projectRoot, relatedEntries).map((resolvedEntry) => {
+      const { entry } = resolvedEntry;
+      const detailText = [entry.branch ? `branch \`${entry.branch}\`` : null, entry.owns?.length ? `owns: ${entry.owns.join('; ')}` : null].filter(Boolean).join(', ');
+      return `- ${entry.name}${detailText ? ` (${detailText})` : ''}: ${describeBundleLocation(projectRoot, resolvedEntry)}`;
+    }),
+  ];
+}
 
 export default {
   id: MODULE_ID,
@@ -36,6 +51,7 @@ export default {
       'After a change that affects a documented asset (service, API, schema, feature, decision):',
       ...buildMaintenanceRules(bundleRelativePath, specVersion).map((maintenanceRule) => `- ${maintenanceRule}`),
       ...buildBundleHealthNotes(projectRoot, bundleDirectory, bundleRelativePath),
+      ...buildRelatedLines(projectRoot, config?.related),
       '',
       `--- ${bundleRelativePath}/index.md ---`,
       visibleIndex,

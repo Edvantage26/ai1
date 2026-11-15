@@ -128,3 +128,19 @@ test('no line for a repository without a bundle, a submodule, or a file of this 
   runGit(appRoot, ['-c', 'protocol.file.allow=always', 'submodule', 'add', '-q', workerRoot, 'vendor-worker']);
   assert.doesNotMatch(contextOf(runHookEvent('PostToolUse', readPayload(appRoot, join(appRoot, 'vendor-worker', 'src', 'main.py'), 'session-2'), options)), /another repository|related repository/);
 });
+
+test('at session start the related repositories are listed with where their knowledge is, and a missing clone says so [related-repositories:S5]', async () => {
+  const { runHookEvent } = await import('../src/core/dispatcher.mjs');
+  const { workerRoot, appRoot, options } = createRelatedWorkspace([
+    { name: 'worker', path: '../worker', branch: 'develop', owns: ['the ingest contract'] },
+    { name: 'billing', remote: 'acme/billing', read_without_clone: 'print-index acme/billing' },
+    { name: 'gone', path: '../gone' },
+  ]);
+  const sessionContext = contextOf(runHookEvent('SessionStart', { session_id: 'session-1', cwd: appRoot, source: 'startup' }, options));
+  assert.match(sessionContext, /Related repositories \(`related` in \.ai1\/config\.json\)/);
+  assert.ok(sessionContext.includes(`- worker (branch \`develop\`, owns: the ingest contract): \`${join(workerRoot, '.okf', 'index.md')}\``));
+  assert.ok(sessionContext.includes('- billing: not cloned here; read it with `print-index acme/billing`'));
+  assert.ok(sessionContext.includes('- gone: not found at `../gone` on this machine'));
+  const { appRoot: plainAppRoot, options: plainOptions } = createRelatedWorkspace();
+  assert.doesNotMatch(contextOf(runHookEvent('SessionStart', { session_id: 'session-1', cwd: plainAppRoot, source: 'startup' }, plainOptions)), /Related repositories/, 'nothing without related');
+});
