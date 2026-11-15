@@ -70,7 +70,7 @@ test('the edited repo decides: the launch repo switching delegate off does not l
 
 test('once the person says the edit must be made here, edits to that repo go through for the session [foreign-repo-delegation:S1]', () => {
   const { launchRoot, siblingRoot, environment } = createWorkspace();
-  allowRepository('session-1', launchRoot, siblingRoot, 'hazlo aquí', environment);
+  allowRepository('session-1', siblingRoot, 'hazlo aquí', environment);
   assert.equal(decisionOf(runHookEvent('PreToolUse', editPayload(launchRoot, join(siblingRoot, 'src', 'app.js')), { environment, reportInternalError: () => {} })), null);
 });
 

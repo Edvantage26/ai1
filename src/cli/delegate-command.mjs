@@ -5,8 +5,8 @@
 //   ai1 delegate allow <repo> --because "<the person's words>"   edits of <repo> allowed for this session
 //   ai1 delegate show <session-id>                              the saved result of a delegation
 // --claude-command (or AI1_CLAUDE_COMMAND): how to start Claude Code, default `claude`; a resume reuses it.
-// The result is JSON on stdout (also saved under .ai1/work/delegations/). The session that runs it is
-// the caller: its launch directory (CLAUDE_PROJECT_DIR) and id (CLAUDE_CODE_SESSION_ID) key the state.
+// The result is JSON on stdout (also saved under ai1's state directory, delegations/). The session that runs it is
+// the caller: its id (CLAUDE_CODE_SESSION_ID) keys the state (CLAUDE_PROJECT_DIR is not set in a Bash call).
 
 import { resolve } from 'node:path';
 import { describeOwningRepository } from '../core/owning-repo.mjs';
@@ -30,7 +30,6 @@ function listPositionalArguments(commandArguments) {
 }
 
 export function runDelegateCommand(workingDirectory, commandArguments, { readOption, environment = process.env, runCommand = runExternalCommand, writeOutput = console.log }) {
-  const launchRoot = resolve(environment.CLAUDE_PROJECT_DIR || workingDirectory);
   const callerSessionId = environment.CLAUDE_CODE_SESSION_ID || null;
   const [subcommandName, subcommandTarget] = commandArguments;
   const printJson = (resultValue) => writeOutput(JSON.stringify(resultValue, null, 2));
@@ -42,21 +41,21 @@ export function runDelegateCommand(workingDirectory, commandArguments, { readOpt
       return 1;
     }
     if (!callerSessionId) throw new Error('CLAUDE_CODE_SESSION_ID is not set: run this from the Claude Code session that should edit the repository');
-    const repoRoot = describeOwningRepository(resolve(workingDirectory, subcommandTarget), launchRoot)?.repoRoot;
+    const repoRoot = describeOwningRepository(resolve(workingDirectory, subcommandTarget), workingDirectory)?.repoRoot;
     if (!repoRoot) throw new Error(`${subcommandTarget} is not inside a git repository`);
-    allowRepository(callerSessionId, launchRoot, repoRoot, becauseText, environment);
+    allowRepository(callerSessionId, repoRoot, becauseText, environment);
     printJson({ allowed: repoRoot, because: becauseText, session_id: callerSessionId });
     return 0;
   }
   if (subcommandName === 'show') {
-    const delegationRecord = readDelegationRecord(launchRoot, subcommandTarget);
-    if (!delegationRecord) throw new Error(`no delegation ${subcommandTarget} recorded here`);
+    const delegationRecord = readDelegationRecord(subcommandTarget, environment);
+    if (!delegationRecord) throw new Error(`no delegation ${subcommandTarget} recorded on this machine`);
     printJson(delegationRecord);
     return 0;
   }
   const positionalText = listPositionalArguments(commandArguments).join(' ').trim();
   if (readOption('--resume')) {
-    printJson(resumeDelegation({ sessionId: readOption('--resume'), answerText: positionalText, allowOnceSubject: readOption('--allow-once'), timeoutMinutes: readOption('--timeout'), claudeCommand: readOption('--claude-command'), launchRoot, environment, runCommand }));
+    printJson(resumeDelegation({ sessionId: readOption('--resume'), answerText: positionalText, allowOnceSubject: readOption('--allow-once'), timeoutMinutes: readOption('--timeout'), claudeCommand: readOption('--claude-command'), environment, runCommand }));
     return 0;
   }
   if (readOption('--cwd')) {
@@ -68,7 +67,6 @@ export function runDelegateCommand(workingDirectory, commandArguments, { readOpt
       maxTurns: readOption('--max-turns'),
       timeoutMinutes: readOption('--timeout'),
       claudeCommand: readOption('--claude-command'),
-      launchRoot,
       callerSessionId,
       environment,
       runCommand,

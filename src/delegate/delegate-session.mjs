@@ -4,21 +4,19 @@
 // guard of that repository that asked or refused shows in `permission_denials` (status blocked). The
 // caller asks the person and resumes the same session (`--resume`), with a one-time allow for a
 // confirmed command (danger and repo-rules honour it once in that session; a deny stays a deny).
-// Every run is saved as JSON in `.ai1/work/delegations/<session>.json` of the caller's repo (temp dir
-// where the caller has no ai1). Claude Code is started with `claude`, or the command given with
+// Every run is saved as JSON in ai1's state directory (`delegations/<session>.json`), so `--resume` and
+// `show` find it from any folder. Claude Code is started with `claude`, or the command given with
 // `--claude-command` / `AI1_CLAUDE_COMMAND` (a wrapper that logs in an account, for instance: what a
 // machine needs belongs in a skill customization, not here). External programs go through
 // `runCommand` so tests fake `claude`.
 
 import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { AI1_DIRECTORY, WORK_DIRECTORY } from '../core/config.mjs';
 import { describeOwningRepository } from '../core/owning-repo.mjs';
 import { runExternalCommand } from '../session/fork-session.mjs';
 import { resolveClaudeCommand } from '../session/claude-command.mjs';
-import { ensureWorkDirectoryIgnored } from '../sizing/sizing-work.mjs';
+import { resolveStateDirectory } from '../core/session-state.mjs';
 import { grantOneTimeAllow, readRememberedPermissionMode } from './delegate-state.mjs';
 
 const DEFAULT_TIMEOUT_MINUTES = 60;
@@ -106,30 +104,24 @@ export function interpretRun(commandResult) {
   return { status, question, summary, denied, exitCode: commandResult.status, sessionId: runJson.session_id || null, costUsd: runJson.total_cost_usd ?? null };
 }
 
-function delegationDirectory(launchRoot) {
-  if (launchRoot && existsSync(join(launchRoot, AI1_DIRECTORY, 'config.json'))) {
-    ensureWorkDirectoryIgnored(launchRoot);
-    return join(launchRoot, WORK_DIRECTORY, 'delegations');
-  }
-  return join(tmpdir(), 'ai1-delegations');
+function delegationDirectory(environment) {
+  return join(resolveStateDirectory(environment), 'delegations');
 }
 
-function recordPath(launchRoot, sessionId) {
-  return join(delegationDirectory(launchRoot), `${sessionId}.json`);
+function recordPath(sessionId, environment) {
+  return join(delegationDirectory(environment), `${sessionId}.json`);
 }
 
-function saveRecord(launchRoot, delegationRecord) {
-  const savedPath = recordPath(launchRoot, delegationRecord.session_id);
-  mkdirSync(join(savedPath, '..'), { recursive: true });
+function saveRecord(delegationRecord, environment) {
+  const savedPath = recordPath(delegationRecord.session_id, environment);
+  mkdirSync(delegationDirectory(environment), { recursive: true });
   writeFileSync(savedPath, JSON.stringify(delegationRecord, null, 2) + '\n');
   return savedPath;
 }
 
-export function readDelegationRecord(launchRoot, sessionId) {
-  for (const candidatePath of [recordPath(launchRoot, sessionId), join(tmpdir(), 'ai1-delegations', `${sessionId}.json`)]) {
-    if (existsSync(candidatePath)) return JSON.parse(readFileSync(candidatePath, 'utf8'));
-  }
-  return null;
+export function readDelegationRecord(sessionId, environment = process.env) {
+  const savedPath = recordPath(sessionId, environment);
+  return existsSync(savedPath) ? JSON.parse(readFileSync(savedPath, 'utf8')) : null;
 }
 
 function runClaude({ repoRoot, claudeArguments, claudeCommand, environment, runCommand, timeoutMinutes }) {
@@ -146,7 +138,7 @@ function permissionArguments(permissionMode) {
   return permissionMode ? ['--permission-mode', permissionMode] : [];
 }
 
-function finishRun({ launchRoot, baseRecord, commandResult, runCommand }) {
+function finishRun({ baseRecord, commandResult, runCommand, environment }) {
   const runOutcome = interpretRun(commandResult);
   const repositoryChanges = describeRepositoryChanges(baseRecord.repo, baseRecord.start_snapshot, runCommand);
   const delegationRecord = {
@@ -163,12 +155,12 @@ function finishRun({ launchRoot, baseRecord, commandResult, runCommand }) {
     runs: (baseRecord.runs || 0) + 1,
     updated_at: new Date().toISOString(),
   };
-  delegationRecord.record_path = saveRecord(launchRoot, delegationRecord);
+  delegationRecord.record_path = saveRecord(delegationRecord, environment);
   return delegationRecord;
 }
 
 // Starts a delegated session in `targetDirectory` with the brief (a file) or an inline task.
-export function startDelegation({ targetDirectory, briefPath, taskText, permissionMode, maxTurns, timeoutMinutes, claudeCommand, launchRoot, callerSessionId, environment = process.env, runCommand = runExternalCommand }) {
+export function startDelegation({ targetDirectory, briefPath, taskText, permissionMode, maxTurns, timeoutMinutes, claudeCommand, callerSessionId, environment = process.env, runCommand = runExternalCommand }) {
   const repoRoot = describeOwningRepository(resolve(targetDirectory), resolve(targetDirectory))?.repoRoot;
   if (!repoRoot) throw new Error(`${targetDirectory} is not inside a git repository`);
   let briefText = taskText ? String(taskText).trim() : '';
@@ -177,7 +169,7 @@ export function startDelegation({ targetDirectory, briefPath, taskText, permissi
     briefText = readFileSync(briefPath, 'utf8').trim();
   }
   if (!briefText) throw new Error('nothing to delegate: give --brief <file> or the task as text');
-  const effectivePermissionMode = permissionMode || readRememberedPermissionMode(callerSessionId, launchRoot, environment) || null;
+  const effectivePermissionMode = permissionMode || readRememberedPermissionMode(callerSessionId, environment) || null;
   const sessionId = randomUUID();
   const startSnapshot = snapshotRepository(repoRoot, runCommand);
   const commandResult = runClaude({
@@ -189,14 +181,14 @@ export function startDelegation({ targetDirectory, briefPath, taskText, permissi
     timeoutMinutes,
   });
   const baseRecord = { session_id: sessionId, repo: repoRoot, brief_path: briefPath || null, permission_mode: effectivePermissionMode, claude_command: claudeCommand || null, start_snapshot: startSnapshot, started_at: new Date().toISOString() };
-  return finishRun({ launchRoot, baseRecord, commandResult, runCommand });
+  return finishRun({ baseRecord, commandResult, runCommand, environment });
 }
 
 // Resumes a delegated session with the person's answer; `allowOnceSubject` is a command (or file) a
 // guard asked about that the person confirmed, allowed once in that session.
-export function resumeDelegation({ sessionId, answerText, allowOnceSubject, timeoutMinutes, claudeCommand, launchRoot, environment = process.env, runCommand = runExternalCommand }) {
-  const baseRecord = readDelegationRecord(launchRoot, sessionId);
-  if (!baseRecord) throw new Error(`no delegation ${sessionId} recorded for this repository`);
+export function resumeDelegation({ sessionId, answerText, allowOnceSubject, timeoutMinutes, claudeCommand, environment = process.env, runCommand = runExternalCommand }) {
+  const baseRecord = readDelegationRecord(sessionId, environment);
+  if (!baseRecord) throw new Error(`no delegation ${sessionId} recorded on this machine`);
   if (!answerText || !String(answerText).trim()) throw new Error('give the person\'s answer to resume with');
   if (allowOnceSubject) grantOneTimeAllow(sessionId, baseRecord.repo, allowOnceSubject, environment);
   const resumeText = [
@@ -212,5 +204,5 @@ export function resumeDelegation({ sessionId, answerText, allowOnceSubject, time
     runCommand,
     timeoutMinutes,
   });
-  return finishRun({ launchRoot, baseRecord, commandResult, runCommand });
+  return finishRun({ baseRecord, commandResult, runCommand, environment });
 }

@@ -61,7 +61,7 @@ function readSessionId(programArguments) {
 
 test('a delegated change runs claude -p in the other repo and reports status, summary, commits and files [foreign-repo-delegation:S2]', () => {
   const { launchRoot, targetRoot, environment } = createWorkspace();
-  rememberPermissionMode('caller-session', launchRoot, 'bypassPermissions', environment);
+  rememberPermissionMode('caller-session', 'bypassPermissions', environment);
   const briefPath = join(launchRoot, 'brief.md');
   writeFileSync(briefPath, '# Add a changelog\n\nCreate CHANGELOG.md.\n');
   const { runCommand, claudeCalls } = fakeRunner((programArguments, commandOptions) => {
@@ -78,7 +78,7 @@ test('a delegated change runs claude -p in the other repo and reports status, su
   assert.equal(delegationRecord.repo, targetRoot);
   assert.deepEqual(delegationRecord.commits.map((delegatedCommit) => [delegatedCommit.branch, delegatedCommit.subject]), [['main', 'docs: add changelog']]);
   assert.deepEqual(delegationRecord.changed_files, ['CHANGELOG.md']);
-  assert.ok(existsSync(join(launchRoot, '.ai1', 'work', 'delegations', `${delegationRecord.session_id}.json`)), 'the result is saved for later reading');
+  assert.ok(existsSync(join(environment.CLAUDE_PLUGIN_DATA, 'state', 'delegations', `${delegationRecord.session_id}.json`)), 'the result is saved in the state directory');
   const [{ programArguments, commandOptions }] = claudeCalls;
   assert.equal(commandOptions.cwd, targetRoot, 'runs in the other repository');
   assert.equal(commandOptions.extraEnvironment.CLAUDE_PROJECT_DIR, targetRoot, 'its hooks resolve the other repository');
@@ -160,4 +160,24 @@ test('Claude is started with the given command, from --claude-command or AI1_CLA
     ['/opt/bin/claude-wrapper', '-p', '--output-format'],
     ['claude', '-p', '--output-format'],
   ]);
+});
+
+test('from a Bash call (no CLAUDE_PROJECT_DIR, another folder) the mode the hook saw is inherited and the run can be resumed [foreign-repo-delegation:S3]', async () => {
+  const { launchRoot, targetRoot, environment, workspaceRoot } = createWorkspace();
+  const foreignRepoModule = (await import('../src/delegate/foreign-repo.mjs')).default;
+  // the hook sees the session launched in launchRoot and records its mode when it refuses an edit
+  foreignRepoModule.run({ hookInput: { session_id: 'caller-session', cwd: launchRoot, tool_name: 'Edit', tool_input: { file_path: join(targetRoot, 'README.md') }, permission_mode: 'bypassPermissions' }, projectRoot: launchRoot, config: { features: {} }, environment });
+  const bashEnvironment = { ...environment };
+  delete bashEnvironment.CLAUDE_PROJECT_DIR;
+  let turnNumber = 0;
+  const { runCommand, claudeCalls } = fakeRunner((programArguments) => {
+    turnNumber += 1;
+    return claudeJson({ session_id: readSessionId(programArguments), result: turnNumber === 1 ? 'Q\nAI1-DELEGATE: needs-input: ¿sigo?' : 'Done.\nAI1-DELEGATE: done' });
+  });
+  const firstRecord = startDelegation({ targetDirectory: targetRoot, taskText: 'Do it', callerSessionId: 'caller-session', environment: bashEnvironment, runCommand });
+  assert.equal(firstRecord.permission_mode, 'bypassPermissions');
+  assert.equal(claudeCalls[0].programArguments[claudeCalls[0].programArguments.indexOf('--permission-mode') + 1], 'bypassPermissions');
+  const outputs = [];
+  runDelegateCommand(workspaceRoot, ['--resume', firstRecord.session_id, 'sí'], { readOption: (optionName) => (optionName === '--resume' ? firstRecord.session_id : undefined), environment: bashEnvironment, runCommand, writeOutput: (outputText) => outputs.push(outputText) });
+  assert.equal(JSON.parse(outputs[0]).status, 'done', 'resumed from another folder');
 });

@@ -1,6 +1,7 @@
 // Session state of the delegate feature, in ai1's state directory (never in the repos):
 // - allowed repos: repositories the person said must be edited from this session (R5,
-//   `ai1 delegate allow <repo> --because "<their words>"`), keyed by session and launch root;
+//   `ai1 delegate allow <repo> --because "<their words>"`), keyed by session only: the CLI runs from a
+//   Bash call where CLAUDE_PROJECT_DIR is not set, so it cannot know the launch root the hook saw;
 // - noted repos: repositories without ai1 the agent was already told about once;
 // - one-time allows: a command a guard of the delegated repository asked about and the person
 //   confirmed (R2), keyed by the delegated session and its repository; danger and repo-rules use it once.
@@ -8,16 +9,19 @@
 import { createHash } from 'node:crypto';
 import { readStateJson, resolveStateDirectory, sessionStatePath, writeStateText } from '../core/session-state.mjs';
 
+// State the hook writes and the CLI reads: keyed by the session id alone (both know it).
+const SESSION_SCOPE = 'ai1-delegate-session';
+
 function statePath(sessionId, rootPath, stateName, environment) {
   return sessionStatePath(resolveStateDirectory(environment), sessionId, rootPath, stateName);
 }
 
-export function readAllowedRepositories(sessionId, launchRoot, environment = process.env) {
-  return readStateJson(statePath(sessionId, launchRoot, 'delegate-allow', environment), {});
+export function readAllowedRepositories(sessionId, environment = process.env) {
+  return readStateJson(statePath(sessionId, SESSION_SCOPE, 'delegate-allow', environment), {});
 }
 
-export function allowRepository(sessionId, launchRoot, repoRoot, becauseText, environment = process.env, now = new Date()) {
-  const allowPath = statePath(sessionId, launchRoot, 'delegate-allow', environment);
+export function allowRepository(sessionId, repoRoot, becauseText, environment = process.env, now = new Date()) {
+  const allowPath = statePath(sessionId, SESSION_SCOPE, 'delegate-allow', environment);
   const allowedRepositories = readStateJson(allowPath, {});
   allowedRepositories[repoRoot] = { because: becauseText, at: now.toISOString() };
   writeStateText(allowPath, JSON.stringify(allowedRepositories));
@@ -34,15 +38,15 @@ export function noteRepositoryOnce(sessionId, launchRoot, repoRoot, environment 
 }
 
 // The permission mode of the calling session, seen by the hook, so a delegated run inherits it (R1).
-export function rememberPermissionMode(sessionId, launchRoot, permissionMode, environment = process.env) {
+export function rememberPermissionMode(sessionId, permissionMode, environment = process.env) {
   if (!sessionId || !permissionMode) return;
-  const modePath = statePath(sessionId, launchRoot, 'permission-mode', environment);
+  const modePath = statePath(sessionId, SESSION_SCOPE, 'permission-mode', environment);
   if (readStateJson(modePath, null) !== permissionMode) writeStateText(modePath, JSON.stringify(permissionMode));
 }
 
-export function readRememberedPermissionMode(sessionId, launchRoot, environment = process.env) {
+export function readRememberedPermissionMode(sessionId, environment = process.env) {
   if (!sessionId) return null;
-  return readStateJson(statePath(sessionId, launchRoot, 'permission-mode', environment), null);
+  return readStateJson(statePath(sessionId, SESSION_SCOPE, 'permission-mode', environment), null);
 }
 
 function commandKey(commandText) {

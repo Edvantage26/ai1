@@ -5,7 +5,7 @@ description: An edit to a file of another repository with ai1 active is refused 
 tags: [delegate, foreign-repo, cross-repo, claude-p, submodules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T08:56:48Z'
+  at: '2026-11-15T14:30:09Z'
 ---
 
 # What it does
@@ -39,11 +39,16 @@ generated:
   customization, never in the plugin ([host tooling stays out](../decisions/host-tooling-out-of-plugin.md)).
 - The permission mode is inherited from the calling session (recorded by `foreign-repo` from the hook
   input), `--permission-mode` overrides it. Hooks run in every mode, so the repo's guards always apply.
+  The mode and the "do it here" allows are keyed by the **session id only**: the CLI runs from a Bash
+  call, where `CLAUDE_PROJECT_DIR` is not set and the folder may differ from the launch root the hook saw.
+  Keyed by launch root (v0.40-v0.41) the CLI never found the mode, and a delegated run started without
+  permissions and stopped asking for them (seen 2026-11-15, 1.07 USD for nothing). Without any recorded
+  mode a `claude -p` run uses the default mode, where tools outside the repo's allow list are denied.
 - **Status:** `done` / `needs-input` from the status line; `blocked` when `permission_denials` is not
   empty and the agent did not finish (in `claude -p` a hook `ask` counts as a denial in every mode,
   checked 2026-11-15); `failed` for a crash, `is_error`, no JSON or no status line.
-- **Result:** JSON on stdout and saved in `.ai1/work/delegations/<session>.json` of the caller (temp dir
-  without ai1): status, question, summary, session_id, commits (any branch, since the run started),
+- **Result:** JSON on stdout and saved in ai1's state directory (`delegations/<session>.json`), so
+  `--resume` and `show` work from any folder: status, question, summary, session_id, commits (any branch, since the run started),
   changed_files (commits plus uncommitted, worktrees included), new_worktrees, denied, cost.
 - **Resume:** `ai1 delegate --resume <id> "<answer>"` continues the same session (`claude -p --resume`).
   `--allow-once "<command>"` grants a one-time allow that `danger` and `repo-rules` honour once in that

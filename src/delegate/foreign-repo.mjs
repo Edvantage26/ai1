@@ -43,7 +43,7 @@ export function describeForeignEdits(hookInput, projectRoot, launchHasAi1, envir
     const targetMap = owningRepository.hasAi1 && delegateEnabledIn(owningRepository.repoRoot) ? delegatedRepositories : plainRepositories;
     if (!targetMap.has(owningRepository.repoRoot)) targetMap.set(owningRepository.repoRoot, toolCallChange.rawPath);
   }
-  const allowedRepositories = readAllowedRepositories(hookInput.session_id, projectRoot, environment);
+  const allowedRepositories = readAllowedRepositories(hookInput.session_id, environment);
   for (const allowedRoot of Object.keys(allowedRepositories)) delegatedRepositories.delete(allowedRoot);
   return { delegatedRepositories, plainRepositories };
 }
@@ -58,7 +58,7 @@ export default {
   run({ hookInput, projectRoot, config, environment }) {
     const { delegatedRepositories, plainRepositories } = describeForeignEdits(hookInput, projectRoot, Boolean(config), environment);
     if (delegatedRepositories.size) {
-      rememberPermissionMode(hookInput.session_id, projectRoot, hookInput.permission_mode, environment);
+      rememberPermissionMode(hookInput.session_id, hookInput.permission_mode, environment);
       const [repoRoot, rawPath] = [...delegatedRepositories][0];
       return denyDecision(MODULE_ID, [
         `${quotePath(rawPath)} belongs to another repository, ${quotePath(repoRoot)}, which has ai1 active and its own rules (config, hooks, CLAUDE.md, knowledge).`,
