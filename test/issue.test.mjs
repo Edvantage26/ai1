@@ -25,9 +25,9 @@ test('issue env: versions, host and the repo features, without paths', () => {
 
 test('issue env: no config, and Claude Code missing', () => {
   const projectRoot = createTemporaryProject();
-  const issueEnvironment = collectIssueEnvironment(projectRoot, { environment: { PASEO_AGENT_ID: 'x' }, runCommand: () => ({ status: 1, stdout: '', stderr: 'not found' }) });
+  const issueEnvironment = collectIssueEnvironment(projectRoot, { environment: { TERM_PROGRAM: 'vscode' }, runCommand: () => ({ status: 1, stdout: '', stderr: 'not found' }) });
   assert.equal(issueEnvironment.claudeCodeVersion, 'unknown');
-  assert.equal(issueEnvironment.host, 'paseo');
+  assert.equal(issueEnvironment.host, 'vscode');
   assert.match(formatIssueEnvironment(issueEnvironment), /- Repo: no \.ai1\/config\.json/);
 });
 

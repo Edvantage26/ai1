@@ -8,24 +8,17 @@ import { forkFullConversation, startBriefConversation, resolveHandoffPath } from
 import { runForkCommand } from '../src/cli/fork-command.mjs';
 
 const SESSION_ID = '11111111-2222-3333-4444-555555555555';
-const PASEO_AGENT = 'agent-current';
-
-// A fake runner for claude, paseo and code: records every call and answers like the real CLIs.
-function createFakeRunner({ provider = 'claude', failing = '' } = {}) {
+// A fake runner for claude, code and the opener command (`sh -c`): records every call.
+function createFakeRunner({ failing = '', commandOutput = 'opened agent-42' } = {}) {
   const calls = [];
   const runCommand = (programName, programArguments, commandOptions = {}) => {
     calls.push({ programName, programArguments, cwd: commandOptions.cwd, extraEnvironment: commandOptions.extraEnvironment });
     if (failing && `${programName} ${programArguments[0]}` === failing) return { status: 2, stdout: '', stderr: 'boom' };
-    if (programName === 'paseo' && programArguments[0] === 'inspect') return { status: 0, stdout: JSON.stringify({ Id: PASEO_AGENT, Name: 'Rename work', Provider: provider, Model: 'claude-opus-5-5', Mode: 'bypassPermissions' }) };
-    if (programName === 'paseo' && programArguments[0] === 'import') return { status: 0, stdout: JSON.stringify({ id: 'agent-full-fork' }) };
-    if (programName === 'paseo' && programArguments[0] === 'run') return { status: 0, stdout: JSON.stringify({ id: 'agent-brief' }) };
-    return { status: 0, stdout: programName === 'paseo' ? '{}' : 'ready\n', stderr: '' };
+    if (programName === 'sh') return { status: 0, stdout: `${commandOutput}\n`, stderr: '' };
+    return { status: 0, stdout: 'ready\n', stderr: '' };
   };
   return { calls, runCommand, callsOf: (programName, firstArgument) => calls.filter((call) => call.programName === programName && (!firstArgument || call.programArguments[0] === firstArgument)) };
 }
-
-// A Paseo home without config: the seed run falls back to plain `claude`.
-const EMPTY_PASEO_HOME = mkdtempSync(join(tmpdir(), 'ai1-paseo-home-'));
 
 function writeBrief(briefText = '# Fix the login timeout\n\nOnly touch src/auth.\n') {
   const briefPath = join(mkdtempSync(join(tmpdir(), 'ai1-brief-')), 'brief.md');
@@ -33,35 +26,15 @@ function writeBrief(briefText = '# Fix the login timeout\n\nOnly touch src/auth.
   return briefPath;
 }
 
-test('host detection: Paseo, web, VS Code, then terminal; Desktop only on macOS and Windows', () => {
-  assert.equal(detectForkHost({ PASEO_AGENT_ID: 'x', TERM_PROGRAM: 'vscode' }, 'linux').id, 'paseo');
+test('host detection: web, VS Code, then terminal; no agent manager is detected; Desktop only on macOS and Windows [fork-without-paseo:S1]', () => {
+  assert.equal(detectForkHost({ PASEO_AGENT_ID: 'x', TERM_PROGRAM: 'vscode' }, 'linux').id, 'vscode');
+  assert.equal(detectForkHost({ PASEO_AGENT_ID: 'x' }, 'linux').id, 'terminal');
   assert.equal(detectForkHost({ CLAUDE_CODE_REMOTE: 'true' }, 'darwin').id, 'web');
   assert.equal(detectForkHost({ CLAUDE_CODE_ENTRYPOINT: 'claude-vscode' }, 'linux').id, 'vscode');
   assert.equal(detectForkHost({ TERM_PROGRAM: 'vscode' }, 'linux').reason, 'TERM_PROGRAM=vscode');
   assert.equal(detectForkHost({ CLAUDE_CODE_ENTRYPOINT: 'cli' }, 'linux').id, 'terminal');
   assert.equal(detectForkHost({}, 'darwin').canOpenInDesktop, true);
   assert.equal(detectForkHost({}, 'linux').canOpenInDesktop, false);
-});
-
-test('full fork in Paseo: forks the session with a new id and imports it as a labelled agent', () => {
-  const fakeRunner = createFakeRunner();
-  const environment = { CLAUDE_CODE_SESSION_ID: SESSION_ID, PASEO_AGENT_ID: PASEO_AGENT, PASEO_HOME: EMPTY_PASEO_HOME };
-  const forkResult = forkFullConversation({ environment, cwd: '/repo', host: detectForkHost(environment, 'linux'), task: 'Try the other approach', runCommand: fakeRunner.runCommand });
-  const [claudeCall] = fakeRunner.callsOf('claude');
-  assert.deepEqual(claudeCall.programArguments.slice(0, 8), ['-p', '--resume', SESSION_ID, '--fork-session', '--session-id', forkResult.sessionId, '--tools', '']);
-  assert.deepEqual(claudeCall.programArguments.slice(8, 10), ['--model', 'claude-opus-5-5']);
-  assert.equal(claudeCall.cwd, '/repo');
-  assert.notEqual(forkResult.sessionId, SESSION_ID);
-  const [importCall] = fakeRunner.callsOf('paseo', 'import');
-  assert.deepEqual(importCall.programArguments.slice(0, 6), ['import', forkResult.sessionId, '--provider', 'claude', '--cwd', '/repo']);
-  assert.ok(importCall.programArguments.includes('forked_from=agent-current'));
-  assert.ok(importCall.programArguments.includes('fork_mode=full'));
-  assert.deepEqual(fakeRunner.callsOf('paseo', 'agent')[0].programArguments.slice(0, 5), ['agent', 'update', 'agent-full-fork', '--name', 'Fork: Rename work']);
-  const [sendCall] = fakeRunner.callsOf('paseo', 'send');
-  assert.equal(readFileSync(sendCall.programArguments[sendCall.programArguments.indexOf('--prompt-file') + 1], 'utf8'), 'Try the other approach');
-  assert.equal(forkResult.agentId, 'agent-full-fork');
-  assert.equal(forkResult.openWith[0].command, 'paseo agent open agent-full-fork');
-  assert.equal(forkResult.opened, 'paseo');
 });
 
 test('full fork in VS Code opens the extension URI; in a terminal it only returns the commands', () => {
@@ -71,56 +44,23 @@ test('full fork in VS Code opens the extension URI; in a terminal it only return
   assert.deepEqual(vscodeRunner.callsOf('code')[0].programArguments, ['--open-url', `vscode://anthropic.claude-code/open?session=${vscodeResult.sessionId}`]);
   assert.equal(vscodeResult.opened, 'vscode');
   assert.ok(vscodeResult.openWith.some((openOption) => openOption.command === `claude --desktop --resume ${vscodeResult.sessionId}`));
-  assert.equal(vscodeRunner.callsOf('claude')[0].programArguments.includes('--model'), false, 'no model is forced outside Paseo');
+  assert.equal(vscodeRunner.callsOf('claude')[0].programArguments.includes('--model'), false, 'no model is forced');
 
   const terminalRunner = createFakeRunner();
   const terminalEnvironment = { CLAUDE_CODE_SESSION_ID: SESSION_ID };
   const terminalResult = forkFullConversation({ environment: terminalEnvironment, cwd: '/repo', host: detectForkHost(terminalEnvironment, 'linux'), task: 'next', runCommand: terminalRunner.runCommand });
-  assert.equal(terminalRunner.callsOf('code').length + terminalRunner.callsOf('paseo').length, 0);
+  assert.equal(terminalRunner.callsOf('code').length + terminalRunner.callsOf('paseo').length + terminalRunner.callsOf('sh').length, 0);
   assert.equal(terminalResult.openWith[0].command, `claude --resume ${terminalResult.sessionId}`);
   assert.equal(terminalResult.opened, null);
   assert.equal(terminalResult.task, 'next');
 });
 
-test('full fork refuses on the web, without a session id, on a non-Claude Paseo agent, and when claude fails', () => {
+test('full fork refuses on the web, without a session id, and when claude fails [fork-without-paseo:S1]', () => {
   const fakeRunner = createFakeRunner();
   assert.throws(() => forkFullConversation({ environment: { CLAUDE_CODE_SESSION_ID: SESSION_ID, CLAUDE_CODE_REMOTE: 'true' }, cwd: '/repo', host: detectForkHost({ CLAUDE_CODE_REMOTE: 'true' }), runCommand: fakeRunner.runCommand }), /not possible on the web.*brief/);
   assert.throws(() => forkFullConversation({ environment: {}, cwd: '/repo', host: detectForkHost({}), runCommand: fakeRunner.runCommand }), /CLAUDE_CODE_SESSION_ID/);
-  const codexRunner = createFakeRunner({ provider: 'codex' });
-  const paseoEnvironment = { CLAUDE_CODE_SESSION_ID: SESSION_ID, PASEO_AGENT_ID: PASEO_AGENT, PASEO_HOME: EMPTY_PASEO_HOME };
-  assert.throws(() => forkFullConversation({ environment: paseoEnvironment, cwd: '/repo', host: detectForkHost(paseoEnvironment), runCommand: codexRunner.runCommand }), /"codex".*brief mode/);
-  assert.equal(codexRunner.callsOf('claude').length, 0);
   const failingRunner = createFakeRunner({ failing: 'claude -p' });
   assert.throws(() => forkFullConversation({ environment: { CLAUDE_CODE_SESSION_ID: SESSION_ID }, cwd: '/repo', host: detectForkHost({}), runCommand: failingRunner.runCommand }), /`claude -p` failed \(exit 2\): boom/);
-});
-
-test('full fork in Paseo runs the seed through the launcher Paseo uses for the provider', () => {
-  const paseoHome = mkdtempSync(join(tmpdir(), 'ai1-paseo-home-'));
-  writeFileSync(join(paseoHome, 'config.json'), JSON.stringify({ agents: { providers: {
-    claude: { command: ['/opt/bin/claude-account-exec', '--quiet'] },
-    'claude-team': { extends: 'claude', env: { CLAUDE_ACCOUNT_NAME: 'team' } },
-  } } }));
-  const fakeRunner = createFakeRunner({ provider: 'claude-team/claude-opus-5-5' });
-  const environment = { CLAUDE_CODE_SESSION_ID: SESSION_ID, PASEO_AGENT_ID: PASEO_AGENT, PASEO_HOME: paseoHome };
-  forkFullConversation({ environment, cwd: '/repo', host: detectForkHost(environment), runCommand: fakeRunner.runCommand });
-  const [seedCall] = fakeRunner.callsOf('/opt/bin/claude-account-exec');
-  assert.deepEqual(seedCall.programArguments.slice(0, 4), ['--quiet', '-p', '--resume', SESSION_ID]);
-  assert.deepEqual(seedCall.extraEnvironment, { CLAUDE_ACCOUNT_NAME: 'team' });
-  assert.equal(fakeRunner.callsOf('paseo', 'import')[0].programArguments[3], 'claude-team');
-});
-
-test('brief in Paseo: runs a detached agent with the same provider, model and mode and the brief as prompt', () => {
-  const fakeRunner = createFakeRunner();
-  const environment = { PASEO_AGENT_ID: PASEO_AGENT };
-  const briefPath = writeBrief();
-  const briefResult = startBriefConversation({ environment, cwd: '/repo', host: detectForkHost(environment), briefPath, runCommand: fakeRunner.runCommand });
-  const runArguments = fakeRunner.callsOf('paseo', 'run')[0].programArguments;
-  assert.deepEqual(runArguments.slice(0, 13), ['run', '-d', '--json', '--title', 'Fix the login timeout', '--provider', 'claude', '--model', 'claude-opus-5-5', '--mode', 'bypassPermissions', '--cwd', '/repo']);
-  assert.ok(runArguments.includes('fork_mode=brief'));
-  assert.equal(runArguments.at(-1), '# Fix the login timeout\n\nOnly touch src/auth.');
-  assert.deepEqual(fakeRunner.callsOf('paseo', 'agent')[0].programArguments.slice(0, 3), ['agent', 'detach', 'agent-brief']);
-  assert.equal(fakeRunner.callsOf('claude').length, 0, 'a brief never copies the conversation');
-  assert.equal(briefResult.agentId, 'agent-brief');
 });
 
 test('brief elsewhere: terminal command, VS Code prompt URI, Desktop link; web asks to paste', () => {
@@ -159,9 +99,10 @@ test('ai1 fork CLI: host, brief-path and full with --json; unknown subcommand pr
   const briefArguments = ['brief', '--file', writeBrief(), '--cwd', '/elsewhere', '--json'];
   const readBriefOption = (optionName) => { const optionIndex = briefArguments.indexOf(optionName); return optionIndex >= 0 ? briefArguments[optionIndex + 1] : undefined; };
   const briefRunner = createFakeRunner();
-  runForkCommand('/repo', briefArguments, { readOption: readBriefOption, environment: { PASEO_AGENT_ID: PASEO_AGENT }, runCommand: briefRunner.runCommand, platformName: 'linux', writeOutput: () => {} });
-  const runArguments = briefRunner.callsOf('paseo', 'run')[0].programArguments;
-  assert.equal(runArguments[runArguments.indexOf('--cwd') + 1], '/elsewhere', 'brief --cwd starts the conversation elsewhere');
+  const briefLines = [];
+  runForkCommand('/repo', briefArguments, { readOption: readBriefOption, environment: { PASEO_AGENT_ID: 'x' }, runCommand: briefRunner.runCommand, platformName: 'linux', writeOutput: (outputText) => briefLines.push(outputText) });
+  assert.equal(briefRunner.calls.length, 0, 'nothing is run for a brief in a terminal, whatever agent manager is around');
+  assert.equal(JSON.parse(briefLines[0]).opened, null);
   const usageLines = [];
   assert.equal(runForkCommand('/repo', ['nope'], { readOption: () => undefined, environment: {}, writeOutput: (outputText) => usageLines.push(outputText) }), 1);
   assert.match(usageLines[0], /usage: ai1 fork full/);
@@ -174,32 +115,73 @@ test('fork opener: unset, auto or invalid keep the detected host; web and Deskto
   }
   assert.equal(applyForkOpener(terminalHost, 'slack').host, terminalHost);
   assert.match(applyForkOpener(terminalHost, 'slack').notice, /unknown fork opener "slack"/);
-  assert.match(applyForkOpener(detectForkHost({ CLAUDE_CODE_REMOTE: 'true' }), 'paseo').notice, /runs on the web/);
+  assert.match(applyForkOpener(detectForkHost({ CLAUDE_CODE_REMOTE: 'true' }), 'vscode').notice, /runs on the web/);
   assert.match(applyForkOpener(terminalHost, 'desktop').notice, /does not open sessions/);
-  const chosenPaseo = applyForkOpener(terminalHost, 'Paseo').host;
-  assert.equal(chosenPaseo.id, 'paseo');
-  assert.equal(chosenPaseo.detectedId, 'terminal');
+  const chosenVscode = applyForkOpener(terminalHost, 'VSCode'.toLowerCase()).host;
+  assert.equal(chosenVscode.id, 'vscode');
+  assert.equal(chosenVscode.detectedId, 'terminal');
   assert.equal(applyForkOpener(detectForkHost({}, 'darwin'), 'desktop').host.id, 'desktop');
 });
 
-test('fork opener paseo outside Paseo: plain Claude agent credited to this session; desktop puts Desktop first', () => {
-  const fakeRunner = createFakeRunner();
-  const environment = { CLAUDE_CODE_SESSION_ID: SESSION_ID, PASEO_HOME: EMPTY_PASEO_HOME };
-  const { host } = applyForkOpener(detectForkHost(environment, 'linux'), 'paseo');
-  const briefResult = startBriefConversation({ environment, cwd: '/repo', host, briefPath: writeBrief(), runCommand: fakeRunner.runCommand });
-  assert.equal(fakeRunner.callsOf('paseo', 'inspect').length, 0, 'no current agent to inspect');
-  const runArguments = fakeRunner.callsOf('paseo', 'run')[0].programArguments;
-  assert.deepEqual(runArguments.slice(5, 7), ['--provider', 'claude']);
-  assert.ok(!runArguments.includes('--model') && !runArguments.includes('--mode'));
-  assert.ok(runArguments.includes(`forked_from=${SESSION_ID}`));
-  assert.equal(briefResult.agentId, 'agent-brief');
-  const fullResult = forkFullConversation({ environment, cwd: '/repo', host, runCommand: fakeRunner.runCommand });
-  assert.equal(fullResult.agentId, 'agent-full-fork');
-  assert.equal(fakeRunner.callsOf('paseo', 'import')[0].programArguments[3], 'claude');
+test('fork opener paseo is no longer built in: the detected host, and a note pointing to the guided setup [fork-without-paseo:S3]', () => {
+  const terminalHost = detectForkHost({}, 'linux');
+  const { host, notice } = applyForkOpener(terminalHost, 'paseo');
+  assert.equal(host, terminalHost);
+  assert.match(notice, /no longer built into ai1.*Open forks in another tool/);
   const desktopHost = applyForkOpener(detectForkHost({}, 'darwin'), 'desktop').host;
   const desktopResult = startBriefConversation({ environment: {}, cwd: '/repo', host: desktopHost, briefPath: writeBrief(), runCommand: createFakeRunner().runCommand });
   assert.equal(desktopResult.openWith[0].label, 'Claude Desktop');
   assert.equal(desktopResult.opened, null);
+});
+
+test('brief with the person\'s opener command: placeholders filled shell-quoted, run with sh -c, output reported [fork-without-paseo:S2]', () => {
+  const fakeRunner = createFakeRunner();
+  const briefPath = writeBrief("# It's the login\nbody");
+  const briefResult = startBriefConversation({ environment: {}, cwd: '/repo', host: detectForkHost({ TERM_PROGRAM: 'vscode' }, 'linux'), briefPath, openCommand: 'my-opener --mode {mode} --cwd {cwd} --title {title} --brief {brief_file} --session {session_id}', runCommand: fakeRunner.runCommand });
+  const [shellCall] = fakeRunner.callsOf('sh');
+  assert.deepEqual(shellCall.programArguments.slice(0, 1), ['-c']);
+  assert.equal(shellCall.programArguments[1], `my-opener --mode 'brief' --cwd '/repo' --title 'It'\\''s the login' --brief '${briefPath}' --session ''`);
+  assert.equal(shellCall.cwd, '/repo');
+  assert.equal(fakeRunner.callsOf('code').length, 0, 'the opener command replaces the VS Code URI');
+  assert.equal(briefResult.opened, 'command');
+  assert.equal(briefResult.output, 'opened agent-42');
+  // from AI1_FORK_COMMAND too, and ignored on the web
+  const envRunner = createFakeRunner();
+  startBriefConversation({ environment: { AI1_FORK_COMMAND: 'env-opener {brief_file}' }, cwd: '/repo', host: detectForkHost({}, 'linux'), briefPath, runCommand: envRunner.runCommand });
+  assert.match(envRunner.callsOf('sh')[0].programArguments[1], /^env-opener '/);
+  const webRunner = createFakeRunner();
+  const webResult = startBriefConversation({ environment: {}, cwd: '/repo', host: detectForkHost({ CLAUDE_CODE_REMOTE: 'true' }), briefPath, openCommand: 'my-opener', runCommand: webRunner.runCommand });
+  assert.equal(webRunner.calls.length, 0);
+  assert.match(webResult.notice, /ignored on the web/);
+});
+
+test('full fork with the opener command: the command creates the session (ids, task file), ai1 does not seed it [fork-without-paseo:S2]', () => {
+  const fakeRunner = createFakeRunner();
+  const environment = { CLAUDE_CODE_SESSION_ID: SESSION_ID, AI1_FORK_COMMAND: 'ignored-env-opener' };
+  const forkResult = forkFullConversation({ environment, cwd: '/repo', host: detectForkHost({}, 'linux'), task: 'Try the other approach', openCommand: 'opener {mode} {original_session_id} {session_id} {task_file} {title}', runCommand: fakeRunner.runCommand });
+  assert.equal(fakeRunner.callsOf('claude').length, 0, 'the command seeds the fork with its own launcher');
+  const commandText = fakeRunner.callsOf('sh')[0].programArguments[1];
+  const taskFile = /'(\/[^']+message\.md)'/.exec(commandText)[1];
+  assert.equal(commandText, `opener 'full' '${SESSION_ID}' '${forkResult.sessionId}' '${taskFile}' 'Fork: 11111111'`, '--open-command wins over AI1_FORK_COMMAND');
+  assert.equal(readFileSync(taskFile, 'utf8'), 'Try the other approach');
+  assert.equal(forkResult.opened, 'command');
+  // without an opener the seed goes through --claude-command
+  const seedRunner = createFakeRunner();
+  forkFullConversation({ environment: { CLAUDE_CODE_SESSION_ID: SESSION_ID }, cwd: '/repo', host: detectForkHost({}, 'linux'), claudeCommand: '/opt/bin/claude-wrapper --quiet', runCommand: seedRunner.runCommand });
+  assert.deepEqual(seedRunner.callsOf('/opt/bin/claude-wrapper')[0].programArguments.slice(0, 4), ['--quiet', '-p', '--resume', SESSION_ID]);
+});
+
+test('a failing opener command is an error with its last lines and, for a brief, the built-in ways to open it [fork-without-paseo:S2]', () => {
+  const failingRunner = createFakeRunner({ failing: 'sh -c' });
+  assert.throws(() => startBriefConversation({ environment: {}, cwd: '/repo', host: detectForkHost({}, 'linux'), briefPath: writeBrief(), openCommand: 'broken', runCommand: failingRunner.runCommand }), /fork opener command failed \(exit 2\): boom\nopen it instead with:\n  terminal: claude/);
+});
+
+test('ai1 fork without an opener that only gives commands points to the guided setup [fork-without-paseo:S3]', () => {
+  const outputLines = [];
+  const commandArguments = ['brief', '--file', writeBrief()];
+  const readOption = (optionName) => (commandArguments.includes(optionName) ? commandArguments[commandArguments.indexOf(optionName) + 1] : undefined);
+  runForkCommand('/repo', commandArguments, { readOption, environment: {}, runCommand: createFakeRunner().runCommand, platformName: 'linux', writeOutput: (outputText) => outputLines.push(outputText) });
+  assert.match(outputLines.join('\n'), /note: to have forks open in another tool, see "Open forks in another tool"/);
 });
 
 test('ai1 fork --opener reaches the host and an unknown value prints a note', () => {

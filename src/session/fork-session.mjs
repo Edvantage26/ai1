@@ -2,20 +2,26 @@
 //   full   copies the whole conversation: `claude -p --resume <id> --fork-session --session-id <new>`
 //          (one short turn; the original is left untouched).
 //   brief  a clean conversation that starts from a written handoff file.
-// Paseo gets a real agent (same provider, model and mode, labelled ai1=fork); VS Code gets the
-// extension URI opened; elsewhere the ways to open it are returned for the person.
-// External programs go through `runCommand` so tests can fake `claude`, `paseo` and `code`.
+// VS Code gets the extension URI opened; elsewhere the ways to open it are returned for the person.
+// A tool ai1 does not know (an agent manager, a multiplexer) opens it through the person's own command
+// (`--open-command` / AI1_FORK_COMMAND, from their skill customization): placeholders filled
+// shell-quoted, run with `sh -c`. Host-specific tooling is never part of the plugin.
+// External programs go through `runCommand` so tests can fake `claude`, `code` and the command.
 
 import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
-import { homedir, tmpdir } from 'node:os';
+import { tmpdir } from 'node:os';
 import { basename, join } from 'node:path';
 import { AI1_DIRECTORY } from '../core/config.mjs';
 import { WORK_DIRECTORY } from '../core/config.mjs';
 import { ensureWorkDirectoryIgnored } from '../sizing/sizing-work.mjs';
+import { resolveClaudeCommand } from './claude-command.mjs';
 
 const SEED_TIMEOUT_MILLISECONDS = 180_000;
+const OPEN_COMMAND_TIMEOUT_MILLISECONDS = 180_000;
+const MAX_COMMAND_OUTPUT_CHARACTERS = 2000;
+export const OPEN_COMMAND_PLACEHOLDERS = ['mode', 'cwd', 'title', 'brief_file', 'task_file', 'original_session_id', 'session_id'];
 const VSCODE_URI_PREFIX = 'vscode://anthropic.claude-code/open';
 
 export function runExternalCommand(programName, programArguments, { cwd, timeoutMilliseconds = 60_000, extraEnvironment } = {}) {
@@ -33,73 +39,40 @@ function runOrThrow(runCommand, programName, programArguments, commandOptions) {
   return commandResult.stdout;
 }
 
-function parseJsonOutput(outputText, commandLabel) {
-  try {
-    return JSON.parse(outputText);
-  } catch {
-    throw new Error(`${commandLabel} did not return JSON: ${String(outputText).slice(0, 200)}`);
-  }
-}
-
-function readAgentId(agentJson) {
-  const agentRecord = Array.isArray(agentJson) ? agentJson[0] : agentJson;
-  return agentRecord?.id || agentRecord?.Id || agentRecord?.agentId || agentRecord?.agent?.id || null;
-}
-
-// The Paseo agent the fork copies: this session's when it runs in Paseo; else (the person chose Paseo
-// from another host) plain Claude with Paseo's defaults, credited to this session.
-function resolveForkPaseoAgent(runCommand, environment) {
-  if (environment.PASEO_AGENT_ID) return readCurrentPaseoAgent(runCommand, environment.PASEO_AGENT_ID);
-  return { id: environment.CLAUDE_CODE_SESSION_ID || 'session', name: '', provider: 'claude', model: null, mode: null };
-}
-
-// Provider, model and mode of the Paseo agent this session runs in.
-function readCurrentPaseoAgent(runCommand, agentId) {
-  const agentJson = parseJsonOutput(runOrThrow(runCommand, 'paseo', ['inspect', agentId, '--json']), 'paseo inspect');
-  return {
-    id: agentId,
-    name: agentJson.Name || agentJson.name || '',
-    provider: String(agentJson.Provider || agentJson.provider || 'claude').split('/')[0],
-    model: agentJson.Model || agentJson.model || null,
-    mode: agentJson.Mode || agentJson.mode || null,
-  };
-}
-
-// How Paseo launches Claude for a provider (`agents.providers.<id>.command` and `env` in
-// $PASEO_HOME/config.json, following `extends`): a wrapper may inject the account, and a plain
-// `claude` from a tool call may not be logged in. Falls back to `claude`.
-export function resolvePaseoClaudeLauncher(environment, providerId) {
-  const configPath = join(environment.PASEO_HOME || join(homedir(), '.paseo'), 'config.json');
-  let providerDefinitions = {};
-  try {
-    providerDefinitions = JSON.parse(readFileSync(configPath, 'utf8'))?.agents?.providers || {};
-  } catch {
-    return { command: ['claude'], environment: {} };
-  }
-  let launcherCommand = null;
-  let launcherEnvironment = {};
-  const visitedProviders = new Set();
-  for (let currentProvider = providerId; currentProvider && !visitedProviders.has(currentProvider); currentProvider = providerDefinitions[currentProvider]?.extends) {
-    visitedProviders.add(currentProvider);
-    const providerDefinition = providerDefinitions[currentProvider] || {};
-    if (!launcherCommand && Array.isArray(providerDefinition.command) && providerDefinition.command.length) launcherCommand = providerDefinition.command;
-    launcherEnvironment = { ...(providerDefinition.env || {}), ...launcherEnvironment };
-  }
-  return { command: launcherCommand || ['claude'], environment: launcherEnvironment };
-}
-
 function writeTemporaryText(fileText) {
   const temporaryPath = join(mkdtempSync(join(tmpdir(), 'ai1-fork-')), 'message.md');
   writeFileSync(temporaryPath, fileText);
   return temporaryPath;
 }
 
-function forkLabels(forkMode, paseoAgent) {
-  return ['--label', 'ai1=fork', '--label', `fork_mode=${forkMode}`, '--label', `forked_from=${paseoAgent.id}`];
-}
-
 function quoteForShell(text) {
   return `'${String(text).replace(/'/g, `'\\''`)}'`;
+}
+
+// The person's opener command: --open-command, else AI1_FORK_COMMAND, else none.
+export function resolveOpenCommand(openCommand, environment = process.env) {
+  const commandText = String(openCommand || environment.AI1_FORK_COMMAND || '').trim();
+  return commandText || null;
+}
+
+// The command with every `{placeholder}` replaced by its value, shell-quoted (empty when unused).
+export function fillOpenCommand(commandTemplate, placeholderValues) {
+  return commandTemplate.replace(/\{([a-z_]+)\}/g, (wholeMatch, placeholderName) => (
+    OPEN_COMMAND_PLACEHOLDERS.includes(placeholderName) ? quoteForShell(placeholderValues[placeholderName] ?? '') : wholeMatch));
+}
+
+// Runs the opener; its stdout is reported. A failure throws with its last lines and `fallbackText`.
+function runOpenCommand(runCommand, commandTemplate, placeholderValues, cwd, fallbackText) {
+  const commandResult = runCommand('sh', ['-c', fillOpenCommand(commandTemplate, placeholderValues)], { cwd, timeoutMilliseconds: OPEN_COMMAND_TIMEOUT_MILLISECONDS });
+  if (commandResult.status !== 0) {
+    const errorText = (commandResult.stderr || commandResult.stdout || '').trim().split('\n').slice(-5).join(' ');
+    throw new Error(`the fork opener command failed (exit ${commandResult.status})${errorText ? `: ${errorText}` : ''}${fallbackText ? `\n${fallbackText}` : ''}`);
+  }
+  return String(commandResult.stdout || '').trim().slice(-MAX_COMMAND_OUTPUT_CHARACTERS);
+}
+
+function describeOpenWith(openWith) {
+  return ['open it instead with:', ...openWith.map((openOption) => `  ${openOption.label}: ${openOption.command}`)].join('\n');
 }
 
 // Opens the VS Code extension on a URI when the session runs in VS Code; best effort.
@@ -119,25 +92,12 @@ export function resolveHandoffPath(repoRoot, handoffSlug) {
   return join(handoffDirectory, `${handoffSlug}.md`);
 }
 
-export function forkFullConversation({ environment = process.env, cwd, host, title, task, runCommand = runExternalCommand }) {
+export function forkFullConversation({ environment = process.env, cwd, host, title, task, openCommand, claudeCommand, runCommand = runExternalCommand }) {
   if (host.id === 'web') throw new Error('a full fork is not possible on the web (claude.ai/code): use brief mode, or /branch in the session');
   const originalSessionId = environment.CLAUDE_CODE_SESSION_ID;
   if (!originalSessionId) throw new Error('CLAUDE_CODE_SESSION_ID is not set: run this from a Claude Code session (or use brief mode)');
-  const paseoAgent = host.id === 'paseo' ? resolveForkPaseoAgent(runCommand, environment) : null;
-  if (paseoAgent && paseoAgent.provider !== 'claude' && !paseoAgent.provider.startsWith('claude-')) {
-    throw new Error(`this Paseo agent runs on "${paseoAgent.provider}"; a full fork needs a Claude Code session: use brief mode`);
-  }
   const forkSessionId = randomUUID();
-  const seedPrompt = `You are a fork of session ${originalSessionId}, made with /ai1:session-fork-conversation. The conversation so far belongs to the original; from here on you are a separate session. Reply only: ready.`;
-  const claudeLauncher = paseoAgent ? resolvePaseoClaudeLauncher(environment, paseoAgent.provider) : { command: ['claude'], environment: {} };
-  runOrThrow(runCommand, claudeLauncher.command[0], [
-    ...claudeLauncher.command.slice(1),
-    '-p', '--resume', originalSessionId, '--fork-session', '--session-id', forkSessionId, '--tools', '',
-    ...(paseoAgent?.model ? ['--model', paseoAgent.model] : []),
-    seedPrompt,
-  ], { cwd, timeoutMilliseconds: SEED_TIMEOUT_MILLISECONDS, extraEnvironment: claudeLauncher.environment });
-
-  const forkTitle = title || `Fork: ${paseoAgent?.name || originalSessionId.slice(0, 8)}`;
+  const forkTitle = title || `Fork: ${originalSessionId.slice(0, 8)}`;
   const vscodeUri = `${VSCODE_URI_PREFIX}?session=${encodeURIComponent(forkSessionId)}`;
   const openWith = [
     { label: 'terminal', command: `claude --resume ${forkSessionId}` },
@@ -147,20 +107,27 @@ export function forkFullConversation({ environment = process.env, cwd, host, tit
   if (host.id === 'desktop') openWith.unshift(openWith.pop());
   const forkResult = { mode: 'full', host, title: forkTitle, originalSessionId, sessionId: forkSessionId, openWith, task: task || null };
 
-  if (paseoAgent) {
-    const importedJson = parseJsonOutput(runOrThrow(runCommand, 'paseo', ['import', forkSessionId, '--provider', paseoAgent.provider, '--cwd', cwd, ...forkLabels('full', paseoAgent), '--json']), 'paseo import');
-    const agentId = readAgentId(importedJson);
-    if (!agentId) throw new Error(`paseo import returned no agent id: ${JSON.stringify(importedJson).slice(0, 200)}`);
-    runCommand('paseo', ['agent', 'update', agentId, '--name', forkTitle, '--json']);
-    if (task) runOrThrow(runCommand, 'paseo', ['send', agentId, '--no-wait', '--prompt-file', writeTemporaryText(task)]);
-    forkResult.agentId = agentId;
-    openWith.unshift({ label: 'Paseo', command: `paseo agent open ${agentId}` });
+  const opener = resolveOpenCommand(openCommand, environment);
+  if (opener) {
+    // The person's command creates the forked session itself (its launcher, its model) and opens it.
+    forkResult.output = runOpenCommand(runCommand, opener, {
+      mode: 'full', cwd, title: forkTitle, original_session_id: originalSessionId, session_id: forkSessionId, task_file: task ? writeTemporaryText(task) : '',
+    }, cwd, null);
+    forkResult.opened = 'command';
+    return forkResult;
   }
-  forkResult.opened = paseoAgent ? 'paseo' : (openInVscode(runCommand, host, vscodeUri) ? 'vscode' : null);
+  const seedPrompt = `You are a fork of session ${originalSessionId}, made with /ai1:session-fork-conversation. The conversation so far belongs to the original; from here on you are a separate session. Reply only: ready.`;
+  const [claudeProgram, ...claudeArguments] = resolveClaudeCommand(claudeCommand, environment);
+  runOrThrow(runCommand, claudeProgram, [
+    ...claudeArguments,
+    '-p', '--resume', originalSessionId, '--fork-session', '--session-id', forkSessionId, '--tools', '',
+    seedPrompt,
+  ], { cwd, timeoutMilliseconds: SEED_TIMEOUT_MILLISECONDS });
+  forkResult.opened = openInVscode(runCommand, host, vscodeUri) ? 'vscode' : null;
   return forkResult;
 }
 
-export function startBriefConversation({ environment = process.env, cwd, host, title, briefPath, runCommand = runExternalCommand }) {
+export function startBriefConversation({ environment = process.env, cwd, host, title, briefPath, openCommand, runCommand = runExternalCommand }) {
   if (!briefPath || !existsSync(briefPath)) throw new Error(`no brief file at ${briefPath}`);
   const briefText = readFileSync(briefPath, 'utf8').trim();
   if (!briefText) throw new Error(`the brief ${briefPath} is empty`);
@@ -177,21 +144,13 @@ export function startBriefConversation({ environment = process.env, cwd, host, t
   if (host.id === 'desktop') openWith.unshift(openWith.pop());
   const briefResult = { mode: 'brief', host, title: conversationTitle, briefPath, openWith };
 
-  if (host.id === 'paseo') {
-    const paseoAgent = resolveForkPaseoAgent(runCommand, environment);
-    const startedJson = parseJsonOutput(runOrThrow(runCommand, 'paseo', [
-      'run', '-d', '--json', '--title', conversationTitle, '--provider', paseoAgent.provider,
-      ...(paseoAgent.model ? ['--model', paseoAgent.model] : []),
-      ...(paseoAgent.mode ? ['--mode', paseoAgent.mode] : []),
-      '--cwd', cwd, ...forkLabels('brief', paseoAgent), briefText,
-    ]), 'paseo run');
-    const agentId = readAgentId(startedJson);
-    if (!agentId) throw new Error(`paseo run returned no agent id: ${JSON.stringify(startedJson).slice(0, 200)}`);
-    // Started from an agent, the new one may be its child; detach it so it lives on its own.
-    runCommand('paseo', ['agent', 'detach', agentId, '--json']);
-    briefResult.agentId = agentId;
-    openWith.unshift({ label: 'Paseo', command: `paseo agent open ${agentId}` });
+  const opener = resolveOpenCommand(openCommand, environment);
+  if (opener && host.id === 'web') briefResult.notice = 'the fork opener command is ignored on the web';
+  if (opener && host.id !== 'web') {
+    briefResult.output = runOpenCommand(runCommand, opener, { mode: 'brief', cwd, title: conversationTitle, brief_file: briefPath }, cwd, describeOpenWith(openWith));
+    briefResult.opened = 'command';
+    return briefResult;
   }
-  briefResult.opened = briefResult.agentId ? 'paseo' : (openInVscode(runCommand, host, vscodeUri) ? 'vscode' : null);
+  briefResult.opened = openInVscode(runCommand, host, vscodeUri) ? 'vscode' : null;
   return briefResult;
 }

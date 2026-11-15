@@ -22,7 +22,7 @@
     "fork_opener": {
       "type": "string",
       "title": "Fork opener",
-      "description": "Where /ai1:session-fork-conversation opens a new conversation: auto (detect this session's host), paseo, vscode, desktop or terminal.",
+      "description": "Where /ai1:session-fork-conversation opens a new conversation: auto (detect this session's host), vscode, desktop or terminal. Another tool opens forks through your own command (see the skill's \"Open forks in another tool\").",
       "default": "auto"
     }
   }
