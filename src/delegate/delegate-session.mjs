@@ -17,6 +17,7 @@ import { join, resolve } from 'node:path';
 import { AI1_DIRECTORY, WORK_DIRECTORY } from '../core/config.mjs';
 import { describeOwningRepository } from '../core/owning-repo.mjs';
 import { runExternalCommand } from '../session/fork-session.mjs';
+import { resolveClaudeCommand } from '../session/claude-command.mjs';
 import { ensureWorkDirectoryIgnored } from '../sizing/sizing-work.mjs';
 import { grantOneTimeAllow, readRememberedPermissionMode } from './delegate-state.mjs';
 
@@ -129,13 +130,6 @@ export function readDelegationRecord(launchRoot, sessionId) {
     if (existsSync(candidatePath)) return JSON.parse(readFileSync(candidatePath, 'utf8'));
   }
   return null;
-}
-
-// The program and leading arguments that start Claude Code: the explicit command, AI1_CLAUDE_COMMAND,
-// else `claude`. Split on spaces (a path with spaces is not supported).
-export function resolveClaudeCommand(claudeCommand, environment = process.env) {
-  const commandText = String(claudeCommand || environment.AI1_CLAUDE_COMMAND || 'claude').trim();
-  return commandText.split(/\s+/).filter(Boolean);
 }
 
 function runClaude({ repoRoot, claudeArguments, claudeCommand, environment, runCommand, timeoutMinutes }) {
