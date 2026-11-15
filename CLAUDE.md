@@ -25,7 +25,7 @@ OKF validator in `--strict` mode (`node bin/ai1 okf validate .ai1/okf --strict`)
 - **Never grant the agent git permissions** (commit/push) from the plugin.
 - Every module ships with tests; run `npm test` and `claude plugin validate .` before committing.
 - Adding a module: one file (with its `feature`), one line in `src/core/module-index.mjs`, its entry in the schema.
-- Skills live in `skills/<module>-<action>/`: Claude Code names a plugin skill by its folder. The OKF toolkit (`skills/okf-*`, `agents/`, `vendor/`) is ours now (see `.ai1/okf/packs/okf-pack.md`); keep `THIRD-PARTY.md` in sync.
+- Skills live in `skills/<module>-<action>/`: Claude Code names a plugin skill by its folder. The OKF toolkit (`skills/okf-*`, `src/okf/okf-{validate,init,visualize}.mjs`, `vendor/`) is ours now (see `.ai1/okf/packs/okf-pack.md`); keep `THIRD-PARTY.md` in sync.
 - Adding a skill: its entry in `src/core/skill-customization-index.mjs` (customizable, with its scopes, or not and why); a customizable one gets the `allowed-tools` permission, a `## Fixed rules` section and the `skill-context` injection as last line (the coherence test checks it; see `.ai1/okf/architecture/skill-customization.md`).
 - Keep `.claude-plugin/plugin.json` and `marketplace.json` versions in sync; tag releases.
 - README describes only what exists; anything not built yet is marked *planned*.
@@ -34,5 +34,5 @@ OKF validator in `--strict` mode (`node bin/ai1 okf validate .ai1/okf --strict`)
 
 - `.claude-plugin/` manifests · `hooks/hooks.json` wiring
 - `bin/ai1-hook.mjs` entry point · `bin/ai1` CLI · `src/core/` runtime · `src/context/`, `src/okf/`, `src/guards/` modules
-- `skills/core-setup-repo/` `/ai1:core-setup-repo` · `skills/core-report-issue/` + `ai1 issue` (`src/cli/issue-command.mjs`) · `skills/worktrees-plan-recipe/` `/ai1:worktrees-plan-recipe` (engine in `src/worktrees/`) · `skills/session-fork-conversation/` + `ai1 fork` (`src/session/`) · `skills/storyboard-record-flow/` + `ai1 storyboard` (`src/storyboard/`) · `skills/reuse-encapsulate/` + `ai1 reuse` (`src/reuse/`) · `skills/okf-*/` `agents/` `vendor/` OKF toolkit
+- `skills/core-setup-repo/` `/ai1:core-setup-repo` · `skills/core-report-issue/` + `ai1 issue` (`src/cli/issue-command.mjs`) · `skills/worktrees-plan-recipe/` `/ai1:worktrees-plan-recipe` (engine in `src/worktrees/`) · `skills/session-fork-conversation/` + `ai1 fork` (`src/session/`) · `skills/storyboard-record-flow/` + `ai1 storyboard` (`src/storyboard/`) · `skills/reuse-encapsulate/` + `ai1 reuse` (`src/reuse/`) · `skills/okf-*/` + `ai1 okf` (`src/okf/`) `vendor/` OKF toolkit
 - `schema/`, `templates/` the .ai1/config.json contract · `test/` node:test suite

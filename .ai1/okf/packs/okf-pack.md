@@ -1,11 +1,11 @@
 ---
 type: Component
 title: OKF toolkit (owned by ai1)
-description: The OKF skills, agents and scripts, imported from okf-skills and maintained in ai1 itself; where they live and how they run.
+description: The OKF skills, imported from okf-skills and maintained in ai1 itself, and their Node commands (ai1 okf validate, init, visualize); where they live and how they run.
 tags: [okf, toolkit, third-party]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-14T23:28:33Z'
+  at: '2026-11-15T05:09:16Z'
 sources:
   - id: upstream
     resource: https://github.com/scaccogatto/okf-skills
