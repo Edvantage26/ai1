@@ -13,6 +13,9 @@ const SECRET_LABEL_PATTERN = /(?<![A-Za-z])(pass(?:word|wd)?|pwd|secret|token|ap
 const CANDIDATE_VALUE_PATTERN = /`([^`\s]+)`|"([^"\s]+)"|'([^'\s]+)'|[:=|]\s*([^\s`"'|,;)]+)/g;
 const PLACEHOLDER_VALUE_PATTERN = /[$<>{}]|^op:\/\/|\*\*\*|\.\.\.|^x+$/i;
 const ENVIRONMENT_NAME_PATTERN = /^[A-Z][A-Z0-9_]*$/;
+// A shell default (`${PG_PASSWORD:-value}` in a compose file): the fallback is a literal even though
+// the whole value looks like a placeholder.
+const SHELL_DEFAULT_PATTERN = /\$\{[A-Za-z_][A-Za-z0-9_]*:?-([^}\s]+)\}/g;
 const MIN_SECRET_LENGTH = 12;
 
 function looksLikeLiteralSecret(candidateValue) {
@@ -32,6 +35,9 @@ function lineHoldsSecret(textLine) {
   const labelMatch = SECRET_LABEL_PATTERN.exec(textLine);
   if (!labelMatch) return false;
   const textAfterLabel = textLine.slice(labelMatch.index + labelMatch[0].length);
+  for (const defaultMatch of textAfterLabel.matchAll(SHELL_DEFAULT_PATTERN)) {
+    if (looksLikeLiteralSecret(defaultMatch[1])) return true;
+  }
   for (const valueMatch of textAfterLabel.matchAll(CANDIDATE_VALUE_PATTERN)) {
     if (looksLikeLiteralSecret(valueMatch[1] || valueMatch[2] || valueMatch[3] || valueMatch[4])) return true;
   }
