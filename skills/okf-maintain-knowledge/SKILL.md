@@ -144,13 +144,21 @@ first committed, its log can still be adjusted. Then extend it:
    without any commit), **manual** (decisions, playbooks, metrics), and for a
    new bundle in a repo with history, **git history** for the *why* the code no
    longer shows (only when creating the bundle or when asked; keep it light):
-   - Read `git log --oneline --no-merges` whole, then open at most ~20 commits with
-     `git show --stat <sha>` (and the diff of the few that need it): the largest
-     ones, those touching dependencies, configuration or the architecture, and
-     those whose message says why, instead, replace, drop or revert.
-   - Write a `decisions/` concept only for a choice with a clear reason in the
-     commit (or its PR); cite the commit in `sources` (`resource: git:<sha>`).
-     Never invent a reason the history does not give, and skip routine changes.
+   - The *why* of a decision is also in docstrings, design docs and the warnings
+     of CLAUDE.md files, often more than in commits. A short history: read
+     `git log --oneline --no-merges` whole and open at most ~20 commits (`git show
+     --stat <sha>`): the largest, those touching dependencies, configuration or the
+     architecture, and those whose message says why, instead, replace, drop or
+     revert. A long one (thousands of commits): list the candidate decisions first
+     (from those docs and what you saw while documenting), then `git log --grep`
+     per candidate.
+   - Write a `decisions/` concept only for a choice with a written reason; cite
+     the original (`resource: git:<sha>`, or `git:<repo>@<sha>` when there are
+     several repositories; the doc; the docstring), never a concept of this bundle.
+     Cite the code it is about with `role: evidence`, and link the decision from a
+     "Decisions" part of its area's concepts. Never invent a reason: a big decision
+     with no written why gets no concept, list it at the end of `decisions/index.md`
+     for the person to give the why. Skip routine changes.
    - **A doc is a claim, not a fact.** READMEs, CLAUDE.md files and wikis go
      stale: check each claim against the code (or the live system) before you
      write it; leave out, or mark as not verified, what you cannot check; and
@@ -172,20 +180,28 @@ first committed, its log can still be adjusted. Then extend it:
      partitioning, and dead or frozen tables. Statistics are cumulative and may
      have been reset: "0 writes" means "none since the counters start", and a
      table that is not written may still be read.
+   - **A service's live configuration:** read the variable names, never their
+     values; confirm an absence inside the container (`env | cut -d= -f1`).
+   - **Bound every live read** (`--tail N`, `timeout`); if that is not enough, say
+     what you could not check instead of waiting.
    - **An incident found while documenting** (a service that does not answer, a
      risky query in the code): write it as observed state with the date and a
-     short `stale_after`, list it for the person, and do not fix it.
+     short `stale_after`, list it for the person, and do not fix it. A security or
+     data-loss incident is told to the person as soon as it is confirmed, not in
+     the final summary.
 3. Choose a directory layout by domain (e.g. `services/`, `datasets/`,
    `decisions/`). One concept per file. A large project built in phases (one
    area at a time, each reviewed): fix the whole layout up front, list in the
    indexes only the concepts already written (a short "pending" note in the root
-   index says what comes later), link forward only where it carries meaning, and
-   keep the plan of the remaining areas in a work file, not in the bundle.
+   index says what comes later), link only to concepts already written (add the
+   link when you write the target: `--strict` fails on a link to a missing file),
+   and keep the plan of the remaining areas in a work file, not in the bundle.
    **A large area** (tens of thousands of lines): split the reading across
    subagents, each with a brief (revision to read, questions, paths, "never copy
-   secrets", claims of the docs to verify, reads inside the repository). Their
-   reports sound equally sure when wrong: check 3–5 claims of each in the code
-   before writing them.
+   secrets", claims of the docs to verify) and limits: reads inside the given
+   paths only, no live systems, no MCP calls, no writes (not even in `/tmp`).
+   Their reports sound equally sure when wrong: check 3–5 claims of each in the
+   code before writing them, the incidents and security claims first.
 4. Write each concept from [templates/concept.md](templates/concept.md): set a
    descriptive `type`, fill recommended fields, record `generated` and the
    `sources` you actually read, cross-link related concepts. Cite the code it
@@ -218,7 +234,8 @@ from the paths each concept cites:
   bundle (`svc/lib/db.py`).
 - The rule that follows: a **specific** concept puts its own files in `resource`
   or `sources`; a **broad** one (overview, operations) cites big folders only in
-  its body. A broad concept with `src/` in `sources` would win over every
+  its body. An area's overview puts its own folders in `sources`; the root
+  overview only names them in its body, or the two tie. A broad concept with `src/` in `sources` would win over every
   specific concept that cites a file of `src/` only in its body.
 - A concept of a service or worker puts its entry file in `resource`: it then
   beats every concept that only cites that file in `sources`.

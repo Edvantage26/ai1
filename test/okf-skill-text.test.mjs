@@ -19,3 +19,21 @@ test('the produce/maintain skill keeps the guidance learned on a large live syst
   ];
   for (const [guidancePattern, guidanceName] of requiredGuidance) assert.match(skillText, guidancePattern, guidanceName);
 });
+
+test('the skill keeps the rules learned on phases 3-6 of a large bundle [okf-findings-3:S1] [okf-findings-3:S3]', () => {
+  const requiredGuidance = [
+    [/link only to concepts already written/, 'no forward links in phased bundles'],
+    [/variable names, never their\s+values/, 'live configuration by names'],
+    [/Bound every live read/, 'bounded live reads'],
+    [/no live systems, no MCP calls, no writes \(not even in `\/tmp`\)/, 'subagent brief limits'],
+    [/the incidents and security claims first/, 'check incidents first'],
+    [/as soon as it is confirmed, not in\s+the final summary/, 'urgent incidents'],
+    [/An area's overview puts its own folders in `sources`/, 'area overviews'],
+    [/docstrings, design docs and the warnings/, 'where the why lives'],
+    [/`git log --grep`\s+per candidate/, 'large histories'],
+    [/never a concept of this bundle/, 'no circular sources'],
+    [/`git:<repo>@<sha>`/, 'commit with repository'],
+    [/list it at the end of `decisions\/index\.md`/, 'decisions with no written why'],
+  ];
+  for (const [guidancePattern, guidanceName] of requiredGuidance) assert.match(skillText, guidancePattern, guidanceName);
+});
