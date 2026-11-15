@@ -5,7 +5,7 @@ description: An edit to a file of another repository with ai1 active is refused 
 tags: [delegate, foreign-repo, cross-repo, claude-p, submodules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T14:30:09Z'
+  at: '2026-11-15T14:33:15Z'
 ---
 
 # What it does
@@ -44,6 +44,8 @@ generated:
   Keyed by launch root (v0.40-v0.41) the CLI never found the mode, and a delegated run started without
   permissions and stopped asking for them (seen 2026-11-15, 1.07 USD for nothing). Without any recorded
   mode a `claude -p` run uses the default mode, where tools outside the repo's allow list are denied.
+  Such a run carries a `warning` in its result; `--resume ... --permission-mode <mode>` resumes it with a
+  mode (before v0.42.2 the option was ignored on resume, another blocked run).
 - **Status:** `done` / `needs-input` from the status line; `blocked` when `permission_denials` is not
   empty and the agent did not finish (in `claude -p` a hook `ask` counts as a denial in every mode,
   checked 2026-11-15); `failed` for a crash, `is_error`, no JSON or no status line.

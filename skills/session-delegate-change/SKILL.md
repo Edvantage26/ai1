@@ -60,6 +60,9 @@ Claude Code is started with `claude`; where a plain `claude` is not logged in, p
 | `blocked` | A guard of that repository refused or asked to confirm `denied`. Tell the person what it wanted to run and why. Only if they say yes to that exact command: `ai1 delegate --resume <session_id> --allow-once "<command>" "<their answer>"`. A refusal (deny) cannot be lifted this way. |
 | `failed` | Tell the person what is known (`summary`, `exit_code`); do not retry blindly. |
 
+A result with `warning` (no permission mode) usually ends `blocked` at the first write: resume it with
+`--permission-mode <this session's mode>` instead of answering the question it asks about permissions.
+
 Resume as many times as needed: it is the same delegated session, with its context.
 
 ## 4. When the person wants it done here

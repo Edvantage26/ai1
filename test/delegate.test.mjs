@@ -181,3 +181,16 @@ test('from a Bash call (no CLAUDE_PROJECT_DIR, another folder) the mode the hook
   runDelegateCommand(workspaceRoot, ['--resume', firstRecord.session_id, 'sí'], { readOption: (optionName) => (optionName === '--resume' ? firstRecord.session_id : undefined), environment: bashEnvironment, runCommand, writeOutput: (outputText) => outputs.push(outputText) });
   assert.equal(JSON.parse(outputs[0]).status, 'done', 'resumed from another folder');
 });
+
+test('resume takes --permission-mode, and a run without any mode says so in the result [foreign-repo-delegation:S3]', () => {
+  const { targetRoot, environment } = createWorkspace();
+  const { runCommand, claudeCalls } = fakeRunner((programArguments) => claudeJson({ session_id: readSessionId(programArguments), result: 'Blocked.', permission_denials: claudeCalls.length === 1 ? [{ tool_name: 'Write', tool_input: { file_path: '/x' } }] : [] }));
+  const firstRecord = startDelegation({ targetDirectory: targetRoot, taskText: 'Do it', callerSessionId: 'unknown-session', environment, runCommand });
+  assert.equal(firstRecord.permission_mode, null);
+  assert.match(firstRecord.warning, /no permission mode/);
+  const secondRecord = resumeDelegation({ sessionId: firstRecord.session_id, answerText: 'sigue', permissionMode: 'bypassPermissions', environment, runCommand });
+  const resumeArguments = claudeCalls[1].programArguments;
+  assert.equal(resumeArguments[resumeArguments.indexOf('--permission-mode') + 1], 'bypassPermissions');
+  assert.equal(secondRecord.permission_mode, 'bypassPermissions');
+  assert.equal(secondRecord.warning, undefined);
+});

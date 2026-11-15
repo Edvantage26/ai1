@@ -153,6 +153,7 @@ function finishRun({ baseRecord, commandResult, runCommand, environment }) {
     exit_code: runOutcome.exitCode,
     cost_usd: runOutcome.costUsd,
     runs: (baseRecord.runs || 0) + 1,
+    warning: baseRecord.permission_mode ? undefined : NO_PERMISSION_MODE_WARNING,
     updated_at: new Date().toISOString(),
   };
   delegationRecord.record_path = saveRecord(delegationRecord, environment);
@@ -184,13 +185,18 @@ export function startDelegation({ targetDirectory, briefPath, taskText, permissi
   return finishRun({ baseRecord, commandResult, runCommand, environment });
 }
 
+// Said in the result when the run had no permission mode: in `claude -p` the default mode denies every
+// tool the repository does not allow, so a delegated session usually stops at its first write.
+export const NO_PERMISSION_MODE_WARNING = 'no permission mode: the caller\'s mode was not found and none was given, so the delegated session ran in the default mode, where tools outside the repository\'s allow list are denied. Resume (or start) with --permission-mode <the mode of this session> if it was blocked.';
+
 // Resumes a delegated session with the person's answer; `allowOnceSubject` is a command (or file) a
 // guard asked about that the person confirmed, allowed once in that session.
-export function resumeDelegation({ sessionId, answerText, allowOnceSubject, timeoutMinutes, claudeCommand, environment = process.env, runCommand = runExternalCommand }) {
+export function resumeDelegation({ sessionId, answerText, allowOnceSubject, permissionMode, timeoutMinutes, claudeCommand, environment = process.env, runCommand = runExternalCommand }) {
   const baseRecord = readDelegationRecord(sessionId, environment);
   if (!baseRecord) throw new Error(`no delegation ${sessionId} recorded on this machine`);
   if (!answerText || !String(answerText).trim()) throw new Error('give the person\'s answer to resume with');
   if (allowOnceSubject) grantOneTimeAllow(sessionId, baseRecord.repo, allowOnceSubject, environment);
+  if (permissionMode) baseRecord.permission_mode = permissionMode;
   const resumeText = [
     `The person answered: ${String(answerText).trim()}`,
     ...(allowOnceSubject ? [`They confirmed this action once; run it exactly as written: ${allowOnceSubject}`] : []),
@@ -198,7 +204,7 @@ export function resumeDelegation({ sessionId, answerText, allowOnceSubject, time
   ].join('\n');
   const commandResult = runClaude({
     repoRoot: baseRecord.repo,
-    claudeArguments: ['-p', '--output-format', 'json', '--resume', sessionId, ...permissionArguments(baseRecord.permission_mode), resumeText],
+    claudeArguments: ['-p', '--output-format', 'json', '--resume', sessionId, ...permissionArguments(permissionMode || baseRecord.permission_mode), resumeText],
     claudeCommand: claudeCommand || baseRecord.claude_command,
     environment,
     runCommand,
