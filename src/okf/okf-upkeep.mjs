@@ -272,7 +272,8 @@ export default {
         );
         return blockDecision(MODULE_ID, buildDiscardedAttemptReminder(bundleRelativePath, discardedPaths, affectedConceptPaths));
       }
-      if (transcriptScan && transcriptScan.investigationCalls >= INVESTIGATION_CALLS_BEFORE_REMINDER) {
+      // Background agents still reading: nothing to write down yet, so the count waits for their reports.
+      if (transcriptScan && transcriptScan.investigationCalls >= INVESTIGATION_CALLS_BEFORE_REMINDER && !transcriptScan.pendingBackgroundAgents) {
         scanState.investigationCalls = 0;
         writeStateText(scanStatePath, JSON.stringify(scanState));
         return blockDecision(MODULE_ID, buildInvestigationReminder(bundleRelativePath, transcriptScan.investigationCalls));

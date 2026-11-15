@@ -21,6 +21,25 @@ export function memoryDirectoriesFor(directoryPaths, homeDirectory = homedir()) 
 
 const MEMORY_WRITING_TOOLS = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit']);
 const INVESTIGATION_TOOLS = new Set(['Bash', 'WebFetch', 'WebSearch']);
+// How Claude Code records a background agent: its launch result, and a notification when it stops
+// (`<task-notification>` with `<tool-use-id>` and `<status>`), seen in real transcripts on 2026-11-15.
+const BACKGROUND_LAUNCH_TEXT = 'Async agent launched successfully';
+const TASK_NOTIFICATION_MARKER = '<task-notification>';
+const TASK_NOTIFICATION_PATTERN = /<task-notification>[\s\S]*?<tool-use-id>([^<]+)<\/tool-use-id>[\s\S]*?<status>([^<]+)<\/status>/g;
+const FINISHED_TASK_STATUSES = new Set(['completed', 'failed', 'killed', 'cancelled', 'error', 'stopped']);
+
+function resultText(resultBlock) {
+  const resultContent = resultBlock?.content;
+  if (typeof resultContent === 'string') return resultContent;
+  return Array.isArray(resultContent) ? resultContent.map((contentPart) => contentPart?.text || '').join('\n') : '';
+}
+
+// The text of a user event (a task notification arrives as plain text or text blocks).
+function eventText(transcriptEvent) {
+  const messageContent = transcriptEvent?.message?.content;
+  if (typeof messageContent === 'string') return messageContent;
+  return Array.isArray(messageContent) ? messageContent.filter((contentBlock) => contentBlock?.type === 'text').map((contentBlock) => contentBlock.text || '').join('\n') : '';
+}
 
 function isInvestigationTool(toolName) {
   return INVESTIGATION_TOOLS.has(toolName) || String(toolName).startsWith('mcp__');
@@ -57,20 +76,30 @@ export function shellCommandWritesBundle(commandLine, bundleRelativePath = KNOWL
 //   - `editedFilePaths`: other files (not memory, not the bundle) this session edited with
 //     Write/Edit since it last edited the bundle, and
 //   - `writeWindows`: when a call that may change files was running (core/session-writes; the
-//     repo's verify commands count as read-only).
+//     repo's verify commands count as read-only), and
+//   - `pendingBackgroundAgents`: agents launched in the background (the Agent tool's "Async agent
+//     launched" result) whose `<task-notification>` has not arrived yet: while they read, the session
+//     has nothing to write down yet.
 // Returns null when the transcript is not available.
 // `sinceMilliseconds`: events stamped before it are skipped - the session base, so a session where ai1
 // became active midway (installed or set up while it ran) is not judged on edits committed before.
 export function scanSessionTranscript(transcriptPath, { memoryDirectories, bundleRelativePath, verifyCommands = [], projectRoot, sinceMilliseconds = 0 }, scanState = { offset: 0, paths: [], investigationCalls: 0 }) {
-  const newTranscript = readNewTranscriptEvents(transcriptPath, scanState, [TOOL_USE_MARKER, TOOL_RESULT_MARKER]);
+  const newTranscript = readNewTranscriptEvents(transcriptPath, scanState, [TOOL_USE_MARKER, TOOL_RESULT_MARKER, TASK_NOTIFICATION_MARKER]);
   if (!newTranscript) return null;
   newTranscript.events = newTranscript.events.filter((transcriptEvent) => !(Date.parse(transcriptEvent?.timestamp) < sinceMilliseconds));
   const writtenMemoryPaths = new Set(newTranscript.restarted ? [] : scanState.paths || []);
   const editedFilePaths = new Set(newTranscript.restarted ? [] : scanState.editedPaths || []);
   let investigationCalls = newTranscript.restarted ? 0 : scanState.investigationCalls || 0;
+  const pendingBackgroundAgents = new Set(newTranscript.restarted ? [] : scanState.backgroundAgents || []);
   updateWriteWindows(scanState, newTranscript.events, { restarted: newTranscript.restarted, verifyCommands, projectRoot });
   const bundleMarker = `/${String(bundleRelativePath || KNOWLEDGE_BUNDLE_PATH).replace(/^\.\//, '').replace(/\/+$/, '')}/`;
   for (const transcriptEvent of newTranscript.events) {
+    for (const resultBlock of eventContentBlocks(transcriptEvent, 'tool_result')) {
+      if (resultText(resultBlock).includes(BACKGROUND_LAUNCH_TEXT)) pendingBackgroundAgents.add(resultBlock.tool_use_id);
+    }
+    for (const notificationMatch of eventText(transcriptEvent).matchAll(TASK_NOTIFICATION_PATTERN)) {
+      if (FINISHED_TASK_STATUSES.has(notificationMatch[2])) pendingBackgroundAgents.delete(notificationMatch[1]);
+    }
     for (const contentBlock of eventContentBlocks(transcriptEvent, 'tool_use')) {
       const toolPath = contentBlock?.input?.file_path;
       if (MEMORY_WRITING_TOOLS.has(contentBlock.name) && typeof toolPath === 'string') {
@@ -93,7 +122,8 @@ export function scanSessionTranscript(transcriptPath, { memoryDirectories, bundl
   scanState.paths = [...writtenMemoryPaths];
   scanState.editedPaths = [...editedFilePaths];
   scanState.investigationCalls = investigationCalls;
-  return { memoryPaths: writtenMemoryPaths, editedFilePaths, investigationCalls, writeWindows: scanState.writeWindows };
+  scanState.backgroundAgents = [...pendingBackgroundAgents];
+  return { memoryPaths: writtenMemoryPaths, editedFilePaths, investigationCalls, writeWindows: scanState.writeWindows, pendingBackgroundAgents: pendingBackgroundAgents.size };
 }
 
 // Kept for callers that only need the memory files.
