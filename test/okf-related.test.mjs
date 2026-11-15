@@ -82,3 +82,49 @@ test('candidates: sibling repos the docs name and same-owner URLs, not related y
     { name: 'billing', path: null, remote: 'acme/billing', has_bundle: null },
   ], 'api is too short, unmentioned is not named, already is related, other/thing has another owner');
 });
+
+function readPayload(launchRoot, filePath, sessionId = 'session-1') {
+  return { session_id: sessionId, hook_event_name: 'PostToolUse', cwd: launchRoot, tool_name: 'Read', tool_input: { file_path: filePath }, tool_response: {} };
+}
+
+function createRelatedWorkspace(related) {
+  const workspaceRoot = createWorkspace();
+  const workerRoot = createRepository(workspaceRoot, 'worker', { files: { '.okf/index.md': '# worker knowledge\n', 'src/main.py': 'print(1)\n' } });
+  const plainRoot = createRepository(workspaceRoot, 'plain', { files: { 'src/a.js': '1\n' } });
+  const appRoot = createRepository(workspaceRoot, 'app', { files: {
+    '.ai1/config.json': JSON.stringify({ features: { okf: true }, ...(related ? { related } : {}) }),
+    '.ai1/okf/index.md': '# app\n', 'src/app.js': '1\n',
+  } });
+  const options = { environment: { AI1_DECISION_LOG: '0', CLAUDE_PLUGIN_DATA: join(workspaceRoot, '.plugin-data'), CLAUDE_PROJECT_DIR: appRoot }, reportInternalError: (errorMessage) => { throw new Error(errorMessage); } };
+  return { workspaceRoot, workerRoot, plainRoot, appRoot, options };
+}
+
+function contextOf(hookOutput) {
+  return hookOutput?.hookSpecificOutput?.additionalContext || '';
+}
+
+test('reading another repository with its own bundle, not related: its bundle and the offer to relate it, once [related-repositories:S1]', async () => {
+  const { runHookEvent } = await import('../src/core/dispatcher.mjs');
+  const { workerRoot, appRoot, options } = createRelatedWorkspace();
+  const firstContext = contextOf(runHookEvent('PostToolUse', readPayload(appRoot, join(workerRoot, 'src', 'main.py')), options));
+  assert.ok(firstContext.includes(`keeps its own knowledge in \`${join(workerRoot, '.okf', 'index.md')}\``));
+  assert.match(firstContext, /offer the person in one line to add it to `related` in \.ai1\/config\.json/);
+  assert.equal(contextOf(runHookEvent('PostToolUse', readPayload(appRoot, join(workerRoot, 'README.md')), options)), '', 'once per repository and session');
+});
+
+test('reading a related repository points to its bundle and what it owns, with no offer [related-repositories:S2]', async () => {
+  const { runHookEvent } = await import('../src/core/dispatcher.mjs');
+  const { workerRoot, appRoot, options } = createRelatedWorkspace([{ name: 'worker', path: '../worker', owns: ['the ingest contract'] }]);
+  const relatedContext = contextOf(runHookEvent('PostToolUse', readPayload(appRoot, join(workerRoot, 'src', 'main.py')), options));
+  assert.match(relatedContext, /belongs to `worker`, a related repository \(it owns: the ingest contract\)/);
+  assert.doesNotMatch(relatedContext, /offer the person/);
+});
+
+test('no line for a repository without a bundle, a submodule, or a file of this repo [related-repositories:S1]', async () => {
+  const { runHookEvent } = await import('../src/core/dispatcher.mjs');
+  const { plainRoot, appRoot, workerRoot, options } = createRelatedWorkspace();
+  assert.equal(contextOf(runHookEvent('PostToolUse', readPayload(appRoot, join(plainRoot, 'src', 'a.js')), options)), '');
+  assert.doesNotMatch(contextOf(runHookEvent('PostToolUse', readPayload(appRoot, join(appRoot, 'src', 'app.js')), options)), /another repository|related repository/);
+  runGit(appRoot, ['-c', 'protocol.file.allow=always', 'submodule', 'add', '-q', workerRoot, 'vendor-worker']);
+  assert.doesNotMatch(contextOf(runHookEvent('PostToolUse', readPayload(appRoot, join(appRoot, 'vendor-worker', 'src', 'main.py'), 'session-2'), options)), /another repository|related repository/);
+});
