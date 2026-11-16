@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-16T06:08:19Z'
+  at: '2026-11-16T06:46:14Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -386,3 +386,20 @@ lead - graphify ~149k, claude-mem ~117k, Understand-Anything ~93k, supermemory ~
 wikis are smaller - claude-obsidian ~16.5k, Ar9av/obsidian-wiki ~3.7k, the `llm-wiki` skill inside
 alirezarezvani/claude-skills (~30k for 410 skills); OKF is niche - the spec repo ~1.5k, the original
 scaccogatto/okf-skills ~450. Stars measure attention, not evidence that the agent works better.
+
+Code-only tools (2026-11-16), stars from the GitHub API:
+- **Decisions and whys:** `documentation-and-adrs` in addyosmani/agent-skills (~118k for the pack): ADRs
+  in the repo, match the existing ADR convention, detect docs drifted from code - closest in spirit to
+  OKF `decisions/`. ADR skills in wshobson/agents (~43k pack) and orchestkit (`decision-history`).
+  **selvedge** (~26, MIT): decisions in SQLite under `.selvedge/` keyed by a function, column, route or
+  dependency, with rejected options and "what would change my mind", served by MCP/CLI, no LLM calls -
+  the lookup by code entity is the idea worth noting. Classic CLIs: adr-tools (~5.8k), log4brains
+  (~1.6k), both inactive since 2024.
+- **Finding things in code** (structure, not whys): codegraph (~78k, graph synced on code changes),
+  codebase-memory-mcp (~49k, tree-sitter + SQLite, 66 languages, arXiv 2603.27277), serena (~31k,
+  LSP-based semantic search and edit), code-graph-rag (~5k), graphify and Understand-Anything (see
+  above), deepwiki-open (~18k, generated wiki). They answer what calls what, not why.
+- **Session memory with a decision type:** claude-mem, engram (see Harness and memory projects):
+  per-machine, not in the repo.
+- Gap none of them fill: whys from git history and the person, tied to the code files and delivered
+  when the file is touched; OKF + okf-file-context is the only one combining both.
