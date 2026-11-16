@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-16T08:55:53Z'
+  at: '2026-11-16T11:37:24Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -411,3 +411,13 @@ Code-only tools (2026-11-16), stars from the GitHub API:
   per-machine, not in the repo.
 - Gap none of them fill: whys from git history and the person, tied to the code files and delivered
   when the file is touched; OKF + okf-file-context is the only one combining both.
+
+Measured (2026-11-16, a private experiment on a large real repo, ~2,700 files): 12 questions (9 why,
+3 structure) with verified key facts, 4 variants x 2 runs, `claude -p` read-only, blind LLM judge.
+Accuracy: code only 0.83, code + graphify graph 0.83, code + OKF bundle 0.99, both 0.99; no invented
+answers. The gap is in whys absent from the code (told by the person, or in commits and deploy config):
+0.25-0.42 without the bundle, ~1.0 with it; whys written in docstrings were found from the code anyway
+(0.92 vs 0.98). graphify (code-only graph) did not help on whys nor on grep-easy structure questions and
+made runs slower; the bundle cut tokens by ~26%. Limits: questions taken from the bundle, no git history
+in any variant, 2 runs. Method to reuse for ai1 changes: same questions, variants, blind judge, a table
+per question; check the reference answers too (one was wrong and the agents caught it).
