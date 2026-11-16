@@ -9,7 +9,7 @@ its own marketplace.
 
 * [Overview](overview.md) - what ai1 is, the four pieces and the current status.
 * [architecture/](architecture/index.md) - plugin layout, the `.ai1/config.json` contract, features and the hook runtime.
-* [features/](features/index.md) - the okf feature and /ai1:core-setup-repo.
+* [features/](features/index.md) - each feature (okf, sizing, verify, worktrees, delegate...) and the skills and CLI around them.
 * [guards/](guards/index.md) - guards that run before tool calls.
 * [packs/](packs/index.md) - third-party code ai1 owns (the OKF toolkit).
 * [decisions/](decisions/index.md) - prior art reviewed and the design decisions taken.
