@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-16T06:05:03Z'
+  at: '2026-11-16T06:08:19Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -380,3 +380,9 @@ live-system facts, incidents), not with descriptions of code; per-file delivery 
 (okf-file-context) matches load-on-demand; skill length under 500 lines is not a measured risk.
 Open: a stale-concept warning (cited code changed a lot since `generated.at`), and a small evaluation
 (same real tasks with and without the bundle) before adding more produce rules.
+
+Popularity snapshot (GitHub stars via the API, 2026-11-16): automatic capture and generated graphs
+lead - graphify ~149k, claude-mem ~117k, Understand-Anything ~93k, supermemory ~32k; curated markdown
+wikis are smaller - claude-obsidian ~16.5k, Ar9av/obsidian-wiki ~3.7k, the `llm-wiki` skill inside
+alirezarezvani/claude-skills (~30k for 410 skills); OKF is niche - the spec repo ~1.5k, the original
+scaccogatto/okf-skills ~450. Stars measure attention, not evidence that the agent works better.
