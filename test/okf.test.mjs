@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { runHookEvent } from '../src/core/dispatcher.mjs';
 import { shellCommandWritesBundle } from '../src/okf/okf-session-scan.mjs';
 import { runBundleValidator } from '../src/okf/okf-validator.mjs';
+import { recordIntegration } from '../src/worktrees/worktree-integrations.mjs';
 import { createTemporaryProject } from './helpers.mjs';
 
 const V01_INDEX = "---\nokf_version: '0.1'\n---\n\n# Demo bundle\n\n* [Overview](overview.md)\n";
@@ -384,6 +385,20 @@ test('structure: only the overview review is asked when the concept is already l
   assert.doesNotMatch(stopReason, /Concepts no index\.md links to/);
 });
 
+test('structure: an overview updated through worktree finish counts as reviewed', () => {
+  const projectRoot = createRepoWithBundle();
+  const options = hookOptions();
+  startSession(projectRoot, options);
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'index.md'), `${V02_INDEX}* [App](app.md)\n`);
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'overview.md'), '---\ntype: Overview\n---\nHello, with the app.\n');
+  const commonDirectory = execFileSync('git', ['rev-parse', '--git-common-dir'], { cwd: projectRoot, encoding: 'utf8' }).trim();
+  recordIntegration(join(projectRoot, commonDirectory), {
+    checkout: projectRoot, changedPaths: ['.ai1/okf/index.md', '.ai1/okf/overview.md'], verified: true, knowledgeChecked: true,
+  });
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'app.md'), VALID_CONCEPT);
+  assert.equal(stopSession(projectRoot, options), null);
+});
+
 test('structure: without overview.md the root index.md is the overview', () => {
   const projectRoot = createRepoWithBundle();
   rmSync(join(projectRoot, '.ai1', 'okf', 'overview.md'));
@@ -607,6 +622,8 @@ test('shellCommandWritesBundle: shell writes to the bundle count, reads do not',
     'cd /repo && bash -c "echo x >> .ai1/okf/log.md"',
     'ai1 okf validate .ai1/okf --migrate --strict',
     '"/plugin/data/bin/ai1" okf validate .ai1/okf --strict --migrate',
+    "f=.ai1/okf/decisions/a.md && sed -i 's/x/y/' $f && cat >> $f <<'EOF'\nx\nEOF",
+    'cd /repo/wt && f=".ai1/okf/log.md" && echo x >> "${f}"',
   ];
   for (const commandLine of bundleWrites) assert.equal(shellCommandWritesBundle(commandLine, '.ai1/okf'), true, commandLine);
   const bundleReads = [
@@ -617,6 +634,7 @@ test('shellCommandWritesBundle: shell writes to the bundle count, reads do not',
     'git diff --stat .ai1/okf',
     'cp .ai1/okf/overview.md /tmp/overview.md',
     'echo x > notes.md',
+    'f=notes.md && echo x >> $f && cat .ai1/okf/index.md',
     'npm test',
   ];
   for (const commandLine of bundleReads) assert.equal(shellCommandWritesBundle(commandLine, '.ai1/okf'), false, commandLine);

@@ -4,7 +4,8 @@
 // A heuristic for hooks, like shell-parse: reading commands (cat, grep, validators) never count.
 // A `cd <dir>` earlier in the line moves the relative targets after it (`cd /repo && sed -i ... a.md`
 // writes /repo/a.md, not a.md of the session's folder); a `cd` to `~`, `-` or a variable is unknown,
-// so the targets after it stay as written.
+// so the targets after it stay as written. A variable set to a literal earlier in the line
+// (`f=docs/a.md && sed -i ... "$f"`) is expanded in the targets; any other variable stays as written.
 
 import { posix } from 'node:path';
 import { baseName, hasLongFlag, hasShortFlag, splitSimpleCommands } from './shell-parse.mjs';
@@ -18,6 +19,7 @@ const NON_FILE_TARGETS = new Set(['/dev/null', '/dev/stdout', '/dev/stderr']);
 
 // Returns { targetPaths: [...], runsInlineScript: boolean }.
 export function listShellWriteTargets(commandLine) {
+  const literalAssignments = collectLiteralAssignments(String(commandLine || ''));
   const targetPaths = [];
   let runsInlineScript = false;
   let changedDirectory = null;
@@ -51,7 +53,25 @@ export function listShellWriteTargets(commandLine) {
       }
     }
   }
-  return { targetPaths: [...new Set(targetPaths.filter((targetPath) => !NON_FILE_TARGETS.has(targetPath)))], runsInlineScript };
+  const expandedPaths = targetPaths.map((targetPath) => expandLiteralVariables(targetPath, literalAssignments));
+  return { targetPaths: [...new Set(expandedPaths.filter((targetPath) => !NON_FILE_TARGETS.has(targetPath)))], runsInlineScript };
+}
+
+// `name=value` at the start of the line or after a separator, with a literal value (bare or quoted, no
+// `$`, backquote or parenthesis): the variables a target such as `"$f"` can be resolved from.
+const LITERAL_ASSIGNMENT = /(?:^|[;&|\n(]\s*)([A-Za-z_][A-Za-z0-9_]*)=(?:'([^'$`()]*)'|"([^"$`()]*)"|([^\s;&|'"$`()<>]+))/g;
+function collectLiteralAssignments(commandLine) {
+  const literalAssignments = new Map();
+  for (const assignmentMatch of commandLine.matchAll(LITERAL_ASSIGNMENT)) {
+    literalAssignments.set(assignmentMatch[1], assignmentMatch[2] ?? assignmentMatch[3] ?? assignmentMatch[4]);
+  }
+  return literalAssignments;
+}
+
+function expandLiteralVariables(targetPath, literalAssignments) {
+  if (!literalAssignments.size || !targetPath.includes('$')) return targetPath;
+  return targetPath.replace(/\$(?:\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*))/g,
+    (variableReference, bracedName, bareName) => literalAssignments.get(bracedName ?? bareName) ?? variableReference);
 }
 
 // `relativePath` seen from `directory` (absolute or relative to the session's folder); absolute paths win.

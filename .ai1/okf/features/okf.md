@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index and bundle health notes 
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-16T07:47:26Z'
+  at: '2026-11-16T12:07:00Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -194,7 +194,10 @@ sources:
   A bundle edit is a Write/Edit on a bundle path or a Bash command that writes there
   (`shellCommandWritesBundle`: redirects, `tee`, `sed -i`, `mv`/`cp` into it, `rm`, inline
   python/node scripts naming a bundle file); reading or validating the bundle does not count.
-  Before 2026-11-08 shell edits counted as investigation and caused false reminders.
+  Before 2026-11-08 shell edits counted as investigation and caused false reminders. Since
+  2026-11-16 a target held in a variable set to a literal earlier in the line (`f=.ai1/okf/x.md &&
+  sed -i ... $f && cat >> "$f"`) is expanded (`src/core/shell-writes.mjs`); before, such edits went
+  unseen and the reminder asked for knowledge already written (three times in one session).
   Field data (2026-11-01): a long investigation session ran 831 steps and 41 production queries
   without writing to the bundle.
 - **Discarded attempt reminder (Stop, same module, since 2026-11-09):** an approach tried and
@@ -233,6 +236,10 @@ sources:
   [worktrees](worktrees.md) integration record), are not this session's: until 2026-11-09 (fixed after v0.25.0)
   every finish that brought concepts got this reminder, and its test passed only when the run took
   under a second (it moved the bundle's dates a second back; found by an intermittent full-suite failure).
+  That exclusion applies to the concepts, not to the review: since 2026-11-16 an overview or root
+  `index.md` that changed during the session counts as reviewed also when it came in through `ai1
+  worktree finish`; before, a session that worked in worktrees was asked to review an overview it had
+  already updated.
 - **Rules given to the agent:** update the concept and `generated: { by: claude-code/<model>, at }`
   with the real current UTC time; `log.md` only for lifecycle events; validate with `/ai1:okf-validate-bundle`
   and fix errors. On a v0.1 bundle: legacy warnings are expected, the agent must not migrate the

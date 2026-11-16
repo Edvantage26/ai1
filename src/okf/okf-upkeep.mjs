@@ -152,8 +152,9 @@ export function buildStructureReminder(bundleRelativePath, overviewPath, concept
 function checkBundleStructure({ hookInput, projectRoot, stateDirectory, bundleDirectory, bundleRelativePath, sessionBase, sessionStartMilliseconds }) {
   const bundlePrefix = `${bundleRelativePath}/`;
   const isKnowledgeCheckedIntegration = integratedFileMatcher(projectRoot, 'knowledge_checked');
-  const bundleFilesChangedInSession = listFilesChangedSinceBase(projectRoot, sessionBase)
-    .filter((changedPath) => changedPath.startsWith(bundlePrefix))
+  const bundleFilesChangedSinceBase = listFilesChangedSinceBase(projectRoot, sessionBase)
+    .filter((changedPath) => changedPath.startsWith(bundlePrefix));
+  const bundleFilesChangedInSession = bundleFilesChangedSinceBase
     .filter((changedPath) => {
       const absolutePath = join(projectRoot, changedPath);
       if (!existsSync(absolutePath)) return !isKnowledgeCheckedIntegration(changedPath, null);
@@ -163,7 +164,14 @@ function checkBundleStructure({ hookInput, projectRoot, stateDirectory, bundleDi
     .map((changedPath) => changedPath.slice(bundlePrefix.length));
   const conceptsChangedInSession = bundleFilesChangedInSession.filter(isConceptPath).sort();
   if (!conceptsChangedInSession.length) return allowDecision();
-  const overviewReviewed = bundleFilesChangedInSession.some((bundleFilePath) => ['overview.md', 'index.md'].includes(bundleFilePath));
+  // The overview or root index counts as reviewed when it changed during the session, also when the
+  // change came in through `ai1 worktree finish` (a worktree of this session updated it there).
+  const overviewReviewed = bundleFilesChangedSinceBase.some((changedPath) => {
+    const bundleFilePath = changedPath.slice(bundlePrefix.length);
+    const absolutePath = join(projectRoot, changedPath);
+    return ['overview.md', 'index.md'].includes(bundleFilePath) && existsSync(absolutePath)
+      && statSync(absolutePath).mtimeMs >= sessionStartMilliseconds;
+  });
   const conceptsWithoutOverviewReview = overviewReviewed ? [] : conceptsChangedInSession;
   const conceptsMissingFromIndex = listConceptsMissingFromIndex(bundleDirectory)
     .filter((conceptPath) => conceptsChangedInSession.includes(conceptPath));
