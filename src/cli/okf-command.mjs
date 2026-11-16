@@ -1,4 +1,4 @@
-// `ai1 okf ...`: the OKF toolkit's scripts (validate, init, visualize, file-map, scan-secrets), called by the
+// `ai1 okf ...`: the OKF toolkit's scripts (validate, init, visualize, file-map, scan-secrets, catch-up), called by the
 // okf skills and by hand. The logic lives in src/okf/; the okf-upkeep hook imports the same validator.
 
 import { runOkfValidateCommand, OKF_VALIDATE_USAGE } from '../okf/okf-validate.mjs';
@@ -6,8 +6,9 @@ import { runOkfInitCommand, OKF_INIT_USAGE } from '../okf/okf-init.mjs';
 import { runOkfVisualizeCommand, OKF_VISUALIZE_USAGE } from '../okf/okf-visualize.mjs';
 import { runOkfFileMapCommand, OKF_FILE_MAP_USAGE } from '../okf/okf-file-map.mjs';
 import { runOkfScanSecretsCommand, OKF_SCAN_SECRETS_USAGE } from '../okf/okf-scan-secrets.mjs';
+import { runOkfCatchUpCommand, OKF_CATCH_UP_USAGE } from '../okf/okf-catch-up.mjs';
 
-export const OKF_USAGE = `${OKF_VALIDATE_USAGE} | ${OKF_INIT_USAGE} | ${OKF_VISUALIZE_USAGE} | ${OKF_FILE_MAP_USAGE} | ${OKF_SCAN_SECRETS_USAGE}`;
+export const OKF_USAGE = `${OKF_VALIDATE_USAGE} | ${OKF_INIT_USAGE} | ${OKF_VISUALIZE_USAGE} | ${OKF_FILE_MAP_USAGE} | ${OKF_SCAN_SECRETS_USAGE} | ${OKF_CATCH_UP_USAGE}`;
 
 // Prints the result and returns the exit code.
 export function runOkfCommand(commandArguments) {
@@ -16,6 +17,7 @@ export function runOkfCommand(commandArguments) {
   if (subcommandName === 'init') return runOkfInitCommand(subcommandArguments);
   if (subcommandName === 'visualize') return runOkfVisualizeCommand(subcommandArguments);
   if (subcommandName === 'file-map') return runOkfFileMapCommand(process.cwd(), subcommandArguments);
+  if (subcommandName === 'catch-up') return runOkfCatchUpCommand(process.cwd(), subcommandArguments);
   if (subcommandName === 'scan-secrets') return runOkfScanSecretsCommand(process.cwd(), subcommandArguments);
   console.error(`usage: ${OKF_USAGE}`);
   return 2;

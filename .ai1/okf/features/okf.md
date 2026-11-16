@@ -1,15 +1,24 @@
 ---
 type: Component
 title: okf feature
-description: Project knowledge in an OKF bundle - index and bundle health notes at session start, CLAUDE.md drift hint, related concepts per message and per file read or edited, upkeep reminder at stop, OKF toolkit skills.
+description: Project knowledge in an OKF bundle - index and bundle health notes at session start, CLAUDE.md drift hint, catch-up after merging a branch without a bundle, related concepts per message and per file read or edited, upkeep reminder at stop, OKF toolkit skills.
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-16T12:07:00Z'
+  at: '2026-11-16T12:52:00Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
     title: SessionStart module
+  - id: okf-catch-up
+    resource: src/okf/okf-catch-up.mjs
+    title: Catch-up after merging a branch without a bundle (detection, brief, ai1 okf catch-up)
+  - id: okf-catch-up-start
+    resource: src/okf/okf-catch-up-start.mjs
+    title: SessionStart catch-up module
+  - id: okf-catch-up-prompt
+    resource: src/okf/okf-catch-up-prompt.mjs
+    title: UserPromptSubmit catch-up module (after HEAD moved)
   - id: okf-upkeep
     resource: src/okf/okf-upkeep.mjs
     title: Stop module
@@ -157,6 +166,50 @@ sources:
   as `${PG_PASSWORD:-value}` included), never the value. Available on demand; the produce skill no longer runs it (v0.46.0: the skill only says never to copy a secret).
 - **Validator dates:** `generated.at` and `verified.at` later than now (5 minutes of skew pass) are
   warned: a time written by hand ahead of the clock makes a concept look fresher than it is.
+- **Catch-up after merging a branch without a bundle (okf-catch-up-start on SessionStart,
+  okf-catch-up-prompt on UserPromptSubmit, since 2026-11-16; `src/okf/okf-catch-up.mjs`):** okf-upkeep
+  only sees what a session changed, so a branch that never had the documentation folder (forked before
+  ai1, or worked on without the plugin) merged in a terminal or on a forge and pulled brought code into
+  the history that nobody documented. The person asked for it to be detected on its own and filled in
+  automatically, told in the conversation. Rule (the person's, 2026-11-16): on the current branch,
+  whatever it is, a **joining merge** is a merge commit where one parent has the bundle
+  (`.ai1/okf/index.md`, or the legacy `.okf/index.md`: a branch forked before a repo moved its bundle
+  had documentation) and another parent has neither. Its changes are its real effect against the parent
+  with the bundle (`git diff --name-only <that parent> <merge>`, conflict resolution included, minus
+  `.ai1/`, `.okf/`, `.claude/`). It is closed by a commit reachable from HEAD carrying the trailer
+  `Knowledge-Catch-Up: <merge sha>` (7+ hex characters): the record lives in git, so it survives the
+  7-day state expiry, is the same in every clone and survives the rebase of `ai1 worktree finish`.
+  Nothing to document still leaves a record (an empty commit with the reason and the trailer).
+  - **What the agent is told** (about 100 tokens, once): the merge (short sha, subject), how many files,
+    up to 5 probably affected concepts from the file map and how many files no concept describes; to tell
+    the person in one line and launch an **independent background agent** (Agent tool,
+    `run_in_background`) whose prompt is `ai1 okf catch-up --brief <sha>`, then carry on with the task.
+    The background agent keeps the analysis out of the conversation's context and the docs out of the
+    task's diff: the brief has it create a worktree, read the merge's diff, update or create concepts
+    (with the bundle's maintenance rules, `description` and `tags`; behaviour, APIs, data and rules are
+    worth a concept even without callers, tests and renames alone are not; what the code does not show
+    is written as unknown), validate, commit with the trailer and `ai1 worktree finish`.
+  - **When:** at session start; on each message only after HEAD moved since the last check for the
+    session (a merge or pull in a terminal with the session open is seen at the next message; otherwise
+    one `git rev-parse`); and at Stop for a merge the agent made in the session: okf-upkeep leaves its files
+    out of its file reminder (they are not the session's work) and blocks once with the same instruction.
+  - **Claims:** a merge told to a session is not told to another for 2 hours (state per git common dir,
+    `<hash>.catch-up`, shared by worktrees); a new merge is told anyway; after 2 hours without the
+    trailer it is told again.
+  - **Cost:** the newest 30 merges within the last 2,000 commits, parents checked in one
+    `git cat-file --batch-check`; 30-90 ms warm on six real repos of 290-780 commits (2026-11-16; a cold
+    disk cache took up to 1 s once). Zero tokens when nothing is pending.
+  - **Not chosen:** a watermark in ai1 state (expires, per machine, cannot tell a branch without the
+    system from ordinary work); per-file staleness against concepts (every legitimate "nothing to
+    document" commit becomes noise); restricting it to the trunk (the person switches branches often and
+    it added nothing; two branches catching up the same merge is rare and meets as an ordinary conflict).
+  - **Verified (2026-11-16):** a scratch repo with a branch forked before the bundle merged in a terminal:
+    the real hook entry point (`bin/ai1-hook.mjs SessionStart`) injected the instruction; a subagent
+    given the brief updated the affected concept, created one for the undescribed file, left unknowns
+    as such, committed with the trailer, and after `ai1 worktree finish` the next session start said
+    nothing. A live `claude -p` session could not run (headless auth expired), so whether the main agent
+    launches the background agent by itself is not yet observed. The subagent's feedback added the
+    maintenance rules, `description`/`tags` and the "worth a concept" line to the brief.
 - **okf-upkeep (Stop):** blocks finishing when the session left knowledge newer than the last
   bundle update: repo files changed since the session's base HEAD (tracked diff + untracked)
   modified after the session started and after the newest bundle file (except files `ai1 worktree
@@ -259,6 +312,8 @@ sources:
   and okf-recall only finds concepts that share words with the message.
 - okf-recall runs on the person's messages only; subagents get okf-file-context pointers for the
   files they read.
+- Catch-up sees merge commits only: a squash merge (one new commit on a branch that has the bundle) or
+  a branch rebased onto one that has it leaves no joining merge, so its changes are not detected.
 
 # Skills and agents
 

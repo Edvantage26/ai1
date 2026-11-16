@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T14:50:34Z'
+  at: '2026-11-16T12:49:00Z'
 ---
 
 # Flow
@@ -90,6 +90,7 @@ logged with an error signature and offered to the person as an issue ([issue rep
 | `issue-offer` | UserPromptSubmit | core (always on): offers a report when ai1 itself failed, see [issue report](../features/issue-report.md) |
 | `okf-index` | SessionStart | okf |
 | `okf-claude-md` | SessionStart | okf |
+| `okf-catch-up-start`, `okf-catch-up-prompt` | SessionStart, UserPromptSubmit | okf: merges of branches without a bundle, see [okf](../features/okf.md) |
 | `okf-recall` | UserPromptSubmit | okf |
 | `okf-file-context` | PostToolUse (Read, Edit, Write, MultiEdit) | okf |
 | `danger` | PreToolUse (Bash) | danger |

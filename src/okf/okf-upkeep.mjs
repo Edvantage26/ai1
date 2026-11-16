@@ -29,6 +29,7 @@ import { isFeatureEnabled } from '../core/features.mjs';
 import { LATER_DIRECTORY } from '../later/later-documents.mjs';
 import { KNOWLEDGE_BUNDLE_PATH, WORK_DIRECTORY } from '../core/config.mjs';
 import { integratedFileMatcher } from '../worktrees/worktree-integrations.mjs';
+import { listPendingCatchUps, claimPendingCatchUps, catchUpClaimsPath, buildCatchUpInstruction } from './okf-catch-up.mjs';
 
 const MODULE_ID = 'okf-upkeep';
 const MAX_VALIDATION_BLOCKS_PER_SESSION = 3;
@@ -239,7 +240,11 @@ export default {
     const writeWindows = transcriptScan ? transcriptScan.writeWindows : null;
     const sessionMayHaveWritten = !writeWindows || writeWindows.length > 0;
     const isKnowledgeCheckedIntegration = integratedFileMatcher(projectRoot, 'knowledge_checked');
-    const pendingFiles = (sessionMayHaveWritten ? listSessionChangedFiles(projectRoot, sessionBase, bundleRelativePath, isFeatureEnabled('later', config) ? [LATER_DIRECTORY] : []) : [])
+    // A branch that had no bundle, merged during this session: its files are not this session's work;
+    // a background catch-up documents them (okf-catch-up.mjs), so they leave the file reminder.
+    const sessionCatchUps = listPendingCatchUps(projectRoot, { revisionRange: `${sessionBase.baseHead}..HEAD` });
+    const catchUpPaths = new Set(sessionCatchUps.flatMap((pendingMerge) => pendingMerge.changedPaths));
+    const pendingFiles =(sessionMayHaveWritten ? listSessionChangedFiles(projectRoot, sessionBase, bundleRelativePath, isFeatureEnabled('later', config) ? [LATER_DIRECTORY] : []) : [])
       .map((changedPath) => {
         const absolutePath = join(projectRoot, changedPath);
         // A deleted file has no mtime: it is pending, with a fixed signature so it is asked only once.
@@ -251,7 +256,8 @@ export default {
         || (pendingFile.modifiedMilliseconds >= sessionStartMilliseconds && pendingFile.modifiedMilliseconds > bundleUpdatedMilliseconds
           && (!writeWindows || isInsideWriteWindow(pendingFile.modifiedMilliseconds, writeWindows))))
       // Brought in by `ai1 worktree finish` after its OKF checks, and untouched since.
-      .filter((pendingFile) => !isKnowledgeCheckedIntegration(pendingFile.path, pendingFile.isDeleted ? null : pendingFile.modifiedMilliseconds));
+      .filter((pendingFile) => !isKnowledgeCheckedIntegration(pendingFile.path, pendingFile.isDeleted ? null : pendingFile.modifiedMilliseconds))
+      .filter((pendingFile) => !catchUpPaths.has(pendingFile.path));
     // A deletion has no date to compare with the bundle, so it would stay pending forever and ride
     // along every later reminder: it is mentioned once per session and then dropped.
     const deletionsRemindedPath = sessionStatePath(stateDirectory, hookInput.session_id, projectRoot, 'deletions');
@@ -288,6 +294,17 @@ export default {
       }
       return bundleChangedInSession ? checkBundleValidity(validityContext, { checkStructure: true }) : allowDecision();
     };
+    // Once per merge (claims shared with okf-catch-up-start/-prompt): the agent hands it to a background agent.
+    const catchUpsToTell = sessionCatchUps.length ? claimPendingCatchUps(catchUpClaimsPath(stateDirectory, projectRoot), sessionCatchUps, hookInput.session_id) : [];
+    if (catchUpsToTell.length) {
+      let fileMap = null;
+      try {
+        fileMap = loadFileMap(bundleDirectory, bundleRelativePath, projectRoot, stateDirectory);
+      } catch {
+        // A broken map only drops the concept names.
+      }
+      return blockDecision(MODULE_ID, buildCatchUpInstruction(catchUpsToTell, fileMap));
+    }
     if (!pendingFilesToRemind.length && !pendingMemories.length) return finishWithoutUpkeepReminder();
 
     const pendingSignature = [...pendingFilesToRemind.map((pendingFile) => pendingFile.signature),

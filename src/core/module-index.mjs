@@ -12,6 +12,8 @@ export const MODULE_INDEX = [
   { id: 'issue-offer', event: 'UserPromptSubmit', feature: 'core', modulePath: './issue-offer.mjs' },
   { id: 'okf-index', event: 'SessionStart', feature: 'okf', modulePath: '../okf/okf-index.mjs' },
   { id: 'okf-claude-md', event: 'SessionStart', feature: 'okf', modulePath: '../okf/okf-claude-md.mjs' },
+  { id: 'okf-catch-up-start', event: 'SessionStart', feature: 'okf', modulePath: '../okf/okf-catch-up-start.mjs' },
+  { id: 'okf-catch-up-prompt', event: 'UserPromptSubmit', feature: 'okf', modulePath: '../okf/okf-catch-up-prompt.mjs' },
   { id: 'okf-recall', event: 'UserPromptSubmit', feature: 'okf', modulePath: '../okf/okf-recall.mjs' },
   { id: 'okf-file-context', event: 'PostToolUse', feature: 'okf', toolNames: ['Read', 'Edit', 'Write', 'MultiEdit'], modulePath: '../okf/okf-file-context.mjs' },
   { id: 'danger', event: 'PreToolUse', feature: 'danger', toolNames: ['Bash'], modulePath: '../guards/danger.mjs' },
