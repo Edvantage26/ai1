@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-16T11:37:24Z'
+  at: '2026-11-16T12:10:42Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -421,3 +421,17 @@ answers. The gap is in whys absent from the code (told by the person, or in comm
 made runs slower; the bundle cut tokens by ~26%. Limits: questions taken from the bundle, no git history
 in any variant, 2 runs. Method to reuse for ai1 changes: same questions, variants, blind judge, a table
 per question; check the reference answers too (one was wrong and the agents caught it).
+
+Understand-Anything and codegraph (READMEs, 2026-11-16):
+- **Understand-Anything** (~93k, MIT, Claude Code plugin): a 5-7 agent pipeline builds
+  `.ua/knowledge-graph.json` - tree-sitter for structure, an LLM for summaries, layers, business domains,
+  guided tours; dashboard, `/understand-chat`, diff impact, onboarding guide; incremental, post-commit
+  hook, the graph can be committed. Generated descriptions of the code (the kind the AGENTS.md studies
+  found no gain from), its own README warns of heavy token use on large repos; no whys or decisions.
+  Ideas: diff impact before a commit; an onboarding tour as a reading order over the bundle.
+- **codegraph** (~78k, MIT): Rust tree-sitter kernel, SQLite in `.codegraph/`, MCP tool
+  (`codegraph_explore`) returning the relevant source in one call, auto-sync on every file save,
+  anonymous telemetry asked at install. Its own benchmark (7 repos, `claude -p`, 4 runs, the CLI blocked
+  in both arms): 88% fewer tool calls, 62% fewer tokens on architecture questions; it also reports ~80%
+  more retrieval context left in the window. Structure only, no whys. The serious one of the graphs: a
+  candidate companion for structure-heavy questions, not a replacement for the bundle.
