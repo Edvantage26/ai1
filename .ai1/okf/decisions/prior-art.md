@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-16T12:10:42Z'
+  at: '2026-11-16T12:47:02Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -435,3 +435,11 @@ Understand-Anything and codegraph (READMEs, 2026-11-16):
   in both arms): 88% fewer tool calls, 62% fewer tokens on architecture questions; it also reports ~80%
   more retrieval context left in the window. Structure only, no whys. The serious one of the graphs: a
   candidate companion for structure-heavy questions, not a replacement for the bundle.
+
+Measured codegraph (2026-11-16, same setup plus 6 harder flow questions, 144 runs): whys - bundle 0.98,
+code only 0.78, codegraph 0.71; flow questions - every variant 0.76-0.81, codegraph helped only where the
+code lives far from where one searches; codegraph alone used more tokens than code only (288k vs 254k),
+bundle + codegraph the fewest (189k, 4.4 turns). Finding for consume mode: with a bundle the agent may
+stop at the concept's level and miss exact functions (two flow questions fell from 0.83-1.00 to
+0.42-0.75); a rule "confirm specifics in the code" is a candidate, to be tested with the same setup
+first. Not adopted: codegraph as a recommended companion (no accuracy gain).
