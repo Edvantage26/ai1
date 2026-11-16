@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-16T12:47:02Z'
+  at: '2026-11-16T14:31:54Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -443,3 +443,22 @@ bundle + codegraph the fewest (189k, 4.4 turns). Finding for consume mode: with 
 stop at the concept's level and miss exact functions (two flow questions fell from 0.83-1.00 to
 0.42-0.75); a rule "confirm specifics in the code" is a candidate, to be tested with the same setup
 first. Not adopted: codegraph as a recommended companion (no accuracy gain).
+
+# Decision records for agents (2026-11-16)
+
+- **Content (MADR 3/4):** context, considered options, chosen option with its why, consequences; optional
+  "Confirmation" (how compliance is checked) and when to revisit. A practitioner with 141 ADRs as Claude
+  Code memory (andrewconnell.com, 2026-10): the rejected-alternatives row "stops an agent from suggesting
+  the thing I already turned down"; an index by area with keywords; the agent stops and says so when a
+  task conflicts with an ADR. Anecdotal, no controlled study found.
+- **Capture:** design-rationale research (architectural knowledge vaporization, Tofan et al.; Tang et al.)
+  - recording while designing is cheaper than reconstructing later; the main objection is effort. Practice:
+  at the end of a plan the agent lists candidate decisions against written criteria and the person
+  confirms which deserve a record (an unanswered proposal stays open, else the agent drops it); a
+  PostToolUse hook on ExitPlanMode reminding to write the decision log; regex extraction of decisions
+  from the transcript exists but is crude.
+- **Enforcement:** documentation alone does not stop drift, running checks do (fitness functions,
+  ArchUnit, dependency-cruiser); write the check from the decision, not from current code. Code-like,
+  checkable specs help weaker models most ("Architecture as Capability Equalizer", arXiv 2608.21747).
+- **Upkeep:** superseded records pile up; one practitioner would rewrite a record to the current decision
+  with a footnote to the replaced version's commit instead of keeping both.
