@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-16T06:46:14Z'
+  at: '2026-11-16T08:55:53Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -150,6 +150,14 @@ Popular on GitHub, little independent evaluation (HN submission: 3 points, no co
   ai1 (an LSP resolves it exactly); git hooks to rebuild.
 - **Still open:** a zero-dependency module (import) graph in Node, as a cache like `okf-file-map`, not
   as bundle concepts. Not decided.
+
+- **Update (2026-11-16, README of the current release):** code is now parsed only with tree-sitter
+  (~40 languages, `EXTRACTED`/`INFERRED` confidence per edge, no LLM, offline: `graphify extract
+  --code-only`); the LLM pass runs only over docs, PDFs and media, with the assistant's model or the
+  first API key found in the environment (`GRAPHIFY_BACKEND=none` disables it). `# NOTE:`/`# WHY:`
+  comments and ADR citations become nodes linked to the code. `graphify install` registers a skill and
+  Read/Grep hooks for the assistant (`--strict` denies reads until the graph is queried): for a trial,
+  use the CLI only. Its benchmarks are its own harness (ERPNext key facts 82% vs 70.8% grep/read, n=6).
 
 Sources: [Pantheon analysis](https://pantheon-org.github.io/agentic-context/analysis/graphify/),
 [explainx.ai](https://explainx.ai/blog/graphify-codebase-knowledge-graph-skill-claude-code-cursor-codex-trending-2026),
