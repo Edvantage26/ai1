@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index and bundle health notes 
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T18:21:34Z'
+  at: '2026-11-16T07:47:26Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -154,7 +154,7 @@ sources:
   and a warning line). The validator warns on a `role` other than `evidence`.
 - **`ai1 okf scan-secrets <path>...`** (`src/okf/okf-scan-secrets.mjs`): `file:line` of the lines that
   look like a literal secret, with the heuristic of `src/core/secret-lines.mjs` (shell defaults such
-  as `${PG_PASSWORD:-value}` included), never the value; produce runs it on the sources it cites.
+  as `${PG_PASSWORD:-value}` included), never the value. Available on demand; the produce skill no longer runs it (v0.46.0: the skill only says never to copy a secret).
 - **Validator dates:** `generated.at` and `verified.at` later than now (5 minutes of skew pass) are
   warned: a time written by hand ahead of the clock makes a concept look fresher than it is.
 - **okf-upkeep (Stop):** blocks finishing when the session left knowledge newer than the last
@@ -259,7 +259,7 @@ From the [OKF toolkit](../packs/okf-pack.md): `/ai1:okf-maintain-knowledge`, `/a
 scripts are the `ai1 okf validate`, `ai1 okf init` (`--no-starter`: index and log only, for a
 producer about to write the real concepts) and `ai1 okf visualize` commands. Written in ai1:
 `/ai1:okf-tidy-claude-md` (see okf-claude-md above). The backfill skill and its two agents were
-removed on 2026-11-15 (never used; a light history step in produce mode replaces it).
+removed on 2026-11-15 (never used; a light history step, now in the skill's `reference/sources.md`, replaces it).
 
 # Coexistence with a standalone OKF setup
 

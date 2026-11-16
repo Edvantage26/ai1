@@ -48,15 +48,11 @@ fields, unknown types, and broken links — never reject a bundle over them.
   `upkeep: enforced` opt-in flag, plus `recursive: true` (or a depth `n`: levels below the root, `true` is 6) to make the hook
   watch nested git repos) and `log.md` (ISO-dated history, newest
   first). Never use these names for concepts.
-- **Related repositories:** when this repo depends on the knowledge of another one (a contract it
-  consumes, a schema another repo owns), record it in `related` of `.ai1/config.json`, not in prose:
-  `{ "name", "path" (where it is usually cloned, e.g. `../other`) and/or "remote" (`owner/name`),
-  "branch", "bundle" (default `.ai1/okf`, else `.okf`), "read_without_clone" (a command that prints its
-  bundle `index.md` when it is not cloned here, whatever works for that repo), "owns" (what it owns that
-  this repo uses) }`. Each fact lives in the repository that changes it; this repo's concepts only link
-  to it, never copy it. ai1 lists `related` at session start and points to that bundle when the agent
-  reads the other repo. Add an entry only after the person's yes (ai1 offers it when it notices the
-  other repo; `config-guard` asks before the file changes).
+- **Related repositories:** when this repo depends on the knowledge of another
+  one, record it in `related` of `.ai1/config.json` (`name`, `path` and/or
+  `remote`, `branch`, `bundle`, `read_without_clone`, `owns`), after the person's
+  yes, not in prose. Each fact lives in the repository that changes it; link to
+  it, never copy it.
 - **What goes in `log.md`:** lifecycle events only, written in the bundle-root
   `log.md`: a bundle **created**, a concept **deprecated** or retired, one
   concept **superseding** another, concepts **regenerated** after their source
@@ -108,143 +104,83 @@ location or a harness names one for the session (for example `.ai1/okf/`). Commi
 
 ### produce — create or extend a bundle
 
-**First, the right session.** Build a bundle from a session started in the
-repository that owns it: its hooks, rules and customizations only apply there.
-If the bundle belongs to another repository with ai1, do not write it from here:
-delegate it with `/ai1:session-delegate-change`.
+Build a bundle from a session started in the repository that owns it (its hooks
+and rules only apply there); for another repository with ai1, delegate it with
+`/ai1:session-delegate-change`.
 
 **Starting a brand-new bundle?** Use the init fast-path instead of hand-writing
-the first files. When you are about to write the real concepts, pass
-`--no-starter`: it writes only `index.md` and a `log.md` whose Creation entry
-links to the index (without it you also get a `getting-started.md` placeholder
-in English, which you would delete, leaving the append-only log pointing to a
-missing file):
+the first files. Pass `--no-starter` when you are about to write the real
+concepts (it writes only `index.md` and `log.md`, without a placeholder concept):
 
 ```bash
 "${CLAUDE_PLUGIN_DATA}/bin/ai1" okf init <target-dir> --no-starter [--title "..."]
 ```
 
 It refuses to touch a directory that already has `.md` files unless `--force`
-is given. Translate the index heading and the log line to the language of the
-repo's docs, and write every concept in that language too. Until the bundle is
-first committed, its log can still be adjusted. Then extend it:
+is given. Write the bundle in the language of the repo's docs. Then extend it:
 
-0. **Read the revision that runs.** For each repository or submodule you will
-   read: `git fetch` and `git log --oneline HEAD..origin/<deployed branch>`. If the
-   checkout is behind, ask the person to update it, or read that branch
-   (`git archive origin/<branch> | tar -x -C <tmp dir>`); write the revision you
-   read in the concept. A checkout months behind documents a system that no
-   longer exists.
 1. Read [reference/SPEC.md](reference/SPEC.md) (§3–§9).
-2. Pick the source(s): **code** (derive concepts from source, READMEs,
+2. **Read the revision that runs.** For each repository or submodule you will
+   read: `git fetch` and `git log --oneline HEAD..origin/<deployed branch>`. If
+   the checkout is behind, ask the person to update it or read that branch, and
+   write the revision you read in the concept.
+3. Pick the source(s): **code** (derive concepts from source, READMEs,
    docstrings, config), **docs/wiki** (distill pages into concepts, record the
-   originals in `sources`), **live systems** (a deploy panel's API, a database
-   catalog, a server: cite them in `sources` as a scope descriptor with the date
-   you read them, and give the concept a `stale_after`, since that state drifts
-   without any commit), **manual** (decisions, playbooks, metrics), and for a
-   new bundle in a repo with history, **git history** for the *why* the code no
-   longer shows (only when creating the bundle or when asked; keep it light):
-   - The *why* of a decision is also in docstrings, design docs and the warnings
-     of CLAUDE.md files, often more than in commits. A short history: read
-     `git log --oneline --no-merges` whole and open at most ~20 commits (`git show
-     --stat <sha>`): the largest, those touching dependencies, configuration or the
-     architecture, and those whose message says why, instead, replace, drop or
-     revert. A long one (thousands of commits): list the candidate decisions first
-     (from those docs and what you saw while documenting), then `git log --grep`
-     per candidate.
-   - Write a `decisions/` concept only for a choice with a written reason; cite
-     the original (`resource: git:<sha>`, or `git:<repo>@<sha>` when there are
-     several repositories; the doc; the docstring), never a concept of this bundle.
-     Cite the code it is about with `role: evidence`, and link the decision from a
-     "Decisions" part of its area's concepts. Never invent a reason: a big decision
-     with no written why gets no concept, list it at the end of `decisions/index.md`
-     for the person to give the why. Skip routine changes.
-   - **A doc is a claim, not a fact.** READMEs, CLAUDE.md files and wikis go
-     stale: check each claim against the code (or the live system) before you
-     write it; leave out, or mark as not verified, what you cannot check; and
-     list the discrepancies you found for the person (they are candidates for
-     `/ai1:okf-tidy-claude-md`).
-   - **Secrets in a source:** never copy one. Write where it lives (secret
-     manager item, deploy environment variable), and tell the person in your
-     summary which committed files hold a secret in clear text:
-     `ai1 okf scan-secrets <paths you cite>` lists them (`file:line`, never the value).
-   - **The project's MCP servers** (their code, and their read-only tools) say
-     how the team really operates the system: which tables, keys, containers and
-     checks. Contrast the operations, data and monitoring concepts with them; use
-     their read-only tools as live checks. If one does not start, read its code
-     and say so.
-   - **A live database:** say first, in one line, where you connect and with what
-     limits. Catalog only (`information_schema`, `pg_catalog`), in a read-only
-     transaction with a statement timeout; never read data tables. Document a
-     map by domain (not table by table), the relations that are really declared,
-     partitioning, and dead or frozen tables. Statistics are cumulative and may
-     have been reset: "0 writes" means "none since the counters start", and a
-     table that is not written may still be read.
-   - **A service's live configuration:** read the variable names, never their
-     values; confirm an absence inside the container (`env | cut -d= -f1`).
-   - **Bound every live read** (`--tail N`, `timeout`); if that is not enough, say
-     what you could not check instead of waiting.
+   originals in `sources`), **manual** (decisions, playbooks, metrics). Git
+   history, the project's MCP servers, a live database or service, or a lot of
+   code to read at once: read [reference/sources.md](reference/sources.md) first.
+   - **A doc is a claim, not a fact.** Check what READMEs, CLAUDE.md files and
+     wikis say against the code before you write it; leave out, or mark as not
+     verified, what you cannot check.
+   - **Secrets:** never copy one; write where it lives, never the value.
    - **An incident found while documenting** (a service that does not answer, a
-     risky query in the code): write it as observed state with the date and a
-     short `stale_after`, list it for the person, and do not fix it. A security or
-     data-loss incident is told to the person as soon as it is confirmed, not in
-     the final summary.
-3. Choose a directory layout by domain (e.g. `services/`, `datasets/`,
-   `decisions/`). One concept per file. A large project built in phases (one
-   area at a time, each reviewed): fix the whole layout up front, list in the
-   indexes only the concepts already written (a short "pending" note in the root
-   index says what comes later), link only to concepts already written (add the
-   link when you write the target: `--strict` fails on a link to a missing file),
-   and keep the plan of the remaining areas in a work file, not in the bundle.
-   **A large area** (tens of thousands of lines): split the reading across
-   subagents, each with a brief (revision to read, questions, paths, "never copy
-   secrets", claims of the docs to verify) and limits: reads inside the given
-   paths only, no live systems, no MCP calls, no writes (not even in `/tmp`).
-   Their reports sound equally sure when wrong: check 3–5 claims of each in the
-   code before writing them, the incidents and security claims first.
-4. Write each concept from [templates/concept.md](templates/concept.md): set a
+     risky query): write it as observed state with the date and list it for the
+     person; do not fix it. A security one is told as soon as it is confirmed.
+4. Choose a directory layout by domain (e.g. `services/`, `datasets/`,
+   `decisions/`). One concept per file. Value what the code does not say (why,
+   conventions, how the live system behaves) over describing what the code does.
+5. Write each concept from [templates/concept.md](templates/concept.md): set a
    descriptive `type`, fill recommended fields, record `generated` and the
    `sources` you actually read, cross-link related concepts. Cite the code it
-   describes (see *Citing code* below).
-5. Add/refresh `index.md` per directory (and `okf_version: "0.2"` in the root
+   describes (see *Citing code*).
+   - **Decisions:** write a `decisions/` concept only for a choice with a known
+     why: written (commit `git:<sha>`, doc, docstring; cite the original, never a
+     concept of this bundle) or told by a person (`resource: human:<id>` with the
+     date, their words quoted, the technical facts that come with it checked in
+     the code). Never invent a why. When the person does not know it, investigate
+     (history, config, the live system) and write either a decision with that
+     evidence or one marked pending review with its costs and an alternative.
+     Link each decision from the concepts of its area.
+6. Add/refresh `index.md` per directory (and `okf_version: "0.2"` in the root
    index). A new bundle gets a dated **Creation** entry in `log.md`. Extending
    an existing one does not.
-6. Validate (see below). Fix every error before finishing. Where the `ai1` CLI
-   is available, check that the code you cited links back: from the project root,
-   `ai1 okf file-map <file>...` prints the concept ai1 names for each file
-   (exit 1 when one has none). Run it on the files you cited **and** on a few
-   undescribed files next to them (a folder cited in a body claims all its
-   files), and resolve the ties it warns about.
-7. A new bundle, where the `ai1` CLI is on the PATH: run `ai1 claude-md`. If it reports findings,
-   offer `/ai1:okf-tidy-claude-md` in one line (CLAUDE.md now repeats or should move into the
-   bundle); do not tidy without a yes. A `secret-in-claude-md` finding is never moved: tell the person
-   (clean it from CLAUDE.md, rotate it).
+7. Validate (see below). Fix every error before finishing. Then, from the
+   project root, `"${CLAUDE_PLUGIN_DATA}/bin/ai1" okf file-map <file>...` on the
+   files you cited: it prints the concept ai1 names for each (exit 1 when one has
+   none).
+8. A new bundle: run `"${CLAUDE_PLUGIN_DATA}/bin/ai1" claude-md`; if it reports
+   findings, offer `/ai1:okf-tidy-claude-md` in one line, without tidying before
+   a yes.
 
 #### Citing code
 
-ai1 tells the agent which concept describes a file when it opens or edits it,
+ai1 names the concept that describes a file when the agent opens or edits it,
 from the paths each concept cites:
 
 - Where: `resource` (strongest), then `sources[].resource`, then paths in
-  backticks in the body (weakest). A file beats a folder. Paths inside fenced
-  blocks are ignored; a folder in the body needs two segments (`src/core/`).
-- Form: a bare path (`src/core/config.mjs`) is read **from the repository root**
-  (an ai1 convention: the spec would read it from the concept); a leading `/` is
-  the bundle root. In a repo with submodules, cite from the root that holds the
-  bundle (`svc/lib/db.py`).
-- The rule that follows: a **specific** concept puts its own files in `resource`
-  or `sources`; a **broad** one (overview, operations) cites big folders only in
-  its body. An area's overview puts its own folders in `sources`; the root
-  overview only names them in its body, or the two tie. A broad concept with `src/` in `sources` would win over every
-  specific concept that cites a file of `src/` only in its body.
-- A concept of a service or worker puts its entry file in `resource`: it then
-  beats every concept that only cites that file in `sources`.
-- A file that only **proves** a claim (an MCP server's code used as evidence)
-  goes in `sources` with `role: evidence`: it supports the claim without the
-  concept claiming the file. A path in backticks in the body always claims it.
+  backticks in the body. A file beats a folder; paths in fenced blocks are
+  ignored.
+- Form: a bare path (`src/core/config.mjs`) is read from the repository root (an
+  ai1 convention); a leading `/` is the bundle root.
+- A **specific** concept puts its own files in `resource` or `sources`; a
+  **broad** one (overview, operations) names big folders only in its body. A
+  service or worker puts its entry file in `resource`.
+- A file that only **proves** a claim goes in `sources` with `role: evidence`:
+  it supports the claim without the concept claiming the file.
 
 ### maintain — keep a bundle in sync with reality
-Before reading code to correct a concept, check its revision as in produce step 0.
+Before reading code to correct a concept, check its revision (produce step 2);
+for sources other than the repo's code, see [reference/sources.md](reference/sources.md).
 
 1. Identify which concepts the change affects (search by `resource`, path, or
    topic). This bookkeeping is exactly what agents are good at — touch every
@@ -287,7 +223,7 @@ if you only want §11 conformance gated.
 
 - Every concept file has a YAML frontmatter block with a non-empty `type` (the one hard rule).
 - Validate with /ai1:okf-validate-bundle before declaring done and resolve every ERROR.
-- No secrets in the bundle.
+- No secrets in the bundle: write where a secret lives, never its value.
 
 ## Customization
 
