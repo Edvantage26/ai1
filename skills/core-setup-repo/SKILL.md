@@ -48,9 +48,15 @@ off ("design: no frontend found, it stays quiet anyway"). When the repo already 
 `.ai1/config.json`, show what is off now. Add the verify commands you propose
 (`detectedVerifyCommands`, or what you found).
 
-Then use AskUserQuestion with **multiSelect**: "Which features do you want off in this repo?", one
-option per feature (label = `title`); none selected keeps everything on, which is the recommendation.
-Do not invent features. Confirm the verify commands in the same round.
+Then ask with AskUserQuestion, in one round: a single-select question "Keep every ai1 feature on in
+this repo?" with **Keep all on (recommended)** first and **Switch some off** second, and the question
+confirming the verify commands. Never make the person type "all" by hand: keeping everything on is
+always an option to pick.
+
+Only when they pick **Switch some off**, ask a second round with **multiSelect**: "Which features do
+you want off?", one option per feature (label = `title`). A question holds at most 4 options, so
+split the features into as many questions as needed (at most 4 per question), grouped by what they
+do; a question with nothing picked switches nothing off. Do not invent features.
 
 Before proposing a verify command, run it once from the repo root (Bash, timeout 10 minutes,
 measuring the time) and put the result in the table: passes, fails or times out, and how long it
@@ -65,9 +71,12 @@ took. The verify gate makes the agent run it in full before finishing every chan
 
 Keep the `overlappingPlugins` whose `features` is `null` or includes a feature left on.
 If any is left, tell the person in one line per plugin what overlaps and why (its `reason`), then
-ask with AskUserQuestion, **multiSelect**, which ones to disable **in this repo only** (written to
+ask with AskUserQuestion which ones to disable **in this repo only** (written to
 `.claude/settings.local.json`, personal and not committed; the plugin keeps working in other repos).
-One option per plugin; mark the `disable` ones "(recommended)", the `warn` ones without it. Never
+First a single-select question with **Disable the recommended ones** (the `disable` ones; mark it
+"(recommended)" when there is any), **Keep them all enabled** and, when there is more than one plugin,
+**Pick one by one**; only after **Pick one by one**, a **multiSelect** with one option per plugin (at
+most 4 per question, split if needed; `disable` ones "(recommended)", `warn` ones without it). Never
 disable one the person did not pick. If none is left, skip this step.
 
 Then, unless `credentialDenyRules` already shows them all, ask one yes/no question (recommended:
