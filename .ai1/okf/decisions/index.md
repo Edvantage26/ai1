@@ -1,6 +1,6 @@
 # Decisions
 
-* [Prior art: take ideas, not code](prior-art.md) - Superpowers, rsc-harness, rsc-factory.
+* [Prior art: take ideas, not code](prior-art.md) - Superpowers, rsc-harness, rsc-factory; knowledge bundles and their evidence (2026-11-16).
 * [Design principles](principles.md) - mechanisms over prompts, no surprises on the user's machine.
 * [Skill customization](skill-customization.md) - one mechanism, project and person scopes, customizable by default with justified exclusions (later 0001).
 * [All features on by default](all-features-on.md) - opt-out config (version 2), migration of old configs, basic modes refined by the project (2026-11-13).

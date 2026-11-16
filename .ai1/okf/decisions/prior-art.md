@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-14T15:15:14Z'
+  at: '2026-11-16T06:05:03Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -346,3 +346,37 @@ hook or rule, or completing or merging what already exists. Nothing built or dec
 - **Voyager** / Anthropic **skill-creator**: skills as verified executable code; every new skill with
   evals. A fixed sequence is cheaper as a script than as a skill.
 - Transcripts Claude Code already keeps locally are enough to mine offline, without a new per-call hook.
+
+# Knowledge bundles and their evidence (2026-11-16)
+
+Reviewed after the OKF skill doubled in size (160 to 296 lines) in one day from one bundle (a large
+live system), to check whether that growth is supported.
+
+- **Karpathy's LLM Wiki** (gist, 2026-04): immutable raw sources, a wiki the LLM writes and keeps,
+  a schema file (CLAUDE.md); operations ingest, query and **lint** (contradictions, orphans, gaps);
+  `index.md` as map, `log.md` as history. OKF is the same idea, standardized.
+- **Cline Memory Bank** (five fixed files); Kilo retired its memory bank for AGENTS.md.
+- **DeepWiki / C0**: generated wikis, refreshed or flagged "possibly stale" when the indexed code
+  changes a lot; generated from an old branch they describe code no longer in production.
+- **Swimm**: docs coupled to code; on each commit it checks the referenced code and labels a doc up
+  to date / out of sync (fixed automatically) / outdated (human review). Staleness is the weak point
+  of every system; the common fix is "the cited code changed since the concept was written".
+- **Mem0, Zep, Letta**: memory of users and conversations, not of a project.
+
+Evidence:
+- Gloaguen et al., ETH, [arXiv 2602.11988](https://arxiv.org/abs/2602.11988): context files did not
+  raise task success and cost over 20% more; repository overviews did not help; LLM-generated files
+  slightly hurt, human-written ones slightly helped; useful content is what the agent cannot infer
+  (non-standard practices).
+- McMillan, [arXiv 2605.10039](https://arxiv.org/pdf/2605.10039) (1,650 Claude Code sessions): file
+  size 25-500 lines, instruction position and splitting into files had no detectable effect on
+  adherence; adherence falls as the session goes on.
+- [arXiv 2607.27250](https://arxiv.org/html/2607.27250v1): context strategy did not measurably move
+  correctness (Claude Code and Codex, 288 runs).
+- Anthropic skill guidance: SKILL.md under 500 lines, detail in reference files loaded when needed.
+
+Taken: a bundle earns its cost with what the code does not say (decisions and whys, conventions,
+live-system facts, incidents), not with descriptions of code; per-file delivery of concepts
+(okf-file-context) matches load-on-demand; skill length under 500 lines is not a measured risk.
+Open: a stale-concept warning (cited code changed a lot since `generated.at`), and a small evaluation
+(same real tasks with and without the bundle) before adding more produce rules.
