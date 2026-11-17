@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-16T14:31:54Z'
+  at: '2026-11-17T19:45:11Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -462,3 +462,31 @@ first. Not adopted: codegraph as a recommended companion (no accuracy gain).
   checkable specs help weaker models most ("Architecture as Capability Equalizer", arXiv 2608.21747).
 - **Upkeep:** superseded records pile up; one practitioner would rewrite a record to the current decision
   with a footnote to the replaced version's commit instead of keeping both.
+
+# Periodic maintenance and per-person role (2026-11-17)
+
+Reviewed from docs and secondary sources while weighing a per-person "architect / developer" role
+that gets periodic maintenance tasks (not decided; nothing built).
+
+- **Claude Code `userConfig`** ([manifest reference](https://code.claude.com/docs/en/plugins/manifest-reference.md)):
+  a plugin option with `options` is prompted on enable, shown as a picker in `/config`, saved in the
+  user's `settings.json` under `pluginConfigs` and exported to hooks as `CLAUDE_PLUGIN_OPTION_<KEY>`.
+  Global per person, not per repo. ai1 already uses it for `fork_opener`.
+- **Claude Code Auto Dream** (community sources, no official page): background memory consolidation
+  gated on both time and activity (24 h and more than 5 sessions since the last one) plus a lock so
+  two instances of one project do not run it at once.
+- **oh-my-zsh updater**: per-feature mode `disabled | reminder | prompt | auto` plus a frequency in days,
+  instead of a yes/no.
+- **update-notifier (npm)**: state in `~/.config/configstore/` (`optOut`, `lastUpdateCheck`), opt-out by
+  env var or flag, silent in CI and tests.
+- **OpenAI "harness engineering"** (secondary summaries; the original returned 403): a recurring
+  doc-gardening agent opens fix-up PRs for stale docs; golden principles enforced by recurring
+  lint/refactor agents. The output is a change to review, not a chat interruption.
+- **Rules-file rot** ([Unblocked](https://getunblocked.com/blog/rules-file-rot)): agent instruction files
+  drift because nothing fails when a rule goes stale; one 2026 study reports agents following a stale
+  AGENTS.md in 90% of choices.
+
+Ideas worth keeping: offer maintenance only when a cheap deterministic check found something (not
+because time passed), gate on time and sessions with a lock, a mode per task, "not now" as snooze with
+backoff vs "never" as off, silence in non-interactive sessions, and read the last run from evidence in
+the repo when there is some.
