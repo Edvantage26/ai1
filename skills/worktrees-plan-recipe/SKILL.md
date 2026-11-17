@@ -27,6 +27,12 @@ The engine is `ai1 worktree create|list|run|finish|drop` (on the Bash PATH while
 
 Run `ai1 status`. The line `worktree recipe:` says `basic` (no project recipe), `project` or `invalid`.
 
+- The first worktree of the repo (`ai1 worktree create` printed `first worktree in this repo`): tell
+  the person in a few lines how the recipe is made from what it printed (basic or project recipe, which
+  fields the project sets, what it copies, regenerates, sets up and checks before finish), then review
+  it against the repo and **complete** the project recipe (step 1) with what falls short; fields it
+  lists as the same as the basic recipe leave the project recipe. Say what you changed, or that it
+  needs no change.
 - `ai1 worktree` reported something not covered, or a worktree needed a step by hand: **complete**
   the project recipe (step 1).
 - The person wants worktrees made a particular way (ports, services, shared data, modes, closing):

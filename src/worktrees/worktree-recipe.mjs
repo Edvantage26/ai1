@@ -15,6 +15,9 @@ export const RECIPE_RELATIVE_PATH = join(PROJECT_SKILL_DIRECTORY, 'recipe.json')
 export const SUPPORTED_RECIPE_VERSION = 1;
 // What the agent does when the recipe falls short (the person chose on 2026-11-13: adjust it and say so).
 export const RECIPE_GAP_HINT = `If the worktree lacks something the main checkout has (a file, a folder, an install step), add the fix to ${RECIPE_RELATIVE_PATH} yourself - only the fields that differ from the basic recipe (/ai1:worktrees-plan-recipe has the format) - and say it in one line; propose it first when it would share a folder that holds state or delete data.`;
+// The first worktree of a repo: the person wants to know how its recipe is made and have it improved
+// (asked on 2026-11-17).
+export const RECIPE_REVIEW_HINT = `Tell the person in a few lines how worktrees are made here: basic or project recipe, and what it copies, regenerates, sets up and checks before finish. Then review it against the repo: anything not covered, fields that can leave the project recipe, a step this worktree needs that the recipe lacks (an install, a build, a file). Fix what falls short in ${RECIPE_RELATIVE_PATH} yourself (/ai1:worktrees-plan-recipe) and say what you changed; propose it first when it would share a folder that holds state or delete data. If nothing falls short, say the recipe needs no change.`;
 // The named commands whose failure may mean the recipe falls short.
 export const RECIPE_STEP_COMMANDS = ['setup', 'pre-finish'];
 export const BUILT_IN_MODES = ['auto', 'full', 'light'];
@@ -145,7 +148,7 @@ function mergeRecipeLayers(...recipeLayers) {
 export function loadRecipe(repoRoot) {
   const recipePath = join(repoRoot, RECIPE_RELATIVE_PATH);
   const basicRecipe = detectBasicRecipe(repoRoot);
-  if (!existsSync(recipePath)) return { status: 'basic', recipePath, warnings: [], recipe: mergeRecipeLayers(DEFAULT_RECIPE, basicRecipe) };
+  if (!existsSync(recipePath)) return { status: 'basic', recipePath, warnings: [], recipe: mergeRecipeLayers(DEFAULT_RECIPE, basicRecipe), projectFields: [], redundantFields: [] };
   let rawRecipe;
   try {
     rawRecipe = JSON.parse(readFileSync(recipePath, 'utf8'));
@@ -163,5 +166,25 @@ export function loadRecipe(repoRoot) {
     recipePath,
     warnings,
     recipe: mergeRecipeLayers(DEFAULT_RECIPE, basicRecipe, rawRecipe),
+    projectFields: Object.keys(rawRecipe).filter((fieldName) => !RECIPE_FILE_METADATA_FIELDS.includes(fieldName)),
+    redundantFields: listRedundantProjectFields(rawRecipe, mergeRecipeLayers(DEFAULT_RECIPE, basicRecipe)),
   };
+}
+
+// Fields of the project recipe that only say what the basic recipe already says: they can leave the
+// file, so it keeps only what differs and follows the repo when the basic recipe changes.
+const RECIPE_FILE_METADATA_FIELDS = ['$schema', 'version'];
+const sameValue = (firstValue, secondValue) => JSON.stringify(firstValue) === JSON.stringify(secondValue);
+
+export function listRedundantProjectFields(rawRecipe, basicLayeredRecipe) {
+  const redundantFields = [];
+  for (const [fieldName, fieldValue] of Object.entries(rawRecipe)) {
+    if (RECIPE_FILE_METADATA_FIELDS.includes(fieldName) || !(fieldName in basicLayeredRecipe)) continue;
+    if (fieldName === 'finish' && isPlainObject(fieldValue)) {
+      for (const [finishField, finishValue] of Object.entries(fieldValue)) {
+        if (sameValue(finishValue, basicLayeredRecipe.finish[finishField])) redundantFields.push(`finish.${finishField}`);
+      }
+    } else if (sameValue(fieldValue, basicLayeredRecipe[fieldName])) redundantFields.push(fieldName);
+  }
+  return redundantFields;
 }

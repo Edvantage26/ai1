@@ -428,7 +428,9 @@ test('basic recipe falling short: create lists what it does not cover, a failed 
   mkdirSync(join(mainRoot, '.claude', 'skills', 'worktree'), { recursive: true });
   writeFileSync(join(mainRoot, RECIPE_RELATIVE_PATH), JSON.stringify({ copy: ['.env'], setup: ['false'] }));
   const ai1Cli = (cliArguments) => spawnSync(process.execPath, [new URL('../bin/ai1', import.meta.url).pathname, ...cliArguments], { cwd: mainRoot, encoding: 'utf8' });
+  assert.match(ai1Cli(['worktree', 'create', 'first', '--mode', 'light']).stdout, /first worktree in this repo/, 'the first worktree reviews the recipe instead');
   const createOutput = ai1Cli(['worktree', 'create', 'short', '--mode', 'light']).stdout;
+  assert.doesNotMatch(createOutput, /first worktree in this repo/);
   assert.match(createOutput, /not covered by the recipe: frontend\/\.env\.local \(ignored env file, not copied\), models \(ignored folder of 50 MB or more, neither copied nor regenerated\)/);
   assert.match(createOutput, /add the fix to \.claude\/skills\/worktree\/recipe\.json yourself - only the fields that differ from the basic recipe/);
   const setupRun = ai1Cli(['worktree', 'run', 'short', 'setup']);
@@ -439,6 +441,30 @@ test('basic recipe falling short: create lists what it does not cover, a failed 
   const fixedOutput = ai1Cli(['worktree', 'create', 'fixed', '--mode', 'light']).stdout;
   assert.doesNotMatch(fixedOutput, /not covered/);
   assert.ok(existsSync(join(mainRoot, '.claude', 'worktrees', 'fixed', 'frontend', '.env.local')), 'the basic copy patterns are back once the project recipe leaves copy alone');
+});
+
+test('first worktree of a repo: create says how the recipe is made, which project fields repeat the basic recipe, and asks to report and fix it; only once', () => {
+  const mainRoot = createNodeRepoWithoutRecipe();
+  const ai1Cli = (cliArguments) => execFileSync(process.execPath, [new URL('../bin/ai1', import.meta.url).pathname, ...cliArguments], { cwd: mainRoot, encoding: 'utf8' });
+  const firstOutput = ai1Cli(['worktree', 'create', 'one', '--mode', 'light']);
+  assert.match(firstOutput, /first worktree in this repo - recipe: basic recipe, worked out from the repo \(no \.claude\/skills\/worktree\/recipe\.json\)/);
+  assert.match(firstOutput, /copy \.env, \.env\.\*, \*\/\.env, \*\/\.env\.\* \| heavy node_modules regenerate \(npm ci\) \| setup npm ci \| pre-finish npm test \| port none \| finish rebase/);
+  assert.match(firstOutput, /Tell the person in a few lines how worktrees are made here[\s\S]*Fix what falls short in \.claude\/skills\/worktree\/recipe\.json yourself/);
+  assert.doesNotMatch(ai1Cli(['worktree', 'create', 'two', '--mode', 'light']), /first worktree in this repo/);
+  ai1Cli(['worktree', 'drop', 'one', '--confirm']);
+  ai1Cli(['worktree', 'drop', 'two', '--confirm']);
+  assert.doesNotMatch(ai1Cli(['worktree', 'create', 'three', '--mode', 'light']), /first worktree in this repo/, 'once per repo, not each time none are left');
+
+  const projectRoot = createNodeRepoWithoutRecipe();
+  mkdirSync(join(projectRoot, '.claude', 'skills', 'worktree'), { recursive: true });
+  writeFileSync(join(projectRoot, RECIPE_RELATIVE_PATH), JSON.stringify({ version: 1, base: 'trunk', setup: ['npm ci', 'npm run build'], finish: { strategy: 'rebase', allow_merge: false } }));
+  const loadedRecipe = loadRecipe(projectRoot);
+  assert.deepEqual(loadedRecipe.projectFields, ['base', 'setup', 'finish']);
+  assert.deepEqual(loadedRecipe.redundantFields, ['base', 'finish.strategy']);
+  const projectCreated = createWorktree(projectRoot, 'one', { mode: 'light' });
+  assert.equal(projectCreated.recipe_review.status, 'project');
+  assert.deepEqual(projectCreated.recipe_review.redundant_fields, ['base', 'finish.strategy']);
+  assert.equal(createWorktree(projectRoot, 'two', { mode: 'light' }).recipe_review, null);
 });
 
 test('worktree-reminder: on change and every N prompts, marking this session, then once when none are left', () => {

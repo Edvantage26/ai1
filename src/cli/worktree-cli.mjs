@@ -7,7 +7,7 @@
 // Every command takes --json. Runs from anywhere inside the repo or one of its worktrees.
 
 import { createWorktree } from '../worktrees/worktree-create.mjs';
-import { RECIPE_GAP_HINT, RECIPE_STEP_COMMANDS } from '../worktrees/worktree-recipe.mjs';
+import { RECIPE_GAP_HINT, RECIPE_REVIEW_HINT, RECIPE_RELATIVE_PATH, RECIPE_STEP_COMMANDS } from '../worktrees/worktree-recipe.mjs';
 import { listWorktrees, runWorktreeCommand, dropWorktree } from '../worktrees/worktree-ops.mjs';
 import { finishWorktree } from '../worktrees/worktree-finish.mjs';
 import { formatBytes } from '../worktrees/worktree-disk.mjs';
@@ -25,8 +25,24 @@ function describeCreated(created) {
     ...(created.setup_commands.length ? [`next: ai1 worktree run ${created.name} setup  (${created.setup_commands.join(' && ')})`] : []),
     `enter it: EnterWorktree with path ${created.path} (or work with absolute paths under it)`,
     ...created.warnings.map((warningText) => `warning: ${warningText}`),
-    ...(created.uncovered.length ? [`not covered by the recipe: ${created.uncovered.map((uncoveredPath) => `${uncoveredPath.path} (${uncoveredPath.reason})`).join(', ')}`, RECIPE_GAP_HINT] : []),
+    ...(created.uncovered.length ? [`not covered by the recipe: ${created.uncovered.map((uncoveredPath) => `${uncoveredPath.path} (${uncoveredPath.reason})`).join(', ')}`] : []),
+    ...(created.recipe_review ? describeRecipeReview(created.recipe_review) : (created.uncovered.length ? [RECIPE_GAP_HINT] : [])),
   ].join('\n');
+}
+
+// The first worktree of the repo: how the recipe is made, and what the agent does with it.
+function describeRecipeReview(recipeReview) {
+  const listOrNone = (listedItems) => (listedItems.length ? listedItems.join(', ') : 'none');
+  const originText = recipeReview.status === 'project'
+    ? `project recipe ${RECIPE_RELATIVE_PATH} on top of the basic one; it sets: ${listOrNone(recipeReview.project_fields)}`
+    : `basic recipe, worked out from the repo (no ${RECIPE_RELATIVE_PATH})`;
+  const heavyText = listOrNone(recipeReview.heavy.map((heavyEntry) => `${heavyEntry.path} ${heavyEntry.strategy}${heavyEntry.command ? ` (${heavyEntry.command})` : ''}`));
+  return [
+    `first worktree in this repo - recipe: ${originText}`,
+    `  copy ${listOrNone(recipeReview.copy)} | heavy ${heavyText} | setup ${listOrNone(recipeReview.setup)} | pre-finish ${listOrNone(recipeReview.pre_finish)} | port ${recipeReview.port_env_file ?? 'none'} | finish ${recipeReview.finish_strategy}`,
+    ...(recipeReview.redundant_fields.length ? [`  same as the basic recipe, can leave the project recipe: ${recipeReview.redundant_fields.join(', ')}`] : []),
+    RECIPE_REVIEW_HINT,
+  ];
 }
 
 function describeListed(listedWorktrees) {

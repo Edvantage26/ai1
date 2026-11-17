@@ -4,14 +4,14 @@
 // filesystem shares blocks on copy), else trims the heavy paths that free space, largest first.
 // It never runs installs: setup and regenerate commands are returned for the agent to run.
 
-import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { loadHarnessConfig } from '../core/config.mjs';
 import { matchesAnyGlob } from '../core/path-glob.mjs';
 import { loadRecipe } from './worktree-recipe.mjs';
 import { runGit, tryGit, detectTrunkBranch, readOriginHeadBranch } from '../core/git.mjs';
 import {
-  findRepository, validateWorktreeName, readWorktreeState, writeWorktreeState, listWorktreeStates,
+  findRepository, validateWorktreeName, readWorktreeState, writeWorktreeState, listWorktreeStates, worktreeStateDirectory,
 } from './worktree-state.mjs';
 import { measurePathBytes, measurePathBytesUpTo, readDiskSpace, supportsCopyOnWrite, copyPath, linkDirectory } from './worktree-disk.mjs';
 import { DEFAULT_PORT_RANGE, listListeningPorts, pickWorktreePort, writeEnvVariables } from './worktree-ports.mjs';
@@ -23,6 +23,10 @@ const UNCOVERED_SIZE_BUDGET_MS = 2000;
 const ENV_FILE_PATTERNS = ['.env', '.env.*', '*/.env', '*/.env.*'];
 // ai1's own folders and the worktrees are never the recipe's business.
 const NEVER_UNCOVERED_PATHS = ['.ai1', '.claude'];
+
+// Written next to the worktree records once the first worktree of the repo (this clone) exists: that
+// one reports how the recipe is made, so the agent tells the person and fixes what falls short.
+const FIRST_WORKTREE_MARKER = '.recipe-reported';
 
 export function loadRecipeOrFail(mainRoot) {
   const loadedRecipe = loadRecipe(mainRoot);
@@ -173,7 +177,7 @@ function collectTakenPorts(commonDirectory, worktreeName) {
 export function createWorktree(startDirectory, worktreeName, options = {}) {
   validateWorktreeName(worktreeName);
   const { mainRoot, commonDirectory } = findRepository(startDirectory);
-  const { recipe, warnings } = loadRecipeOrFail(mainRoot);
+  const { recipe, warnings, status: recipeStatus, projectFields, redundantFields } = loadRecipeOrFail(mainRoot);
   const requestedMode = options.mode || recipe.default_mode;
   const knownModes = ['auto', 'full', 'light', ...Object.keys(recipe.modes)];
   if (!knownModes.includes(requestedMode)) throw new Error(`unknown mode "${requestedMode}": use ${knownModes.join(', ')}`);
@@ -265,10 +269,25 @@ export function createWorktree(startDirectory, worktreeName, options = {}) {
     const uncoveredPaths = listUncoveredPaths(mainRoot, { coveredPaths: [locationPath, ...heavyPaths], filesToCopy });
     const shareOnTrackedWarnings = heavyEntries.filter((heavyEntry) => heavyEntry.isTracked && heavyEntry.strategy === 'share')
       .map((heavyEntry) => `${heavyEntry.path} is tracked: share works only for ignored paths, so it is excluded instead`);
+    const firstWorktreeMarkerPath = join(worktreeStateDirectory(commonDirectory), FIRST_WORKTREE_MARKER);
+    const isFirstWorktree = !existsSync(firstWorktreeMarkerPath);
+    if (isFirstWorktree) writeFileSync(firstWorktreeMarkerPath, `${worktreeState.created_at}\n`);
     return {
       ...worktreeState,
       size_bytes: measurePathBytes(worktreePath),
       uncovered: uncoveredPaths,
+      // Only on the first worktree of the repo: how the recipe is made, for the agent to tell the person.
+      recipe_review: isFirstWorktree ? {
+        status: recipeStatus,
+        project_fields: projectFields,
+        redundant_fields: redundantFields,
+        copy: copyPatterns,
+        heavy: heavyEntries.map((heavyEntry) => ({ path: heavyEntry.path, strategy: heavyEntry.effectiveStrategy, command: heavyEntry.command ?? null })),
+        setup: recipe.setup,
+        pre_finish: [recipe.commands['pre-finish'] ?? []].flat(),
+        port_env_file: recipe.port ? recipe.port.env_file : null,
+        finish_strategy: recipe.finish.strategy,
+      } : null,
       warnings: [...warnings, ...baseWarnings, ...shareOnTrackedWarnings],
     };
   } catch (creationError) {

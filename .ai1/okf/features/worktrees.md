@@ -5,7 +5,7 @@ description: A worktree per change (any edit to the repo files, created before t
 tags: [worktrees, git, skills, cli, hooks]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T11:56:07Z'
+  at: '2026-11-17T14:28:38Z'
 sources:
   - id: worktree-create
     resource: src/worktrees/worktree-create.mjs
@@ -63,6 +63,14 @@ that sets every field.
   `run setup`/`run pre-finish` and a failed pre-finish in `finish` print the same hint. The agent
   writes the project recipe itself and says so in one line; it proposes first when the fix shares a folder
   holding state or deletes data (the person's choice, 2026-11-13).
+- First worktree of the repo (since 2026-11-17, asked by the person: be told how the recipe is made
+  and have it improved): `create` prints `first worktree in this repo`, whether the recipe is the
+  basic one or a project recipe and which fields that sets, what it copies, regenerates, sets up and
+  runs before finish, and the project fields that repeat the basic recipe (`redundantFields` of
+  `loadRecipe`, `finish` compared field by field), followed by `RECIPE_REVIEW_HINT`: tell the person,
+  review the recipe against the repo, fix what falls short (same rule as gaps), or say it needs no
+  change. Once per clone: the marker `.recipe-reported` next to the worktree records, so a repo that
+  already had worktrees gets it once on its next `create`.
 
 # Pieces
 
