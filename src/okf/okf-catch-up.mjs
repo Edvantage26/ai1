@@ -13,7 +13,7 @@ import {
   resolveStateDirectory, sessionStatePath, readStateText, readStateJson, writeStateText, shortHash,
 } from '../core/session-state.mjs';
 import { readGitHead } from '../core/session-base.mjs';
-import { resolveBundleDirectory, readBundleIndex, readBundleSpecVersion, buildMaintenanceRules } from './okf-bundle.mjs';
+import { resolveBundleDirectory, readBundleIndex, readBundleSpecVersion, buildMaintenanceRules, WORTH_A_CONCEPT_RULE } from './okf-bundle.mjs';
 import { buildFileMap, findConceptsForFile, loadFileMap } from './okf-file-map.mjs';
 import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
 
@@ -156,7 +156,7 @@ export function buildCatchUpBrief(projectRoot, pendingMerge, fileMap) {
     'Steps:',
     '1. Create a worktree for this work (`ai1 worktree create <name>`) and work only inside it.',
     `2. Read \`${KNOWLEDGE_BUNDLE_PATH}/index.md\` and the concepts above, then the diff of the merge, and work out what changed in the system (behaviour, APIs, data, decisions), not a list of edits.`,
-    '3. Update the affected concepts and create concepts for new assets (with `description` and `tags`, linked from the index.md of their folder). Behaviour, APIs, data and rules are worth a concept even when nothing calls them yet; tests, formatting and renames alone are not. What the code does not show, write as unknown; never invent intent. The bundle\'s rules:',
+    `3. Update the affected concepts and create concepts for new assets (with \`description\` and \`tags\`, linked from the index.md of their folder). ${WORTH_A_CONCEPT_RULE} What the code does not show, write as unknown; never invent intent. The bundle's rules:`,
     ...buildMaintenanceRules(KNOWLEDGE_BUNDLE_PATH, readBundleSpecVersion(readBundleIndex(resolveBundleDirectory(projectRoot)) || '')).map((maintenanceRule) => `   - ${maintenanceRule}`),
     `4. Validate (\`ai1 okf validate ${KNOWLEDGE_BUNDLE_PATH}\`) and fix every ERROR.`,
     `5. Commit in the worktree with this trailer as the last line of the message: \`${CATCH_UP_TRAILER}: ${sha}\`. If nothing was worth documenting, make an empty commit (\`git commit --allow-empty\`) with the reason and the same trailer: it records that the merge was reviewed.`,

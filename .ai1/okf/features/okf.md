@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index and bundle health notes 
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-16T12:52:00Z'
+  at: '2026-11-17T14:14:02Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -297,6 +297,13 @@ sources:
   with the real current UTC time; `log.md` only for lifecycle events; validate with `/ai1:okf-validate-bundle`
   and fix errors. On a v0.1 bundle: legacy warnings are expected, the agent must not migrate the
   bundle, and in each concept it edits it replaces `timestamp` with `generated`.
+  What deserves a concept is one shared sentence (`WORTH_A_CONCEPT_RULE` in `src/okf/okf-bundle.mjs`,
+  also in the catch-up brief): behaviour, APIs, data and rules, even when no concept covers them yet;
+  tests, formatting and renames alone are not. The upkeep reminder also says how many of the changed
+  files no concept describes, and lets the agent finish without writing only when the change adds no
+  such knowledge. Until 2026-11-17 it closed with "if nothing documented is affected, say so and
+  finish": in a real repo the agent added a link to a map service and a new modal, answered "nothing to
+  update, no concept talks about them" and left the feature undocumented.
 - **Field test (2026-10-31, copy of a real v0.1 bundle):** after a code change the agent updated the
   right concept and left `log.md` alone, but kept `timestamp` next to `generated`, invented the time
   and skipped `/ai1:okf-validate-bundle`. The first two led to the stricter rules above; the third to the

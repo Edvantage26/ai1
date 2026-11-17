@@ -105,6 +105,11 @@ export function listConceptsChangedSinceOverview(projectRoot, bundleRelativePath
     .sort();
 }
 
+// What deserves a concept, shared by the upkeep reminder and the catch-up brief: a change no concept
+// describes yet is not "nothing to document" (field case 2026-11-17: a new modal and a Maps link were
+// left out because no concept talked about them).
+export const WORTH_A_CONCEPT_RULE = 'Behaviour, APIs, data and rules are worth a concept even when no concept covers them yet and nothing calls them; tests, formatting and renames alone are not.';
+
 export function buildMaintenanceRules(bundleRelativePath, specVersion) {
   const maintenanceRules = [
     `Update the affected concept in \`${bundleRelativePath}/\`: body, cross-links, and \`generated: { by: claude-code/<model>, at: <now> }\` with the real current UTC time (\`date -u +%Y-%m-%dT%H:%M:%SZ\`); a person writes \`human:<id>\`. A new asset gets a new concept.`,

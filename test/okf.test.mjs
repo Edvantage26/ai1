@@ -132,6 +132,17 @@ test('okf-upkeep: the reminder names the concepts that describe the changed file
   assert.match(stopSession(projectRoot, options).reason, /- src\/app\.py \(deleted\)[\s\S]*probably affected\): `\.ai1\/okf\/app\.md`/, 'a deleted file still maps');
 });
 
+test('okf-upkeep: files no concept describes are named as needing a new concept, not as nothing to update', () => {
+  const projectRoot = createRepoWithBundle();
+  const options = hookOptions();
+  startSession(projectRoot, options);
+  writeFileSync(join(projectRoot, 'src', 'app.py'), 'print(2)\n');
+  const reason = stopSession(projectRoot, options).reason;
+  assert.match(reason, /No concept describes any of them: a new behaviour there needs a new concept/);
+  assert.match(reason, /That no concept covers it yet is not a reason\./);
+  assert.doesNotMatch(reason, /If nothing documented is affected/);
+});
+
 test('okf-upkeep: updating the bundle after the change clears it', () => {
   const projectRoot = createRepoWithBundle();
   const options = hookOptions();

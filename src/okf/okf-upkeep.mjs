@@ -17,7 +17,7 @@ import { allowDecision, blockDecision, noticeDecision } from '../core/hook-io.mj
 import { resolveStateDirectory, sessionStatePath, readStateText, writeStateText, shortHash, claimStopBlock } from '../core/session-state.mjs';
 import {
   resolveBundleDirectory, readBundleIndex, readBundleSpecVersion, newestModificationMilliseconds, buildMaintenanceRules,
-  isConceptPath, listConceptsMissingFromIndex, overviewFileName,
+  isConceptPath, listConceptsMissingFromIndex, overviewFileName, WORTH_A_CONCEPT_RULE,
 } from './okf-bundle.mjs';
 import { loadFileMap, findConceptsForFile } from './okf-file-map.mjs';
 import { memoryDirectoriesFor, scanSessionTranscript, loadScanState, listRecentMemories } from './okf-session-scan.mjs';
@@ -89,7 +89,7 @@ export function buildDiscardedAttemptReminder(bundleRelativePath, discardedPaths
   return reminderLines.join('\n');
 }
 
-export function buildUpkeepReminder(bundleRelativePath, specVersion, pendingFiles, pendingMemories, affectedConceptPaths = []) {
+export function buildUpkeepReminder(bundleRelativePath, specVersion, pendingFiles, pendingMemories, affectedConceptPaths = [], undescribedFilePaths = []) {
   const reminderLines = [`OKF: this session left knowledge newer than the last update of ${bundleRelativePath}/.`];
   if (pendingFiles.length) {
     reminderLines.push('', 'Repo files changed after the last bundle update:');
@@ -101,32 +101,40 @@ export function buildUpkeepReminder(bundleRelativePath, specVersion, pendingFile
     const hiddenCount = affectedConceptPaths.length - MAX_LISTED_AFFECTED_CONCEPTS;
     reminderLines.push(`Concepts that describe those files (probably affected): ${listedConcepts}${hiddenCount > 0 ? `, and ${hiddenCount} more` : ''}.`);
   }
+  if (undescribedFilePaths.length) {
+    reminderLines.push(`No concept describes ${undescribedFilePaths.length === pendingFiles.length ? 'any of them' : `${undescribedFilePaths.length} of them`}: a new behaviour there needs a new concept (or a section in the closest one), not "nothing to update".`);
+  }
   if (pendingMemories.length) {
     reminderLines.push('', 'Memories saved in this session and not reflected in the bundle:');
     reminderLines.push(...pendingMemories.map((pendingMemory) => `  - ${pendingMemory.name}`));
     reminderLines.push('If they hold project knowledge (business facts, how an asset works, analysis findings, decisions), move it to the matching concept; working preferences stay in memory.');
   }
   reminderLines.push('', ...buildMaintenanceRules(bundleRelativePath, specVersion));
-  reminderLines.push('If nothing documented is affected, say so in one line and finish; you will not be asked again for this same set of changes.');
+  reminderLines.push(WORTH_A_CONCEPT_RULE);
+  reminderLines.push('Only if the change adds no such knowledge (a fix that keeps the documented behaviour, tests, formatting), say so in one line and finish; you will not be asked again for this same set of changes. That no concept covers it yet is not a reason.');
   return reminderLines.join('\n');
 }
 
 // Concepts the file map says describe the pending files (deleted ones too: the map does not depend
-// on disk), minus those already edited in this session. A broken map only drops this line.
+// on disk), minus those already edited in this session, and the pending files no concept describes.
+// A broken map only drops these lines.
 function listAffectedConcepts({ projectRoot, bundleDirectory, stateDirectory, sessionStartMilliseconds }, pendingFiles) {
   try {
     const fileMap = loadFileMap(bundleDirectory, KNOWLEDGE_BUNDLE_PATH, projectRoot, stateDirectory);
     const affectedConceptPaths = new Set();
+    const undescribedFilePaths = [];
     for (const pendingFile of pendingFiles) {
-      for (const conceptMatch of findConceptsForFile(fileMap, pendingFile.path)) {
+      const conceptMatches = findConceptsForFile(fileMap, pendingFile.path);
+      if (!conceptMatches.length) undescribedFilePaths.push(pendingFile.path);
+      for (const conceptMatch of conceptMatches) {
         const conceptAbsolutePath = join(projectRoot, conceptMatch.repoPath);
         const wasEditedInSession = existsSync(conceptAbsolutePath) && statSync(conceptAbsolutePath).mtimeMs >= sessionStartMilliseconds;
         if (!wasEditedInSession) affectedConceptPaths.add(conceptMatch.repoPath);
       }
     }
-    return [...affectedConceptPaths];
+    return { affectedConceptPaths: [...affectedConceptPaths], undescribedFilePaths };
   } catch {
-    return [];
+    return { affectedConceptPaths: [], undescribedFilePaths: [] };
   }
 }
 
@@ -280,7 +288,7 @@ export default {
       if (discardedPaths.length && claimStopBlock(discardedStatePath, discardedPaths.join('\n'), MAX_DISCARDED_BLOCKS_PER_SESSION)) {
         scanState.investigationCalls = 0;
         writeStateText(scanStatePath, JSON.stringify(scanState));
-        const affectedConceptPaths = listAffectedConcepts(
+        const { affectedConceptPaths } = listAffectedConcepts(
           { projectRoot, bundleDirectory, stateDirectory, sessionStartMilliseconds },
           discardedPaths.map((discardedPath) => ({ path: discardedPath })),
         );
@@ -322,7 +330,7 @@ export default {
       writeStateText(scanStatePath, JSON.stringify(scanState));
     }
     const specVersion = readBundleSpecVersion(indexText);
-    const affectedConceptPaths = listAffectedConcepts({ projectRoot, bundleDirectory, stateDirectory, sessionStartMilliseconds }, pendingFilesToRemind);
-    return blockDecision(MODULE_ID, buildUpkeepReminder(bundleRelativePath, specVersion, pendingFilesToRemind, pendingMemories, affectedConceptPaths));
+    const { affectedConceptPaths, undescribedFilePaths } = listAffectedConcepts({ projectRoot, bundleDirectory, stateDirectory, sessionStartMilliseconds }, pendingFilesToRemind);
+    return blockDecision(MODULE_ID, buildUpkeepReminder(bundleRelativePath, specVersion, pendingFilesToRemind, pendingMemories, affectedConceptPaths, undescribedFilePaths));
   },
 };
