@@ -5,7 +5,9 @@
 // ${CLAUDE_PLUGIN_DATA}/bin/ai1 (the data folder survives updates) and, through CLAUDE_ENV_FILE, puts
 // that folder first on the session's PATH and exports AI1_PLUGIN_ROOT. The launcher runs, in order:
 // $AI1_PLUGIN_ROOT (this session's version), the version that wrote it, else the newest version left
-// next to it in the cache. Fails open: a missing variable or an unwritable file only skips this.
+// next to it in the cache. The session's Bash has no CLAUDE_PLUGIN_DATA, so the launcher exports its own
+// data folder as AI1_PLUGIN_DATA to the CLI: state the CLI writes lands where the hooks read it (issue #2).
+// Fails open: a missing variable or an unwritable file only skips this.
 
 import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync, appendFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
@@ -18,7 +20,7 @@ export function quoteForShell(textValue) {
   return `'${String(textValue).replaceAll("'", "'\\''")}'`;
 }
 
-export function buildLauncherScript(pluginRoot) {
+export function buildLauncherScript(pluginRoot, pluginData) {
   // Falling back to a sibling version only makes sense inside the versioned cache, not for --plugin-dir.
   const versionsDirectoryLine = VERSION_FOLDER_PATTERN.test(basename(pluginRoot))
     ? `versions_directory=$(dirname "$written_by_root")`
@@ -28,6 +30,7 @@ export function buildLauncherScript(pluginRoot) {
 # rewritten. It survives plugin updates, unlike the version folder a running session started from.
 written_by_root=${quoteForShell(pluginRoot)}
 ${versionsDirectoryLine}
+export AI1_PLUGIN_DATA=${quoteForShell(pluginData)}
 for candidate_root in "\${AI1_PLUGIN_ROOT:-}" "$written_by_root"; do
   if [ -n "$candidate_root" ] && [ -f "$candidate_root/bin/ai1" ]; then
     exec node "$candidate_root/bin/ai1" "$@"
@@ -59,7 +62,7 @@ export function installStableLauncher(environment = process.env) {
   const installReport = { launcher: 'unchanged', sessionEnvironment: 'skipped' };
   try {
     const launcherPath = join(pluginData, LAUNCHER_RELATIVE_PATH);
-    const launcherScript = buildLauncherScript(pluginRoot);
+    const launcherScript = buildLauncherScript(pluginRoot, pluginData);
     const currentScript = existsSync(launcherPath) ? readFileSync(launcherPath, 'utf8') : null;
     if (currentScript !== launcherScript) {
       mkdirSync(join(pluginData, 'bin'), { recursive: true });

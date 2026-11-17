@@ -5,7 +5,7 @@ description: An edit to a file of another repository with ai1 active is refused 
 tags: [delegate, foreign-repo, cross-repo, claude-p, submodules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T14:37:56Z'
+  at: '2026-11-17T16:28:17Z'
 ---
 
 # What it does
@@ -25,7 +25,8 @@ generated:
   before). With no launch project, a submodule that has its own ai1 counts as foreign. Needs the plugin
   enabled for the person (user settings), not only in the launch repo.
 - **"Do it here".** Only when the person says so: `ai1 delegate allow <repo> --because "<their words>"`
-  allows edits to that repo for the rest of the session (state keyed by session and launch root).
+  allows edits to that repo for the rest of the session (state keyed by the session id; written through
+  the stable launcher, so it lands in the plugin data folder the hook reads).
 
 # ai1 delegate (src/delegate/delegate-session.mjs, src/cli/delegate-command.mjs)
 

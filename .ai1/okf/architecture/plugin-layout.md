@@ -5,7 +5,7 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T08:56:48Z'
+  at: '2026-11-17T16:28:17Z'
 ---
 
 # Layout
@@ -115,9 +115,12 @@ At SessionStart, in every repo, `bin/ai1-hook.mjs` runs `installStableLauncher`
 The launcher runs `node <root>/bin/ai1` with the first root that still has `bin/ai1`:
 `$AI1_PLUGIN_ROOT` (this session's version), the root that wrote it (the last session started), else
 the highest `X.Y.Z` folder next to it in the cache (never for a `--plugin-dir` root). With none left it
-exits 127 with a message. Skills call `"${CLAUDE_PLUGIN_DATA}/bin/ai1"`. Hooks keep
-`${CLAUDE_PLUGIN_ROOT}`: Claude Code runs them and ai1 cannot redirect them. Tests:
-`test/stable-launcher.test.mjs`.
+exits 127 with a message. It also exports `AI1_PLUGIN_DATA` (its own data folder) to the CLI: the
+session's Bash has no `CLAUDE_PLUGIN_DATA`, and `resolveStateDirectory` (`src/core/session-state.mjs`)
+falls back to that variable, so session state the CLI writes (`ai1 delegate allow`, one-time allows)
+lands in `<data>/state/` where the hooks read it, not in `~/.cache/ai1` (issue #2). Skills call
+`"${CLAUDE_PLUGIN_DATA}/bin/ai1"`. Hooks keep `${CLAUDE_PLUGIN_ROOT}`: Claude Code runs them and ai1
+cannot redirect them. Tests: `test/stable-launcher.test.mjs`.
 
 # Versioning
 

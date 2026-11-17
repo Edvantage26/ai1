@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { installStableLauncher, quoteForShell } from '../src/core/stable-launcher.mjs';
+import { readAllowedRepositories } from '../src/delegate/delegate-state.mjs';
 
 const HOOK_ENTRYPOINT = fileURLToPath(new URL('../bin/ai1-hook.mjs', import.meta.url));
 
@@ -102,4 +103,19 @@ test('the hook entry point installs the launcher at SessionStart, even in a repo
   const launcherRun = spawnSync('sh', [join(pluginData, 'bin', 'ai1'), 'skill-context', '--list'], { encoding: 'utf8', cwd: projectRoot, env: { PATH: process.env.PATH, HOME: mkdtempSync(join(tmpdir(), 'ai1-home-')) } });
   assert.equal(launcherRun.status, 0, launcherRun.stderr);
   assert.match(launcherRun.stdout, /later-write/);
+});
+
+test('state the CLI writes from the session\'s Bash (no CLAUDE_PLUGIN_DATA) is where the hooks read it (issue #2)', () => {
+  const pluginData = mkdtempSync(join(tmpdir(), 'ai1-data-'));
+  const homeDirectory = mkdtempSync(join(tmpdir(), 'ai1-home-'));
+  const otherRepository = mkdtempSync(join(tmpdir(), 'ai1-other-'));
+  spawnSync('git', ['init', '-q', otherRepository]);
+  installStableLauncher({ CLAUDE_PLUGIN_ROOT: fileURLToPath(new URL('..', import.meta.url)), CLAUDE_PLUGIN_DATA: pluginData });
+  const allowRun = spawnSync('sh', [join(pluginData, 'bin', 'ai1'), 'delegate', 'allow', otherRepository, '--because', 'hazlo aquí'], {
+    encoding: 'utf8',
+    env: { PATH: process.env.PATH, HOME: homeDirectory, AI1_DECISION_LOG: '0', CLAUDE_CODE_SESSION_ID: 'bash-session' },
+  });
+  assert.equal(allowRun.status, 0, allowRun.stderr);
+  const allowedRepositories = readAllowedRepositories('bash-session', { CLAUDE_PLUGIN_DATA: pluginData });
+  assert.deepEqual(Object.values(allowedRepositories).map((allowEntry) => allowEntry.because), ['hazlo aquí']);
 });
