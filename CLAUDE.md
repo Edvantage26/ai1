@@ -14,6 +14,7 @@ OKF validator in `--strict` mode (`node bin/ai1 okf validate .ai1/okf --strict`)
 
 ## Rules for this repo
 
+- **Cross-platform**: Linux, macOS and Windows. Paths with `node:path`/`os.homedir()`, no shell where Node does it, `chmod` best effort, byte-exact files as text or `binary` in `.gitattributes`; new code touching paths, files or processes gets its tests on a `windows-latest` CI job. See `.ai1/okf/decisions/principles.md`.
 - **Public repo**: never commit secrets, internal hostnames, client names or Edvantage-specific
   infrastructure. Those belong in a private pack, not here.
 - **Hooks**: plain Node or POSIX shell, no npm dependencies, no network calls. A system tool (`git`)
