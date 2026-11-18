@@ -5,7 +5,7 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-17T16:28:17Z'
+  at: '2026-11-18T09:26:45Z'
 ---
 
 # Layout
@@ -142,6 +142,14 @@ over machine paths (`/home/`), personal tooling (sync mounts, password managers,
 hostnames, IPs and client names, plus a read of every hit outside `THIRD-PARTY.md`. Expected hits are
 generic: a product named as an example, the retired `paseo` fork opener value (only a note), the author in
 `plugin.json`/`LICENSE`. Done for v0.27.0 on 2026-11-09: clean.
+
+After the push, check CI (`gh run list --repo Edvantage26/ai1 --limit 1`, then `gh run view <id>` for
+the failing job's log): a red `main` is not seen otherwise. Seen on 2026-11-18 (v0.49.0): CI had been
+red since v0.45 for two reasons unrelated to those releases - the runner had no git identity, so the
+worktree tests that commit and rebase failed (now a CI step sets one), and a test used
+`import.meta.dirname`, which needs Node 20.11 while the matrix runs Node 18 (use
+`fileURLToPath(new URL(..., import.meta.url))`). The `test-windows` job runs only the cross-platform
+test files ([principles](../decisions/principles.md)).
 
 To check a release end to end, run a fresh session on a throwaway clone with its remote removed
 (`git clone` into `/tmp`, `git remote remove origin`): a Paseo agent in the mode to test, with a task
