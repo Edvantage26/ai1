@@ -5,7 +5,7 @@ description: What a repo chooses in .ai1/config.json; each hook module belongs t
 tags: [features, config]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-13T14:28:06Z'
+  at: '2026-11-18T08:51:46Z'
 sources:
   - id: features-source
     resource: src/core/features.mjs
@@ -28,6 +28,9 @@ when that feature is on, unless the repo switches the single module off with `mo
 | `sizing` | on | `sizing-brief` (SessionStart), `sizing-approval` (UserPromptSubmit), `sizing-gate` and `sizing-escalate` (PreToolUse Edit/Write/Bash) | `/ai1:sizing-design-before-code`, see [sizing feature](/features/sizing.md) |
 | `worktrees` | on | `worktree-brief` (SessionStart), `worktree-reminder` (UserPromptSubmit) | `/ai1:worktrees-plan-recipe`, `ai1 worktree`, see [worktrees feature](/features/worktrees.md) |
 | `later` | on | `later-brief` (SessionStart), `later-recall` (UserPromptSubmit), `later-upkeep` (Stop) | `/ai1:later-write`, `ai1 later`, see [later feature](/features/later.md) (called `rfc` until v0.17 and `proposals` until v0.24) |
+| `maintenance` | on | `maintenance-notice` (SessionStart); gates `okf-claude-md` and `okf-index`'s bundle health to maintainers | `ai1 maintain`, see [maintenance feature](/features/maintenance.md) |
+| `watches` | on | `watch-notice` (SessionStart), `watch-release-detect` (PostToolUse Bash) | `/ai1:watches-follow-release`, `ai1 watch`, see [watches feature](/features/watches.md) |
+| `messages` | on | none | `/ai1:messages-draft-message`, `ai1 contacts`, see [messages feature](/features/messages.md) |
 | `design` | on | `design-brief` (SessionStart), `design-detect` (PostToolUse Edit/Write/MultiEdit) | see [design feature](/features/design.md) |
 | `storyboard` | on | `storyboard-reminder` (Stop) | `/ai1:storyboard-record-flow`, `ai1 storyboard`, see [storyboard feature](/features/storyboard.md) |
 | `core` | always on | `brief` (SessionStart), `issue-offer` (UserPromptSubmit) | `/ai1:core-report-issue`, see [issue report](/features/issue-report.md) |

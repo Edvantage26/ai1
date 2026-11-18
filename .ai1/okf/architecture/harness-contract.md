@@ -5,7 +5,7 @@ description: The per-repo file that makes generic hooks behave correctly in each
 tags: [config, contract, hooks]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T10:20:44Z'
+  at: '2026-11-18T08:51:46Z'
 ---
 
 Each repo commits `.ai1/config.json` (template in `templates/config.json`).
@@ -15,6 +15,7 @@ Each repo commits `.ai1/config.json` (template in `templates/config.json`).
 | `version` | Contract version, `2` since v0.36.0 (opt-out); `1` (init listed every feature) is still read and migrated to `2` at session start, dropping its `false` values ([all features on](/decisions/all-features-on.md)) |
 | `features.<id>` | `false` switches a [feature](features.md) off; every feature not set to `false` is on |
 | `trunk` | Protected branch name; default `main` |
+| `maintainers` | git emails of who maintains ai1 in the repo (compared lower-cased); they get the [maintenance tasks](/features/maintenance.md); without the list everyone does; a person overrides it for themselves in `.ai1/local/profile.json` ([person within a project](person-project-scope.md)) |
 | `verify` | Commands that must pass before the agent calls a change done |
 | `modules.<id>` | `true`/`false` to force a module on/off, or an options object (with optional `enabled`) |
 | `rules` | the repo's own guard rules, see [repo-rules](/guards/repo-rules.md); a bad rule is dropped with a notice, a non-list is invalid |

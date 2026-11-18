@@ -13,4 +13,7 @@
 * [session fork](session-fork.md) - `/ai1:session-fork-conversation` and `ai1 fork`: full or brief fork of the conversation, opened natively per host.
 * [issue report](issue-report.md) - `/ai1:core-report-issue` and `ai1 issue`: a problem with ai1 filed on its public repo, cleaned of private data and approved by the person; offered by the `issue-offer` hook when ai1 itself fails.
 * [storyboard](storyboard.md) - storyboard of the user flow after a visual change (steps, screenshots, before/after, local URL, PDF) in `.ai1/storyboards/`; `/ai1:storyboard-record-flow`, `ai1 storyboard`.
+* [maintenance](maintenance.md) - maintenance tasks only for the people who maintain ai1 in the repo (`maintainers`): drift and bundle health hints, periodic checks gated on days and sessions; `ai1 maintain off|snooze`.
+* [watches](watches.md) - follow what was shipped to production: offered after a release, health or counts of successes and failures since it, the person's confirmation, one line at session start; `/ai1:watches-follow-release`, `ai1 watch`.
+* [messages](messages.md) - `/ai1:messages-draft-message`: a message to a project contact with the person's own tone; `ai1 contacts`.
 * [retro](retro.md) - `ai1-retro`, a project skill of the ai1 repo only: every repo's hook log on this machine, read for errors, false positives and cost.

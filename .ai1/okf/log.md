@@ -1,5 +1,8 @@
 # Update Log
 
+## 2026-11-18
+* **Creation**: [the person within a project](architecture/person-project-scope.md) and its [decision](decisions/person-in-project.md); [maintenance](features/maintenance.md), [watches](features/watches.md) and [messages](features/messages.md) features.
+
 ## 2026-11-15
 * **Deprecation**: the OKF backfill (`/ai1:okf-backfill-from-history`, agents `bundle-weaver` and `event-analyzer`) is removed - never used, costly by upstream's measure; produce mode of `/ai1:okf-maintain-knowledge` reads the history lightly instead ([OKF toolkit](packs/okf-pack.md)).
 * **Supersession**: the OKF toolkit's Python scripts are now `ai1 okf validate`, `ai1 okf init` and `ai1 okf visualize` (Node, js-yaml vendored); ai1 no longer needs Python ([principles](decisions/principles.md)).

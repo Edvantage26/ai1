@@ -5,7 +5,7 @@ description: Sets up ai1 in a repo - asks the features, writes .ai1/config.json 
 tags: [init, cli, setup]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T11:21:29Z'
+  at: '2026-11-18T08:51:46Z'
 sources:
   - id: setup-repo
     resource: src/cli/setup-repo.mjs
@@ -26,13 +26,14 @@ sources:
 
 - **CLI `ai1`** (`bin/`, on the Bash PATH while the plugin is enabled):
   - `ai1 status [--json]`: repo root, harness present, trunk, whether `.ai1/okf/` has a bundle, features.
-  - `ai1 init [--disable design,storyboard | --disable none] [--verify "<cmd>" ...] [--disable-plugins a@x,b@y] [--deny-credentials] [--json]`:
+  - `ai1 init [--disable design,storyboard | --disable none] [--verify "<cmd>" ...] [--disable-plugins a@x,b@y] [--deny-credentials] [--role maintainer|developer] [--json]`:
     every feature is on except the ones in `--disable` (exact list, written as `false`); `--disable none`
     switches all on; without it the repo's opt-outs are kept. `--features a,b` (older form: unlisted =
     off) still works and cannot be combined with `--disable`. Writes config `version: 2`
     ([all features on](../decisions/all-features-on.md)).
     (`--knowledge` is refused since v0.16.0: the bundle path is fixed, see the
     [contract](../architecture/harness-contract.md)).
+  - `--role maintainer` adds the person's git email to `maintainers` in `.ai1/config.json` (creating the list); `--role developer` writes only their ignored `.ai1/local/profile.json`. The skill asks "¿Quieres llevar este plugin como arquitecto o solo como desarrollador?" ([person within a project](../architecture/person-project-scope.md)). `ai1 status` shows the role and where it came from.
   - `ai1 status` also gives each feature a `recommendation` and lists `detectedVerifyCommands` and
     `overlappingPlugins` (below), the active [repo rules](../guards/repo-rules.md) and why others are
     ignored (`repoRules`), and how many credential deny rules the settings hold (`credentialDenyRules`).

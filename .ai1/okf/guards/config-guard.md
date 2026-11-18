@@ -1,7 +1,7 @@
 ---
 type: Component
 title: config-guard
-description: PreToolUse guard that asks the person before the agent changes the harness configuration (.ai1/config.json, .claude/settings*.json, .claude/hooks/) and the skill customizations in .ai1/skills/.
+description: PreToolUse guard that asks the person before the agent changes the harness configuration (.ai1/config.json, .claude/settings*.json, .claude/hooks/), the skill customizations in .ai1/skills/, the watches in .ai1/watches/ and the person's .ai1/local/profile.json.
 tags: [guard, hooks, config]
 resource: src/guards/config-guard.mjs
 sources:
@@ -13,7 +13,7 @@ sources:
     title: Later 0002
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-14T20:38:40Z'
+  at: '2026-11-18T08:51:46Z'
 ---
 
 Feature `danger` (on by default); switch it off alone with `modules.config-guard: false`. Built
@@ -32,8 +32,8 @@ still prompts in bypass mode, so since 2026-11-09 ai1 lets this guard's asks thr
 # What it does
 
 - Protected: any path that, as written or after `realpath`, ends in `/.ai1/config.json`,
-  `/.claude/settings.json`, `/.claude/settings.local.json`, or lies under `/.claude/hooks/` or `/.ai1/skills/`
-  (project customizations change how ai1's skills work, see [skill customization](../architecture/skill-customization.md)). Matched by
+  `/.claude/settings.json`, `/.claude/settings.local.json`, `/.ai1/local/profile.json` (the person's role, [person within a project](../architecture/person-project-scope.md)), or lies under `/.claude/hooks/`, `/.ai1/skills/`
+  (project customizations change how ai1's skills work, see [skill customization](../architecture/skill-customization.md)) or `/.ai1/watches/` (commands `ai1 watch run` executes, [watches](../features/watches.md)). Matched by
   ending, so the copies in other worktrees and `~/.claude/settings.json` count too.
 - File tools (Edit, Write, MultiEdit, NotebookEdit): their path.
 - Shell: the targets from `src/core/tool-call-paths.mjs` - redirects, `tee`, `sed -i`, `cp`, `rm`
