@@ -4,9 +4,13 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createTemporaryProject } from './helpers.mjs';
 import { CUSTOMIZATION_HEADING, CUSTOMIZATION_MAX_BYTES, renderSkillContext, resolveSkillCustomizations } from '../src/core/skill-customization.mjs';
 import { runSkillContextCommand } from '../src/cli/skill-context-command.mjs';
+
+// Not import.meta.dirname: it needs Node 20.11, and CI runs Node 18 too.
+const REPO_ROOT = fileURLToPath(new URL('..', import.meta.url));
 
 function writeProjectCustomization(projectRoot, feature, customizationText) {
   mkdirSync(join(projectRoot, '.ai1', 'skills', feature), { recursive: true });
@@ -146,14 +150,14 @@ test('--list names every skill with its status; a broken skills directory still 
 test('the CLI entry point prints the context and exits 0', () => {
   const projectRoot = createTemporaryProject();
   writeProjectCustomization(projectRoot, 'worktrees', 'never share data/');
-  const cliOutput = execFileSync('node', [join(import.meta.dirname, '..', 'bin', 'ai1'), 'skill-context', 'worktrees-plan-recipe'], { cwd: projectRoot, encoding: 'utf8', env: { ...process.env, HOME: createUserHome('worktrees'), XDG_CONFIG_HOME: '' } });
+  const cliOutput = execFileSync('node', [join(REPO_ROOT, 'bin', 'ai1'), 'skill-context', 'worktrees-plan-recipe'], { cwd: projectRoot, encoding: 'utf8', env: { ...process.env, HOME: createUserHome('worktrees'), XDG_CONFIG_HOME: '' } });
   assert.match(cliOutput, /never share data\//);
 });
 
 test('every skill folder is in the customization index, and each SKILL.md matches its entry', async () => {
   const { readdirSync, readFileSync } = await import('node:fs');
   const { SKILL_CUSTOMIZATION_INDEX } = await import('../src/core/skill-customization-index.mjs');
-  const skillsDirectory = join(import.meta.dirname, '..', 'skills');
+  const skillsDirectory = join(REPO_ROOT, 'skills');
   const skillFolders = readdirSync(skillsDirectory, { withFileTypes: true }).filter((directoryEntry) => directoryEntry.isDirectory()).map((directoryEntry) => directoryEntry.name);
   assert.deepEqual(skillFolders.filter((skillFolder) => !SKILL_CUSTOMIZATION_INDEX[skillFolder]), [], 'skills missing from src/core/skill-customization-index.mjs (decide: customizable, or not and why)');
   assert.deepEqual(Object.keys(SKILL_CUSTOMIZATION_INDEX).filter((skillFolder) => !skillFolders.includes(skillFolder)), [], 'index entries without a skill folder');
