@@ -17,3 +17,4 @@
 * [watches](watches.md) - follow what was shipped to production: offered after a release, health or counts of successes and failures since it, the person's confirmation, one line at session start; `/ai1:watches-follow-release`, `ai1 watch`.
 * [messages](messages.md) - `/ai1:messages-draft-message`: a message to a project contact with the person's own tone; `ai1 contacts`.
 * [retro](retro.md) - `ai1-retro`, a project skill of the ai1 repo only: every repo's hook log on this machine, read for errors, false positives and cost.
+* [skill design](skill-design.md) - `ai1-skill-design`, a project skill of the ai1 repo only: a new plugin skill that fits its neighbours and has a route by which it is offered, and a review of how the skills fit (`fit-map.mjs`).
