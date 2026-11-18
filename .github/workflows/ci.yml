@@ -23,3 +23,15 @@ jobs:
         run: for json_file in .claude-plugin/*.json hooks/hooks.json schema/*.json templates/*.json package.json; do node -e "JSON.parse(require('fs').readFileSync('$json_file','utf8'))" || exit 1; done
       - name: Tests
         run: npm test
+
+  # ai1 runs on Linux, macOS and Windows (.ai1/okf/decisions/principles.md). The whole suite does not run on
+  # Windows yet; the tests of code written cross-platform since do.
+  test-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Cross-platform tests
+        run: node --test test/person-project.test.mjs test/maintenance.test.mjs test/watches.test.mjs test/messages.test.mjs test/person-seal.test.mjs
