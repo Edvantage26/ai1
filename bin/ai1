@@ -24,6 +24,7 @@
 //   ai1 okf visualize <bundle-dir> [-o viz.html] [...]  the bundle as an interactive HTML graph
 // Run from anywhere inside the repo; files are written at the repo root.
 
+import { readFileSync } from 'node:fs';
 import { findRepoRoot, describeRepo, setupRepo } from '../src/cli/setup-repo.mjs';
 import { findMainCheckout } from '../src/core/project-roots.mjs';
 import { runWorktreeCli, WORKTREE_USAGE } from '../src/cli/worktree-cli.mjs';
@@ -32,6 +33,7 @@ import { runLaterCommand, LATER_USAGE } from '../src/cli/later-command.mjs';
 import { runMaintainCommand, MAINTAIN_USAGE } from '../src/cli/maintain-command.mjs';
 import { runWatchCommandLine, WATCH_USAGE } from '../src/cli/watch-command.mjs';
 import { loadContacts, formatContacts } from '../src/messages/contacts.mjs';
+import { runKeysCommand, runLocalCommand, SEAL_USAGE } from '../src/cli/seal-command.mjs';
 import { runReuseCommand, REUSE_USAGE } from '../src/cli/reuse-command.mjs';
 import { runStoryboardCommand, STORYBOARD_USAGE } from '../src/cli/storyboard-command.mjs';
 import { runOkfCommand, OKF_USAGE } from '../src/cli/okf-command.mjs';
@@ -190,6 +192,12 @@ try {
     const cliResult = runWatchCommandLine(repoRoot, commandArguments);
     console.log(cliResult.output);
     process.exitCode = cliResult.exitCode;
+  } else if (commandName === 'keys' || commandName === 'local') {
+    const cliResult = commandName === 'keys'
+      ? runKeysCommand(commandArguments, { readStandardInput: () => readFileSync(0, 'utf8') })
+      : runLocalCommand(repoRoot, commandArguments);
+    console.log(cliResult.output);
+    process.exitCode = cliResult.exitCode;
   } else if (commandName === 'contacts') {
     const [contactName] = commandArguments.filter((commandArgument) => !commandArgument.startsWith('--'));
     const contacts = loadContacts(repoRoot, findMainCheckout(repoRoot)).filter((contact) => !contactName || contact.name.toLowerCase().includes(contactName.toLowerCase()));
@@ -206,6 +214,7 @@ try {
     console.log(MAINTAIN_USAGE);
     console.log(WATCH_USAGE);
     console.log('ai1 contacts [<name>] [--json]');
+    console.log(SEAL_USAGE);
     console.log(SKILL_CONTEXT_USAGE);
     console.log(STORYBOARD_USAGE);
     console.log(REUSE_USAGE);
