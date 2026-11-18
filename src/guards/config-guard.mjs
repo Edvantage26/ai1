@@ -1,6 +1,7 @@
 // config-guard (PreToolUse, feature `danger`): changing the files that configure the harness -
-// .ai1/config.json, .claude/settings.json, .claude/settings.local.json, .claude/hooks/, and the skill
-// skill customizations in .ai1/skills/ (they change how ai1's skills work) - asks the person first, so the agent cannot switch its own guards off unseen (`danger` reads `ignore_rules`
+// .ai1/config.json, .claude/settings.json, .claude/settings.local.json, .claude/hooks/, the skill
+// customizations in .ai1/skills/ (they change how ai1's skills work), the watches in .ai1/watches/
+// (commands ai1 runs) and the person's .ai1/local/profile.json (their role) - asks the person first, so the agent cannot switch its own guards off unseen (`danger` reads `ignore_rules`
 // from .ai1/config.json). `ask`, not `deny`: setup and the person change these files on purpose.
 // Claude Code protects `.claude/` itself, but not in bypassPermissions mode, and never `.ai1/`.
 // Matched by path ending, so the copies in other worktrees (`.claude/worktrees/*/`) count too.
@@ -9,10 +10,10 @@ import { allowDecision, askDecision } from '../core/hook-io.mjs';
 import { listToolCallChanges, pathSpellings } from '../core/tool-call-paths.mjs';
 
 const MODULE_ID = 'config-guard';
-const PROTECTED_FILE_ENDINGS = ['/.ai1/config.json', '/.claude/settings.json', '/.claude/settings.local.json'];
-const PROTECTED_DIRECTORY_SEGMENTS = ['/.claude/hooks/', '/.ai1/skills/'];
+const PROTECTED_FILE_ENDINGS = ['/.ai1/config.json', '/.claude/settings.json', '/.claude/settings.local.json', '/.ai1/local/profile.json'];
+const PROTECTED_DIRECTORY_SEGMENTS = ['/.claude/hooks/', '/.ai1/skills/', '/.ai1/watches/'];
 // An inline script (`python3 - <<EOF`, `node -e`) may write anywhere: it counts when its text names one of these.
-const PROTECTED_PATH_MARKERS = ['.ai1/config.json', '.claude/settings', '.claude/hooks', '.ai1/skills/'];
+const PROTECTED_PATH_MARKERS = ['.ai1/config.json', '.claude/settings', '.claude/hooks', '.ai1/skills/', '.ai1/watches/', '.ai1/local/profile.json'];
 
 export function isHarnessConfigPath(candidatePath, workingDirectory) {
   return pathSpellings(candidatePath, workingDirectory).some((pathSpelling) => PROTECTED_FILE_ENDINGS.some((protectedEnding) => pathSpelling.endsWith(protectedEnding))
@@ -33,7 +34,7 @@ export default {
   event: 'PreToolUse',
   toolNames: ['Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'Bash'],
   feature: 'danger',
-  description: 'Asks the person before the agent changes the harness configuration (.ai1/config.json, .claude/settings*.json, .claude/hooks/, .ai1/skills/ skill customizations).',
+  description: 'Asks the person before the agent changes the harness configuration (.ai1/config.json, .claude/settings*.json, .claude/hooks/, .ai1/skills/ skill customizations, .ai1/watches/, .ai1/local/profile.json).',
   run({ hookInput, projectRoot }) {
     const changedConfigPaths = listHarnessConfigChanges(hookInput, hookInput.cwd || projectRoot);
     if (changedConfigPaths.length === 0) return allowDecision();

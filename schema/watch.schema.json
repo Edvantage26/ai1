@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Edvantage26/ai1/main/schema/watch.schema.json",
+  "title": "ai1 watch",
+  "description": "How something shipped to production is checked (.ai1/watches/<id>.json, committed). Who follows it and the results live in each person's ignored .ai1/local/.",
+  "type": "object",
+  "required": ["title", "check"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "title": { "type": "string", "minLength": 1, "description": "What is followed, in a few words." },
+    "description": { "type": "string" },
+    "check": {
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": ["command", "agent"],
+          "description": "command: run by `ai1 watch run`. agent: a prompt the agent follows when the person says yes, recorded with `ai1 watch record`."
+        },
+        "run": {
+          "description": "The command. A list of arguments runs without a shell (works the same on every platform); a string runs with the platform's shell.",
+          "oneOf": [
+            { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+            { "type": "string", "minLength": 1 }
+          ]
+        },
+        "prompt": { "type": "string", "minLength": 1, "description": "For kind agent: what the agent checks and how." },
+        "timeoutSeconds": { "type": "number", "exclusiveMinimum": 0, "default": 30 },
+        "expect": {
+          "description": "{ \"exitCode\": n }: each run is ok or fail. \"counts\": the last line of the output is JSON { \"succeeded\": n, \"failed\": m } for the events since AI1_WATCH_SINCE (ISO date in the command's environment); ai1 adds them up since the subscription started.",
+          "default": { "exitCode": 0 },
+          "oneOf": [
+            { "type": "object", "required": ["exitCode"], "additionalProperties": false, "properties": { "exitCode": { "type": "integer" } } },
+            { "const": "counts" }
+          ]
+        }
+      }
+    },
+    "every": { "type": "string", "pattern": "^[0-9]+[hd]$", "default": "1d", "description": "Suggested time between checks; a subscription may set its own." },
+    "suggestedFor": { "type": "string", "pattern": "^[0-9]+[hd]$", "default": "14d", "description": "How long a new subscription follows it by default." },
+    "createdBy": { "type": "string", "description": "Git email of who wrote it." }
+  }
+}

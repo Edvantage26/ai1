@@ -27,6 +27,9 @@ const EXPECTED_DECISIONS = [
   ['Write', { file_path: join(projectRoot, '.claude/skills/worktree/SKILL.md') }, 'allow'],
   ['Write', { file_path: join(projectRoot, '.ai1/skills/session/customization.md') }, 'ask'],
   ['Edit', { file_path: join(projectRoot, '.claude/worktrees/feature/.ai1/skills/okf/customization.md') }, 'ask'],
+  ['Write', { file_path: join(projectRoot, '.ai1/watches/checkout-prod.json') }, 'ask'],
+  ['Edit', { file_path: join(projectRoot, '.ai1/local/profile.json') }, 'ask'],
+  ['Edit', { file_path: join(projectRoot, '.ai1/local/state.json') }, 'allow'],
   // Shell.
   ['Bash', { command: 'echo "{}" > .ai1/config.json' }, 'ask'],
   ['Bash', { command: 'jq ".features.danger=false" .ai1/config.json | tee .ai1/config.json' }, 'ask'],
