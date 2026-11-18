@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-18T09:09:44Z'
+  at: '2026-11-18T16:52:08Z'
 ---
 
 # Flow
@@ -112,7 +112,7 @@ logged with an error signature and offered to the person as an issue ([issue rep
 | `later-brief` | SessionStart | later |
 | `later-recall` | UserPromptSubmit | later |
 | `later-upkeep` | Stop | later |
-| `maintenance-notice` | SessionStart | maintenance: periodic tasks for maintainers, see [maintenance](../features/maintenance.md) |
+| `routine-notice` | SessionStart | routines: the person's due routines and, for maintainers, the built-in ones (replaced `maintenance-notice`), see [routines](../features/routines.md) |
 | `watch-notice` | SessionStart | watches: what changed in the watches the person follows, see [watches](../features/watches.md) |
 | `watch-release-detect` | PostToolUse (Bash) | watches: a release to production, once per session |
 

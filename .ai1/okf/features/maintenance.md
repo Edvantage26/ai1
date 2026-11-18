@@ -5,7 +5,7 @@ description: Maintenance tasks only for the people who maintain ai1 in a repo (m
 tags: [maintenance, maintainers, hooks, cli]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-18T08:51:46Z'
+  at: '2026-11-18T16:52:08Z'
 sources:
   - id: tasks
     resource: src/maintenance/maintenance-tasks.mjs
@@ -34,19 +34,19 @@ feature off, the task off):
 |---|---|---|
 | `claude-md-drift` | condition | `okf-claude-md` ([okf](okf.md)), its own fingerprint dedupe |
 | `bundle-health` | condition | `okf-index`'s bundle health notes |
-| `later-backlog` | periodic, every 7 days | `maintenance-notice`: later entries open and untouched for over 60 days |
+| `later-backlog` | periodic, every 7 days | a built-in [routine](routines.md), told by `routine-notice`: later entries open and untouched for over 60 days |
 
 - **Condition** tasks keep their module and dedupe; `shouldShowMaintenanceTask` only decides who sees
   them. With the `maintenance` feature off they reach everyone, as before.
-- **Periodic** tasks run in `maintenance-notice` (SessionStart, `startup` only, maintainers only): due
+- **Periodic** tasks are built-in [routines](routines.md) since v0.50.0, told by `routine-notice` (it replaced `maintenance-notice`; SessionStart, maintainers only): due
   when `everyDays` passed **and** 3 session starts happened since the last notice (counted in
-  `.ai1/local/state.json`), so a repo opened once a month does not get everything at once (the gate of
+  `.ai1/local/state.json` `routines` and `routineSessionStarts`), so a repo opened once a month does not get everything at once (the gate of
   Claude Code's Auto Dream, [prior art](../decisions/prior-art.md)). One combined line; each run records
   `lastRun`, `lastResult` and, when told, `lastNotified`.
 
 # Muting
 
-`ai1 maintain` lists the role and each task (mode, snooze, last told). `ai1 maintain off <task>` (never
+`ai1 routine off|on|snooze <task>` mutes them like the person's own routines; `ai1 maintain` (kept as an alias) lists the role and each task (mode, snooze, last told). `ai1 maintain off <task>` (never
 again, for this person in this repo), `on <task>`, `snooze <task> [days]` (default 7) write
 `.ai1/local/profile.json` `tasks`. The notice tells the agent to use them when the person says "ahora
 no" or "nunca".

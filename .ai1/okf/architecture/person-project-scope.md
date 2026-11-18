@@ -5,7 +5,7 @@ description: A third configuration scope next to the project and the person - th
 tags: [architecture, person, local, maintainers, seal, crypto, cross-platform]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-18T09:09:44Z'
+  at: '2026-11-18T16:52:08Z'
 sources:
   - id: person-project
     resource: src/core/person-project.mjs
@@ -37,6 +37,7 @@ neither: a person's role, subscriptions, contacts and the state ai1 keeps for th
 | The project's contacts | `.ai1/okf/people/contacts.md` ([messages](../features/messages.md)); never in a public repo | yes |
 | The person's role here, muted tasks | `.ai1/local/profile.json` | no |
 | Their subscriptions | `.ai1/local/subscriptions.json` | no |
+| Their routines | `.ai1/local/routines.json` ([routines](../features/routines.md)) | no |
 | Their relation and tone with each contact | `.ai1/local/contacts.md` | no |
 | What ai1 writes for them (notices, results) | `.ai1/local/state.json` | never, not even sealed |
 | Their sealed copy (optional) | `.ai1/contributors/<email>.sealed` | yes, by them |
@@ -67,8 +68,8 @@ and where it came from. Maintainers get the [maintenance tasks](../features/main
 
 For the person who wants their local files in other clones: `ai1 keys init` writes an X25519 key
 (PKCS#8 DER, one base64 line) and prints it once to keep in a password manager; `ai1 keys import`
-reads it from stdin on another machine. `ai1 local seal` puts `profile.json`, `subscriptions.json` and
-`contacts.md` (those present) as JSON into `.ai1/contributors/<email>.sealed`; `ai1 local unseal` writes the
+reads it from stdin on another machine. `ai1 local seal` puts `profile.json`, `subscriptions.json`,
+`contacts.md` and `routines.json` (those present) as JSON into `.ai1/contributors/<email>.sealed`; `ai1 local unseal` writes the
 missing ones back and refuses to replace a different one without `--force`.
 
 Format `ai1-sealed-v1`: an ephemeral X25519 key per seal, ECDH with the person's public key, HKDF-SHA256

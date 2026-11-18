@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-11-18
+* **Creation**: [routines feature](features/routines.md); the periodic part of [maintenance](features/maintenance.md) became built-in routines (`maintenance-notice` superseded by `routine-notice`).
 * **Creation**: [the person within a project](architecture/person-project-scope.md) and its [decision](decisions/person-in-project.md); [maintenance](features/maintenance.md), [watches](features/watches.md) and [messages](features/messages.md) features.
 
 ## 2026-11-15
