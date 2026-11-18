@@ -12,6 +12,7 @@ import { resolveBundleDirectory, readBundleIndex } from './okf-bundle.mjs';
 import { loadFileMap } from './okf-file-map.mjs';
 import { checkClaudeMdFiles, summarizeClaudeMdReports } from './okf-claude-md-check.mjs';
 import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
+import { shouldShowMaintenanceTask } from '../maintenance/maintenance-tasks.mjs';
 
 const MODULE_ID = 'okf-claude-md';
 
@@ -31,7 +32,9 @@ export default {
   event: 'SessionStart',
   feature: 'okf',
   description: 'Says once when the repo\'s CLAUDE.md drifts from the OKF bundle and offers /ai1:okf-tidy-claude-md.',
-  run({ projectRoot, environment }) {
+  run({ config, projectRoot, sharedRoot, environment }) {
+    // A maintenance task: only for the people who maintain ai1 here, unless they muted it.
+    if (!shouldShowMaintenanceTask('claude-md-drift', { config, sharedRoot: sharedRoot || projectRoot, projectRoot })) return allowDecision();
     const bundleDirectory = resolveBundleDirectory(projectRoot);
     if (readBundleIndex(bundleDirectory) === null) return allowDecision();
     const stateDirectory = resolveStateDirectory(environment);

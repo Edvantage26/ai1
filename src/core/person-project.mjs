@@ -62,3 +62,12 @@ export function resolvePersonRole({ config, sharedRoot, projectRoot = sharedRoot
 export function isPersonMaintainer(roleContext) {
   return resolvePersonRole(roleContext).role === 'maintainer';
 }
+
+// What ai1 writes for the person (maintenance notices, watch results): never edited by hand, never committed.
+export function readPersonState(sharedRoot) {
+  return readLocalJson(sharedRoot, STATE_FILE_NAME);
+}
+
+export function writePersonState(sharedRoot, personState) {
+  writeLocalJson(sharedRoot, STATE_FILE_NAME, personState);
+}

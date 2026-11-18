@@ -29,6 +29,7 @@ import { findMainCheckout } from '../src/core/project-roots.mjs';
 import { runWorktreeCli, WORKTREE_USAGE } from '../src/cli/worktree-cli.mjs';
 import { readVerifyCommands, runVerifyCommands, recordStepDone, describeScenarioCoverage, closePlan, findPlanRootFor } from '../src/cli/verify-run.mjs';
 import { runLaterCommand, LATER_USAGE } from '../src/cli/later-command.mjs';
+import { runMaintainCommand, MAINTAIN_USAGE } from '../src/cli/maintain-command.mjs';
 import { runReuseCommand, REUSE_USAGE } from '../src/cli/reuse-command.mjs';
 import { runStoryboardCommand, STORYBOARD_USAGE } from '../src/cli/storyboard-command.mjs';
 import { runOkfCommand, OKF_USAGE } from '../src/cli/okf-command.mjs';
@@ -183,11 +184,16 @@ try {
     process.exitCode = runStoryboardCommand(repoRoot, commandArguments, { readOption });
   } else if (commandName === 'okf') {
     process.exitCode = runOkfCommand(commandArguments);
+  } else if (commandName === 'maintain') {
+    const cliResult = runMaintainCommand(repoRoot, commandArguments);
+    console.log(cliResult.output);
+    process.exitCode = cliResult.exitCode;
   } else {
     console.log(`usage: ai1 status [--json] | ai1 init [--disable <feature,...> | --disable none] [--verify "<command>" ...] [--disable-plugins a@x,b@y] [--deny-credentials] [--report-errors ask|auto|off] [--role maintainer|developer] [--json] | ai1 delegate --cwd <repo> --brief <file> | ai1 verify | ai1 step-done <slug> "<step>" | ai1 plan-done <slug> | ai1 claude-md [--json] | ai1 log [--session <id>] [--since <hours>] [--all] [--json] | ${LATER_USAGE}`);
     console.log(WORKTREE_USAGE);
     console.log(FORK_USAGE);
     console.log(ISSUE_USAGE);
+    console.log(MAINTAIN_USAGE);
     console.log(SKILL_CONTEXT_USAGE);
     console.log(STORYBOARD_USAGE);
     console.log(REUSE_USAGE);

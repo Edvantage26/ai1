@@ -71,6 +71,12 @@ export const FEATURES = [
     enabledByDefault: true,
   },
   {
+    id: 'maintenance',
+    title: 'Maintenance tasks for the people who maintain ai1 in the repo',
+    description: 'The repo lists who maintains ai1 there (`maintainers`, git emails; without the list everyone does). Maintainers get the maintenance tasks: the CLAUDE.md drift and bundle health hints, and periodic checks (later entries left open for months) said in one line at session start, at most every few days and sessions. Each person mutes a task for themselves (`ai1 maintain off|snooze <task>`, in their ignored .ai1/local/). Developers get none of them.',
+    enabledByDefault: true,
+  },
+  {
     id: 'core',
     title: 'Harness brief',
     description: 'Tells the agent at session start which harness runs in the repo. Always on.',

@@ -85,6 +85,11 @@
           "type": "boolean",
           "deprecated": true,
           "description": "Renamed to proposals in v0.18.0 and to later in v0.25.0; ignored with a notice at session start. /ai1:core-setup-repo (ai1 init) migrates it."
+        },
+        "maintenance": {
+          "type": "boolean",
+          "default": true,
+          "description": "Maintenance tasks for the people in maintainers (everyone without the list): CLAUDE.md drift, bundle health and periodic checks at session start; each person mutes a task with ai1 maintain off|snooze."
         }
       }
     },
@@ -813,6 +818,22 @@
         "rfc-upkeep": {
           "deprecated": true,
           "description": "Renamed to proposals-upkeep in v0.18.0 and to later-upkeep in v0.25.0; ignored with a notice at session start."
+        },
+        "maintenance-notice": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
         }
       }
     },

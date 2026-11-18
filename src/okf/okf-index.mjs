@@ -11,6 +11,7 @@ import {
 } from './okf-bundle.mjs';
 import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
 import { describeBundleLocation, resolveRelatedEntries } from './okf-related.mjs';
+import { shouldShowMaintenanceTask } from '../maintenance/maintenance-tasks.mjs';
 
 const MODULE_ID = 'okf-index';
 // Under the 9,500 characters all session-start texts share (MAX_FIELD_CHARACTERS in core/hook-io.mjs),
@@ -50,7 +51,7 @@ export default {
   event: 'SessionStart',
   feature: 'okf',
   description: 'Loads the OKF bundle index and its maintenance rules at session start.',
-  run({ hookInput, config, projectRoot, environment }) {
+  run({ hookInput, config, projectRoot, sharedRoot, environment }) {
     const bundleRelativePath = KNOWLEDGE_BUNDLE_PATH;
     const bundleDirectory = resolveBundleDirectory(projectRoot);
     const indexText = readBundleIndex(bundleDirectory);
@@ -63,7 +64,8 @@ export default {
       `This repo keeps its knowledge in an OKF bundle at \`${bundleRelativePath}/\` (spec ${specVersion || 'unknown'}). READ IT BEFORE touching code: start from the index below and follow the links relevant to the task.`,
       'After a change that affects a documented asset (service, API, schema, feature, decision):',
       ...buildMaintenanceRules(bundleRelativePath, specVersion).map((maintenanceRule) => `- ${maintenanceRule}`),
-      ...buildBundleHealthNotes(projectRoot, bundleDirectory, bundleRelativePath),
+      // A maintenance task: only for the people who maintain ai1 here, unless they muted it.
+      ...(shouldShowMaintenanceTask('bundle-health', { config, sharedRoot: sharedRoot || projectRoot, projectRoot }) ? buildBundleHealthNotes(projectRoot, bundleDirectory, bundleRelativePath) : []),
       ...buildRelatedParts(projectRoot, config?.related),
       '',
       `--- ${bundleRelativePath}/index.md ---`,

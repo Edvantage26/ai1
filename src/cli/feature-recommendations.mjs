@@ -153,6 +153,7 @@ export function recommendFeatures(repoRoot, { hasKnowledgeBundle }) {
       worktrees: recommendWorktrees(repoRoot),
       later: recommendLater(repoRoot),
       reuse: recommendReuse(repoRoot),
+      maintenance: { recommended: true, reason: 'maintenance hints only for the people who maintain ai1 here (maintainers), the rest of the team stays quiet', evidence: [] },
       delegate: { recommended: true, reason: 'edits of this repo from a session launched elsewhere go through a session started here, with its own rules', evidence: [] },
       design: designRecommendation,
       storyboard: designRecommendation.recommended
