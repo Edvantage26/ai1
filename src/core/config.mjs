@@ -20,6 +20,8 @@ export const WORK_DIRECTORY = `${AI1_DIRECTORY}/work`;
 export const LATER_DIRECTORY = `${AI1_DIRECTORY}/later`;
 // Storyboards of visual changes (storyboard feature), ignored by git with their own `.gitignore`.
 export const STORYBOARDS_DIRECTORY = `${AI1_DIRECTORY}/storyboards`;
+// The person's own data in this project (profile, subscriptions, contacts, state), ignored by git with its own `.gitignore`.
+export const LOCAL_DIRECTORY = `${AI1_DIRECTORY}/local`;
 export const AI1_PLUGIN_ID = 'ai1@ai1';
 export const SCHEMA_URL = 'https://raw.githubusercontent.com/Edvantage26/ai1/main/schema/ai1.schema.json';
 // 2: every feature is on unless the repo writes it false (opt-out, since v0.36.0). 1: written by an
@@ -28,7 +30,7 @@ export const CURRENT_CONFIG_VERSION = 2;
 export const SUPPORTED_CONFIG_VERSIONS = [1, CURRENT_CONFIG_VERSION];
 
 // `knowledge` is retired, not unknown: it gets its own notice (see readRetiredKnowledgeNotice).
-const KNOWN_TOP_LEVEL_FIELDS = new Set(['$schema', 'version', 'features', 'trunk', 'verify', 'knowledge', 'modules', 'rules', 'related']);
+const KNOWN_TOP_LEVEL_FIELDS = new Set(['$schema', 'version', 'features', 'trunk', 'verify', 'knowledge', 'modules', 'rules', 'related', 'maintainers']);
 
 const DEFAULT_CONFIG = {
   version: CURRENT_CONFIG_VERSION,
@@ -156,6 +158,11 @@ export function validateHarnessConfig(rawConfig) {
   // A bad rule is dropped with a notice (splitRepoRules); only a `rules` that is not a list is an error.
   if (rawConfig.rules !== undefined && !Array.isArray(rawConfig.rules)) validationErrors.push('"rules" must be a list of rule objects');
   if (rawConfig.related !== undefined && !Array.isArray(rawConfig.related)) validationErrors.push('"related" must be a list of related repository objects');
+  if (rawConfig.maintainers !== undefined) {
+    const isListOfEmails = Array.isArray(rawConfig.maintainers)
+      && rawConfig.maintainers.every((maintainerEmail) => typeof maintainerEmail === 'string' && maintainerEmail.includes('@'));
+    if (!isListOfEmails) validationErrors.push('"maintainers" must be a list of git emails');
+  }
   return validationErrors;
 }
 

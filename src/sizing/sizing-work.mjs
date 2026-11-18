@@ -13,6 +13,7 @@ import { WORK_DIRECTORY } from '../core/config.mjs';
 import { resolveStateDirectory, sessionStatePath, shortHash, readStateJson, writeStateText } from '../core/session-state.mjs';
 import { readNewTranscriptEvents, eventContentBlocks } from '../core/transcript-scan.mjs';
 import { shellCommandOnlyReads } from '../core/session-writes.mjs';
+import { ensureDirectoryIgnoredByItself } from '../core/project-paths.mjs';
 
 export const UNAPPROVED_STATUSES = new Set(['draft', 'ready']);
 const PLAN_WRITING_TOOLS = new Set(['Write', 'Edit', 'MultiEdit']);
@@ -165,15 +166,7 @@ export function isPlanApproved(workPlan, approvals) {
   return Boolean(approvals[workPlan.relativePath]);
 }
 
-// A `.gitignore` with `*` inside a folder keeps it out of git without touching the repo's own
-// .gitignore (the rest of `.ai1/` - config, bundle, later entries - is committed).
-export function ensureDirectoryIgnoredByItself(directoryPath) {
-  const ignorePath = join(directoryPath, '.gitignore');
-  if (existsSync(ignorePath)) return false;
-  mkdirSync(directoryPath, { recursive: true });
-  writeFileSync(ignorePath, '*\n');
-  return true;
-}
+export { ensureDirectoryIgnoredByItself } from '../core/project-paths.mjs';
 
 export function ensureWorkDirectoryIgnored(projectRoot) {
   return ensureDirectoryIgnoredByItself(join(projectRoot, WORK_DIRECTORY));

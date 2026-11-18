@@ -103,6 +103,14 @@
       "default": [],
       "description": "Commands that must pass before the agent calls a change done."
     },
+    "maintainers": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "@"
+      },
+      "description": "Git emails (git config user.email, compared case-insensitively) of the people who maintain ai1 in this repo: they get the maintenance tasks. Without the list everyone does. A person can override it for themselves in .ai1/local/profile.json (role)."
+    },
     "knowledge": {
       "deprecated": true,
       "description": "Retired in v0.16.0: the OKF knowledge bundle is always .ai1/okf/. A value of .ai1/okf is ignored; any other value is ignored with a notice at session start, and ai1 init moves that bundle to .ai1/okf/ and removes the setting."
