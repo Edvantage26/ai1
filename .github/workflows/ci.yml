@@ -19,6 +19,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
+      # The worktree tests commit and rebase in scratch repos: git needs an identity, which runners lack.
+      - name: Git identity for test repos
+        run: git config --global user.name "ai1 CI" && git config --global user.email "ci@ai1.invalid"
       - name: JSON manifests parse
         run: for json_file in .claude-plugin/*.json hooks/hooks.json schema/*.json templates/*.json package.json; do node -e "JSON.parse(require('fs').readFileSync('$json_file','utf8'))" || exit 1; done
       - name: Tests
