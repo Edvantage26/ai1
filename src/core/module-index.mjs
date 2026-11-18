@@ -39,7 +39,7 @@ export const MODULE_INDEX = [
   { id: 'later-recall', event: 'UserPromptSubmit', feature: 'later', modulePath: '../later/later-recall.mjs' },
   { id: 'storyboard-reminder', event: 'Stop', feature: 'storyboard', modulePath: '../storyboard/storyboard-reminder.mjs' },
   { id: 'later-upkeep', event: 'Stop', feature: 'later', modulePath: '../later/later-upkeep.mjs' },
-  { id: 'maintenance-notice', event: 'SessionStart', feature: 'maintenance', modulePath: '../maintenance/maintenance-notice.mjs' },
+  { id: 'routine-notice', event: 'SessionStart', feature: 'routines', modulePath: '../routines/routine-notice.mjs' },
   { id: 'watch-notice', event: 'SessionStart', feature: 'watches', modulePath: '../watches/watch-notice.mjs' },
   { id: 'watch-release-detect', event: 'PostToolUse', feature: 'watches', toolNames: ['Bash'], modulePath: '../watches/watch-release-detect.mjs' },
   { id: 'reuse-brief', event: 'SessionStart', feature: 'reuse', modulePath: '../reuse/reuse-brief.mjs' },

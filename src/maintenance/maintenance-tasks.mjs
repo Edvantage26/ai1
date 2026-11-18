@@ -2,7 +2,7 @@
 // people who maintain it there (src/core/person-project.mjs). Two kinds:
 // - condition: shown by its own module when a check finds something (claude-md drift in okf-claude-md,
 //   bundle health in okf-index); they keep their own dedupe, this file only gates who sees them.
-// - periodic: run by maintenance-notice at session start, at most every `everyDays` days and only after
+// - periodic: built-in routines, run by routine-notice (src/routines/) at session start, at most every `everyDays` days and only after
 //   SESSIONS_BETWEEN_NOTICES session starts since the last notice (time and activity, so a repo opened
 //   once a month does not get every task at once); `check` returns a one-line summary or null.
 // The person mutes a task with `ai1 maintain off|snooze <id>` (profile.json `tasks`).
@@ -10,6 +10,7 @@
 import { isFeatureEnabled } from '../core/features.mjs';
 import { isPersonMaintainer, readPersonProfile, writePersonProfile } from '../core/person-project.mjs';
 import { listLaterEntries, OPEN_LATER_STATUSES, padEntryNumber } from '../later/later-documents.mjs';
+import { isRoutineMuted } from '../routines/routine-store.mjs';
 
 export const SESSIONS_BETWEEN_NOTICES = 3;
 export const DEFAULT_SNOOZE_DAYS = 7;
@@ -48,10 +49,8 @@ export function readTaskSetting(sharedRoot, taskId) {
   return taskSettings && typeof taskSettings === 'object' ? taskSettings[taskId] || {} : {};
 }
 
-export function isTaskMuted(taskSetting, now = new Date()) {
-  if (taskSetting.mode === 'off') return true;
-  return typeof taskSetting.snoozedUntil === 'string' && Date.parse(taskSetting.snoozedUntil) > now.getTime();
-}
+// Muted the same way as the person's routines (off, or snoozed until a date).
+export { isRoutineMuted as isTaskMuted } from '../routines/routine-store.mjs';
 
 // Whether a task is shown to the person running this session. With the maintenance feature off, the
 // condition tasks behave as before it existed (shown to everyone) and the periodic ones do not run.
@@ -60,7 +59,7 @@ export function shouldShowMaintenanceTask(taskId, { config, sharedRoot, projectR
   if (!config || !isFeatureEnabled('maintenance', config)) return maintenanceTask?.kind === 'condition';
   if (!maintenanceTask || !isFeatureEnabled(maintenanceTask.feature, config)) return false;
   if (!isPersonMaintainer({ config, sharedRoot, projectRoot })) return false;
-  return !isTaskMuted(readTaskSetting(sharedRoot, taskId), now);
+  return !isRoutineMuted(readTaskSetting(sharedRoot, taskId), now);
 }
 
 // mode: 'notify' (default) or 'off'; snoozeDays sets snoozedUntil (from now); both clear the snooze when unset.

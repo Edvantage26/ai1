@@ -6,7 +6,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runHookEvent } from '../src/core/dispatcher.mjs';
 import { runMaintainCommand } from '../src/cli/maintain-command.mjs';
-import { runMaintenanceNotice } from '../src/maintenance/maintenance-notice.mjs';
+import { runRoutineNotice } from '../src/routines/routine-notice.mjs';
+import { runRoutineCommandLine } from '../src/cli/routine-command.mjs';
 import { readPersonState, readPersonProfile } from '../src/core/person-project.mjs';
 import { createTemporaryProject } from './helpers.mjs';
 
@@ -79,20 +80,35 @@ function createRepoWithStaleLaterEntry(personEmail, ai1Config) {
 
 test('maintenance-notice: a periodic task is told once, then waits for days and session starts', () => {
   const projectRoot = createRepoWithStaleLaterEntry('ana@x.com', {});
-  const noticeAt = (isoDate) => JSON.stringify(runMaintenanceNotice({ hookInput: { source: 'startup' }, config: {}, projectRoot, sharedRoot: projectRoot, now: new Date(isoDate) }));
+  const noticeAt = (isoDate) => JSON.stringify(runRoutineNotice({ hookInput: { source: 'startup' }, config: {}, projectRoot, sharedRoot: projectRoot, now: new Date(isoDate) }));
   assert.match(noticeAt('2026-11-18T00:00:00Z'), /later-backlog: 1 later entry open and untouched for over 60 days \(0001\)/);
   assert.doesNotMatch(noticeAt('2026-11-30T00:00:00Z'), /later-backlog/, 'days passed but only 1 session start since the notice');
   assert.doesNotMatch(noticeAt('2026-11-30T00:00:00Z'), /later-backlog/);
   assert.match(noticeAt('2026-11-30T00:00:00Z'), /later-backlog/, '3 session starts and 7 days since the notice');
-  const taskRecord = readPersonState(projectRoot).maintenance.tasks['later-backlog'];
-  assert.equal(taskRecord.lastNotified, '2026-11-30T00:00:00.000Z');
-  assert.equal(readPersonState(projectRoot).maintenance.sessionStartsCount, 4);
+  assert.equal(readPersonState(projectRoot).routines['later-backlog'].lastRun, '2026-11-30T00:00:00.000Z');
+  assert.equal(readPersonState(projectRoot).routineSessionStarts, 4);
 });
 
 test('maintenance-notice: silent for developers and on resumed sessions', () => {
   const developerRoot = createRepoWithStaleLaterEntry('bob@x.com', { maintainers: ['ana@x.com'] });
   const config = { maintainers: ['ana@x.com'] };
-  assert.equal(runMaintenanceNotice({ hookInput: { source: 'startup' }, config, projectRoot: developerRoot, sharedRoot: developerRoot }).kind, 'allow');
+  assert.equal(runRoutineNotice({ hookInput: { source: 'startup' }, config, projectRoot: developerRoot, sharedRoot: developerRoot }).kind, 'allow');
   const maintainerRoot = createRepoWithStaleLaterEntry('ana@x.com', {});
-  assert.equal(runMaintenanceNotice({ hookInput: { source: 'resume' }, config: {}, projectRoot: maintainerRoot, sharedRoot: maintainerRoot }).kind, 'allow');
+  assert.equal(runRoutineNotice({ hookInput: { source: 'resume' }, config: {}, projectRoot: maintainerRoot, sharedRoot: maintainerRoot }).kind, 'allow');
+});
+
+test('later-backlog is a built-in routine: in the same line as the person\'s due routines, silenced by ai1 routine off or ai1 maintain off [routines:S5]', () => {
+  const projectRoot = createRepoWithStaleLaterEntry('ana@x.com', { maintainers: ['ana@x.com'] });
+  const config = { maintainers: ['ana@x.com'] };
+  runRoutineCommandLine(projectRoot, ['add', 'deps', '--every', '7d', '--prompt', 'Check outdated dependencies'], { now: new Date('2026-11-01T10:00:00Z') });
+  const noticeText = runRoutineNotice({ hookInput: { source: 'startup' }, config, projectRoot, sharedRoot: projectRoot, now: new Date('2026-11-18T10:00:00Z') }).text;
+  assert.match(noticeText, /due for the person - deps: Check outdated dependencies/);
+  assert.match(noticeText, /maintenance for the person as maintainer of ai1 in this repo - later-backlog: 1 later entry open/);
+  runRoutineCommandLine(projectRoot, ['off', 'later-backlog']);
+  const laterNotice = runRoutineNotice({ hookInput: { source: 'startup' }, config, projectRoot, sharedRoot: projectRoot, now: new Date('2026-12-30T10:00:00Z') });
+  assert.doesNotMatch(laterNotice.text || '', /later-backlog/);
+  assert.match(laterNotice.text, /deps/);
+  runMaintainCommand(projectRoot, ['on', 'later-backlog']);
+  runMaintainCommand(projectRoot, ['off', 'later-backlog']);
+  assert.doesNotMatch(JSON.stringify(runRoutineNotice({ hookInput: { source: 'startup' }, config, projectRoot, sharedRoot: projectRoot, now: new Date('2027-02-01T10:00:00Z') })), /later-backlog/);
 });

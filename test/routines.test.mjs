@@ -8,6 +8,7 @@ import {
 } from '../src/routines/routine-store.mjs';
 import { SEALED_FILE_NAMES } from '../src/core/person-seal.mjs';
 import { runRoutineCommandLine } from '../src/cli/routine-command.mjs';
+import { runRoutineNotice } from '../src/routines/routine-notice.mjs';
 import { createTemporaryProject } from './helpers.mjs';
 
 test('routine every: hours, days or a weekday; nothing else', () => {
@@ -110,4 +111,18 @@ test('ai1 routine launch opens a new conversation with the brief and records the
   const unopenedResult = runRoutineCommandLine(unopenedRoot, ['launch', 'deps'], { environment: {}, runCommand: createFakeRunner().runCommand, platformName: 'linux' });
   assert.match(unopenedResult.output, /open it with:[\s\S]*deps: not recorded yet/);
   assert.equal(readRoutineRecords(unopenedRoot).deps, undefined);
+});
+
+test('routine-notice: a due routine is offered in one line, once a local day; not on resume; nothing without routines [routines:S2]', () => {
+  const projectRoot = createTemporaryProject({});
+  runRoutineCommandLine(projectRoot, ['add', 'validate-bundle', '--every', '7d', '--skill', '/ai1:okf-validate-bundle .ai1/okf'], { now: new Date('2026-11-01T10:00:00') });
+  const notice = (localDate, source = 'startup') => runRoutineNotice({ hookInput: { source }, config: { maintainers: ['someone@else.test'] }, projectRoot, sharedRoot: projectRoot, now: new Date(localDate) });
+  const firstNotice = notice('2026-11-18T09:00:00');
+  assert.match(firstNotice.text, /ai1\/routines: due for the person - validate-bundle: \/ai1:okf-validate-bundle \.ai1\/okf \(`\/ai1:okf-validate-bundle \.ai1\/okf`\)\. Offer each in one line: do it here .*new conversation the person sees \(follow \/ai1:routines-set-routine\)/);
+  assert.equal(notice('2026-11-18T18:00:00').kind, 'allow', 'once a day');
+  assert.equal(notice('2026-11-19T09:00:00', 'resume').kind, 'allow');
+  assert.match(notice('2026-11-19T09:00:00', 'clear').text, /validate-bundle/, 'the next day it is offered again while still due');
+  runRoutineCommandLine(projectRoot, ['done', 'validate-bundle', 'clean'], { now: new Date('2026-11-19T10:00:00') });
+  assert.equal(notice('2026-11-20T09:00:00').kind, 'allow');
+  assert.equal(runRoutineNotice({ hookInput: { source: 'startup' }, config: { maintainers: ['x@y.z'] }, projectRoot: createTemporaryProject({}), sharedRoot: createTemporaryProject({}) }).kind, 'allow');
 });

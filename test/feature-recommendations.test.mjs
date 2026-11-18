@@ -58,7 +58,7 @@ test('a backend repo with migrations and decision records: sizing and later on, 
 
 test('an empty repo: only the always-useful features, verify off until there are tests', () => {
   assert.deepEqual(recommendedIn(createRepoWithFiles({ 'README.md': 'x\n' })), {
-    okf: true, danger: true, craft: true, sizing: false, worktrees: null, later: false, reuse: null, delegate: true, maintenance: true, watches: true, messages: true, design: false, storyboard: false, verify: false,
+    okf: true, danger: true, craft: true, sizing: false, worktrees: null, later: false, reuse: null, delegate: true, maintenance: true, watches: true, messages: true, routines: true, design: false, storyboard: false, verify: false,
   });
 });
 

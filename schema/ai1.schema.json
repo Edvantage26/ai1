@@ -100,6 +100,11 @@
           "type": "boolean",
           "default": true,
           "description": "Skill /ai1:messages-draft-message: drafts messages to the project's contacts (.ai1/okf/people/contacts.md) with the person's own relation and tone (.ai1/local/contacts.md); sends only through the person's own tool. ai1 contacts."
+        },
+        "routines": {
+          "type": "boolean",
+          "default": true,
+          "description": "The person's periodic tasks (.ai1/local/routines.json) and ai1's built-in ones for maintainers, said in one line at session start and offered here or in a new conversation; ai1 routine, /ai1:routines-set-routine."
         }
       }
     },
@@ -830,20 +835,8 @@
           "description": "Renamed to proposals-upkeep in v0.18.0 and to later-upkeep in v0.25.0; ignored with a notice at session start."
         },
         "maintenance-notice": {
-          "oneOf": [
-            {
-              "type": "boolean"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "enabled": {
-                  "type": "boolean"
-                }
-              },
-              "additionalProperties": false
-            }
-          ]
+          "deprecated": true,
+          "description": "Replaced by routine-notice in v0.50.0 (maintenance periodic tasks are built-in routines); ignored."
         },
         "watch-notice": {
           "oneOf": [
@@ -901,6 +894,22 @@
           ]
         },
         "local-sync-stop": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "routine-notice": {
           "oneOf": [
             {
               "type": "boolean"

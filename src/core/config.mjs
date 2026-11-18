@@ -59,7 +59,7 @@ const RENAMED_MODULE_IDS = {
   'walkthrough-reminder': 'storyboard-reminder',
 };
 // Modules removed without a successor: a setting left for them is ignored silently, never "unknown".
-const RETIRED_MODULE_IDS = new Set(['worktree-recipe-offer']);
+const RETIRED_MODULE_IDS = new Set(['worktree-recipe-offer', 'maintenance-notice']);
 export const RETIRED_RFC_DIRECTORY = `${AI1_DIRECTORY}/rfc`;
 export const RETIRED_PROPOSALS_DIRECTORY = `${AI1_DIRECTORY}/proposals`;
 

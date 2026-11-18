@@ -89,6 +89,12 @@ export const FEATURES = [
     enabledByDefault: true,
   },
   {
+    id: 'routines',
+    title: 'Periodic tasks the person sets',
+    description: 'Each person sets their own periodic tasks in a repo (run a skill, check something; every few hours or days, or on a weekday) in their ignored .ai1/local/routines.json. At session start one line says which are due (once a day) and the agent offers to do it here or to launch it in a new conversation the person sees, with the task written. ai1\'s own periodic maintenance tasks are built-in routines for maintainers. Snooze, off, done with a note. Skill /ai1:routines-set-routine; `ai1 routine`.',
+    enabledByDefault: true,
+  },
+  {
     id: 'core',
     title: 'Harness brief',
     description: 'Tells the agent at session start which harness runs in the repo. Always on.',
