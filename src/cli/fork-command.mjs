@@ -14,7 +14,7 @@ import { forkFullConversation, startBriefConversation, resolveHandoffPath, runEx
 
 export const FORK_USAGE = 'usage: ai1 fork full [--title "<t>"] [--task "<first instruction>"] [--claude-command "<cmd>"] | brief --file <brief.md> [--title "<t>"] [--cwd <dir>] | brief-path <slug> | host  (full and brief take --open-command "<cmd>"; all take --opener <auto|vscode|desktop|terminal> and --json)';
 
-function describeForkResult(forkResult) {
+export function describeForkResult(forkResult) {
   return [
     `${forkResult.mode === 'full' ? 'forked the whole conversation' : 'started a conversation from the brief'}: "${forkResult.title}" (host ${forkResult.host.id}: ${forkResult.host.reason})`,
     ...(forkResult.sessionId ? [`session ${forkResult.sessionId} (from ${forkResult.originalSessionId})`] : []),

@@ -9,23 +9,10 @@ import {
   confirmWatch, isSubscriptionActive, isWatchDue, describeWatchResults,
 } from '../watches/watch-state.mjs';
 import { runWatchCommand } from '../watches/watch-run.mjs';
+import { splitCommandArguments } from './command-arguments.mjs';
 
 export const WATCH_USAGE = 'ai1 watch list [--json] | ai1 watch add <id> --title "<what>" (--run "<command>" | --run-json \'["cmd","arg"]\' | --prompt "<what the agent checks>") [--counts] [--every 1d] [--for 14d] [--no-subscribe] | ai1 watch subscribe <id> [--for 14d] [--every 12h] | ai1 watch unsubscribe|pause|resume <id> | ai1 watch run [<id>] [--due] | ai1 watch record <id> ok|fail ["note"] | ai1 watch confirm <id> ["note"]';
 const VALUE_OPTIONS = new Set(['--title', '--run', '--run-json', '--prompt', '--every', '--for', '--description']);
-
-function splitArguments(commandArguments) {
-  const positionalArguments = [];
-  const optionValues = {};
-  for (let argumentIndex = 0; argumentIndex < commandArguments.length; argumentIndex += 1) {
-    const commandArgument = commandArguments[argumentIndex];
-    if (VALUE_OPTIONS.has(commandArgument)) {
-      optionValues[commandArgument] = commandArguments[argumentIndex + 1];
-      argumentIndex += 1;
-    } else if (commandArgument.startsWith('--')) optionValues[commandArgument] = true;
-    else positionalArguments.push(commandArgument);
-  }
-  return { positionalArguments, optionValues };
-}
 
 function requireWatch(repoRoot, watchId) {
   const watchEntry = watchId ? findWatchDefinition(repoRoot, watchId) : null;
@@ -90,7 +77,7 @@ function runWatches(repoRoot, sharedRoot, { watchId, onlyDue, now }) {
 }
 
 export function runWatchCommandLine(repoRoot, commandArguments, now = new Date()) {
-  const { positionalArguments, optionValues } = splitArguments(commandArguments);
+  const { positionalArguments, optionValues } = splitCommandArguments(commandArguments, VALUE_OPTIONS);
   const [subcommandName, watchId, ...restArguments] = positionalArguments;
   const sharedRoot = findMainCheckout(repoRoot);
   if (!subcommandName || subcommandName === 'list') {

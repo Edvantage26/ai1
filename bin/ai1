@@ -32,6 +32,7 @@ import { readVerifyCommands, runVerifyCommands, recordStepDone, describeScenario
 import { runLaterCommand, LATER_USAGE } from '../src/cli/later-command.mjs';
 import { runMaintainCommand, MAINTAIN_USAGE } from '../src/cli/maintain-command.mjs';
 import { runWatchCommandLine, WATCH_USAGE } from '../src/cli/watch-command.mjs';
+import { runRoutineCommandLine, ROUTINE_USAGE } from '../src/cli/routine-command.mjs';
 import { loadContacts, formatContacts } from '../src/messages/contacts.mjs';
 import { runKeysCommand, runLocalCommand, SEAL_USAGE } from '../src/cli/seal-command.mjs';
 import { runReuseCommand, REUSE_USAGE } from '../src/cli/reuse-command.mjs';
@@ -188,6 +189,10 @@ try {
     process.exitCode = runStoryboardCommand(repoRoot, commandArguments, { readOption });
   } else if (commandName === 'okf') {
     process.exitCode = runOkfCommand(commandArguments);
+  } else if (commandName === 'routine') {
+    const cliResult = runRoutineCommandLine(repoRoot, commandArguments);
+    console.log(cliResult.output);
+    process.exitCode = cliResult.exitCode;
   } else if (commandName === 'watch') {
     const cliResult = runWatchCommandLine(repoRoot, commandArguments);
     console.log(cliResult.output);
@@ -213,6 +218,7 @@ try {
     console.log(ISSUE_USAGE);
     console.log(MAINTAIN_USAGE);
     console.log(WATCH_USAGE);
+    console.log(ROUTINE_USAGE);
     console.log('ai1 contacts [<name>] [--json]');
     console.log(SEAL_USAGE);
     console.log(SKILL_CONTEXT_USAGE);

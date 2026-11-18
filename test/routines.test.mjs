@@ -7,6 +7,7 @@ import {
   recordRoutineRun, recordRoutineDone, readRoutineRecords, localDayKey,
 } from '../src/routines/routine-store.mjs';
 import { SEALED_FILE_NAMES } from '../src/core/person-seal.mjs';
+import { runRoutineCommandLine } from '../src/cli/routine-command.mjs';
 import { createTemporaryProject } from './helpers.mjs';
 
 test('routine every: hours, days or a weekday; nothing else', () => {
@@ -67,4 +68,46 @@ test('routine settings and runs: snooze, off, a launch completed later by done, 
   const routineRecord = readRoutineRecords(projectRoot).deps;
   assert.deepEqual(routineRecord.history.at(-1), { at: '2026-11-26T11:00:00.000Z', how: 'here', note: 'all fine' });
   assert.equal(routineRecord.lastRun, '2026-11-26T11:00:00.000Z');
+});
+
+// A fake runner for the fork opener: records the calls and succeeds.
+function createFakeRunner() {
+  const calls = [];
+  return { calls, runCommand: (programName, programArguments) => { calls.push({ programName, programArguments }); return { status: 0, stdout: 'opened', stderr: '' }; } };
+}
+
+test('ai1 routine add, list, snooze, off, on and done; built-in ones listed for a maintainer [routines:S1] [routines:S4]', () => {
+  const projectRoot = createTemporaryProject({});
+  const addResult = runRoutineCommandLine(projectRoot, ['add', 'validate-bundle', '--every', '7d', '--skill', '/ai1:okf-validate-bundle .ai1/okf'], { now: new Date('2026-11-01T10:00:00Z') });
+  assert.match(addResult.output, /validate-bundle: every 7d - \/ai1:okf-validate-bundle \.ai1\/okf \(\.ai1\/local\/routines\.json, only yours/);
+  const listOutput = runRoutineCommandLine(projectRoot, ['list'], { now: new Date('2026-11-18T10:00:00Z') }).output;
+  assert.match(listOutput, /validate-bundle \(personal, every 7d\): due/);
+  assert.match(listOutput, /later-backlog \(built-in, every 7d\): checked by ai1/);
+  assert.match(runRoutineCommandLine(projectRoot, ['snooze', 'validate-bundle'], { now: new Date('2026-11-18T10:00:00Z') }).output, /snoozed until 2026-11-19/);
+  assert.equal(runRoutineCommandLine(projectRoot, ['list', '--due'], { now: new Date('2026-11-18T12:00:00Z') }).output, 'no routine is due');
+  assert.match(runRoutineCommandLine(projectRoot, ['off', 'later-backlog']).output, /later-backlog: off/);
+  assert.match(runRoutineCommandLine(projectRoot, ['list']).output, /later-backlog \(built-in, every 7d\): off/);
+  assert.match(runRoutineCommandLine(projectRoot, ['done', 'validate-bundle', 'bundle', 'clean'], { now: new Date('2026-11-18T13:00:00Z') }).output, /done, recorded \(run here\)/);
+  assert.equal(runRoutineCommandLine(projectRoot, ['done', 'later-backlog']).exitCode, 1);
+  assert.equal(runRoutineCommandLine(projectRoot, ['done', 'nope']).exitCode, 1);
+});
+
+test('ai1 routine launch opens a new conversation with the brief and records the launch; nothing recorded when it did not open [routines:S3]', () => {
+  const projectRoot = createTemporaryProject({});
+  runRoutineCommandLine(projectRoot, ['add', 'deps', '--every', 'mon', '--prompt', 'Check outdated dependencies and tell me which ones matter', '--title', 'Dependencies'], { now: new Date('2026-11-01T10:00:00Z') });
+  const fakeRunner = createFakeRunner();
+  const launchResult = runRoutineCommandLine(projectRoot, ['launch', 'deps', '--open-command', 'my-agents open {brief_file}'], { now: new Date('2026-11-18T10:00:00Z'), environment: {}, runCommand: fakeRunner.runCommand, platformName: 'linux' });
+  assert.match(launchResult.output, /started a conversation from the brief: "Routine: Dependencies"[\s\S]*opened with your fork opener command[\s\S]*deps: recorded as launched/);
+  const briefPath = fakeRunner.calls[0].programArguments[1].replace(/^my-agents open /, '').replace(/'/g, '');
+  const briefText = readFileSync(briefPath, 'utf8');
+  assert.match(briefText, /^# Routine: Dependencies\n/);
+  assert.match(briefText, /Check outdated dependencies and tell me which ones matter/);
+  assert.match(briefText, /ai1 routine done deps "<what you found>"/);
+  assert.equal(readRoutineRecords(projectRoot).deps.history.at(-1).how, 'launched');
+
+  const unopenedRoot = createTemporaryProject({});
+  runRoutineCommandLine(unopenedRoot, ['add', 'deps', '--every', '7d', '--prompt', 'Check deps']);
+  const unopenedResult = runRoutineCommandLine(unopenedRoot, ['launch', 'deps'], { environment: {}, runCommand: createFakeRunner().runCommand, platformName: 'linux' });
+  assert.match(unopenedResult.output, /open it with:[\s\S]*deps: not recorded yet/);
+  assert.equal(readRoutineRecords(unopenedRoot).deps, undefined);
 });
