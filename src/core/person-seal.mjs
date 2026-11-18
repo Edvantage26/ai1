@@ -16,7 +16,7 @@ import { ensureDirectoryIgnoredByItself } from './project-paths.mjs';
 
 export const SEALED_HEADER = 'ai1-sealed-v1';
 export const CONTRIBUTORS_DIRECTORY = `${AI1_DIRECTORY}/contributors`;
-export const SEALED_FILE_NAMES = [PROFILE_FILE_NAME, 'subscriptions.json', 'contacts.md'];
+export const SEALED_FILE_NAMES = [PROFILE_FILE_NAME, 'subscriptions.json', 'contacts.md', 'routines.json'];
 const HKDF_INFO = 'ai1-seal-v1';
 const NONCE_BYTES = 12;
 const TAG_BYTES = 16;
