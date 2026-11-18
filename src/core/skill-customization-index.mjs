@@ -21,6 +21,7 @@ export const SKILL_CUSTOMIZATION_INDEX = {
   'reuse-encapsulate': { customizable: true, scopes: PROJECT_AND_USER },
   'design-review-usability': { customizable: true, scopes: PROJECT_AND_USER },
   'watches-follow-release': { customizable: true, scopes: PROJECT_AND_USER },
+  'messages-draft-message': { customizable: true, scopes: PROJECT_AND_USER },
   'core-setup-repo': { customizable: true, scopes: ['user'] },
   'core-report-issue': { customizable: false, reason: 'its privacy guarantee for a public issue lives only in the skill text' },
   'okf-validate-bundle': { customizable: false, reason: 'a deterministic checker; a customization could only change how its errors are read' },

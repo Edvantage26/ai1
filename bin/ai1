@@ -31,6 +31,7 @@ import { readVerifyCommands, runVerifyCommands, recordStepDone, describeScenario
 import { runLaterCommand, LATER_USAGE } from '../src/cli/later-command.mjs';
 import { runMaintainCommand, MAINTAIN_USAGE } from '../src/cli/maintain-command.mjs';
 import { runWatchCommandLine, WATCH_USAGE } from '../src/cli/watch-command.mjs';
+import { loadContacts, formatContacts } from '../src/messages/contacts.mjs';
 import { runReuseCommand, REUSE_USAGE } from '../src/cli/reuse-command.mjs';
 import { runStoryboardCommand, STORYBOARD_USAGE } from '../src/cli/storyboard-command.mjs';
 import { runOkfCommand, OKF_USAGE } from '../src/cli/okf-command.mjs';
@@ -189,6 +190,10 @@ try {
     const cliResult = runWatchCommandLine(repoRoot, commandArguments);
     console.log(cliResult.output);
     process.exitCode = cliResult.exitCode;
+  } else if (commandName === 'contacts') {
+    const [contactName] = commandArguments.filter((commandArgument) => !commandArgument.startsWith('--'));
+    const contacts = loadContacts(repoRoot, findMainCheckout(repoRoot)).filter((contact) => !contactName || contact.name.toLowerCase().includes(contactName.toLowerCase()));
+    console.log(wantsJson ? JSON.stringify(contacts, null, 2) : formatContacts(contacts));
   } else if (commandName === 'maintain') {
     const cliResult = runMaintainCommand(repoRoot, commandArguments);
     console.log(cliResult.output);
@@ -200,6 +205,7 @@ try {
     console.log(ISSUE_USAGE);
     console.log(MAINTAIN_USAGE);
     console.log(WATCH_USAGE);
+    console.log('ai1 contacts [<name>] [--json]');
     console.log(SKILL_CONTEXT_USAGE);
     console.log(STORYBOARD_USAGE);
     console.log(REUSE_USAGE);

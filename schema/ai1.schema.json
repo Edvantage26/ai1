@@ -95,6 +95,11 @@
           "type": "boolean",
           "default": true,
           "description": "Follow what was shipped to production: watches in .ai1/watches/ (committed), each person's subscriptions and results in .ai1/local/, one line at session start with what changed; ai1 watch, /ai1:watches-follow-release."
+        },
+        "messages": {
+          "type": "boolean",
+          "default": true,
+          "description": "Skill /ai1:messages-draft-message: drafts messages to the project's contacts (.ai1/okf/people/contacts.md) with the person's own relation and tone (.ai1/local/contacts.md); sends only through the person's own tool. ai1 contacts."
         }
       }
     },

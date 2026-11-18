@@ -83,6 +83,12 @@ export const FEATURES = [
     enabledByDefault: true,
   },
   {
+    id: 'messages',
+    title: 'Messages to the project\'s contacts',
+    description: 'Skill /ai1:messages-draft-message drafts an email or message to a contact of the project: who they are comes from the knowledge bundle (.ai1/okf/people/contacts.md, committed), the person\'s own relation and tone with each one from their ignored .ai1/local/contacts.md. It shows the draft; it sends only through the tool the person names in their customization. `ai1 contacts`.',
+    enabledByDefault: true,
+  },
+  {
     id: 'core',
     title: 'Harness brief',
     description: 'Tells the agent at session start which harness runs in the repo. Always on.',
