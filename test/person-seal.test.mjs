@@ -62,12 +62,12 @@ test('local seal and unseal carry the person\'s files to another clone; another 
   writeFileSync(join(firstClone, '.ai1', 'local', 'contacts.md'), '## Laura\nTuteo.\n');
   writeFileSync(join(firstClone, '.ai1', 'local', 'state.json'), '{}\n');
   assert.match(runLocalCommand(firstClone, ['seal'], { pathOptions: anaPaths }).output, /sealed profile\.json, contacts\.md into .*ana@x\.com\.sealed/);
-  const sealedText = readFileSync(join(firstClone, '.ai1', 'people', 'ana@x.com.sealed'), 'utf8');
+  const sealedText = readFileSync(join(firstClone, '.ai1', 'contributors', 'ana@x.com.sealed'), 'utf8');
   assert.doesNotMatch(sealedText, /Laura|maintainer/);
 
   const secondClone = createRepoFor('ana@x.com');
-  mkdirSync(join(secondClone, '.ai1', 'people'), { recursive: true });
-  writeFileSync(join(secondClone, '.ai1', 'people', 'ana@x.com.sealed'), sealedText.replace(/\n/g, '\r\n'));
+  mkdirSync(join(secondClone, '.ai1', 'contributors'), { recursive: true });
+  writeFileSync(join(secondClone, '.ai1', 'contributors', 'ana@x.com.sealed'), sealedText.replace(/\n/g, '\r\n'));
   const otherMachinePaths = createPathOptions();
   const identityText = readFileSync(identityKeyPath(anaPaths), 'utf8');
   runKeysCommand(['import'], { readStandardInput: () => identityText, pathOptions: otherMachinePaths });

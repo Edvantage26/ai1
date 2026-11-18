@@ -1,5 +1,5 @@
 // Sealed sync of the person's own files (`ai1 local seal|unseal`, `ai1 keys`): their profile,
-// subscriptions and contacts from `.ai1/local/` go into `.ai1/people/<email>.sealed`, committed, which only
+// subscriptions and contacts from `.ai1/local/` go into `.ai1/contributors/<email>.sealed`, committed, which only
 // their own key opens. Only `node:crypto` (bundled with Node on every platform), no external tool:
 // X25519 (an ephemeral key per seal) -> HKDF-SHA256 -> AES-256-GCM, the same construction as age.
 // The private key lives in the person's ai1 config folder, never in a repo; the sealed file is base64
@@ -15,7 +15,7 @@ import { localDirectoryPath, normalizeEmail, PROFILE_FILE_NAME } from './person-
 import { ensureDirectoryIgnoredByItself } from './project-paths.mjs';
 
 export const SEALED_HEADER = 'ai1-sealed-v1';
-export const PEOPLE_DIRECTORY = `${AI1_DIRECTORY}/people`;
+export const CONTRIBUTORS_DIRECTORY = `${AI1_DIRECTORY}/contributors`;
 export const SEALED_FILE_NAMES = [PROFILE_FILE_NAME, 'subscriptions.json', 'contacts.md'];
 const HKDF_INFO = 'ai1-seal-v1';
 const NONCE_BYTES = 12;
@@ -101,10 +101,10 @@ export function unsealText(sealedText, privateKey) {
 }
 
 export function sealedFilePath(repoRoot, personEmail) {
-  return join(repoRoot, PEOPLE_DIRECTORY, `${normalizeEmail(personEmail)}.sealed`);
+  return join(repoRoot, CONTRIBUTORS_DIRECTORY, `${normalizeEmail(personEmail)}.sealed`);
 }
 
-// Seals the person's local files present now into `.ai1/people/<email>.sealed`; returns the names sealed.
+// Seals the person's local files present now into `.ai1/contributors/<email>.sealed`; returns the names sealed.
 export function sealLocalFiles(repoRoot, sharedRoot, personEmail, pathOptions) {
   if (!normalizeEmail(personEmail)) throw new Error('sealing needs your git email (git config user.email): it names your sealed file');
   const privateKey = readIdentity(pathOptions);
@@ -123,7 +123,7 @@ export function sealLocalFiles(repoRoot, sharedRoot, personEmail, pathOptions) {
 // Writes the sealed files that are missing in .ai1/local/; refuses to replace different ones unless forced.
 export function unsealLocalFiles(repoRoot, sharedRoot, personEmail, { force = false, ...pathOptions } = {}) {
   const sealedPath = sealedFilePath(repoRoot, personEmail || '');
-  if (!normalizeEmail(personEmail) || !existsSync(sealedPath)) throw new Error(`no sealed file for ${personEmail || 'your git email'} at ${PEOPLE_DIRECTORY}/`);
+  if (!normalizeEmail(personEmail) || !existsSync(sealedPath)) throw new Error(`no sealed file for ${personEmail || 'your git email'} at ${CONTRIBUTORS_DIRECTORY}/`);
   const sealedPayload = JSON.parse(unsealText(readFileSync(sealedPath, 'utf8'), readIdentity(pathOptions)).toString('utf8'));
   const localDirectory = localDirectoryPath(sharedRoot);
   const conflictingNames = Object.entries(sealedPayload.files).filter(([fileName, fileText]) => {

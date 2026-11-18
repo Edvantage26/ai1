@@ -204,7 +204,7 @@ others or are deterministic (`core-report-issue`, `okf-validate-bundle`, `danger
 | `/ai1:core-report-issue` + `ai1 issue`: report a problem with ai1 as an issue on this repo; gathers versions and features (`ai1 issue env`), writes a minimal reproduction without private paths, hosts, names or code, checks duplicates and creates it with `gh` (or a prefilled link, `ai1 issue url`) only after you approve the text. Needs no feature | — | — | works |
 | OKF toolkit skills and agents (`skills/okf-*`, `agents/`) | okf | — | works |
 | `prod`: blocks writes to production resources declared in `.ai1/config.json` | prod | PreToolUse | planned |
-| Your own data per project in `.ai1/local/` (ignored by git, shared by worktrees): role, muted tasks, subscriptions, contacts, state; optionally sealed into `.ai1/people/<email>.sealed` so only your key opens it (`ai1 keys init|import`, `ai1 local seal|unseal`; Node's built-in crypto only, nothing to install) | — | — | works |
+| Your own data per project in `.ai1/local/` (ignored by git, shared by worktrees): role, muted tasks, subscriptions, contacts, state; optionally sealed into `.ai1/contributors/<email>.sealed` so only your key opens it (`ai1 keys init|import`, `ai1 local seal|unseal`; Node's built-in crypto only, nothing to install) | — | — | works |
 | Credential deny rules: `ai1 init --deny-credentials` (offered by the setup) adds Claude Code permission rules so the agent cannot read private keys and home credential stores (`.env` files are not included) | — | — | works |
 | `secrets`: refuses committing secrets | secrets | PreToolUse | planned |
 | `verify-gate`: no "done" while code is newer than the last passing run of `verify` | verify | Stop | works |
