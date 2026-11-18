@@ -18,3 +18,4 @@
 * [routines](routines.md) - the person's own periodic tasks (a skill or a prompt, every hours/days or a weekday) reminded at session start and offered here or in a new conversation; ai1's periodic maintenance as built-in routines; `ai1 routine`, `/ai1:routines-set-routine`.
 * [messages](messages.md) - `/ai1:messages-draft-message`: a message to a project contact with the person's own tone; `ai1 contacts`.
 * [retro](retro.md) - `ai1-retro`, a project skill of the ai1 repo only: every repo's hook log on this machine, read for errors, false positives and cost.
+* [skill design](skill-design.md) - `ai1-skill-design`, a project skill of the ai1 repo only: a new plugin skill that fits its neighbours and has a route by which it is offered, and a review of how the skills fit (`fit-map.mjs`).
