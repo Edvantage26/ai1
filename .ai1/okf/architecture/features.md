@@ -5,7 +5,7 @@ description: What a repo chooses in .ai1/config.json; each hook module belongs t
 tags: [features, config]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-18T08:51:46Z'
+  at: '2026-11-18T09:09:44Z'
 sources:
   - id: features-source
     resource: src/core/features.mjs
@@ -33,7 +33,7 @@ when that feature is on, unless the repo switches the single module off with `mo
 | `messages` | on | none | `/ai1:messages-draft-message`, `ai1 contacts`, see [messages feature](/features/messages.md) |
 | `design` | on | `design-brief` (SessionStart), `design-detect` (PostToolUse Edit/Write/MultiEdit) | see [design feature](/features/design.md) |
 | `storyboard` | on | `storyboard-reminder` (Stop) | `/ai1:storyboard-record-flow`, `ai1 storyboard`, see [storyboard feature](/features/storyboard.md) |
-| `core` | always on | `brief` (SessionStart), `issue-offer` (UserPromptSubmit) | `/ai1:core-report-issue`, see [issue report](/features/issue-report.md) |
+| `core` | always on | `brief` (SessionStart), `issue-offer` (UserPromptSubmit), `local-sync-start` (SessionStart) and `local-sync-stop` (Stop), see [person within a project](person-project-scope.md#automatic-sync) | `/ai1:core-report-issue`, see [issue report](/features/issue-report.md) |
 
 Feature choice is per repo because plugin options (`userConfig`) are stored per user only in
 Claude Code; the repo file travels with the code. [/ai1:core-setup-repo](/features/init.md) writes it.

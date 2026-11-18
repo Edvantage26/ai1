@@ -4,12 +4,12 @@
 import { createPublicKey } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { findMainCheckout } from '../core/project-roots.mjs';
-import { readGitUserEmail } from '../core/person-project.mjs';
+import { readGitUserEmail, readPersonProfile, writePersonProfile } from '../core/person-project.mjs';
 import {
-  generateIdentityText, parseIdentityText, writeIdentityFile, readIdentity, identityKeyPath, keyFingerprint, sealLocalFiles, unsealLocalFiles,
+  generateIdentityText, parseIdentityText, writeIdentityFile, readIdentity, identityKeyPath, keyFingerprint, sealLocalFiles, unsealLocalFiles, isSealedSyncOn,
 } from '../core/person-seal.mjs';
 
-export const SEAL_USAGE = 'ai1 keys init [--force] | ai1 keys import < key.txt | ai1 keys show | ai1 local seal | ai1 local unseal [--force]';
+export const SEAL_USAGE = 'ai1 keys init [--force] | ai1 keys import < key.txt | ai1 keys show | ai1 local seal | ai1 local unseal [--force] | ai1 local sync on|off|status';
 
 export function runKeysCommand(commandArguments, { readStandardInput, pathOptions } = {}) {
   const [subcommandName] = commandArguments;
@@ -46,11 +46,21 @@ export function runLocalCommand(repoRoot, commandArguments, { pathOptions } = {}
   const personEmail = readGitUserEmail(repoRoot);
   if (subcommandName === 'seal') {
     const { sealedPath, fileNames } = sealLocalFiles(repoRoot, sharedRoot, personEmail, pathOptions);
-    return { output: `sealed ${fileNames.join(', ')} into ${sealedPath}: only your key opens it; commit it to carry them to your other clones (state.json is never sealed)`, exitCode: 0 };
+    return { output: `sealed ${fileNames.join(', ')} into ${sealedPath}: only your key opens it; commit it to carry them to your other clones (state.json is never sealed). From now on ai1 keeps it in sync by itself (ai1 local sync off stops it)`, exitCode: 0 };
   }
   if (subcommandName === 'unseal') {
     const { fileNames, replaced } = unsealLocalFiles(repoRoot, sharedRoot, personEmail, { force: commandArguments.includes('--force'), ...pathOptions });
     return { output: `unsealed ${fileNames.join(', ')} into .ai1/local/${replaced.length ? ` (replaced ${replaced.join(', ')})` : ''}`, exitCode: 0 };
+  }
+  if (subcommandName === 'sync') {
+    const [, syncSetting] = commandArguments;
+    if (syncSetting === 'on' || syncSetting === 'off') {
+      writePersonProfile(sharedRoot, { ...readPersonProfile(sharedRoot), sealedSync: syncSetting === 'on' });
+      return { output: syncSetting === 'on'
+        ? 'sealed sync on: your .ai1/local/ is sealed at the end of a turn when it changed, and unsealed at session start when a newer copy arrives'
+        : 'sealed sync off: ai1 no longer seals or unseals by itself (ai1 local seal|unseal still work)', exitCode: 0 };
+    }
+    if (syncSetting === 'status' || syncSetting === undefined) return { output: `sealed sync: ${isSealedSyncOn(repoRoot, sharedRoot, personEmail) ? 'on' : 'off'}`, exitCode: 0 };
   }
   return { output: `usage: ${SEAL_USAGE}`, exitCode: 1 };
 }

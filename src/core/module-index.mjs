@@ -10,6 +10,8 @@
 export const MODULE_INDEX = [
   { id: 'brief', event: 'SessionStart', feature: 'core', modulePath: '../context/brief.mjs' },
   { id: 'issue-offer', event: 'UserPromptSubmit', feature: 'core', modulePath: './issue-offer.mjs' },
+  { id: 'local-sync-start', event: 'SessionStart', feature: 'core', modulePath: './local-sync-start.mjs' },
+  { id: 'local-sync-stop', event: 'Stop', feature: 'core', modulePath: './local-sync-stop.mjs' },
   { id: 'okf-index', event: 'SessionStart', feature: 'okf', modulePath: '../okf/okf-index.mjs' },
   { id: 'okf-claude-md', event: 'SessionStart', feature: 'okf', modulePath: '../okf/okf-claude-md.mjs' },
   { id: 'okf-catch-up-start', event: 'SessionStart', feature: 'okf', modulePath: '../okf/okf-catch-up-start.mjs' },

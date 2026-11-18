@@ -2,13 +2,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createPublicKey } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   generateIdentityText, parseIdentityText, sealBytes, unsealText, writeIdentityFile, identityKeyPath,
+  syncLocalFilesAtStop, syncLocalFilesAtStart, mayUseSealedSync,
 } from '../src/core/person-seal.mjs';
+import { runHookEvent } from '../src/core/dispatcher.mjs';
 import { runKeysCommand, runLocalCommand } from '../src/cli/seal-command.mjs';
 import { createTemporaryProject } from './helpers.mjs';
 
@@ -73,7 +75,7 @@ test('local seal and unseal carry the person\'s files to another clone; another 
   runKeysCommand(['import'], { readStandardInput: () => identityText, pathOptions: otherMachinePaths });
   assert.match(runLocalCommand(secondClone, ['unseal'], { pathOptions: otherMachinePaths }).output, /unsealed profile\.json, contacts\.md/);
   assert.equal(readFileSync(join(secondClone, '.ai1', 'local', 'contacts.md'), 'utf8'), '## Laura\nTuteo.\n');
-  assert.equal(existsSync(join(secondClone, '.ai1', 'local', 'state.json')), false, 'state.json is never sealed');
+  assert.deepEqual(Object.keys(JSON.parse(readFileSync(join(secondClone, '.ai1', 'local', 'state.json'), 'utf8'))), ['sealedSync'], 'state.json is never sealed: only this clone\'s sync point is there');
 
   writeFileSync(join(secondClone, '.ai1', 'local', 'contacts.md'), '## Laura\nUsted.\n');
   assert.throws(() => runLocalCommand(secondClone, ['unseal'], { pathOptions: otherMachinePaths }), /already has different contacts\.md: .*--force/);
@@ -90,4 +92,76 @@ test('local seal needs a key and something to seal', () => {
   const withKey = createPathOptions();
   runKeysCommand(['init'], { pathOptions: withKey });
   assert.throws(() => runLocalCommand(projectRoot, ['seal'], { pathOptions: withKey }), /nothing to seal/);
+});
+
+// Two clones of one repo for the same person, each with its own .ai1/local/, sharing the sealed file by copy (a push and a pull).
+function createSyncedClones() {
+  const pathOptions = createPathOptions();
+  runKeysCommand(['init'], { pathOptions });
+  const firstClone = createRepoFor('ana@x.com');
+  const secondClone = createRepoFor('ana@x.com');
+  mkdirSync(join(firstClone, '.ai1', 'local'), { recursive: true });
+  writeFileSync(join(firstClone, '.ai1', 'local', 'contacts.md'), '## Laura\nTuteo.\n');
+  runLocalCommand(firstClone, ['seal'], { pathOptions });
+  const carrySealedFile = (fromClone, toClone) => {
+    mkdirSync(join(toClone, '.ai1', 'contributors'), { recursive: true });
+    writeFileSync(join(toClone, '.ai1', 'contributors', 'ana@x.com.sealed'), readFileSync(join(fromClone, '.ai1', 'contributors', 'ana@x.com.sealed'), 'utf8'));
+  };
+  const syncArguments = (cloneRoot) => ({ repoRoot: cloneRoot, sharedRoot: cloneRoot, personEmail: 'ana@x.com', pathOptions });
+  return { pathOptions, firstClone, secondClone, carrySealedFile, syncArguments };
+}
+
+test('sealed sync: a change is sealed at stop and unsealed in the other clone at session start; nothing to do stays quiet', () => {
+  const { firstClone, secondClone, carrySealedFile, syncArguments } = createSyncedClones();
+  assert.deepEqual(syncLocalFilesAtStop(syncArguments(firstClone)), { action: 'none' }, 'nothing changed since the seal');
+  writeFileSync(join(firstClone, '.ai1', 'local', 'contacts.md'), '## Laura\nTuteo, informal.\n');
+  assert.deepEqual(syncLocalFilesAtStop(syncArguments(firstClone)), { action: 'sealed' });
+  carrySealedFile(firstClone, secondClone);
+  assert.deepEqual(syncLocalFilesAtStart(syncArguments(secondClone)), { action: 'unsealed' });
+  assert.equal(readFileSync(join(secondClone, '.ai1', 'local', 'contacts.md'), 'utf8'), '## Laura\nTuteo, informal.\n');
+  assert.deepEqual(syncLocalFilesAtStart(syncArguments(secondClone)), { action: 'none' });
+  assert.deepEqual(syncLocalFilesAtStop(syncArguments(secondClone)), { action: 'none' }, 'what was unsealed is not sealed back');
+});
+
+test('sealed sync: changes on both sides are told once and nothing is overwritten', () => {
+  const { firstClone, secondClone, carrySealedFile, syncArguments } = createSyncedClones();
+  carrySealedFile(firstClone, secondClone);
+  syncLocalFilesAtStart(syncArguments(secondClone));
+  writeFileSync(join(firstClone, '.ai1', 'local', 'contacts.md'), '## Laura\nFrom the first clone.\n');
+  syncLocalFilesAtStop(syncArguments(firstClone));
+  writeFileSync(join(secondClone, '.ai1', 'local', 'contacts.md'), '## Laura\nFrom the second clone.\n');
+  carrySealedFile(firstClone, secondClone);
+  const conflictOutcome = syncLocalFilesAtStart(syncArguments(secondClone));
+  assert.equal(conflictOutcome.action, 'notice');
+  assert.match(conflictOutcome.text, /nothing was overwritten\. Keep this one: `ai1 local seal`; take the repo's: `ai1 local unseal --force`/);
+  assert.deepEqual(syncLocalFilesAtStart(syncArguments(secondClone)), { action: 'none' }, 'told once');
+  assert.deepEqual(syncLocalFilesAtStop(syncArguments(secondClone)), { action: 'none' }, 'the stop does not seal over it either');
+  assert.equal(readFileSync(join(secondClone, '.ai1', 'local', 'contacts.md'), 'utf8'), '## Laura\nFrom the second clone.\n');
+});
+
+test('sealed sync: a machine without the key is told once; sync off stops it; a repo where nobody seals is skipped', () => {
+  const { firstClone, secondClone, carrySealedFile, syncArguments } = createSyncedClones();
+  carrySealedFile(firstClone, secondClone);
+  const keylessArguments = { ...syncArguments(secondClone), pathOptions: createPathOptions() };
+  assert.match(syncLocalFilesAtStart(keylessArguments).text, /this machine has no ai1 key: run `ai1 keys import`/);
+  assert.deepEqual(syncLocalFilesAtStart(keylessArguments), { action: 'none' });
+  assert.match(runLocalCommand(firstClone, ['sync', 'off']).output, /sealed sync off/);
+  writeFileSync(join(firstClone, '.ai1', 'local', 'contacts.md'), '## Laura\nChanged.\n');
+  assert.deepEqual(syncLocalFilesAtStop(syncArguments(firstClone)), { action: 'none' });
+  assert.equal(runLocalCommand(firstClone, ['sync', 'status']).output, 'sealed sync: off');
+  const quietRepo = createRepoFor('bob@x.com');
+  assert.equal(mayUseSealedSync(quietRepo, quietRepo), false);
+});
+
+test('sealed sync hooks: the stop hook seals through the dispatcher and says nothing to the agent', () => {
+  const { pathOptions, firstClone } = createSyncedClones();
+  writeFileSync(join(firstClone, '.ai1', 'local', 'contacts.md'), '## Laura\nVia the hook.\n');
+  const sealedBefore = readFileSync(join(firstClone, '.ai1', 'contributors', 'ana@x.com.sealed'), 'utf8');
+  const hookOutput = runHookEvent('Stop', { session_id: 'session-1', cwd: firstClone }, {
+    environment: { ...pathOptions.environment, CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'ai1-data-')) },
+    homeDirectory: pathOptions.homeDirectory,
+    reportInternalError: (errorMessage) => { throw new Error(errorMessage); },
+  });
+  assert.notEqual(readFileSync(join(firstClone, '.ai1', 'contributors', 'ana@x.com.sealed'), 'utf8'), sealedBefore);
+  assert.doesNotMatch(JSON.stringify(hookOutput || {}), /sealed|additionalContext/);
 });

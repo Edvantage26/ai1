@@ -5,7 +5,7 @@ description: A third configuration scope next to the project and the person - th
 tags: [architecture, person, local, maintainers, seal, crypto, cross-platform]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-18T09:02:00Z'
+  at: '2026-11-18T09:09:44Z'
 sources:
   - id: person-project
     resource: src/core/person-project.mjs
@@ -78,6 +78,24 @@ then base64 in 64-character lines. The reader ignores CR, so git's `autocrlf` on
 owner can open it". Only `node:crypto`, bundled with Node on every platform; no age, sops or gpg (the
 person asked for nothing external). Not the SSH key: Node cannot read OpenSSH keys without a parser,
 and passphrase keys need bcrypt.
+
+# Automatic sync
+
+Asked by the person on 2026-11-18 ("algo que sea más automático"). Once they sealed in a repo (their
+`.ai1/contributors/<email>.sealed` exists) or ran `ai1 local sync on`, ai1 keeps both sides in step by
+itself; `ai1 local sync off` stops it (`profile.json` `sealedSync`), `ai1 local sync status` says which.
+
+- The last agreed point is two fingerprints in `state.json` `sealedSync`: the local files (CRLF
+  normalised) and the sealed file (CR removed). `ai1 local seal|unseal` record it too.
+- `local-sync-stop` (Stop, core): local files changed since that point -> sealed again, left for the
+  person to commit.
+- `local-sync-start` (SessionStart, core): the sealed file changed since that point (a pull) -> unsealed
+  into `.ai1/local/`.
+- Both changed: nothing is overwritten; the person gets one message (`systemMessage`, never the agent's
+  context: no tokens) to choose `ai1 local seal` or `ai1 local unseal --force`. A machine without the key,
+  or a key that does not open it, is told once too.
+- Cost: no git call unless `.ai1/contributors/` exists or the person turned it on; a fingerprint is
+  ~0.04 ms, a seal ~1.2 ms, an unseal ~0.5 ms (20 KB, measured 2026-11-18).
 
 Risks said to the person at `ai1 keys init`: a lost key loses the data; a leaked key opens every
 sealed version in the history.

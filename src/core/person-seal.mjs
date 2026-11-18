@@ -11,7 +11,7 @@ import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { AI1_DIRECTORY } from './config.mjs';
 import { userConfigDirectory } from './skill-customization.mjs';
-import { localDirectoryPath, normalizeEmail, PROFILE_FILE_NAME } from './person-project.mjs';
+import { localDirectoryPath, normalizeEmail, PROFILE_FILE_NAME, readPersonProfile, readPersonState, writePersonState } from './person-project.mjs';
 import { ensureDirectoryIgnoredByItself } from './project-paths.mjs';
 
 export const SEALED_HEADER = 'ai1-sealed-v1';
@@ -117,6 +117,7 @@ export function sealLocalFiles(repoRoot, sharedRoot, personEmail, pathOptions) {
   const sealedPath = sealedFilePath(repoRoot, personEmail);
   mkdirSync(dirname(sealedPath), { recursive: true });
   writeFileSync(sealedPath, sealBytes(Buffer.from(JSON.stringify({ version: 1, files: localFiles })), createPublicKey(privateKey)));
+  recordSyncPoint(sharedRoot, { localHash: localFilesHash(sharedRoot), sealedHash: sealedFileHash(repoRoot, personEmail) });
   return { sealedPath, fileNames: Object.keys(localFiles) };
 }
 
@@ -135,5 +136,96 @@ export function unsealLocalFiles(repoRoot, sharedRoot, personEmail, { force = fa
   for (const [fileName, fileText] of Object.entries(sealedPayload.files)) {
     if (SEALED_FILE_NAMES.includes(fileName)) writeFileSync(join(localDirectory, fileName), fileText);
   }
+  recordSyncPoint(sharedRoot, { localHash: localFilesHash(sharedRoot), sealedHash: sealedFileHash(repoRoot, personEmail) });
   return { fileNames: Object.keys(sealedPayload.files).filter((fileName) => SEALED_FILE_NAMES.includes(fileName)), replaced: force ? conflictingNames : [] };
+}
+
+// ---- Automatic sync (hooks local-sync-start and local-sync-stop) ----
+// The last point both sides agreed on is kept in state.json `sealedSync` as two fingerprints: the person's
+// local files and the sealed file in the repo. At Stop, local files that changed since then are sealed
+// again; at SessionStart, a sealed file that changed since then (a pull from another machine) is unsealed.
+// When both changed, nothing is overwritten: the person is told once and chooses.
+
+function hashText(text) {
+  return createHash('sha256').update(text).digest('hex').slice(0, 16);
+}
+
+// Fingerprint of the local files that are sealed (null when there are none).
+export function localFilesHash(sharedRoot) {
+  const localFiles = {};
+  for (const fileName of SEALED_FILE_NAMES) {
+    const localPath = join(localDirectoryPath(sharedRoot), fileName);
+    if (existsSync(localPath)) localFiles[fileName] = readFileSync(localPath, 'utf8').replace(/\r\n/g, '\n');
+  }
+  return Object.keys(localFiles).length ? hashText(JSON.stringify(localFiles)) : null;
+}
+
+// Fingerprint of the person's sealed file in this checkout, the same with LF or CRLF (null when missing).
+export function sealedFileHash(repoRoot, personEmail) {
+  const sealedPath = normalizeEmail(personEmail) ? sealedFilePath(repoRoot, personEmail) : null;
+  return sealedPath && existsSync(sealedPath) ? hashText(readFileSync(sealedPath, 'utf8').replace(/\r/g, '')) : null;
+}
+
+function readSyncPoint(sharedRoot) {
+  const syncPoint = readPersonState(sharedRoot).sealedSync;
+  return syncPoint && typeof syncPoint === 'object' ? syncPoint : {};
+}
+
+function recordSyncPoint(sharedRoot, syncChanges) {
+  const personState = readPersonState(sharedRoot);
+  writePersonState(sharedRoot, { ...personState, sealedSync: { ...readSyncPoint(sharedRoot), ...syncChanges } });
+}
+
+// Cheap check before anything else (no git call): nobody in this repo seals and the person did not turn it on.
+export function mayUseSealedSync(repoRoot, sharedRoot) {
+  return readPersonProfile(sharedRoot).sealedSync === true || existsSync(join(repoRoot, CONTRIBUTORS_DIRECTORY));
+}
+
+// On once the person sealed in this repo (their sealed file exists) or turned it on; `ai1 local sync off` wins.
+export function isSealedSyncOn(repoRoot, sharedRoot, personEmail) {
+  const syncSetting = readPersonProfile(sharedRoot).sealedSync;
+  if (syncSetting === false || !normalizeEmail(personEmail)) return false;
+  return syncSetting === true || existsSync(sealedFilePath(repoRoot, personEmail));
+}
+
+// A message for the person once per situation (the same conflict or missing key is not repeated).
+function noticeOnce(sharedRoot, situationKey, noticeText) {
+  if (readSyncPoint(sharedRoot).noticed === situationKey) return { action: 'none' };
+  recordSyncPoint(sharedRoot, { noticed: situationKey });
+  return { action: 'notice', text: noticeText };
+}
+
+function conflictNotice(sharedRoot, localHash, sealedHash) {
+  return noticeOnce(sharedRoot, `conflict:${localHash}:${sealedHash}`,
+    'ai1: your .ai1/local/ changed here and a newer sealed copy of it arrived in the repo; nothing was overwritten. '
+    + 'Keep this one: `ai1 local seal`; take the repo\'s: `ai1 local unseal --force`.');
+}
+
+export function syncLocalFilesAtStop({ repoRoot, sharedRoot, personEmail, pathOptions }) {
+  if (!isSealedSyncOn(repoRoot, sharedRoot, personEmail) || !existsSync(identityKeyPath(pathOptions))) return { action: 'none' };
+  const localHash = localFilesHash(sharedRoot);
+  const syncPoint = readSyncPoint(sharedRoot);
+  if (!localHash || localHash === syncPoint.localHash) return { action: 'none' };
+  const sealedHash = sealedFileHash(repoRoot, personEmail);
+  if (sealedHash && sealedHash !== syncPoint.sealedHash) return conflictNotice(sharedRoot, localHash, sealedHash);
+  sealLocalFiles(repoRoot, sharedRoot, personEmail, pathOptions);
+  return { action: 'sealed' };
+}
+
+export function syncLocalFilesAtStart({ repoRoot, sharedRoot, personEmail, pathOptions }) {
+  if (!isSealedSyncOn(repoRoot, sharedRoot, personEmail)) return { action: 'none' };
+  const sealedHash = sealedFileHash(repoRoot, personEmail);
+  const syncPoint = readSyncPoint(sharedRoot);
+  if (!sealedHash || sealedHash === syncPoint.sealedHash) return { action: 'none' };
+  if (!existsSync(identityKeyPath(pathOptions))) {
+    return noticeOnce(sharedRoot, `no-key:${sealedHash}`, `ai1: the repo has your sealed .ai1/local/ (${CONTRIBUTORS_DIRECTORY}/${normalizeEmail(personEmail)}.sealed) but this machine has no ai1 key: run \`ai1 keys import\` and paste the line you kept.`);
+  }
+  const localHash = localFilesHash(sharedRoot);
+  if (localHash && localHash !== syncPoint.localHash) return conflictNotice(sharedRoot, localHash, sealedHash);
+  try {
+    unsealLocalFiles(repoRoot, sharedRoot, personEmail, { force: true, ...pathOptions });
+  } catch (unsealError) {
+    return noticeOnce(sharedRoot, `unseal-failed:${sealedHash}`, `ai1: could not open your sealed .ai1/local/: ${unsealError.message}`);
+  }
+  return { action: 'unsealed' };
 }
