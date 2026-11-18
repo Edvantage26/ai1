@@ -77,6 +77,12 @@ export const FEATURES = [
     enabledByDefault: true,
   },
   {
+    id: 'watches',
+    title: 'Following what was shipped to production',
+    description: 'When something goes to production, the agent offers to follow it with a watch (.ai1/watches/, committed: how it is checked, a health command, a command that counts successes and failures since the release, or a prompt for the agent). Each person subscribes for a while in their ignored .ai1/local/; `ai1 watch run` (from a scheduler or on a yes) records the results and the totals, `ai1 watch confirm` records that the person tried it and it works, and the session start says in one line only what changed. Skill /ai1:watches-follow-release; `ai1 watch`.',
+    enabledByDefault: true,
+  },
+  {
     id: 'core',
     title: 'Harness brief',
     description: 'Tells the agent at session start which harness runs in the repo. Always on.',

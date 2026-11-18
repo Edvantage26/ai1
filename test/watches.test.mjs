@@ -12,6 +12,7 @@ import { tmpdir } from 'node:os';
 import { runWatchCommandLine, describeWatches } from '../src/cli/watch-command.mjs';
 import { runWatchCommand, parseWatchCounts } from '../src/watches/watch-run.mjs';
 import { readSubscriptions, readWatchRecords } from '../src/watches/watch-state.mjs';
+import { runWatchNotice } from '../src/watches/watch-notice.mjs';
 
 const HEALTH_WATCH = { title: 'Checkout in production', check: { kind: 'command', run: ['node', '-e', 'process.exit(0)'] }, every: '1d', suggestedFor: '14d', createdBy: 'ana@x.com' };
 
@@ -104,4 +105,52 @@ test('watch subscribe, pause, record, confirm and unsubscribe are the person\'s 
   assert.match(runWatchCommandLine(projectRoot, ['unsubscribe', 'logs-clean']).output, /no longer follow it/);
   assert.throws(() => runWatchCommandLine(projectRoot, ['subscribe', 'missing']), /no watch "missing"/);
   assert.equal(runWatchCommandLine(projectRoot, ['record', 'logs-clean', 'maybe']).exitCode, 1);
+});
+
+function noticeAt(projectRoot, isoDate, source = 'startup') {
+  return JSON.stringify(runWatchNotice({ hookInput: { source }, projectRoot, sharedRoot: projectRoot, now: new Date(isoDate) }));
+}
+
+test('watch-notice: a failed check is told once and recorded as the last notice; then silence [person-project:S3]', () => {
+  const projectRoot = createWatchRepo();
+  const failingRun = JSON.stringify([process.execPath, '-e', 'process.exit(1)']);
+  runWatchCommandLine(projectRoot, ['add', 'checkout-prod', '--title', 'Checkout in production', '--run-json', failingRun], new Date('2026-11-18T08:00:00Z'));
+  runWatchCommandLine(projectRoot, ['confirm', 'checkout-prod'], new Date('2026-11-18T08:30:00Z'));
+  runWatchCommandLine(projectRoot, ['run', 'checkout-prod'], new Date('2026-11-18T09:00:00Z'));
+  const watchRecord = readWatchRecords(projectRoot)['checkout-prod'];
+  assert.deepEqual([watchRecord.lastRun, watchRecord.lastResult], ['2026-11-18T09:00:00.000Z', 'fail']);
+  assert.match(noticeAt(projectRoot, '2026-11-18T10:00:00Z'), /checkout-prod: last check fail; 1 check since 2026-11-18: 1 fail/);
+  assert.equal(readWatchRecords(projectRoot)['checkout-prod'].lastNotified, '2026-11-18T10:00:00.000Z');
+  assert.equal(JSON.parse(noticeAt(projectRoot, '2026-11-18T11:00:00Z')).kind, 'allow');
+  assert.equal(JSON.parse(noticeAt(projectRoot, '2026-11-19T11:00:00Z', 'resume')).kind, 'allow');
+});
+
+test('watch-notice: a follow-up past its date ends, the subscription goes and the definition stays [person-project:S4]', () => {
+  const projectRoot = createWatchRepo();
+  runWatchCommandLine(projectRoot, ['add', 'checkout-prod', '--title', 'Checkout', '--run-json', JSON.stringify([process.execPath, '-e', '0']), '--for', '2d'], new Date('2026-11-18T00:00:00Z'));
+  assert.match(noticeAt(projectRoot, '2026-11-21T00:00:00Z'), /checkout-prod follow-up ended \(not checked yet\)/);
+  assert.deepEqual(readSubscriptions(projectRoot), {});
+  assert.equal(listWatchDefinitions(projectRoot).length, 1);
+});
+
+test('watch-notice: counts totals since the release, and the confirmation is asked until given, once a day [person-project:S8]', () => {
+  const projectRoot = createWatchRepo();
+  runWatchCommandLine(projectRoot, ['add', 'checkout-usage', '--title', 'Checkout usage', '--run-json', COUNTS_RUN, '--counts'], new Date('2026-11-18T08:00:00Z'));
+  runWatchCommandLine(projectRoot, ['run'], new Date('2026-11-18T09:00:00Z'));
+  runWatchCommandLine(projectRoot, ['run'], new Date('2026-11-19T09:00:00Z'));
+  const firstNotice = noticeAt(projectRoot, '2026-11-19T10:00:00Z');
+  assert.match(firstNotice, /checkout-usage: last check fail; 6 ok, 2 failed since 2026-11-18/);
+  assert.match(firstNotice, /checkout-usage is not confirmed by the person yet: .*ai1 watch confirm checkout-usage/);
+  assert.doesNotMatch(noticeAt(projectRoot, '2026-11-19T12:00:00Z'), /not confirmed/);
+  assert.match(noticeAt(projectRoot, '2026-11-20T12:00:00Z'), /not confirmed by the person yet/);
+  runWatchCommandLine(projectRoot, ['confirm', 'checkout-usage'], new Date('2026-11-20T13:00:00Z'));
+  assert.doesNotMatch(noticeAt(projectRoot, '2026-11-22T13:00:00Z'), /not confirmed/);
+  assert.match(runWatchCommandLine(projectRoot, ['list'], new Date('2026-11-22T13:00:00Z')).output, /6 ok, 2 failed since 2026-11-18, confirmed by you 2026-11-20/);
+});
+
+test('watch-notice: due checks are listed; nothing followed, nothing said', () => {
+  const projectRoot = createWatchRepo();
+  assert.equal(JSON.parse(noticeAt(projectRoot, '2026-11-18T00:00:00Z')).kind, 'allow');
+  runWatchCommandLine(projectRoot, ['add', 'logs-clean', '--title', 'Logs', '--prompt', 'Look for errors'], new Date('2026-11-18T00:00:00Z'));
+  assert.match(noticeAt(projectRoot, '2026-11-18T01:00:00Z'), /due: logs-clean \(offer `ai1 watch run --due`/);
 });
