@@ -30,6 +30,7 @@ import { runWorktreeCli, WORKTREE_USAGE } from '../src/cli/worktree-cli.mjs';
 import { readVerifyCommands, runVerifyCommands, recordStepDone, describeScenarioCoverage, closePlan, findPlanRootFor } from '../src/cli/verify-run.mjs';
 import { runLaterCommand, LATER_USAGE } from '../src/cli/later-command.mjs';
 import { runMaintainCommand, MAINTAIN_USAGE } from '../src/cli/maintain-command.mjs';
+import { runWatchCommandLine, WATCH_USAGE } from '../src/cli/watch-command.mjs';
 import { runReuseCommand, REUSE_USAGE } from '../src/cli/reuse-command.mjs';
 import { runStoryboardCommand, STORYBOARD_USAGE } from '../src/cli/storyboard-command.mjs';
 import { runOkfCommand, OKF_USAGE } from '../src/cli/okf-command.mjs';
@@ -184,6 +185,10 @@ try {
     process.exitCode = runStoryboardCommand(repoRoot, commandArguments, { readOption });
   } else if (commandName === 'okf') {
     process.exitCode = runOkfCommand(commandArguments);
+  } else if (commandName === 'watch') {
+    const cliResult = runWatchCommandLine(repoRoot, commandArguments);
+    console.log(cliResult.output);
+    process.exitCode = cliResult.exitCode;
   } else if (commandName === 'maintain') {
     const cliResult = runMaintainCommand(repoRoot, commandArguments);
     console.log(cliResult.output);
@@ -194,6 +199,7 @@ try {
     console.log(FORK_USAGE);
     console.log(ISSUE_USAGE);
     console.log(MAINTAIN_USAGE);
+    console.log(WATCH_USAGE);
     console.log(SKILL_CONTEXT_USAGE);
     console.log(STORYBOARD_USAGE);
     console.log(REUSE_USAGE);
