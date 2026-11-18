@@ -1,6 +1,6 @@
 ---
 name: routines-set-routine
-description: Routines — Set, run, launch or stop the person's own periodic tasks in this repo (run a skill, check something), reminded at session start. Use when the person says "recuérdame cada semana…", "cada lunes comprueba…", "ponme una tarea periódica", "lanza esto cada X días", "remind me every…", "every Monday check…", "set a routine", when ai1/routines says a routine is due, or when the person answers "hazlo", "lánzalo en otro agente", "ahora no" or "no me lo recuerdes más" about one.
+description: Routines — Set, run, launch or stop the person's own periodic tasks in this repo (run a skill, check something), reminded at session start. Use when the person says "recuérdame cada semana…", "cada lunes comprueba…", "ponme una tarea periódica", "lanza esto cada X días", "remind me every…", "every Monday check…", "set a routine", when ai1/routines says a routine is due, or when the person answers "hazlo", "lánzalo en otro agente", "ahora no" or "no me lo recuerdes más" about one. Not for opening a new conversation for any other task (that is /ai1:session-fork-conversation).
 allowed-tools: Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context *)
 ---
 
@@ -39,6 +39,9 @@ conversación, o lo dejamos para mañana?" Then, on their answer:
 - **Never again**: `ai1 routine off <id>` (`on` brings it back, `remove` deletes it).
 
 Several due at once: one line for all, the person picks.
+
+"Lánzalo en otro agente" about anything that is not a routine is /ai1:session-fork-conversation, which
+`ai1 routine launch` uses underneath.
 
 ## Built-in routines
 
