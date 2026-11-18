@@ -94,10 +94,18 @@ ai1's own errors (a hook that crashes, never a misfire) should be reported to th
 module and plugin file:line, nothing from their work, filed without asking) or **never**. It goes to
 their user settings (`~/.claude/settings.json`), not to the repo.
 
+Unless `ai1 status` shows a role the person chose (`personRole.source` is `profile`, or they are in
+`maintainers`), ask: **"¿Quieres llevar este plugin como arquitecto o solo como desarrollador?"**
+(in the person's language). An architect (`--role maintainer`) gets ai1's maintenance tasks (knowledge
+that grew badly, analyses of how ai1 works here) and is added by git email to `maintainers` in
+`.ai1/config.json`, committed: say in one line that once the list exists, whoever is not in it gets no
+maintenance tasks. A developer (`--role developer`) is written only in their own ignored
+`.ai1/local/profile.json`. Without an answer, write nothing.
+
 ## 4. Write the configuration
 
 ```bash
-ai1 init [--disable <ids switched off in step 2> | --disable none] [--verify "<command>" ...] [--disable-plugins <ids picked in step 3>] [--deny-credentials] [--report-errors ask|auto|off]
+ai1 init [--disable <ids switched off in step 2> | --disable none] [--verify "<command>" ...] [--disable-plugins <ids picked in step 3>] [--deny-credentials] [--report-errors ask|auto|off] [--role maintainer|developer]
 ```
 
 `--disable` is the exact list of features off (it writes only those, as `false`); `--disable none`

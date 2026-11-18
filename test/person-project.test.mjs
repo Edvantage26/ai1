@@ -62,3 +62,20 @@ test('normalizeEmail trims and lower-cases, null for empty', () => {
   assert.equal(normalizeEmail(''), null);
   assert.equal(normalizeEmail(undefined), null);
 });
+
+test('init --role maintainer adds the git email to maintainers once; --role developer stays local', async () => {
+  const { setupRepo } = await import('../src/cli/setup-repo.mjs');
+  const userSettingsPath = join(mkdtempSync(join(tmpdir(), 'ai1-user-')), 'settings.json');
+  const anaRoot = createRepoWithEmail('Ana@x.com', undefined);
+  const firstSetup = setupRepo(anaRoot, { role: 'maintainer', userSettingsPath });
+  assert.equal(firstSetup.addedMaintainer, 'ana@x.com');
+  setupRepo(anaRoot, { role: 'maintainer', userSettingsPath });
+  assert.deepEqual(JSON.parse(readFileSync(join(anaRoot, '.ai1', 'config.json'), 'utf8')).maintainers, ['ana@x.com']);
+
+  const bobRoot = createRepoWithEmail('bob@x.com', undefined);
+  const bobSetup = setupRepo(bobRoot, { role: 'developer', userSettingsPath });
+  assert.equal(bobSetup.addedMaintainer, null);
+  assert.equal(JSON.parse(readFileSync(join(bobRoot, '.ai1', 'config.json'), 'utf8')).maintainers, undefined);
+  assert.deepEqual(readPersonProfile(bobRoot), { role: 'developer' });
+  assert.throws(() => setupRepo(bobRoot, { role: 'architect', userSettingsPath }), /--role must be maintainer or developer/);
+});

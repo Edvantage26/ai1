@@ -25,6 +25,7 @@ import { readEnabledPlugins, findOverlappingPlugins, localSettingsPathFor } from
 import { recommendFeatures } from './feature-recommendations.mjs';
 import { planLegacyMigration, readLegacyConfig } from '../core/legacy-layout.mjs';
 import { applySkillVisibility } from '../core/skill-visibility.mjs';
+import { PERSON_ROLES, readGitUserEmail, resolvePersonRole, readPersonProfile, writePersonProfile, normalizeEmail } from '../core/person-project.mjs';
 
 export const AI1_MARKETPLACE = { source: { source: 'github', repo: 'Edvantage26/ai1' } };
 
@@ -94,6 +95,9 @@ export function describeRepo(repoRoot, { userSettingsPath = DEFAULT_USER_SETTING
     // The repo's own guard rules (`rules`): how many run, and why the others are ignored.
     repoRules: describeRepoRules(ai1Config),
     credentialDenyRules: { present: countCredentialDenyRules(readJsonFile(join(repoRoot, '.claude', 'settings.json'))), total: CREDENTIAL_DENY_RULES.length },
+    // The person's role here (maintainer gets the maintenance tasks) and the repo's list.
+    maintainers: Array.isArray(ai1Config?.maintainers) ? ai1Config.maintainers : null,
+    personRole: resolvePersonRole({ config: ai1Config, sharedRoot: findMainCheckout(repoRoot), projectRoot: repoRoot }),
     // Per person, not per repo: how ai1's own errors are reported (null = not chosen yet, means ask).
     reportErrors: readJsonFileIfValid(userSettingsPath)?.env?.AI1_REPORT_ERRORS ?? null,
     legacyMigration: planLegacyMigration(repoRoot),
@@ -121,7 +125,10 @@ export function describeRepo(repoRoot, { userSettingsPath = DEFAULT_USER_SETTING
 // disabledFeatureIds: the features switched off in this repo, exactly (every other one is on);
 // undefined keeps the opt-outs the config already has. enabledFeatureIds (legacy, `--features`): the
 // features on, every other one off; not combinable with disabledFeatureIds.
-export function setupRepo(repoRoot, { disabledFeatureIds, enabledFeatureIds, verifyCommands, disabledPluginIds = [], denyCredentials = false, reportErrors, userSettingsPath = DEFAULT_USER_SETTINGS_PATH }) {
+export function setupRepo(repoRoot, { disabledFeatureIds, enabledFeatureIds, verifyCommands, disabledPluginIds = [], denyCredentials = false, reportErrors, role, userSettingsPath = DEFAULT_USER_SETTINGS_PATH }) {
+  if (role !== undefined && !PERSON_ROLES.includes(role)) throw new Error(`--role must be ${PERSON_ROLES.join(' or ')}`);
+  const personEmail = role === 'maintainer' ? readGitUserEmail(repoRoot) : null;
+  if (role === 'maintainer' && !personEmail) throw new Error('--role maintainer needs your git email: set it with git config user.email');
   if (reportErrors !== undefined && !REPORT_MODES.includes(reportErrors)) throw new Error(`--report-errors must be ${REPORT_MODES.join(', ')}`);
   if (disabledPluginIds.includes(AI1_PLUGIN_ID)) throw new Error(`${AI1_PLUGIN_ID} cannot be disabled by ai1 init`);
   const malformedPluginIds = disabledPluginIds.filter((pluginId) => !/^[^@\s]+@[^@\s]+$/.test(pluginId));
@@ -159,6 +166,10 @@ export function setupRepo(repoRoot, { disabledFeatureIds, enabledFeatureIds, ver
     trunk: existingAi1Config.trunk || detectTrunkBranch(repoRoot),
     verify: verifyCommands ?? existingAi1Config.verify ?? [],
   };
+  // A maintainer is added to the committed list (creating it makes everyone not in it a developer).
+  const existingMaintainers = Array.isArray(existingAi1Config.maintainers) ? existingAi1Config.maintainers : [];
+  const addedMaintainer = personEmail && !existingMaintainers.some((maintainerEmail) => normalizeEmail(maintainerEmail) === personEmail) ? personEmail : null;
+  if (addedMaintainer) ai1Config.maintainers = [...existingMaintainers, addedMaintainer];
   const validationErrors = [...validateHarnessConfig(ai1Config), ...listUnknownConfigEntries(ai1Config, KNOWN_MODULE_IDS).map((unknownEntry) => `unknown ${unknownEntry}`)];
   if (validationErrors.length) throw new Error(`resulting ${CONFIG_RELATIVE_PATH} is invalid: ${validationErrors.join('; ')}`);
   writeJsonFile(ai1ConfigPath, ai1Config);
@@ -185,6 +196,14 @@ export function setupRepo(repoRoot, { disabledFeatureIds, enabledFeatureIds, ver
     writeJsonFile(localSettingsPath, localSettings);
   }
 
+  // The person's choice for themselves, in their ignored .ai1/local/ (the main checkout's, shared by worktrees).
+  const sharedRoot = findMainCheckout(repoRoot);
+  if (role === 'developer') writePersonProfile(sharedRoot, { ...readPersonProfile(sharedRoot), role: 'developer' });
+  if (role === 'maintainer' && readPersonProfile(sharedRoot).role === 'developer') {
+    const { role: previousRole, ...profileWithoutRole } = readPersonProfile(sharedRoot);
+    writePersonProfile(sharedRoot, profileWithoutRole);
+  }
+
   if (reportErrors !== undefined) {
     const userSettings = readJsonFile(userSettingsPath) || {};
     userSettings.env = { ...userSettings.env, AI1_REPORT_ERRORS: reportErrors };
@@ -196,6 +215,8 @@ export function setupRepo(repoRoot, { disabledFeatureIds, enabledFeatureIds, ver
     ai1ConfigPath,
     settingsPath,
     reportErrors: reportErrors ?? null,
+    role: role ?? null,
+    addedMaintainer,
     localSettingsPath: disabledPlugins.length ? localSettingsPath : null,
     gitignoreUpdated,
     features: chosenFeatures,
