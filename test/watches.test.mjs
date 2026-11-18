@@ -13,6 +13,8 @@ import { runWatchCommandLine, describeWatches } from '../src/cli/watch-command.m
 import { runWatchCommand, parseWatchCounts } from '../src/watches/watch-run.mjs';
 import { readSubscriptions, readWatchRecords } from '../src/watches/watch-state.mjs';
 import { runWatchNotice } from '../src/watches/watch-notice.mjs';
+import { findReleaseCommand } from '../src/watches/watch-release-detect.mjs';
+import { runHookEvent } from '../src/core/dispatcher.mjs';
 
 const HEALTH_WATCH = { title: 'Checkout in production', check: { kind: 'command', run: ['node', '-e', 'process.exit(0)'] }, every: '1d', suggestedFor: '14d', createdBy: 'ana@x.com' };
 
@@ -153,4 +155,28 @@ test('watch-notice: due checks are listed; nothing followed, nothing said', () =
   assert.equal(JSON.parse(noticeAt(projectRoot, '2026-11-18T00:00:00Z')).kind, 'allow');
   runWatchCommandLine(projectRoot, ['add', 'logs-clean', '--title', 'Logs', '--prompt', 'Look for errors'], new Date('2026-11-18T00:00:00Z'));
   assert.match(noticeAt(projectRoot, '2026-11-18T01:00:00Z'), /due: logs-clean \(offer `ai1 watch run --due`/);
+});
+
+test('watch-release-detect: a push of the trunk or a tag, a publish or a repo deploy command is a release, once per session [person-project:S7]', () => {
+  const detectOptions = { trunkBranch: 'main', deployCommandPatterns: ['^make deploy-prod'] };
+  assert.equal(findReleaseCommand('git push origin main', detectOptions), 'git push origin main');
+  assert.equal(findReleaseCommand('npm test && git push --tags', detectOptions), 'git push --tags');
+  assert.equal(findReleaseCommand('git push origin v1.4.0', detectOptions), 'git push origin v1.4.0');
+  assert.equal(findReleaseCommand('git push origin HEAD:main', detectOptions), 'git push origin HEAD:main');
+  assert.equal(findReleaseCommand('gh release create v1.4.0 --notes x', detectOptions), 'gh release create v1.4.0 --notes x');
+  assert.equal(findReleaseCommand('npm publish', detectOptions), 'npm publish');
+  assert.equal(findReleaseCommand('make deploy-prod', detectOptions), 'make deploy-prod');
+  assert.equal(findReleaseCommand('git push origin feature/x', detectOptions), null);
+  assert.equal(findReleaseCommand('git status', detectOptions), null);
+
+  const projectRoot = createWatchRepo();
+  const hookOptions = {
+    environment: { CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'ai1-data-')) },
+    homeDirectory: mkdtempSync(join(tmpdir(), 'ai1-home-')),
+    reportInternalError: (errorMessage) => { throw new Error(errorMessage); },
+  };
+  const afterBash = (commandLine) => JSON.stringify(runHookEvent('PostToolUse', { session_id: 'session-1', cwd: projectRoot, tool_name: 'Bash', tool_input: { command: commandLine } }, hookOptions) || {});
+  assert.doesNotMatch(afterBash('git push origin feature/x'), /looks like a release/);
+  assert.match(afterBash('git push origin main'), /`git push origin main` looks like a release to production\. .*\/ai1:watches-follow-release/);
+  assert.doesNotMatch(afterBash('npm publish'), /looks like a release/, 'once per session');
 });

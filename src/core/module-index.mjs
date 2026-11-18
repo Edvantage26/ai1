@@ -39,6 +39,7 @@ export const MODULE_INDEX = [
   { id: 'later-upkeep', event: 'Stop', feature: 'later', modulePath: '../later/later-upkeep.mjs' },
   { id: 'maintenance-notice', event: 'SessionStart', feature: 'maintenance', modulePath: '../maintenance/maintenance-notice.mjs' },
   { id: 'watch-notice', event: 'SessionStart', feature: 'watches', modulePath: '../watches/watch-notice.mjs' },
+  { id: 'watch-release-detect', event: 'PostToolUse', feature: 'watches', toolNames: ['Bash'], modulePath: '../watches/watch-release-detect.mjs' },
   { id: 'reuse-brief', event: 'SessionStart', feature: 'reuse', modulePath: '../reuse/reuse-brief.mjs' },
   { id: 'reuse-check', event: 'Stop', feature: 'reuse', modulePath: '../reuse/reuse-check.mjs' },
   { id: 'foreign-repo', event: 'PreToolUse', feature: 'delegate', decidedByTarget: true, toolNames: ['Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'Bash'], modulePath: '../delegate/foreign-repo.mjs' },

@@ -855,6 +855,29 @@
               "additionalProperties": false
             }
           ]
+        },
+        "watch-release-detect": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "deployCommands": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Regexes of this repo's own deploy commands (matched against each simple command of a Bash call); a match counts as a release to production."
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
         }
       }
     },
