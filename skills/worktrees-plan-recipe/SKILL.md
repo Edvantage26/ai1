@@ -1,6 +1,12 @@
 ---
 name: worktrees-plan-recipe
-description: Worktrees — Complete, refine or revise how this repository makes git worktrees, one per change: the project recipe on top of the basic recipe ai1 works out from the repo. Use when `ai1 worktree` reports something the recipe does not cover, when a worktree needed a step by hand, when the person wants worktrees made a particular way here ("cada worktree con su puerto", "comparte la carpeta de datos", "work in a worktree"), or to revise the recipe ("revisa la receta de worktrees", "/ai1:worktrees-plan-recipe revisar").
+description: >-
+  Worktrees — Complete, refine or revise how this repository makes git worktrees, one per change:
+  the project recipe on top of the basic recipe ai1 works out from the repo. Use when `ai1 worktree`
+  reports something the recipe does not cover, when a worktree needed a step by hand, when the person
+  wants worktrees made a particular way here ("cada worktree con su puerto", "comparte la carpeta de
+  datos", "work in a worktree"), or to revise the recipe ("revisa la receta de worktrees",
+  "/ai1:worktrees-plan-recipe revisar").
 allowed-tools: Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context *)
 ---
 

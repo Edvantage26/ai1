@@ -5,7 +5,7 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-18T09:26:45Z'
+  at: '2026-11-18T18:28:49Z'
 ---
 
 # Layout
@@ -23,14 +23,10 @@ schema/  templates/config.json    the per-repo contract
 
 # Skill names
 
-Every skill is `/ai1:<module>-<what it does>` so its owner and purpose read from the name:
-`core-setup-repo`, `core-report-issue` ([issue report](../features/issue-report.md)), `sizing-design-before-code`, `later-write`, `worktrees-plan-recipe`,
-`session-fork-conversation` ([session fork](../features/session-fork.md)), `storyboard-record-flow`
-([storyboard](../features/storyboard.md)), `core-customize-skill`
-([skill customization](skill-customization.md)), and
-from the OKF pack `okf-maintain-knowledge`, `okf-validate-bundle`, `okf-visualize-bundle`
-(see [OKF toolkit](../packs/okf-pack.md)), plus `okf-tidy-claude-md`
-written in ai1 ([okf feature](../features/okf.md)). Claude Code
+Every skill is `/ai1:<module>-<what it does>` so its owner and purpose read from the name
+(`core-setup-repo`, `later-write`, `session-fork-conversation`); the folders under `skills/` are the
+list, and each feature concept names its own skills. The OKF ones come from the OKF pack
+([OKF toolkit](../packs/okf-pack.md)), except `okf-tidy-claude-md`, written in ai1. Claude Code
 has no nested skill names, so the module is a prefix; it names a plugin skill by its folder, so
 the folder carries the full name. Each description starts with its module.
 

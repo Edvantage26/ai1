@@ -25,7 +25,7 @@ sources:
     title: Later 0001
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T08:56:48Z'
+  at: '2026-11-18T18:28:49Z'
 ---
 
 Built 2026-11-09 from later 0001 (phases 0-2); decision in
@@ -74,13 +74,10 @@ Nothing is loaded before the skill runs.
 
 `src/core/skill-customization-index.mjs` has one entry per skill folder; the coherence test fails
 when a folder has no entry, an entry has no folder, a customizable skill lacks the permission, a
-`## Fixed rules` bullet or the injection as last line, or an excluded one has them. Customizable:
-worktrees-plan-recipe, session-fork-conversation, later-write, sizing-design-before-code,
-okf-maintain-knowledge, okf-tidy-claude-md, okf-visualize-bundle, verify-debug-systematically,
-verify-evaluate-llm-prompts,
-storyboard-record-flow, design-review-usability (project and person) and
-core-setup-repo (person only). Excluded, with the reason in the index:
-core-report-issue, okf-validate-bundle, danger-write-rule, core-customize-skill.
+`## Fixed rules` bullet or the injection as last line, or an excluded one has them. The index is the
+only list of which skills are customizable (most, for project and person; `core-setup-repo` for the
+person only) and which are excluded with their reason (`core-report-issue`, `okf-validate-bundle`,
+`danger-write-rule`, `core-customize-skill`); `ai1 skill-context --list` prints it.
 
 # Around it
 

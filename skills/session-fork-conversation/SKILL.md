@@ -1,6 +1,6 @@
 ---
 name: session-fork-conversation
-description: Session — Fork the current conversation into a new one, either a full copy or a clean one with a written handoff. Use when the person says "haz un fork", "forkea la conversación", "bifurca", "abre otra conversación para...", "lanza otro agente con...", "pásale esto a una sesión nueva", "fork this", "branch this conversation", "start a new session for X with only the context it needs".
+description: Session — Fork the current conversation into a new one, either a full copy or a clean one with a written handoff. Use when the person says "haz un fork", "forkea la conversación", "bifurca", "abre otra conversación para...", "lanza otro agente con...", "pásale esto a una sesión nueva", "fork this", "branch this conversation", "start a new session for X with only the context it needs". Not for a change in another repository (that is /ai1:session-delegate-change).
 allowed-tools: Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context *)
 ---
 
@@ -13,6 +13,9 @@ the new conversation the native way; you decide the mode, write the brief and co
 |---|---|---|
 | `full` | the whole conversation, copied (`claude --resume <id> --fork-session`); the original is untouched | the person wants to try another line of the *same* work and needs everything said so far |
 | `brief` | only a handoff you write: task, needed facts and decisions, files, limits, how to verify | the new work is scoped (a subtask, a side investigation, a fix elsewhere) and does not need this history |
+
+A change to another repository is not a fork: a session started there must make it, with that
+repository's own rules (/ai1:session-delegate-change).
 
 If the person did not say which, propose one in a line with the reason and let them correct it.
 Prefer `brief` when this conversation is long and the new task is narrow: it starts focused and

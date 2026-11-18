@@ -5,7 +5,7 @@ description: Stop gate - the agent cannot finish while code it changed is newer 
 tags: [verify, hooks, evidence, cli]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T16:42:31Z'
+  at: '2026-11-18T18:28:49Z'
 sources:
   - id: verify-gate
     resource: src/verify/verify-gate.mjs
@@ -25,6 +25,9 @@ sources:
   - id: debug-skill
     resource: skills/verify-debug-systematically/SKILL.md
     title: /ai1:verify-debug-systematically
+  - id: llm-brief
+    resource: src/verify/llm-brief.mjs
+    title: LLM SDK detected -> the evaluation skill at session start
   - id: llm-prompts-skill
     resource: skills/verify-evaluate-llm-prompts/SKILL.md
     title: /ai1:verify-evaluate-llm-prompts
@@ -105,9 +108,14 @@ test run (`didRunFail`) with an edit to project code since that same test comman
 
 # /ai1:verify-evaluate-llm-prompts
 
+Its route (2026-11-18): `llm-brief` (SessionStart) adds one line when the repo depends on an LLM SDK
+(`package.json` dependencies, `requirements*.txt`, `pyproject.toml` at the root: openai, anthropic,
+langchain, litellm, the Vercel AI SDK...), pointing to the skill for when a prompt, a model or an LLM
+step's results are written, changed or questioned; silent otherwise and on resume.
+
 Built 2026-11-11, from a real extraction pipeline where rounds were lost on more expensive models and
 almost no failure was the model's (missing context, unstated rules, no vocabulary, a badly built test,
-wrong reference labels; cheap confidence signals at AUROC 0.5-0.6). A method skill, no hook, scoped
+wrong reference labels; cheap confidence signals at AUROC 0.5-0.6). A method skill, scoped
 to evaluating LLM steps in general (named for prompts, not failures, so it also loads while writing
 or comparing prompts). Effort grows with the trouble (decided 2026-11-11 with the person): start with a
 simple prompt on one cheap model (for a complex task or JSON output, first look on the web - open

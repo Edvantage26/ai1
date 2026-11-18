@@ -13,7 +13,7 @@ export const FEATURES = [
   {
     id: 'danger',
     title: 'Destructive command guard',
-    description: 'Confirms or refuses shell commands that destroy work, history or data (reset --hard, force push, rm -r, DROP TABLE, --no-verify...).',
+    description: 'Confirms or refuses shell commands that destroy work, history or data (reset --hard, force push, rm -r, DROP TABLE, --no-verify...). Applies the repo\'s own rules, and when the person says something must never happen again offers to turn it into one (/ai1:danger-write-rule).',
     enabledByDefault: true,
   },
   {
@@ -61,7 +61,7 @@ export const FEATURES = [
   {
     id: 'verify',
     title: 'Verification gate',
-    description: 'The agent cannot finish while code it changed is newer than the last passing run of the verify commands in .ai1/config.json (run in full, no filters). Adds `ai1 verify` and `ai1 step-done`. Also asks before tests are skipped, emptied, weakened or deleted or the config of a check (lint, format, types) is changed, tells the agent when it repeats the same tool call 5 times in a row, and after 3 failed fix attempts in a row tells the agent to stop and go back to the root cause (/ai1:verify-debug-systematically).',
+    description: 'The agent cannot finish while code it changed is newer than the last passing run of the verify commands in .ai1/config.json (run in full, no filters). Adds `ai1 verify` and `ai1 step-done`. Also asks before tests are skipped, emptied, weakened or deleted or the config of a check (lint, format, types) is changed, tells the agent when it repeats the same tool call 5 times in a row, and after 3 failed fix attempts in a row tells the agent to stop and go back to the root cause (/ai1:verify-debug-systematically). In a repo that depends on an LLM SDK, points to /ai1:verify-evaluate-llm-prompts for prompt and model work.',
     enabledByDefault: true,
   },
   {

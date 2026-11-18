@@ -29,7 +29,7 @@ function readLooseField(frontmatterText, fieldName) {
   const fieldLineIndex = frontmatterLines.findIndex((frontmatterLine) => frontmatterLine.startsWith(`${fieldName}:`));
   if (fieldLineIndex < 0) return '';
   const inlineValue = frontmatterLines[fieldLineIndex].slice(fieldName.length + 1).trim();
-  if (!/^[>|]-?$/.test(inlineValue)) return inlineValue;
+  if (!/^[>|]-?$/.test(inlineValue)) return inlineValue.replace(/^(['"])(.*)\1$/, '$2');
   const blockLines = [];
   for (const blockLine of frontmatterLines.slice(fieldLineIndex + 1)) {
     if (!/^\s/.test(blockLine)) break;

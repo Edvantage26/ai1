@@ -254,6 +254,22 @@
             }
           ]
         },
+        "rule-offer": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
         "okf-index": {
           "oneOf": [
             {
@@ -705,6 +721,22 @@
                   "description": "Globs of files whose edits are not fix attempts (docs, .claude and .ai1 are already left out)."
                 }
               }
+            }
+          ]
+        },
+        "llm-brief": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
             }
           ]
         },

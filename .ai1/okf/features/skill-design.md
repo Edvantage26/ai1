@@ -45,4 +45,11 @@ foreign-repo, issue-offer), with hand-offs between skills, or on demand by desig
 
 # First review (2026-11-18)
 
-Run over the 20 plugin skills and 2 project skills; the findings went to the person as proposals.
+Run over the 20 plugin skills and 2 project skills; the person accepted all but narrowing the OKF
+skills' `allowed-tools` (kept as they are). Applied the same day: ai1-retro no longer offers later;
+boundaries fork -> delegate and danger-write-rule -> core-customize-skill; routes for the two skills
+that had none (`rule-offer` -> danger-write-rule, `llm-brief` -> verify-evaluate-llm-prompts); the
+okf-maintain-knowledge trigger "any work in a repo with a bundle" dropped and the watches description
+cut; strict YAML in later-write and worktrees-plan-recipe; hand-made skill lists in the architecture
+concepts replaced by pointers to the index and the folders; sizing's description says what it does
+and the redundant `user-invocable: true` is gone.

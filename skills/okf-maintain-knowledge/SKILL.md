@@ -5,8 +5,7 @@ description: >-
   capturing project knowledge (services, APIs, schemas, decisions) into an OKF bundle, when
   updating one after code or docs change, or when a repository's OKF bundle should inform the
   task. Triggers on: "document this in OKF", "update the knowledge bundle",
-  "capture this as a concept", or any work in a repo that has an OKF bundle.
-user-invocable: true
+  "capture this as a concept", or creating a bundle or a concept.
 argument-hint: "[produce|maintain|consume] [path]"
 allowed-tools: Read Write Edit Grep Glob Bash Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context *)
 ---

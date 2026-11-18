@@ -3,7 +3,6 @@ name: okf-visualize-bundle
 description: >-
   OKF — Render an Open Knowledge Format (OKF) bundle as a single self-contained,
   interactive HTML graph (viz.html) of its concepts and links. Use when asked to visualize, graph, preview, or explore an OKF bundle.
-user-invocable: true
 argument-hint: "<bundle-dir> [-o viz.html]"
 allowed-tools: Bash Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context *)
 ---

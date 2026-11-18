@@ -11,12 +11,15 @@ sources:
   - id: write-rule-skill
     resource: skills/danger-write-rule/SKILL.md
     title: /ai1:danger-write-rule
+  - id: rule-offer
+    resource: src/guards/rule-offer.mjs
+    title: lasting correction -> offer the skill
   - id: proposal-0006
     resource: .ai1/later/0006-repo-rules.md
     title: Later 0006
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T14:49:27Z'
+  at: '2026-11-18T18:28:49Z'
 ---
 
 Feature `danger` (on by default), PreToolUse on Edit, Write, MultiEdit, NotebookEdit and Bash.
@@ -57,6 +60,12 @@ shows the JSON and adds it with Edit after a yes - where [config-guard](config-g
 person once more (that prompt is the final approval). It offers to remove the CLAUDE.md line it
 replaces. Anthropic's `hookify` plugin does the same per person (`.claude/hookify.*.local.md`); ai1
 rules are versioned with the repo.
+
+Its route (2026-11-18): `rule-offer` (UserPromptSubmit, feature `danger`) matches a lasting correction
+("no vuelvas a", "que no pase más", "nunca más", "never do that again", "don't ever") and tells the
+agent to do what was asked first, then offer the rule in one line; a correction of how an ai1 skill
+works goes to /ai1:core-customize-skill. Narrow on purpose: "bloquea" alone is usually about the
+product. Tests: `test/skill-routes.test.mjs`.
 
 This repo uses it on itself (2026-11-09): `no-npm-dependencies` (deny adding dependencies to
 `package.json`) and `no-git-permission-grants` (deny writing a `Bash(git commit|push ...)` permission in

@@ -5,7 +5,6 @@ description: >-
   session and move the rest of its knowledge into concepts. Use when a session says "CLAUDE.md drifts from the bundle",
   or the person says "ordena/refactoriza el CLAUDE.md", "pasa el CLAUDE.md al okf", "el CLAUDE.md
   está desfasado", "tidy CLAUDE.md", "move CLAUDE.md into the bundle".
-user-invocable: true
 argument-hint: "[path/to/CLAUDE.md]"
 allowed-tools: Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context *)
 ---

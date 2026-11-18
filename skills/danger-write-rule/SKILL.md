@@ -63,6 +63,8 @@ the rule work the next time it applies.
 - Destructive commands in general (`rm -rf`, `reset --hard`, force push): the `danger` guard has them.
 - Things a linter or a test can check: put them in the verify commands instead.
 - Personal preferences: rules apply to everyone who opens the repo.
+- How an ai1 skill works ("aquí los briefs siempre…"): that is a skill customization
+  (/ai1:core-customize-skill), not a guard.
 
 If Anthropic's `hookify` plugin is installed, it also writes rules (in `.claude/hookify.*.local.md`,
 personal); ai1 rules are versioned with the repo. Pick one place per rule.

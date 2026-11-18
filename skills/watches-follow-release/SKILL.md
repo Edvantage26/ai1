@@ -1,6 +1,11 @@
 ---
 name: watches-follow-release
-description: Watches — Follow something just shipped to production with a watch, so the session confirms it really works there - a check that it is up, or how many times it succeeded and failed since the release - and the person's own confirmation that they tried it. Use right after a release or deploy (a push to the trunk, a tag, a publish, the repo's deploy command; ai1/watches reminds you), or when the person says "vigila esto en producción", "monitoriza lo que acabo de subir", "avísame si falla", "¿está funcionando en prod?", "follow this release", "watch this in production", "how is it doing since the deploy", or asks about a watch they follow.
+description: >-
+  Watches — Follow something just shipped to production with a watch: a check that it is up or the
+  count of successes and failures since the release, plus the person's confirmation that they tried
+  it. Use after a release or deploy when ai1/watches reminds you, or when the person says "vigila
+  esto en producción", "avísame si falla", "¿está funcionando en prod?", "follow this release",
+  "watch this in production", or asks about a watch they follow.
 allowed-tools: Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context *)
 ---
 
