@@ -1,5 +1,7 @@
 // `ai1 storyboard ...`: the storyboard of a visual change (see .ai1/okf/features/storyboard.md).
 //   add --step "<caption>" --image <file> [--variant before|after] [--viewport desktop|mobile] [--detail ...] [--section ...] [--id ...] [--title ...] [--base ...]
+//   file --step "<caption>" --file <path> --role input|output [--contains ...] [--use ...] [--check ...] [--preview <image>] [--mask] [--section ...] [--id ...]
+//                                a file the flow takes in or gives out, as evidence on the step
 //   note --step <id> --severity P0|P1|P2|P3 --text "..." [--profile <name>] [--fix "..."] [--viewport desktop|mobile] | note --clear
 //                                findings on a step (from /ai1:design-review-usability); --clear removes them all
 //   build [--pdf]                index.html + SUMMARY.md (+ storyboard.pdf)
@@ -10,10 +12,11 @@
 import { findMainCheckout } from '../core/project-roots.mjs';
 import { addCapture, addStepNote, clearStepNotes, cleanResidualScreenshots, resolveStoryboardSlug, storyboardDirectory } from '../storyboard/storyboard-steps.mjs';
 import { buildStoryboard } from '../storyboard/storyboard-build.mjs';
+import { addEvidenceFile } from '../storyboard/storyboard-files.mjs';
 import { printStoryboardPdf } from '../storyboard/storyboard-pdf.mjs';
 import { listStoryboards, serveStoryboard, stopStoryboardServer } from '../storyboard/storyboard-serve.mjs';
 
-export const STORYBOARD_USAGE = 'ai1 storyboard add --step "<caption>" --image <file> [--variant before|after] [--viewport desktop|mobile] [--detail "..."] [--section "..."] [--id <step-id>] [--title "..."] [--base <branch>] | note --step <step-id> --severity P0|P1|P2|P3 --text "..." [--profile <name>] [--fix "..."] [--viewport desktop|mobile] | note --clear | build [--pdf] | serve [--host <host>] [--port <n>] [--ttl <hours>] | stop | list | clean  (all take --slug <name>)';
+export const STORYBOARD_USAGE = 'ai1 storyboard add --step "<caption>" --image <file> [--variant before|after] [--viewport desktop|mobile] [--detail "..."] [--section "..."] [--id <step-id>] [--title "..."] [--base <branch>] | file --step "<caption>" --file <path> --role input|output [--contains "..."] [--use "..."] [--check "..."] [--preview <image>] [--mask] [--section "..."] [--id <step-id>] | note --step <step-id> --severity P0|P1|P2|P3 --text "..." [--profile <name>] [--fix "..."] [--viewport desktop|mobile] | note --clear | build [--pdf] | serve [--host <host>] [--port <n>] [--ttl <hours>] | stop | list | clean  (all take --slug <name>)';
 
 // Prints the result and returns the exit code.
 export function runStoryboardCommand(treeRoot, commandArguments, { readOption }) {
@@ -32,6 +35,19 @@ export function runStoryboardCommand(treeRoot, commandArguments, { readOption })
     });
     const stepNumber = storyboard.steps.indexOf(step) + 1;
     console.log(`step ${stepNumber} "${step.caption}" (id ${step.id}): ${imagePath} | storyboard ${slug}, ${storyboard.steps.length} steps`);
+    for (const warning of warnings) console.log(`warning: ${warning}`);
+    return 0;
+  }
+  if (subcommandName === 'file') {
+    const { slug, storyboardPath } = resolveStoryboard();
+    const { storyboard, step, evidenceFile, warnings } = addEvidenceFile(storyboardPath, slug, {
+      caption: readOption('--step'), filePath: readOption('--file'), role: readOption('--role'),
+      contains: readOption('--contains'), use: readOption('--use'), check: readOption('--check'), previewImage: readOption('--preview'),
+      mask: commandArguments.includes('--mask'), section: readOption('--section'), stepId: readOption('--id'), title: readOption('--title'),
+    });
+    const stepNumber = storyboard.steps.indexOf(step) + 1;
+    console.log(`${evidenceFile.role} ${evidenceFile.name} on step ${stepNumber} "${step.caption}" (id ${step.id}): preview ${evidenceFile.preview.kind}${evidenceFile.masked ? ', masked' : ''}${evidenceFile.path ? '' : ', file not copied'} | storyboard ${slug}`);
+    if (evidenceFile.preview_error) console.log(`preview not available: ${evidenceFile.preview_error}`);
     for (const warning of warnings) console.log(`warning: ${warning}`);
     return 0;
   }

@@ -393,6 +393,67 @@ test('sections group consecutive steps: a header per section, an index and summa
   assert.match(summaryText, /### 1\. Opens the import page[\s\S]*## Subida del Excel\n\n### 2\. Picks the spreadsheet[\s\S]*## Informe generado\n\n### 4\./);
 });
 
+function writeEvidenceFile(projectRoot, fileName, fileContent) {
+  const evidencePath = join(projectRoot, fileName);
+  writeFileSync(evidencePath, fileContent);
+  return evidencePath;
+}
+
+test('file attaches an input or output to a step with its three-line card, in the HTML and the summary [storyboard-files:S2]', () => {
+  const projectRoot = createUiRepo();
+  const screenshot = writeScreenshot(projectRoot, 'shot.png');
+  const contractFile = writeEvidenceFile(projectRoot, 'contrato.docx', 'not really a docx');
+  runAi1(projectRoot, ['storyboard', 'add', '--slug', 'docs', '--step', 'Uploads the contract', '--image', screenshot]);
+  const fileRun = runAi1(projectRoot, ['storyboard', 'file', '--slug', 'docs', '--step', 'Uploads the contract', '--file', contractFile, '--role', 'input',
+    '--contains', 'Contrato firmado de un cliente', '--use', 'Lo sube el usuario para darlo de alta', '--check', 'Que aparece su nombre en la ficha']);
+  assert.equal(fileRun.status, 0, fileRun.stderr);
+  assert.match(fileRun.stdout, /input contrato\.docx on step 1 "Uploads the contract".*preview generic/);
+  const reportFile = writeEvidenceFile(projectRoot, 'resumen.bin', Buffer.from([0, 1, 2]));
+  runAi1(projectRoot, ['storyboard', 'file', '--slug', 'docs', '--step', 'Downloads the summary', '--file', reportFile, '--role', 'output', '--contains', 'El resumen']);
+  // the same file name and role again replaces the entry
+  runAi1(projectRoot, ['storyboard', 'file', '--slug', 'docs', '--step', 'Uploads the contract', '--file', contractFile, '--role', 'input', '--contains', 'Contrato firmado de un cliente']);
+  const badRole = runAi1(projectRoot, ['storyboard', 'file', '--slug', 'docs', '--step', 'x', '--file', contractFile, '--role', 'upload']);
+  assert.match(badRole.stderr + badRole.stdout, /--role must be one of input, output/);
+
+  const storyboardPath = storyboardDirectory(projectRoot, 'docs');
+  const storyboard = readStoryboard(storyboardPath);
+  assert.equal(storyboard.steps[0].files.length, 1);
+  assert.deepEqual(storyboard.steps[0].files[0], {
+    id: 'contrato-docx', role: 'input', name: 'contrato.docx', type: 'docx', size: 17, contains: 'Contrato firmado de un cliente',
+    preview: { kind: 'generic' }, path: 'files/uploads-the-contract-input-contrato-docx.docx',
+  });
+  assert.equal(readFileSync(join(storyboardPath, storyboard.steps[0].files[0].path), 'utf8'), 'not really a docx');
+  assert.deepEqual(storyboard.steps[1].captures, []);
+
+  assert.equal(runAi1(projectRoot, ['storyboard', 'build', '--slug', 'docs']).status, 0);
+  const storyboardHtml = readFileSync(join(storyboardPath, 'index.html'), 'utf8');
+  assert.match(storyboardHtml, /class="file file-input"><header><span class="file-role">Input<\/span><strong><a href="files\/uploads-the-contract-input-contrato-docx\.docx">contrato\.docx<\/a><\/strong><span class="meta">docx · 17 B<\/span>/);
+  assert.match(storyboardHtml, /<dt>Contains<\/dt><dd>Contrato firmado de un cliente<\/dd>/);
+  assert.match(storyboardHtml, /id="step-2"[\s\S]*class="file-role">Output<\/span>[\s\S]*<dt>Contains<\/dt><dd>El resumen<\/dd>/);
+  const summaryText = readFileSync(join(storyboardPath, 'SUMMARY.md'), 'utf8');
+  assert.match(summaryText, /Files:\n\n- \*\*Input\*\* \[contrato\.docx\]\(files\/uploads-the-contract-input-contrato-docx\.docx\) \(docx · 17 B\): Contains: Contrato firmado de un cliente/);
+  assert.match(summaryText, /- \*\*Output\*\* \[resumen\.bin\]/);
+});
+
+test('closing the change keeps the evidence files and deletes only the agent\'s preview screenshots [storyboard-files:S5]', () => {
+  const projectRoot = createUiRepo();
+  const inputFile = writeEvidenceFile(projectRoot, 'clientes.pdf', '%PDF-1.4 not real');
+  const previewShot = writeScreenshot(projectRoot, 'pdf-page-1.png');
+  const fileRun = runAi1(projectRoot, ['storyboard', 'file', '--slug', 'keep', '--step', 'Downloads the invoice', '--file', inputFile, '--role', 'output', '--preview', previewShot]);
+  assert.equal(fileRun.status, 0, fileRun.stderr);
+  const storyboardPath = storyboardDirectory(projectRoot, 'keep');
+  const evidenceFile = readStoryboard(storyboardPath).steps[0].files[0];
+  assert.equal(evidenceFile.preview_image.image, 'files/downloads-the-invoice-output-clientes-pdf-preview.png');
+
+  const cleanRun = runAi1(projectRoot, ['storyboard', 'clean', '--slug', 'keep']);
+  assert.equal(cleanRun.status, 0, cleanRun.stderr);
+  assert.equal(existsSync(inputFile), true);
+  assert.equal(existsSync(previewShot), false);
+  assert.equal(existsSync(join(storyboardPath, evidenceFile.preview_image.image)), true);
+  assert.equal(runAi1(projectRoot, ['storyboard', 'build', '--slug', 'keep']).status, 0);
+  assert.match(readFileSync(join(storyboardPath, 'index.html'), 'utf8'), /alt="clientes\.pdf preview" src="data:image\/png;base64,/);
+});
+
 test('a detail or section over 200 characters is recorded with a warning to shorten it [storyboard-files:S4]', () => {
   const projectRoot = createUiRepo();
   const screenshot = writeScreenshot(projectRoot, 'shot.png');

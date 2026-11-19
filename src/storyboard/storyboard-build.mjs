@@ -10,7 +10,9 @@ import { readStoryboard, readImageBytes, stepChange, storyboardHasBefore, storyb
 export const HTML_FILE_NAME = 'index.html';
 export const SUMMARY_FILE_NAME = 'SUMMARY.md';
 export const HEAVY_STORYBOARD_BYTES = 20 * 1024 * 1024;
-const IMAGE_MIME_TYPES = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp' };
+const IMAGE_MIME_TYPES = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif' };
+const FILE_ROLE_LABELS = { input: 'Input', output: 'Output' };
+const FILE_CARD_LABELS = [['contains', 'Contains'], ['use', 'Used for'], ['check', 'Check']];
 const CHANGE_LABELS = { new: 'New step', removed: 'Removed step' };
 export const SYNTHETIC_NOTES_LINE = 'Usability findings are synthetic: an agent playing the user, not a real person. Confirm P0 and P1 with someone of that profile.';
 
@@ -22,11 +24,14 @@ function findCapture(storyboardStep, variant, viewport) {
 
 const MISSING_CAPTURE_TEXTS = { new: { before: 'not in the base version' }, removed: { after: 'no longer in the flow' } };
 
+function inlineImageSource(storyboardPath, imageRelativePath) {
+  const mimeType = IMAGE_MIME_TYPES[extname(imageRelativePath).toLowerCase()] ?? 'image/png';
+  return `data:${mimeType};base64,${readImageBytes(storyboardPath, imageRelativePath).toString('base64')}`;
+}
+
 function renderCaptureCell(storyboardPath, stepCapture, cellLabel, missingText = 'not captured') {
   if (!stepCapture) return `<figure class="shot shot-missing"><figcaption>${escapeHtml(cellLabel)}</figcaption><div class="missing">${missingText}</div></figure>`;
-  const imageData = readImageBytes(storyboardPath, stepCapture.image).toString('base64');
-  const mimeType = IMAGE_MIME_TYPES[extname(stepCapture.image).toLowerCase()] ?? 'image/png';
-  return `<figure class="shot shot-${stepCapture.viewport}"><figcaption>${escapeHtml(cellLabel)}</figcaption><img alt="${escapeHtml(cellLabel)}" src="data:${mimeType};base64,${imageData}"></figure>`;
+  return `<figure class="shot shot-${stepCapture.viewport}"><figcaption>${escapeHtml(cellLabel)}</figcaption><img alt="${escapeHtml(cellLabel)}" src="${inlineImageSource(storyboardPath, stepCapture.image)}"></figure>`;
 }
 
 // The base's own wording of the step, shown when it differs from the new one.
@@ -77,6 +82,56 @@ function renderSectionIndex(storyboardSections) {
   return `<nav class="sections" aria-label="Sections"><ol>${indexItems}</ol></nav>`;
 }
 
+export function formatFileSize(byteCount) {
+  if (byteCount < 1024) return `${byteCount} B`;
+  if (byteCount < 1048576) return `${Math.round(byteCount / 1024)} KB`;
+  return `${(byteCount / 1048576).toFixed(1)} MB`;
+}
+
+function fileFactsText(evidenceFile) {
+  return [evidenceFile.type, formatFileSize(evidenceFile.size), evidenceFile.masked ? 'masked' : null].filter(Boolean).join(' · ');
+}
+
+function renderPreviewTable(previewSheet) {
+  const [headerRow = [], ...bodyRows] = previewSheet.rows;
+  const headerCells = headerRow.map((cellText) => `<th>${escapeHtml(cellText)}</th>`).join('');
+  const bodyHtml = bodyRows.map((tableRow) => `<tr>${tableRow.map((cellText) => `<td>${escapeHtml(cellText)}</td>`).join('')}</tr>`).join('');
+  const sheetLabel = [previewSheet.name, `${previewSheet.rows_total} rows × ${previewSheet.columns_total} columns`].filter(Boolean).join(' · ');
+  return `<p class="sheet-name">${escapeHtml(sheetLabel)}</p><div class="table-wrap"><table><thead><tr>${headerCells}</tr></thead><tbody>${bodyHtml}</tbody></table></div>`;
+}
+
+function renderFilePreview(storyboardPath, evidenceFile) {
+  const filePreview = evidenceFile.preview ?? { kind: 'generic' };
+  const previewParts = [];
+  if (filePreview.kind === 'table') {
+    previewParts.push(...filePreview.sheets.map(renderPreviewTable));
+    if (filePreview.sheets_total > filePreview.sheets.length) previewParts.push(`<p class="sheet-name">+${filePreview.sheets_total - filePreview.sheets.length} more sheets</p>`);
+  } else if (filePreview.kind === 'lines') {
+    previewParts.push(`<pre>${escapeHtml(filePreview.lines.join('\n'))}</pre><p class="sheet-name">${filePreview.lines_total} lines</p>`);
+  } else if (filePreview.kind === 'eml') {
+    const headerItems = Object.entries(filePreview.headers).filter(([, headerValue]) => headerValue).map(([headerName, headerValue]) => `<dt>${escapeHtml(headerName)}</dt><dd>${escapeHtml(headerValue)}</dd>`).join('');
+    previewParts.push(`<dl class="eml-headers">${headerItems}</dl><pre>${escapeHtml(filePreview.body_lines.join('\n'))}</pre>`);
+    if (filePreview.attachments.length) previewParts.push(`<p class="sheet-name">Attachments: ${escapeHtml(filePreview.attachments.join(', '))}</p>`);
+  } else if (filePreview.kind === 'pdf') {
+    previewParts.push(`<p class="sheet-name">${filePreview.pages} page${filePreview.pages === 1 ? '' : 's'}</p>`);
+  } else if (filePreview.kind === 'image' && evidenceFile.path) {
+    previewParts.push(`<figure class="shot"><img alt="${escapeHtml(evidenceFile.name)}" src="${inlineImageSource(storyboardPath, evidenceFile.path)}"></figure>`);
+  }
+  if (evidenceFile.preview_image) previewParts.push(`<figure class="shot"><img alt="${escapeHtml(`${evidenceFile.name} preview`)}" src="${inlineImageSource(storyboardPath, evidenceFile.preview_image.image)}"></figure>`);
+  if (evidenceFile.preview_error) previewParts.push(`<p class="sheet-name">Preview not available: ${escapeHtml(evidenceFile.preview_error)}</p>`);
+  return previewParts.join('');
+}
+
+function renderStepFiles(storyboardPath, storyboardStep) {
+  if (!storyboardStep.files?.length) return '';
+  const fileCards = storyboardStep.files.map((evidenceFile) => {
+    const cardLines = FILE_CARD_LABELS.filter(([fieldName]) => evidenceFile[fieldName]).map(([fieldName, fieldLabel]) => `<dt>${fieldLabel}</dt><dd>${escapeHtml(evidenceFile[fieldName])}</dd>`).join('');
+    const fileName = evidenceFile.path ? `<a href="${escapeHtml(evidenceFile.path)}">${escapeHtml(evidenceFile.name)}</a>` : escapeHtml(evidenceFile.name);
+    return `<article class="file file-${evidenceFile.role}"><header><span class="file-role">${FILE_ROLE_LABELS[evidenceFile.role]}</span><strong>${fileName}</strong><span class="meta">${escapeHtml(fileFactsText(evidenceFile))}</span></header>${cardLines ? `<dl class="file-card">${cardLines}</dl>` : ''}${renderFilePreview(storyboardPath, evidenceFile)}</article>`;
+  }).join('');
+  return `<div class="files">${fileCards}</div>`;
+}
+
 function renderStep(storyboardPath, storyboardStep, stepNumber, stepCount, hasBefore) {
   const change = stepChange(storyboardStep, hasBefore);
   const shownVariants = hasBefore ? ['before', 'after'] : ['after'];
@@ -89,7 +144,7 @@ function renderStep(storyboardPath, storyboardStep, stepNumber, stepCount, hasBe
   }).join('');
   return `<section class="step${change ? ` step-${change}` : ''}" id="step-${stepNumber}">
 <header class="step-head"><span class="step-number">${stepNumber}<small>/${stepCount}</small></span><div>${storyboardStep.section ? `<p class="section-name">${escapeHtml(storyboardStep.section)}</p>` : ''}<h2>${escapeHtml(storyboardStep.caption)}</h2>${beforeCaptionLine(storyboardStep)}${storyboardStep.detail ? `<p>${escapeHtml(storyboardStep.detail)}</p>` : ''}</div>${change ? `<span class="badge badge-${change}">${CHANGE_LABELS[change]}</span>` : ''}</header>
-${renderStepNotes(storyboardStep)}${viewportRows}
+${renderStepNotes(storyboardStep)}${viewportRows}${renderStepFiles(storyboardPath, storyboardStep)}
 </section>`;
 }
 
@@ -117,6 +172,12 @@ main{max-width:1400px;margin:0 auto;padding:24px}
 .step-head .section-name{margin:0 0 2px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--accent)}
 .section-title{font-size:22px;margin:8px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--accent)}body.slides .section-title{display:none}
 .sections{max-width:1400px;margin:16px auto 0;padding:0 24px}.sections ol{margin:0;padding-left:20px;display:flex;flex-wrap:wrap;gap:4px 28px}.sections a{color:var(--ink);font-weight:600}.sections .meta{color:var(--muted);font-size:13px}
+.files{display:grid;gap:12px;margin-top:12px}.file{border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:6px;padding:10px 12px}.file-output{border-left-color:#3d5a98}
+.file header{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}.file .meta{color:var(--muted);font-size:13px}.file a{color:inherit}
+.file-role{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--accent)}.file-output .file-role{color:#3d5a98}
+.file-card,.eml-headers{display:grid;grid-template-columns:max-content 1fr;gap:2px 12px;margin:8px 0}.file-card dt,.eml-headers dt{color:var(--muted);font-size:13px}.file-card dd,.eml-headers dd{margin:0}
+.sheet-name{margin:8px 0 4px;color:var(--muted);font-size:13px}.table-wrap{overflow-x:auto}.file table{border-collapse:collapse;font-size:12px}.file th,.file td{border:1px solid var(--line);padding:3px 6px;text-align:left;white-space:nowrap}.file th{background:#f2f1ee}
+.file pre{margin:8px 0;padding:8px;background:#f2f1ee;border-radius:4px;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}.file .shot img{max-width:420px}
 .synthetic{max-width:1400px;margin:16px auto 0;padding:0 24px;color:var(--muted);font-size:13px}
 .zoom{position:fixed;inset:0;z-index:5;display:grid;place-items:center;background:rgba(20,22,24,.88);cursor:zoom-out;padding:24px}.zoom img{max-width:100%;max-height:100%;border-radius:6px}
 .missing{display:grid;place-items:center;min-height:120px;border:1px dashed var(--line);border-radius:6px;color:var(--muted);font-size:13px}
@@ -178,6 +239,15 @@ export function renderStoryboardSummary(storyboard) {
       for (const stepNote of storyboardStep.notes) {
         const labelParts = noteLabelParts(stepNote);
         summaryLines.push(`- **${stepNote.severity}**${labelParts.length ? ` (${labelParts.join(', ')})` : ''}: ${stepNote.text}${stepNote.fix ? ` Fix: ${stepNote.fix}` : ''}`);
+      }
+      summaryLines.push('');
+    }
+    if (storyboardStep.files?.length) {
+      summaryLines.push('Files:', '');
+      for (const evidenceFile of storyboardStep.files) {
+        const cardText = FILE_CARD_LABELS.filter(([fieldName]) => evidenceFile[fieldName]).map(([fieldName, fieldLabel]) => `${fieldLabel}: ${evidenceFile[fieldName]}`).join('. ');
+        const fileName = evidenceFile.path ? `[${evidenceFile.name}](${evidenceFile.path})` : evidenceFile.name;
+        summaryLines.push(`- **${FILE_ROLE_LABELS[evidenceFile.role]}** ${fileName} (${fileFactsText(evidenceFile)})${cardText ? `: ${cardText}` : ''}`);
       }
       summaryLines.push('');
     }

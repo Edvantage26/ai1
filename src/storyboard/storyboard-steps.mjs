@@ -57,7 +57,7 @@ export function readStoryboard(storyboardPath) {
   return readJsonFileIfValid(join(storyboardPath, STEPS_FILE_NAME));
 }
 
-function emptyStoryboard(slug) {
+export function emptyStoryboard(slug) {
   return { version: STORYBOARD_VERSION, title: slug, created_at: new Date().toISOString(), steps: [] };
 }
 
@@ -70,6 +70,20 @@ export function longTextWarnings(namedTexts) {
 
 function requireChoice(optionName, optionValue, allowedValues) {
   if (!allowedValues.includes(optionValue)) throw new Error(`${optionName} must be one of ${allowedValues.join(', ')} (got "${optionValue}")`);
+}
+
+// The step with that id (from --id, else the caption), appended at the end when new; `section` set
+// when given, kept otherwise. Returns { storyboardStep, isNewStep }.
+export function findOrCreateStep(storyboard, { caption, stepId, section }) {
+  const resolvedStepId = stepId || stepIdFromCaption(caption) || `step-${storyboard.steps.length + 1}`;
+  let storyboardStep = storyboard.steps.find((existingStep) => existingStep.id === resolvedStepId);
+  const isNewStep = !storyboardStep;
+  if (isNewStep) {
+    storyboardStep = { id: resolvedStepId, caption: caption.trim(), captures: [] };
+    storyboard.steps.push(storyboardStep);
+  }
+  if (section?.trim()) storyboardStep.section = section.trim();
+  return { storyboardStep, isNewStep };
 }
 
 // Adds one capture to the step with that id (created at the end when new). The same step, variant and
@@ -86,19 +100,12 @@ export function addCapture(storyboardPath, slug, { caption, imageFile, variant =
   const storyboard = readStoryboard(storyboardPath) ?? emptyStoryboard(slug);
   if (title) storyboard.title = title;
   if (base) storyboard.base = base;
-  const resolvedStepId = stepId || stepIdFromCaption(caption) || `step-${storyboard.steps.length + 1}`;
-  let storyboardStep = storyboard.steps.find((existingStep) => existingStep.id === resolvedStepId);
-  if (!storyboardStep) {
-    storyboardStep = { id: resolvedStepId, caption: caption.trim(), captures: [] };
-    storyboard.steps.push(storyboardStep);
-  } else if (variant === 'after') {
-    storyboardStep.caption = caption.trim();
-  }
+  const { storyboardStep, isNewStep } = findOrCreateStep(storyboard, { caption, stepId, section });
+  if (!isNewStep && variant === 'after') storyboardStep.caption = caption.trim();
   if (variant === 'before') storyboardStep.before_caption = caption.trim();
   if (detail) storyboardStep.detail = detail;
-  if (section?.trim()) storyboardStep.section = section.trim();
 
-  const imageRelativePath = `${IMAGES_FOLDER_NAME}/${resolvedStepId}-${variant}-${viewport}${imageExtension}`;
+  const imageRelativePath = `${IMAGES_FOLDER_NAME}/${storyboardStep.id}-${variant}-${viewport}${imageExtension}`;
   const sourcePath = resolve(imageFile);
   const sourceStats = statSync(sourcePath);
   mkdirSync(join(storyboardPath, IMAGES_FOLDER_NAME), { recursive: true });
@@ -155,7 +162,7 @@ export function storyboardHasNotes(storyboard) {
 // 'new' when a step has only after-captures in a storyboard that has before-captures, 'removed' when
 // it has only before-captures, null otherwise.
 export function stepChange(storyboardStep, storyboardHasBefore) {
-  if (!storyboardHasBefore) return null;
+  if (!storyboardHasBefore || !storyboardStep.captures.length) return null;
   const capturedVariants = new Set(storyboardStep.captures.map((stepCapture) => stepCapture.variant));
   if (!capturedVariants.has('before')) return 'new';
   if (!capturedVariants.has('after')) return 'removed';
@@ -182,7 +189,12 @@ export function cleanResidualScreenshots(storyboardPath) {
   const cleanResult = { deleted: [], kept: [] };
   if (!storyboard) return cleanResult;
   const storyboardPrefix = resolve(storyboardPath) + sep;
-  for (const stepCapture of storyboard.steps.flatMap((storyboardStep) => storyboardStep.captures)) {
+  // Screenshots and the agent's own previews of evidence files; never the evidence files themselves.
+  const agentImages = storyboard.steps.flatMap((storyboardStep) => [
+    ...storyboardStep.captures,
+    ...(storyboardStep.files ?? []).map((evidenceFile) => evidenceFile.preview_image).filter(Boolean),
+  ]);
+  for (const stepCapture of agentImages) {
     const recordedSource = stepCapture.source;
     if (!recordedSource) continue;
     const sourcePath = recordedSource.path;
