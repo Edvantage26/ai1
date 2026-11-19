@@ -103,7 +103,7 @@ apart, it is not part of writing the skill.
 ## 5. Wire it in
 
 - [ ] `skills/<name>/SKILL.md`
-- [ ] Its entry in `src/core/skill-customization-index.mjs`: customizable with scopes (then the
+- [ ] Its entry in `src/core/skill-customization-index.mjs`: customizable with scopes and `hints` (one line: what a project or person usually has to tell it, shown the first time it runs in a repo; then the
       `allowed-tools` line, `## Fixed rules`, `## Customization` and the `skill-context` injection
       as last line, copied from a customizable skill) or not, with the reason
 - [ ] `allowed-tools` grants only the `ai1` commands it runs, never a bare `Bash`, `Write` or `Edit`

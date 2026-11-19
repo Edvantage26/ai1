@@ -149,7 +149,12 @@ prints its customization at the end, from two places:
 
 A customization is a few markdown bullets. It adds to the skill but never overrides its **Fixed rules**;
 where the two disagree, the project's wins over yours. When you correct how a skill works, the agent
-offers once to save it; `/ai1:core-customize-skill` writes it after you approve the text, and changing
+offers once to save it. The agent also keeps them up without waiting for a correction: the first time a
+skill runs in a repo for you it watches for what this project needs that the skill does not say; after
+a skill ran (3+ tool calls) `customization-check` has it judge silently whether a rule would have made it
+go better and only then propose it in one line (`ai1 skill-context quiet <skill>` stops that for one
+skill); a customization that names paths that no longer exist is flagged when it loads.
+`/ai1:core-customize-skill` writes or updates it after you approve the text, and changing
 `.ai1/skills/` asks you first (`config-guard`). `ai1 skill-context --list` shows which skills can be
 customized and what you have. Not customizable, with the reason in the list: the skills that protect
 others or are deterministic (`core-report-issue`, `okf-validate-bundle`, `danger-write-rule`,
@@ -175,6 +180,7 @@ others or are deterministic (`core-report-issue`, `okf-validate-bundle`, `danger
 | `/ai1:verify-evaluate-llm-prompts`: evaluate and improve an LLM step (extraction, classification, judge) with evidence - start with a simple prompt on 10-20 real cases and stop if good enough; otherwise a small reference set and a pilot first; failures read one by one and labelled with a fixed cause list, the most frequent fixed first; models or prompts compared as a paired tournament that drops candidates while the set grows; pointed to at session start (`llm-brief`) in repos that depend on an LLM SDK | verify | SessionStart | works |
 | Decision log + `ai1 log`: every module run logged locally (module, decision, ms, characters added, rules, error signatures; no commands or paths), off with `AI1_DECISION_LOG=0`; `ai1 log --all` for every repo on the machine | — | all | works |
 | `issue-offer`: when ai1 itself fails in a repo (a module throws, the hook crashes), the agent offers once to report it with `/ai1:core-report-issue`; nothing is filed without your yes to the text, unless you chose automatic reports (`ai1 init --report-errors auto`: only versions and the error's module and plugin file:line are sent) | core | UserPromptSubmit | works |
+| `customization-check`: after an ai1 skill you can customize ran (3+ tool calls after it loaded, by the agent or typed by you), the agent judges silently whether a customization rule would have made it go better and only then proposes it in one line; once per skill and session, `ai1 skill-context quiet <skill>` to stop it | — | Stop | works |
 | `craft-brief`: the code craft rules at session start | craft | SessionStart | works |
 | `sizing-brief`: the sizing recipe at session start; restores deep progress after compaction | sizing | SessionStart | works |
 | `sizing-approval`: records your approval of a deep design marked ready | sizing | UserPromptSubmit | works |

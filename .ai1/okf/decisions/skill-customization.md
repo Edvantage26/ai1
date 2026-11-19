@@ -9,7 +9,7 @@ sources:
     title: Customizable ai1 skills - project and user overlays
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-14T23:26:39Z'
+  at: '2026-11-19T10:22:45Z'
 ---
 
 Decided by the person on 2026-11-09; built the same day. How it works:
@@ -34,6 +34,11 @@ Decided by the person on 2026-11-09; built the same day. How it works:
   files and the loader reading the old name with a note meanwhile. The worktree recipe, which also
   said "overlay", says **project recipe** (status `project`). Discarded: `rules.md` (clashes with
   Fixed rules and guard rules), `addendum.md`, `preferences.md` (wrong for the project scope).
+
+- **Kept up by the agent** (2026-11-19): first-use paragraph and stale paths rendered at load (paid only
+  when a skill runs), an after-use Stop check (a mechanism, since prose is lost after compaction), each
+  silent when nothing was found and quiet per skill. Discarded: the same in every SKILL.md (repeated
+  prose), a SessionStart list (paid every session), writing customizations without the person's yes.
 
 # Discarded
 

@@ -186,6 +186,28 @@
             }
           ]
         },
+        "customization-check": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "minToolCalls": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "default": 3,
+                  "description": "Tool calls after a customizable ai1 skill was loaded before the agent is asked whether a customization rule would have made it go better."
+                }
+              }
+            }
+          ]
+        },
         "danger": {
           "oneOf": [
             {

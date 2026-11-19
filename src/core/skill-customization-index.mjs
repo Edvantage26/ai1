@@ -2,28 +2,30 @@
 // when a skill folder has no entry, so every new skill decides: customizable (with the scopes it
 // accepts) or not (with the reason). The feature of a skill is its folder prefix (`<module>-<action>`),
 // and names its customization folder: `.ai1/skills/<feature>/customization.md` and
-// `~/.config/ai1/skills/<feature>/customization.md`. See .ai1/okf/architecture/skill-customization.md.
+// `~/.config/ai1/skills/<feature>/customization.md`. A customizable skill's `hints` say, in one line,
+// what a project or a person usually has to tell it; the first time it runs in a repo the agent is told
+// to watch for them. See .ai1/okf/architecture/skill-customization.md.
 
 const PROJECT_AND_USER = ['project', 'user'];
 
 export const SKILL_CUSTOMIZATION_INDEX = {
-  'worktrees-plan-recipe': { customizable: true, scopes: PROJECT_AND_USER },
-  'session-fork-conversation': { customizable: true, scopes: PROJECT_AND_USER },
-  'session-delegate-change': { customizable: true, scopes: PROJECT_AND_USER },
-  'later-write': { customizable: true, scopes: PROJECT_AND_USER },
-  'sizing-design-before-code': { customizable: true, scopes: PROJECT_AND_USER },
-  'okf-maintain-knowledge': { customizable: true, scopes: PROJECT_AND_USER },
-  'okf-tidy-claude-md': { customizable: true, scopes: PROJECT_AND_USER },
-  'okf-visualize-bundle': { customizable: true, scopes: PROJECT_AND_USER },
-  'verify-debug-systematically': { customizable: true, scopes: PROJECT_AND_USER },
-  'verify-evaluate-llm-prompts': { customizable: true, scopes: PROJECT_AND_USER },
-  'storyboard-record-flow': { customizable: true, scopes: PROJECT_AND_USER },
-  'reuse-encapsulate': { customizable: true, scopes: PROJECT_AND_USER },
-  'design-review-usability': { customizable: true, scopes: PROJECT_AND_USER },
-  'watches-follow-release': { customizable: true, scopes: PROJECT_AND_USER },
-  'messages-draft-message': { customizable: true, scopes: PROJECT_AND_USER },
-  'routines-set-routine': { customizable: true, scopes: PROJECT_AND_USER },
-  'core-setup-repo': { customizable: true, scopes: ['user'] },
+  'worktrees-plan-recipe': { customizable: true, scopes: PROJECT_AND_USER, hints: 'what the recipe file does not hold: how worktrees are named here, when a light one is enough, which services must run beside one' },
+  'session-fork-conversation': { customizable: true, scopes: PROJECT_AND_USER, hints: 'where forks open for this person (an agent manager, a terminal command), what every brief here must carry (verify commands, a link to the plan)' },
+  'session-delegate-change': { customizable: true, scopes: PROJECT_AND_USER, hints: 'how claude starts on this machine (--claude-command), what every brief to another repo must say, which repos are usually delegated to' },
+  'later-write': { customizable: true, scopes: PROJECT_AND_USER, hints: 'who decides entries here and by when, the language and slug style of entries, sections this project always wants' },
+  'sizing-design-before-code': { customizable: true, scopes: PROJECT_AND_USER, hints: 'what a design here always needs (a migration plan, a rollback, who approves), the usual risk areas of this project' },
+  'okf-maintain-knowledge': { customizable: true, scopes: PROJECT_AND_USER, hints: 'which assets this project documents and which not, its concept types and folders, the language of concepts' },
+  'okf-tidy-claude-md': { customizable: true, scopes: PROJECT_AND_USER, hints: 'what this repo keeps in CLAUDE.md on purpose, what must never move into the bundle' },
+  'okf-visualize-bundle': { customizable: true, scopes: PROJECT_AND_USER, hints: 'where the graph should be opened or published for this person' },
+  'verify-debug-systematically': { customizable: true, scopes: PROJECT_AND_USER, hints: 'how bugs are reproduced here (the single-test command, fixtures, seed data), the logs to read first' },
+  'verify-evaluate-llm-prompts': { customizable: true, scopes: PROJECT_AND_USER, hints: 'where the reference cases live, the models and budget allowed, how runs are compared and recorded here' },
+  'storyboard-record-flow': { customizable: true, scopes: PROJECT_AND_USER, hints: 'how the app starts here, how to log in (a test user, a seed), the routes of the main flows, viewports, where storyboards are published' },
+  'reuse-encapsulate': { customizable: true, scopes: PROJECT_AND_USER, hints: 'where this repo keeps scripts and project skills, its naming, what must never be encapsulated' },
+  'design-review-usability': { customizable: true, scopes: PROJECT_AND_USER, hints: 'who the users are when no Product concept says it, the start URL and test account, which flows matter most' },
+  'watches-follow-release': { customizable: true, scopes: PROJECT_AND_USER, hints: 'how production is checked here (a health URL, a log or metrics command, the platform CLI), how long releases are followed' },
+  'messages-draft-message': { customizable: true, scopes: PROJECT_AND_USER, hints: 'the tool that sends messages for this person, their signature, default language and tone' },
+  'routines-set-routine': { customizable: true, scopes: PROJECT_AND_USER, hints: 'how this person prefers due routines offered (here or launched), their usual periods' },
+  'core-setup-repo': { customizable: true, scopes: ['user'], hints: 'features this person always turns off or on, how they answer the overlapping-plugins and error-report questions' },
   'core-report-issue': { customizable: false, reason: 'its privacy guarantee for a public issue lives only in the skill text' },
   'okf-validate-bundle': { customizable: false, reason: 'a deterministic checker; a customization could only change how its errors are read' },
   'core-customize-skill': { customizable: false, reason: 'it writes the customizations; customizing it would let a customization change how customizations are approved' },

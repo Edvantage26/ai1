@@ -14,7 +14,7 @@
 //   ai1 issue <env|url>                          facts and a prefilled link for a bug report on ai1 (see src/cli/issue-command.mjs)
 //   ai1 claude-md [--json]                       where the repo's CLAUDE.md files drift from the OKF bundle (src/okf/okf-claude-md-check.mjs)
 //   ai1 log [--session <id>] [--since <hours>] [--all] [--json]  what ai1's modules decided here (or in every repo, --all) (src/cli/log-command.mjs)
-//   ai1 skill-context <skill> | --list [--json]  a skill's project and user customization, injected when it loads (src/cli/skill-context-command.mjs)
+//   ai1 skill-context <skill> | --list [--json] | quiet <skill> [--off]  a skill's project and user customization, injected when it loads (src/cli/skill-context-command.mjs)
 //   ai1 reuse search "<keywords>" | dismiss   this repo's past sessions and project skills for a task; a declined proposal (src/cli/reuse-command.mjs)
 //   ai1 storyboard <add|note|build|serve|stop|list|clean>  the storyboard of a visual change (see src/cli/storyboard-command.mjs)
 //   ai1 okf validate <bundle-dir> [--strict | --max-warnings N] [--migrate] [--json]  check an OKF bundle (src/cli/okf-command.mjs)

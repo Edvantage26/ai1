@@ -1,6 +1,6 @@
 ---
 name: core-customize-skill
-description: Core — Customize how an ai1 skill works for this project or only for the person. Use when the person corrects or adjusts how an ai1 skill works and wants it kept ("aquí siempre…", "en este repo los briefs…", "para mí, abre los forks en mi gestor de agentes", "personaliza la skill de later", "customize this skill", "from now on in this repo…"), or when a skill's customization footer offers it and they say yes.
+description: Core — Customize how an ai1 skill works for this project or only for the person. Use when the person corrects or adjusts how an ai1 skill works and wants it kept ("aquí siempre…", "en este repo los briefs…", "para mí, abre los forks en mi gestor de agentes", "personaliza la skill de later", "customize this skill", "from now on in this repo…"), or when they say yes to saving or updating a rule offered after a skill ran (first use, ai1/customization-check, a customization that mentions paths that no longer exist).
 ---
 
 # Customize an ai1 skill
@@ -43,7 +43,12 @@ one bullet per rule, saying what to do and, when not obvious, why. Add to the ex
 rewrite what others wrote. It cannot override the skill's Fixed rules: if the correction contradicts
 one, say so and do not write it.
 
-Show the person the exact text and the file; write it after their yes. For a project customization the
+**Updating a rule** that made things worse or went stale (a path that no longer exists, a command
+that changed, a habit the person dropped): change or remove only that bullet, never the rest, and show
+it as before -> after. In a project customization someone else may have written it: say who if
+`git log` tells, and keep their other rules as they are.
+
+Show the person the exact text (or the before -> after) and the file; write it after their yes. For a project customization the
 `config-guard` hook asks them once more before the file changes: that prompt is the final approval,
 never avoid it. Then run `ai1 skill-context <skill>` and show that the text appears.
 
@@ -52,3 +57,5 @@ never avoid it. Then run `ai1 skill-context <skill>` and show that the text appe
 - Project customization: tell them to commit it (do not commit on your own). It applies from the next
   time the skill loads, in this session too.
 - Personal customization: it applies in every repo from the next time the skill loads.
+- If the person does not want to be asked after each use of that skill any more:
+  `ai1 skill-context quiet <skill>` (only for them, in this repo; `--off` brings it back).

@@ -156,7 +156,7 @@ test('/ai1:reuse-encapsulate picks the container from its table, completes befor
   assert.match(skillText, /Run `ai1 reuse search/);
   assert.match(skillText, /Never use other repos' sessions/);
   assert.match(skillText, /## Fixed rules/);
-  assert.deepEqual(SKILL_CUSTOMIZATION_INDEX['reuse-encapsulate'], { customizable: true, scopes: ['project', 'user'] });
+  assert.deepEqual(SKILL_CUSTOMIZATION_INDEX['reuse-encapsulate'].scopes, ['project', 'user']);
 });
 
 test('reuse-check waits while background agents the session launched have not reported back [okf-findings-3:S2]', () => {

@@ -25,7 +25,7 @@ sources:
     title: Later 0001
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-18T18:28:49Z'
+  at: '2026-11-19T10:22:45Z'
 ---
 
 Built 2026-11-09 from later 0001 (phases 0-2); decision in
@@ -78,6 +78,34 @@ when a folder has no entry, an entry has no folder, a customizable skill lacks t
 only list of which skills are customizable (most, for project and person; `core-setup-repo` for the
 person only) and which are excluded with their reason (`core-report-issue`, `okf-validate-bundle`,
 `danger-write-rule`, `core-customize-skill`); `ai1 skill-context --list` prints it.
+
+# Kept up by the agent
+
+Built 2026-11-19 at the person's request ("para que esté atento de crear customización si es necesario
+o actualizar customización si detecta algo que podría haber salido mejor"). Until then the only path was
+reactive: the footer offered to save a correction the person made.
+
+- **First use** (`resolveSkillCustomizations` `isFirstLoad`): in a repo with `.ai1/config.json`, the first
+  time this person loads a customizable skill there (`.ai1/local/state.json` `skills.<skill>.firstLoadAt`,
+  written by `ai1 skill-context` after printing, best effort), the block adds a "First time this skill runs
+  here" paragraph with the skill's `hints` from the index (one line each, what a project or person usually
+  has to tell it; the coherence test requires them) and asks to offer saving what came up, or say nothing.
+- **After use**: module `customization-check` (Stop, feature `core`, `src/core/customization-check.mjs`).
+  A skill counts as used when the agent loads it (`Skill` tool_use, `input.skill: "ai1:<folder>"`) or the
+  person types it (a user message with `<command-name>/ai1:<folder></command-name>`, no tool call: checked
+  in a real transcript, 2026-11-19). Tool calls after the load are counted across turns (main transcript
+  only, the `Skill` call itself not); at `minToolCalls` (default 3) the agent is asked once per skill and
+  session to judge silently four signals (a step redone or worked around, something asked that will be the
+  same next time, the person corrected the result, a customization rule made it worse) and only then to
+  propose the exact rule in one line. Waits while background agents run (like reuse-check). Never for
+  excluded skills.
+- **Quiet**: `ai1 skill-context quiet <skill> [--off]` (`skills.<skill>.quiet` in `.ai1/local/state.json`).
+- **Stale paths** (`findMissingPaths`): backtick spans with a `/` and no spaces, `<>*${}:`, leading `-` or
+  `..` are paths; relative ones are checked against the checkout the customization came from, `~/` and
+  absolute ones always; a personal customization's relative paths are not checked (they may belong to
+  another repo). Missing ones are listed under the section with an offer to update it.
+- /ai1:core-customize-skill updates a rule as before -> after, touching only that bullet.
+- Tests: `test/customization-upkeep.test.mjs`.
 
 # Around it
 

@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-19T09:34:32Z'
+  at: '2026-11-19T10:22:45Z'
 ---
 
 # Flow
@@ -88,6 +88,7 @@ logged with an error signature and offered to the person as an issue ([issue rep
 |---|---|---|
 | `brief` | SessionStart | core (always on) |
 | `issue-offer` | UserPromptSubmit | core (always on): offers a report when ai1 itself failed, see [issue report](../features/issue-report.md) |
+| `customization-check` | Stop | core (always on): after a customizable ai1 skill ran, asks once whether a customization rule would have helped, see [skill customization](skill-customization.md#kept-up-by-the-agent) |
 | `local-sync-start` / `local-sync-stop` | SessionStart / Stop | core (always on): keep the person's sealed `.ai1/local/` in sync, see [person within a project](person-project-scope.md#automatic-sync) |
 | `okf-index` | SessionStart | okf |
 | `okf-claude-md` | SessionStart | okf |

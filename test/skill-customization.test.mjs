@@ -171,6 +171,7 @@ test('every skill folder is in the customization index, and each SKILL.md matche
       assert.ok(allowedToolsLine.includes('Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context *)'), `${skillFolder}: allowed-tools must pre-approve ai1 skill-context through the stable launcher`);
       assert.match(skillText, /\n## Fixed rules\n+- /, `${skillFolder}: needs a "## Fixed rules" section with at least one bullet`);
       assert.equal(lastLine, injectionLine, `${skillFolder}: the last line must be ${injectionLine}`);
+      assert.ok(SKILL_CUSTOMIZATION_INDEX[skillFolder].hints?.length > 20, `${skillFolder}: a customizable skill says in \`hints\` what a project or person usually has to tell it`);
     } else {
       assert.ok(!allowedToolsLine.includes('skill-context'), `${skillFolder}: not customizable, so no skill-context permission`);
       assert.ok(!/!`[^`]*ai1" skill-context/.test(skillText), `${skillFolder}: not customizable, so no skill-context injection`);

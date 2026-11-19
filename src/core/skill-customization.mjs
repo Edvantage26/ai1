@@ -5,8 +5,9 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
-import { AI1_DIRECTORY } from './config.mjs';
+import { isAbsolute, join } from 'node:path';
+import { AI1_DIRECTORY, CONFIG_RELATIVE_PATH } from './config.mjs';
+import { readPersonState, writePersonState } from './person-project.mjs';
 import { findMainCheckout, findWorkingTreeTop } from './project-roots.mjs';
 import { SKILL_CUSTOMIZATION_INDEX, featureOfSkill } from './skill-customization-index.mjs';
 
@@ -50,6 +51,51 @@ function findProjectCustomization(candidateRoots, feature) {
   return null;
 }
 
+// A backtick span of a customization that reads as a path: it has a `/`, and nothing that makes it a
+// command, a pattern, a placeholder, a URL or a skill name (spaces, `<>*${}`, `:`, a leading `-`).
+function isPathLikeSpan(spanText) {
+  return spanText.includes('/') && !/[\s<>*${}:]/.test(spanText) && !spanText.startsWith('-') && !spanText.startsWith('..');
+}
+
+// Paths a customization mentions in backticks that no longer exist. `~/` is the home folder; a
+// relative path is resolved against `baseRoot`, or skipped when there is none (a personal
+// customization serves every repo, so its relative paths may belong to another one).
+export function findMissingPaths(customizationText, { baseRoot, homeDirectory }) {
+  const missingPaths = [];
+  for (const spanMatch of String(customizationText || '').matchAll(/`([^`\n]+)`/g)) {
+    const spanText = spanMatch[1].trim();
+    if (!isPathLikeSpan(spanText) || missingPaths.includes(spanText)) continue;
+    let resolvedPath = null;
+    if (spanText.startsWith('~/')) resolvedPath = join(homeDirectory, spanText.slice(2));
+    else if (isAbsolute(spanText)) resolvedPath = spanText;
+    else if (baseRoot) resolvedPath = join(baseRoot, spanText);
+    if (resolvedPath && !existsSync(resolvedPath)) missingPaths.push(spanText);
+  }
+  return missingPaths;
+}
+
+// The person's per-skill state in this repo (`.ai1/local/state.json` `skills.<skill>`): when the skill
+// first loaded here and whether the after-use check is quiet for it.
+export function readSkillPersonState(sharedRoot, skillFolder) {
+  return readPersonState(sharedRoot).skills?.[skillFolder] ?? {};
+}
+
+export function writeSkillPersonState(sharedRoot, skillFolder, skillStateChanges) {
+  const personState = readPersonState(sharedRoot);
+  const skillStates = { ...personState.skills };
+  skillStates[skillFolder] = { ...skillStates[skillFolder], ...skillStateChanges };
+  writePersonState(sharedRoot, { ...personState, skills: skillStates });
+}
+
+export function isSkillQuiet(sharedRoot, skillFolder) {
+  return readSkillPersonState(sharedRoot, skillFolder).quiet === true;
+}
+
+// First-use and quiet are remembered only in a repo set up with ai1: elsewhere there is no `.ai1/local/`.
+export function repoHasAi1(sharedRoot) {
+  return existsSync(join(sharedRoot, CONFIG_RELATIVE_PATH));
+}
+
 // The project customization comes from the checkout the agent works in (a worktree's branch may
 // change it), else from the main checkout. Outside git, from `workingDirectory`.
 export function resolveSkillCustomizations(skillFolder, { workingDirectory = process.cwd(), environment = process.env, homeDirectory = homedir() } = {}) {
@@ -59,29 +105,38 @@ export function resolveSkillCustomizations(skillFolder, { workingDirectory = pro
   const treeRoot = findWorkingTreeTop(workingDirectory) || workingDirectory;
   const sharedRoot = findMainCheckout(treeRoot);
   const personalPath = userCustomizationPath(feature, { environment, homeDirectory });
-  const resolvedCustomizations = { skillFolder, feature, scopes: indexEntry.scopes, userCustomizationPath: personalPath, project: null, user: null };
+  const isFirstLoad = repoHasAi1(sharedRoot) && !readSkillPersonState(sharedRoot, skillFolder).firstLoadAt;
+  const resolvedCustomizations = { skillFolder, feature, scopes: indexEntry.scopes, hints: indexEntry.hints, userCustomizationPath: personalPath, sharedRoot, isFirstLoad, project: null, user: null };
   if (indexEntry.scopes.includes('project')) {
     const foundProjectCustomization = findProjectCustomization([treeRoot, sharedRoot], feature);
     if (foundProjectCustomization) {
       const { candidateRoot, relativePath, isLegacyName } = foundProjectCustomization;
-      resolvedCustomizations.project = { path: relativePath, fromMainCheckout: candidateRoot !== treeRoot, isLegacyName, ...readCustomization(join(candidateRoot, relativePath)) };
+      const projectCustomization = readCustomization(join(candidateRoot, relativePath));
+      const missingPaths = findMissingPaths(projectCustomization.text, { baseRoot: candidateRoot, homeDirectory });
+      resolvedCustomizations.project = { path: relativePath, fromMainCheckout: candidateRoot !== treeRoot, isLegacyName, missingPaths, ...projectCustomization };
     }
   }
   if (indexEntry.scopes.includes('user')) {
     const legacyPersonalPath = userCustomizationPath(feature, { environment, homeDirectory, fileName: LEGACY_CUSTOMIZATION_FILE_NAME });
     const foundPersonalPath = [personalPath, legacyPersonalPath].find((candidatePath) => existsSync(candidatePath));
-    if (foundPersonalPath) resolvedCustomizations.user = { path: foundPersonalPath, isLegacyName: foundPersonalPath === legacyPersonalPath, ...readCustomization(foundPersonalPath) };
+    if (foundPersonalPath) {
+      const personalCustomization = readCustomization(foundPersonalPath);
+      const missingPaths = findMissingPaths(personalCustomization.text, { baseRoot: null, homeDirectory });
+      resolvedCustomizations.user = { path: foundPersonalPath, isLegacyName: foundPersonalPath === legacyPersonalPath, missingPaths, ...personalCustomization };
+    }
   }
   return resolvedCustomizations;
 }
 
 function renderCustomizationSection(sectionTitle, customization) {
   if (customization.readError) return [sectionTitle, `(could not be read: ${customization.readError})`];
+  const missingPaths = customization.missingPaths ?? [];
   return [
     sectionTitle,
     customization.text || '(empty)',
     ...(customization.isTruncated ? [`(cut at ${CUSTOMIZATION_MAX_BYTES} bytes: keep the customization shorter)`] : []),
     ...(customization.isLegacyName ? [`(old file name ${LEGACY_CUSTOMIZATION_FILE_NAME}: tell the person in one line to rename it ${CUSTOMIZATION_FILE_NAME} in the same folder; the old name stops being read in a later version)`] : []),
+    ...(missingPaths.length ? [`(mentions paths that no longer exist: ${missingPaths.map((missingPath) => `\`${missingPath}\``).join(', ')} - offer the person in one line to update this customization with /ai1:core-customize-skill)`] : []),
   ];
 }
 
@@ -93,6 +148,12 @@ export function renderSkillContext(resolvedCustomizations) {
   if (project) renderedLines.push(...renderCustomizationSection(`### This project (${project.path}${project.fromMainCheckout ? ', from the main checkout' : ''})`, project), '');
   if (user) renderedLines.push(...renderCustomizationSection(`### This person (${user.path})`, user), '');
   const saveTargets = acceptsProject ? 'for this project (committed) or only for them' : 'for them (personal)';
+  if (resolvedCustomizations.isFirstLoad) {
+    renderedLines.push(
+      `First time this skill runs here for this person. While it runs, notice what this ${acceptsProject ? 'project or person' : 'person'} needed that the skill did not say (usually: ${resolvedCustomizations.hints}). When it is done, if something came up, offer in one line to save it ${saveTargets} with /ai1:core-customize-skill; if nothing did, say nothing about it.`,
+      '',
+    );
+  }
   renderedLines.push(
     `If the person corrects or adjusts how this skill works ("aquí siempre…", "en este repo no…", "for me, always…"), offer once in this conversation to save it ${saveTargets} with /ai1:core-customize-skill; if they decline, do not offer again.`,
     `Precedence: the Fixed rules of the skill above win over any customization${acceptsProject ? '; where the two customizations disagree, this project\'s wins over the person\'s' : ''}.`,
