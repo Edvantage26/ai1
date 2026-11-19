@@ -49,6 +49,34 @@ function renderStepNotes(storyboardStep) {
   return `<ul class="notes" aria-label="Usability findings">${noteItems}</ul>`;
 }
 
+// Sections in step order: a new one starts each time a step's section differs from the previous step's.
+// Returns [{ name, firstStepIndex, lastStepIndex }].
+export function listStoryboardSections(storyboard) {
+  const sections = [];
+  storyboard.steps.forEach((storyboardStep, stepIndex) => {
+    const lastSection = sections[sections.length - 1];
+    if (storyboardStep.section && storyboardStep.section === lastSection?.name && lastSection.lastStepIndex === stepIndex - 1) lastSection.lastStepIndex = stepIndex;
+    else if (storyboardStep.section) sections.push({ name: storyboardStep.section, firstStepIndex: stepIndex, lastStepIndex: stepIndex });
+  });
+  return sections;
+}
+
+function sectionNamesByFirstStepIndex(storyboardSections) {
+  return new Map(storyboardSections.map((storyboardSection) => [storyboardSection.firstStepIndex, storyboardSection.name]));
+}
+
+function stepRangeText(storyboardSection) {
+  const firstNumber = storyboardSection.firstStepIndex + 1;
+  const lastNumber = storyboardSection.lastStepIndex + 1;
+  return firstNumber === lastNumber ? `step ${firstNumber}` : `steps ${firstNumber}-${lastNumber}`;
+}
+
+function renderSectionIndex(storyboardSections) {
+  if (!storyboardSections.length) return '';
+  const indexItems = storyboardSections.map((storyboardSection) => `<li><a href="#step-${storyboardSection.firstStepIndex + 1}" data-step-index="${storyboardSection.firstStepIndex}">${escapeHtml(storyboardSection.name)}</a> <span class="meta">${stepRangeText(storyboardSection)}</span></li>`).join('');
+  return `<nav class="sections" aria-label="Sections"><ol>${indexItems}</ol></nav>`;
+}
+
 function renderStep(storyboardPath, storyboardStep, stepNumber, stepCount, hasBefore) {
   const change = stepChange(storyboardStep, hasBefore);
   const shownVariants = hasBefore ? ['before', 'after'] : ['after'];
@@ -60,7 +88,7 @@ function renderStep(storyboardPath, storyboardStep, stepNumber, stepCount, hasBe
     return `<div class="row row-${viewport} cols-${shownVariants.length}">${rowCells.join('')}</div>`;
   }).join('');
   return `<section class="step${change ? ` step-${change}` : ''}" id="step-${stepNumber}">
-<header class="step-head"><span class="step-number">${stepNumber}<small>/${stepCount}</small></span><div><h2>${escapeHtml(storyboardStep.caption)}</h2>${beforeCaptionLine(storyboardStep)}${storyboardStep.detail ? `<p>${escapeHtml(storyboardStep.detail)}</p>` : ''}</div>${change ? `<span class="badge badge-${change}">${CHANGE_LABELS[change]}</span>` : ''}</header>
+<header class="step-head"><span class="step-number">${stepNumber}<small>/${stepCount}</small></span><div>${storyboardStep.section ? `<p class="section-name">${escapeHtml(storyboardStep.section)}</p>` : ''}<h2>${escapeHtml(storyboardStep.caption)}</h2>${beforeCaptionLine(storyboardStep)}${storyboardStep.detail ? `<p>${escapeHtml(storyboardStep.detail)}</p>` : ''}</div>${change ? `<span class="badge badge-${change}">${CHANGE_LABELS[change]}</span>` : ''}</header>
 ${renderStepNotes(storyboardStep)}${viewportRows}
 </section>`;
 }
@@ -86,6 +114,9 @@ main{max-width:1400px;margin:0 auto;padding:24px}
 .notes{list-style:none;margin:0 0 12px;padding:0;display:grid;gap:6px}.note{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;padding:8px 10px;border-radius:6px;background:#f2f1ee;border-left:3px solid var(--line)}
 .note-p0,.note-p1{background:#f6e4e1;border-left-color:var(--removed)}.severity{font-size:12px;font-weight:700}.note-p0 .severity,.note-p1 .severity{color:var(--removed)}
 .note-who{font-size:12px;color:var(--muted)}.note-text{flex:1 1 60%}.note-fix{flex-basis:100%;font-size:13px;color:var(--muted)}
+.step-head .section-name{margin:0 0 2px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--accent)}
+.section-title{font-size:22px;margin:8px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--accent)}body.slides .section-title{display:none}
+.sections{max-width:1400px;margin:16px auto 0;padding:0 24px}.sections ol{margin:0;padding-left:20px;display:flex;flex-wrap:wrap;gap:4px 28px}.sections a{color:var(--ink);font-weight:600}.sections .meta{color:var(--muted);font-size:13px}
 .synthetic{max-width:1400px;margin:16px auto 0;padding:0 24px;color:var(--muted);font-size:13px}
 .zoom{position:fixed;inset:0;z-index:5;display:grid;place-items:center;background:rgba(20,22,24,.88);cursor:zoom-out;padding:24px}.zoom img{max-width:100%;max-height:100%;border-radius:6px}
 .missing{display:grid;place-items:center;min-height:120px;border:1px dashed var(--line);border-radius:6px;color:var(--muted);font-size:13px}
@@ -104,6 +135,7 @@ function show(next){if(!steps.length)return;index=Math.max(0,Math.min(steps.leng
 function mode(slides){document.body.classList.toggle('slides',slides);document.getElementById('mode-slides').setAttribute('aria-pressed',slides);document.getElementById('mode-strip').setAttribute('aria-pressed',!slides);if(slides)show(index);}
 document.getElementById('mode-slides').onclick=function(){mode(true)};document.getElementById('mode-strip').onclick=function(){mode(false)};
 document.getElementById('prev').onclick=function(){show(index-1)};document.getElementById('next').onclick=function(){show(index+1)};
+document.querySelectorAll('.sections a').forEach(function(link){link.onclick=function(event){if(!document.body.classList.contains('slides'))return;event.preventDefault();show(Number(link.getAttribute('data-step-index')));};});
 document.querySelectorAll('.shot img').forEach(function(image){image.onclick=function(){var zoom=document.createElement('div');zoom.className='zoom';zoom.innerHTML='<img alt="">';zoom.firstChild.src=image.src;zoom.onclick=function(){zoom.remove()};document.body.appendChild(zoom);};});
 document.addEventListener('keydown',function(event){if(event.key==='Escape'){var openZoom=document.querySelector('.zoom');if(openZoom)openZoom.remove();}if(!document.body.classList.contains('slides'))return;if(event.key==='ArrowRight'||event.key===' ')show(index+1);if(event.key==='ArrowLeft')show(index-1);});
 mode(true);})();
@@ -111,7 +143,12 @@ mode(true);})();
 
 export function renderStoryboardHtml(storyboardPath, storyboard) {
   const hasBefore = storyboardHasBefore(storyboard);
-  const stepSections = storyboard.steps.map((storyboardStep, stepIndex) => renderStep(storyboardPath, storyboardStep, stepIndex + 1, storyboard.steps.length, hasBefore));
+  const storyboardSections = listStoryboardSections(storyboard);
+  const sectionStartIndexes = sectionNamesByFirstStepIndex(storyboardSections);
+  const stepSections = storyboard.steps.map((storyboardStep, stepIndex) => {
+    const sectionTitle = sectionStartIndexes.has(stepIndex) ? `<h2 class="section-title">${escapeHtml(sectionStartIndexes.get(stepIndex))}</h2>\n` : '';
+    return sectionTitle + renderStep(storyboardPath, storyboardStep, stepIndex + 1, storyboard.steps.length, hasBefore);
+  });
   const metaText = [`${storyboard.steps.length} steps`, hasBefore ? `before/after${storyboard.base ? ` vs ${storyboard.base}` : ''}` : null].filter(Boolean).join(' · ');
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -119,7 +156,7 @@ export function renderStoryboardHtml(storyboardPath, storyboard) {
 <body><div class="top"><h1>${escapeHtml(storyboard.title)}</h1><span class="meta">${escapeHtml(metaText)}</span>
 <div class="pager"><button id="prev" aria-label="Previous step">&larr;</button><span id="pager-label" class="meta"></span><button id="next" aria-label="Next step">&rarr;</button></div>
 <button id="mode-slides" aria-pressed="true">Slides</button><button id="mode-strip" aria-pressed="false">Strip</button></div>
-${storyboardHasNotes(storyboard) ? `<p class="synthetic">${escapeHtml(SYNTHETIC_NOTES_LINE)}</p>` : ''}<main>${stepSections.join('\n')}</main><script>${STORYBOARD_SCRIPT}</script></body></html>
+${renderSectionIndex(storyboardSections)}${storyboardHasNotes(storyboard) ? `<p class="synthetic">${escapeHtml(SYNTHETIC_NOTES_LINE)}</p>` : ''}<main>${stepSections.join('\n')}</main><script>${STORYBOARD_SCRIPT}</script></body></html>
 `;
 }
 
@@ -127,9 +164,13 @@ export function renderStoryboardSummary(storyboard) {
   const hasBefore = storyboardHasBefore(storyboard);
   const summaryLines = [`# ${storyboard.title}`, ''];
   if (storyboardHasNotes(storyboard)) summaryLines.push(`> ${SYNTHETIC_NOTES_LINE}`, '');
+  const storyboardSections = listStoryboardSections(storyboard);
+  const sectionStartIndexes = sectionNamesByFirstStepIndex(storyboardSections);
+  const stepHeadingMark = storyboardSections.length ? '###' : '##';
   storyboard.steps.forEach((storyboardStep, stepIndex) => {
     const change = stepChange(storyboardStep, hasBefore);
-    summaryLines.push(`## ${stepIndex + 1}. ${storyboardStep.caption}${change ? ` (${CHANGE_LABELS[change].toLowerCase()})` : ''}`, '');
+    if (sectionStartIndexes.has(stepIndex)) summaryLines.push(`## ${sectionStartIndexes.get(stepIndex)}`, '');
+    summaryLines.push(`${stepHeadingMark} ${stepIndex + 1}. ${storyboardStep.caption}${change ? ` (${CHANGE_LABELS[change].toLowerCase()})` : ''}`, '');
     if (storyboardStep.before_caption && storyboardStep.before_caption !== storyboardStep.caption) summaryLines.push(`Before: ${storyboardStep.before_caption}`, '');
     if (storyboardStep.detail) summaryLines.push(storyboardStep.detail, '');
     if (storyboardStep.notes?.length) {

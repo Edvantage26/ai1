@@ -17,6 +17,8 @@ export const IMAGES_FOLDER_NAME = 'images';
 export const VARIANTS = ['before', 'after'];
 export const VIEWPORTS = ['desktop', 'mobile'];
 export const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.webp'];
+// Free texts (step detail, section, file card) are meant to be short: over this, `add`/`file` warn.
+export const MAX_SHORT_TEXT_LENGTH = 200;
 const BEFORE_WORKTREE_SUFFIX = '-before';
 const MAX_STEP_ID_LENGTH = 48;
 
@@ -59,13 +61,20 @@ function emptyStoryboard(slug) {
   return { version: STORYBOARD_VERSION, title: slug, created_at: new Date().toISOString(), steps: [] };
 }
 
+// One warning per given text over MAX_SHORT_TEXT_LENGTH; `namedTexts` maps an option name to its text.
+export function longTextWarnings(namedTexts) {
+  return Object.entries(namedTexts)
+    .filter(([, givenText]) => typeof givenText === 'string' && givenText.trim().length > MAX_SHORT_TEXT_LENGTH)
+    .map(([optionName, givenText]) => `${optionName} is ${givenText.trim().length} characters; keep it to one or two short lines (${MAX_SHORT_TEXT_LENGTH} max)`);
+}
+
 function requireChoice(optionName, optionValue, allowedValues) {
   if (!allowedValues.includes(optionValue)) throw new Error(`${optionName} must be one of ${allowedValues.join(', ')} (got "${optionValue}")`);
 }
 
 // Adds one capture to the step with that id (created at the end when new). The same step, variant and
-// viewport again replaces the image. Returns { storyboard, step, imagePath }.
-export function addCapture(storyboardPath, slug, { caption, imageFile, variant = 'after', viewport = 'desktop', detail, stepId, title, base }) {
+// viewport again replaces the image. Returns { storyboard, step, imagePath, warnings }.
+export function addCapture(storyboardPath, slug, { caption, imageFile, variant = 'after', viewport = 'desktop', detail, section, stepId, title, base }) {
   if (!caption?.trim()) throw new Error('--step "<what the user does or sees>" is required');
   if (!imageFile || !existsSync(imageFile) || !statSync(imageFile).isFile()) throw new Error(`--image must be an existing image file (got "${imageFile ?? ''}")`);
   const imageExtension = extname(imageFile).toLowerCase();
@@ -87,6 +96,7 @@ export function addCapture(storyboardPath, slug, { caption, imageFile, variant =
   }
   if (variant === 'before') storyboardStep.before_caption = caption.trim();
   if (detail) storyboardStep.detail = detail;
+  if (section?.trim()) storyboardStep.section = section.trim();
 
   const imageRelativePath = `${IMAGES_FOLDER_NAME}/${resolvedStepId}-${variant}-${viewport}${imageExtension}`;
   const sourcePath = resolve(imageFile);
@@ -98,7 +108,7 @@ export function addCapture(storyboardPath, slug, { caption, imageFile, variant =
     .concat({ variant, viewport, image: imageRelativePath, source: { path: sourcePath, size: sourceStats.size, mtime_ms: sourceStats.mtimeMs } });
   storyboard.updated_at = new Date().toISOString();
   writeJsonFile(join(storyboardPath, STEPS_FILE_NAME), storyboard);
-  return { storyboard, step: storyboardStep, imagePath: imageRelativePath };
+  return { storyboard, step: storyboardStep, imagePath: imageRelativePath, warnings: longTextWarnings({ '--detail': detail, '--section': section }) };
 }
 
 // Findings about a step (from /ai1:design-review-usability): `notes` on the step, each

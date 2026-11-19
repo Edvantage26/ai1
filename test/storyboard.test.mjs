@@ -370,3 +370,37 @@ test('a second review replaces the notes: --clear removes them; bad step or seve
   buildStoryboard(storyboardPath);
   assert.doesNotMatch(readFileSync(join(storyboardPath, 'index.html'), 'utf8'), /class="note |findings are synthetic/);
 });
+
+test('sections group consecutive steps: a header per section, an index and summary headings [storyboard-files:S1]', () => {
+  const projectRoot = createUiRepo();
+  const screenshot = writeScreenshot(projectRoot, 'shot.png');
+  const addStep = (caption, section) => runAi1(projectRoot, ['storyboard', 'add', '--slug', 'upload', '--step', caption, '--image', screenshot, ...(section ? ['--section', section] : [])]);
+  assert.equal(addStep('Opens the import page').status, 0);
+  addStep('Picks the spreadsheet', 'Subida del Excel');
+  addStep('Sees the rows checked', 'Subida del Excel');
+  addStep('Downloads the report', 'Informe generado');
+  // `add` without --section keeps the step's section
+  addStep('Sees the rows checked');
+
+  const storyboardPath = storyboardDirectory(projectRoot, 'upload');
+  assert.deepEqual(readStoryboard(storyboardPath).steps.map((storyboardStep) => storyboardStep.section ?? null), [null, 'Subida del Excel', 'Subida del Excel', 'Informe generado']);
+  assert.equal(runAi1(projectRoot, ['storyboard', 'build', '--slug', 'upload']).status, 0);
+  const storyboardHtml = readFileSync(join(storyboardPath, 'index.html'), 'utf8');
+  assert.match(storyboardHtml, /<nav class="sections"[\s\S]*Subida del Excel<\/a> <span class="meta">steps 2-3[\s\S]*Informe generado<\/a> <span class="meta">step 4/);
+  assert.equal((storyboardHtml.match(/class="section-title"/g) ?? []).length, 2);
+  assert.match(storyboardHtml, /<h2 class="section-title">Subida del Excel<\/h2>\n<section class="step" id="step-2">/);
+  const summaryText = readFileSync(join(storyboardPath, 'SUMMARY.md'), 'utf8');
+  assert.match(summaryText, /### 1\. Opens the import page[\s\S]*## Subida del Excel\n\n### 2\. Picks the spreadsheet[\s\S]*## Informe generado\n\n### 4\./);
+});
+
+test('a detail or section over 200 characters is recorded with a warning to shorten it [storyboard-files:S4]', () => {
+  const projectRoot = createUiRepo();
+  const screenshot = writeScreenshot(projectRoot, 'shot.png');
+  const longDetail = 'The process validates every column of the spreadsheet and '.repeat(5);
+  const addRun = runAi1(projectRoot, ['storyboard', 'add', '--slug', 'long', '--step', 'Uploads the file', '--image', screenshot, '--detail', longDetail]);
+  assert.equal(addRun.status, 0, addRun.stderr);
+  assert.match(addRun.stdout, /warning: --detail is \d+ characters; keep it to one or two short lines \(200 max\)/);
+  assert.equal(readStoryboard(storyboardDirectory(projectRoot, 'long')).steps[0].detail, longDetail);
+  const shortRun = runAi1(projectRoot, ['storyboard', 'add', '--slug', 'long', '--step', 'Sees it', '--image', screenshot, '--detail', 'Short']);
+  assert.doesNotMatch(shortRun.stdout, /warning/);
+});

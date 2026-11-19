@@ -1,5 +1,5 @@
 // `ai1 storyboard ...`: the storyboard of a visual change (see .ai1/okf/features/storyboard.md).
-//   add --step "<caption>" --image <file> [--variant before|after] [--viewport desktop|mobile] [--detail ...] [--id ...] [--title ...] [--base ...]
+//   add --step "<caption>" --image <file> [--variant before|after] [--viewport desktop|mobile] [--detail ...] [--section ...] [--id ...] [--title ...] [--base ...]
 //   note --step <id> --severity P0|P1|P2|P3 --text "..." [--profile <name>] [--fix "..."] [--viewport desktop|mobile] | note --clear
 //                                findings on a step (from /ai1:design-review-usability); --clear removes them all
 //   build [--pdf]                index.html + SUMMARY.md (+ storyboard.pdf)
@@ -13,7 +13,7 @@ import { buildStoryboard } from '../storyboard/storyboard-build.mjs';
 import { printStoryboardPdf } from '../storyboard/storyboard-pdf.mjs';
 import { listStoryboards, serveStoryboard, stopStoryboardServer } from '../storyboard/storyboard-serve.mjs';
 
-export const STORYBOARD_USAGE = 'ai1 storyboard add --step "<caption>" --image <file> [--variant before|after] [--viewport desktop|mobile] [--detail "..."] [--id <step-id>] [--title "..."] [--base <branch>] | note --step <step-id> --severity P0|P1|P2|P3 --text "..." [--profile <name>] [--fix "..."] [--viewport desktop|mobile] | note --clear | build [--pdf] | serve [--host <host>] [--port <n>] [--ttl <hours>] | stop | list | clean  (all take --slug <name>)';
+export const STORYBOARD_USAGE = 'ai1 storyboard add --step "<caption>" --image <file> [--variant before|after] [--viewport desktop|mobile] [--detail "..."] [--section "..."] [--id <step-id>] [--title "..."] [--base <branch>] | note --step <step-id> --severity P0|P1|P2|P3 --text "..." [--profile <name>] [--fix "..."] [--viewport desktop|mobile] | note --clear | build [--pdf] | serve [--host <host>] [--port <n>] [--ttl <hours>] | stop | list | clean  (all take --slug <name>)';
 
 // Prints the result and returns the exit code.
 export function runStoryboardCommand(treeRoot, commandArguments, { readOption }) {
@@ -26,12 +26,13 @@ export function runStoryboardCommand(treeRoot, commandArguments, { readOption })
 
   if (subcommandName === 'add') {
     const { slug, storyboardPath } = resolveStoryboard();
-    const { storyboard, step, imagePath } = addCapture(storyboardPath, slug, {
+    const { storyboard, step, imagePath, warnings } = addCapture(storyboardPath, slug, {
       caption: readOption('--step'), imageFile: readOption('--image'), variant: readOption('--variant'), viewport: readOption('--viewport'),
-      detail: readOption('--detail'), stepId: readOption('--id'), title: readOption('--title'), base: readOption('--base'),
+      detail: readOption('--detail'), section: readOption('--section'), stepId: readOption('--id'), title: readOption('--title'), base: readOption('--base'),
     });
     const stepNumber = storyboard.steps.indexOf(step) + 1;
     console.log(`step ${stepNumber} "${step.caption}" (id ${step.id}): ${imagePath} | storyboard ${slug}, ${storyboard.steps.length} steps`);
+    for (const warning of warnings) console.log(`warning: ${warning}`);
     return 0;
   }
   if (subcommandName === 'note') {
