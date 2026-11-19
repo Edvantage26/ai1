@@ -1,11 +1,11 @@
 ---
 type: Decision
 title: The person within a project - local by default, shared definitions committed, sealed sync on request
-description: Why a person's role, subscriptions, contacts and state in a project live in the repo's ignored .ai1/local/, what is committed (maintainers, watches, project contacts), and why the optional sealed copy uses only node:crypto (2026-11-18).
-tags: [decision, person, local, maintainers, watches, messages, seal]
+description: Why a person's role, subscriptions, contacts and state in a project live in the repo's ignored .ai1/local/, what is committed (maintainers, watches, project contacts), why the optional sealed copy uses only node:crypto (2026-11-18), and why any of their machines opens it by SSH key or password (2026-11-19).
+tags: [decision, person, local, maintainers, watches, messages, seal, ssh]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-18T08:51:46Z'
+  at: '2026-11-19T18:42:51Z'
 sources:
   - id: person-project
     resource: src/core/person-project.mjs
@@ -35,6 +35,17 @@ of what was shipped, and [messages](../features/messages.md) to the project's co
   externo") and on Linux and Windows. Chosen: an ai1 X25519 key and the age-like construction with
   Node's built-ins, explicit `ai1 local seal|unseal`, never `state.json`. Not automatic: committing
   churn and keeping every version in history forever are costs the person takes knowingly.
+- **Any of the person's machines opens it: SSH keys first, a password as fallback, or plain by choice
+  (2026-11-19, issue #4).** The person wanted their git user to open and seal their files from any PC,
+  with SSH or HTTPS remotes and on hosts such as Azure DevOps / TFS. Rejected on the way: carrying the
+  ai1 key by hand (today's `ai1 keys import`), a password as the only path ("no quiero que el usuario
+  memorice nada"), the key in a separate private repo ("Ah repo aparte? No me gusta") and linking
+  machines by approving each new one from another ("lo de vincular pc no me gusta"). Chosen ("puede ser
+  ssh automatico, en su defecto password"): format v2 sealed for every `ssh-ed25519` key the git host
+  publishes for them and each machine's own key, plus the ai1 key closed with an optional password; a
+  plain, only compressed `.packed` file when they choose it. This supersedes "not the SSH key" of the
+  first version: a small OpenSSH reader in Node replaces it, passphrase SSH keys stay out (bcrypt).
+  Detail in [the person within a project](../architecture/person-project-scope.md).
 - **Watches follow a release; they are not monitoring.** A hook only reminds and reads state; checks
   run from `ai1 watch run` (a scheduler or the agent on a yes); results are counted since the release
   and the person confirms it works for them. Asked 2026-11-18 ("que sea proactivo ... cuántas veces ha

@@ -1,12 +1,21 @@
 ---
 type: Architecture
 title: The person within a project (.ai1/local, maintainers, sealed sync)
-description: A third configuration scope next to the project and the person - the person within one project - kept in the repo's ignored .ai1/local/, with their role from the committed maintainers list, the state ai1 writes for them, and an optional sealed copy in the repo that only their key opens (node:crypto only).
-tags: [architecture, person, local, maintainers, seal, crypto, cross-platform]
+description: A third configuration scope next to the project and the person - the person within one project - kept in the repo's ignored .ai1/local/, with their role from the committed maintainers list, the state ai1 writes for them, and an optional copy in the repo that only their keys open (their SSH keys, the ai1 key, a password) or, by choice, only compressed (node:crypto only).
+tags: [architecture, person, local, maintainers, seal, crypto, ssh, cross-platform]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-18T16:52:08Z'
+  at: '2026-11-19T18:42:51Z'
 sources:
+  - id: ssh-keys
+    resource: src/core/ssh-keys.mjs
+    title: ssh-ed25519 keys read with Node, converted to X25519
+  - id: published-keys
+    resource: src/core/published-keys.mjs
+    title: The person's keys published by GitHub/GitLab (CLI only)
+  - id: secret-input
+    resource: src/cli/secret-input.mjs
+    title: Hidden password prompt
   - id: person-project
     resource: src/core/person-project.mjs
     title: .ai1/local, git email, role
@@ -40,8 +49,10 @@ neither: a person's role, subscriptions, contacts and the state ai1 keeps for th
 | Their routines | `.ai1/local/routines.json` ([routines](../features/routines.md)) | no |
 | Their relation and tone with each contact | `.ai1/local/contacts.md` | no |
 | What ai1 writes for them (notices, results) | `.ai1/local/state.json` | never, not even sealed |
-| Their sealed copy (optional) | `.ai1/contributors/<email>.sealed` | yes, by them |
-| Their sealing key | `~/.config/ai1/identity.key` (`$XDG_CONFIG_HOME/ai1/`) | never |
+| Their sealed copy (optional) | `.ai1/contributors/<email>.sealed` (encrypted) or `<email>.packed` (plain mode, only compressed) | yes, by them |
+| Their ai1 key, if any | `~/.config/ai1/identity.key` (`$XDG_CONFIG_HOME/ai1/`) | never |
+| That key closed with their password | `~/.config/ai1/identity-password` (also inside every `.sealed`) | never as a file |
+| Their published SSH keys, last fetched | `~/.config/ai1/published-keys.json` | never |
 
 The sealed copies live in `.ai1/contributors/` (renamed from `people/` before release, 2026-11-18): it holds
 the data of those who work in the repo, apart from the project's contacts in `.ai1/okf/people/`.
@@ -66,19 +77,58 @@ and where it came from. Maintainers get the [maintenance tasks](../features/main
 
 # Sealed sync
 
-For the person who wants their local files in other clones: `ai1 keys init` writes an X25519 key
-(PKCS#8 DER, one base64 line) and prints it once to keep in a password manager; `ai1 keys import`
-reads it from stdin on another machine. `ai1 local seal` puts `profile.json`, `subscriptions.json`,
-`contacts.md` and `routines.json` (those present) as JSON into `.ai1/contributors/<email>.sealed`; `ai1 local unseal` writes the
-missing ones back and refuses to replace a different one without `--force`.
+For the person who wants their local files in other clones. `ai1 local seal` puts `profile.json`,
+`subscriptions.json`, `contacts.md` and `routines.json` (those present) as JSON into
+`.ai1/contributors/<email>.sealed`; `ai1 local unseal` writes the missing ones back and refuses to replace
+a different one without `--force`.
 
-Format `ai1-sealed-v1`: an ephemeral X25519 key per seal, ECDH with the person's public key, HKDF-SHA256
-(salt: both public keys, info `ai1-seal-v1`), AES-256-GCM with a random 12-byte nonce; header lines,
-then base64 in 64-character lines. The reader ignores CR, so git's `autocrlf` on Windows cannot break it
-(no `.gitattributes` needed). Another key fails with "this file was sealed for another key: only its
-owner can open it". Only `node:crypto`, bundled with Node on every platform; no age, sops or gpg (the
-person asked for nothing external). Not the SSH key: Node cannot read OpenSSH keys without a parser,
-and passphrase keys need bcrypt.
+**Any of the person's machines opens it** (issue #4, built 2026-11-19; the person: "que mi usuario git
+sea desde el pc que sea pueda abrir esa config", without memorising anything as the main path, without
+an extra repo and without linking machines). Who a seal is for:
+
+- **Their `ssh-ed25519` keys published by their git host** (`https://github.com/<user>.keys`,
+  `https://gitlab.com/<user>.keys`): fetched only by the CLI (`ai1 local sync on`, `ai1 local seal`,
+  `ai1 keys published github:<user>`; when no account is set it asks `ssh -T git@github.com` /
+  `git@gitlab.com`, timeout, fails open) and kept in `published-keys.json`, so the Stop hook seals for them
+  with no network. A fetch replaces only the `published` recipients; a fetch failure keeps the last list.
+- **Each machine's own usable `ssh-ed25519` key** (`~/.ssh/*.pub` with an unencrypted private pair),
+  added at every seal as a `machine` recipient, so a machine that sealed once opens later versions by SSH.
+- **The ai1 key** (`ai1 keys init|import`), optional: the machine's, else the previous file's.
+- **A password**, optional fallback: `ai1 local password` closes the ai1 key with it (scrypt N=2^17,
+  r=8, ~0.9 s; 12 characters minimum, empty = a generated one shown once; creates the ai1 key silently if
+  there is none) into `identity-password`, copied into every sealed file. On a machine no key opens,
+  `! ai1 local unlock` (hidden prompt, or stdin) brings the ai1 key back once; later sessions there never
+  ask. The password never reaches the agent and is never computed in a hook.
+- `ai1 local recipients` lists them; `ai1 local recipients remove <fingerprint>` reseals without one
+  (older versions in history still open with it).
+
+Keys read with Node only (`src/core/ssh-keys.mjs`): OpenSSH public lines and `openssh-key-v1` private
+files with cipher `none`; Ed25519 -> X25519 as age and libsodium do (public: u = (1+y)/(1-y) mod 2^255-19;
+private: SHA-512 of the seed, clamped), checked against libsodium's known answer. Not usable, and named as
+such in the notice: passphrase-protected keys (would need bcrypt-pbkdf; the password covers them), RSA and
+other types, keys only in `ssh-agent` or on hardware tokens.
+
+Format `ai1-sealed-v2`: a random 32-byte file key encrypts the body with AES-256-GCM, the header lines
+being its additional data (no line can be swapped); each recipient line carries that key closed for it
+(ephemeral X25519 -> HKDF-SHA256, salt both public keys, info `ai1-seal-v2` -> AES-256-GCM):
+`recipient: x25519 <fingerprint> <ephemeral> <closed key>` (the ai1 key),
+`recipient: ssh-ed25519 <fingerprint> <public blob> <ephemeral> <closed key> published|machine`,
+`identity-public: <spki>`, `identity-password: <fingerprint> <salt> <log2 N> <closed ai1 key>`; then a
+blank line and base64 in 64-character lines. SSH fingerprints are the SHA-256 of the OpenSSH blob (16
+hex). `ai1-sealed-v1` (one ai1-key recipient) is still read; the next seal writes v2; an unknown
+`ai1-sealed-vN` says to update ai1. The reader ignores CR, so git's `autocrlf` on Windows cannot break it.
+Only `node:crypto` and `node:zlib`, bundled with Node on every platform; no age, sops, gpg or ssh-keygen
+(the person asked for nothing external).
+
+**Plain mode** (the person: "que se elija si es encriptado o solo compresion", told apart "por la
+extensión"): `ai1 local sync on --plain` (`profile.json` `sealedMode: "plain"`) writes
+`.ai1/contributors/<email>.packed` = `ai1-plain-v1`, blank line, base64 of deflate(JSON): compressed, NOT
+encrypted, opened by any clone with the person's git email and no key. It warns every time it is turned on
+(ai1 cannot tell a public repo without network). Switching mode writes the new file and removes the other
+in the same seal; both present (a merge) -> nothing applied, one message to keep one.
+
+Not covered (open on issue #4): sealing needs nothing secret, so anyone with write access could commit a
+file under someone else's email (in plain mode, edit theirs), as before v2.
 
 # Automatic sync
 
@@ -93,17 +143,25 @@ itself; `ai1 local sync off` stops it (`profile.json` `sealedSync`), `ai1 local 
 - `local-sync-start` (SessionStart, core): the sealed file changed since that point (a pull) -> unsealed
   into `.ai1/local/`.
 - Both changed: nothing is overwritten; the person gets one message (`systemMessage`, never the agent's
-  context: no tokens) to choose `ai1 local seal` or `ai1 local unseal --force`. A machine without the key,
-  or a key that does not open it, is told once too.
+  context: no tokens) to choose `ai1 local seal` or `ai1 local unseal --force`.
+- `local-sync-start` opens with the ai1 key or any usable `~/.ssh` key that is a recipient, with no
+  question. None: one message per sealed version naming the keys tried, a usable key that is not a
+  recipient yet (and how to publish it: `gh ssh-key add`), the keys not usable here and why, and
+  `! ai1 local unlock` when the file carries a password (else `ai1 keys import`).
+- `local-sync-stop` seals with no ai1 key when anyone is a recipient (previous file, published list, this
+  machine's key); nobody at all is told once.
 - Cost: no git call unless `.ai1/contributors/` exists or the person turned it on; a fingerprint is
-  ~0.04 ms, a seal ~1.2 ms, an unseal ~0.5 ms (20 KB, measured 2026-11-18).
+  ~0.04 ms, a seal ~2.2 ms with two SSH recipients, an open ~0.5 ms, listing `~/.ssh` ~0.6 ms (20 KB,
+  measured 2026-11-19). No network and no scrypt in a hook.
 
-Risks said to the person at `ai1 keys init`: a lost key loses the data; a leaked key opens every
-sealed version in the history.
+Risks said to the person: a lost key loses the data (the password or any recipient SSH key gets it
+back); a leaked key or password opens every sealed version in the history.
 
 # Validate
 
-`node --test test/person-project.test.mjs test/person-seal.test.mjs`: roles (listed, case, no list,
-no email, profile override), init writes the list once, a committed fixture (`test/fixtures/person-seal/`,
-a test-only key) opens with LF and CRLF, another key and a tampered file are refused, seal on one clone
-and unseal on another with the imported key.
+`node --test test/ssh-keys.test.mjs test/person-seal.test.mjs test/published-keys.test.mjs`: the
+Ed25519 -> X25519 known answer and round trips, which `~/.ssh` keys are usable and why not; v2 with
+several recipients, a swapped header line or body byte refused, the v1 fixture (`test/fixtures/person-seal/`,
+a test-only key) still opens and is rewritten as v2; password set, unlock once, wrong password; published
+keys fetched and replaced, machine keys kept, recipients removed; the hooks for scenarios
+`[seal-any-machine:S1..S5]` (plan in `.ai1/work/seal-any-machine/`); plain mode and both files present.
