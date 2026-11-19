@@ -49,7 +49,7 @@ export const FEATURES = [
   {
     id: 'design',
     title: 'UI design rules and checks',
-    description: 'For repos with a frontend. Gives the agent the UI rules at session start (read the product and design-system context, avoid the generic AI look, keep a quality floor) and checks every UI file it edits with deterministic rules (overused fonts, purple gradients, low contrast, skipped headings, tiny text...), reporting what the edit introduced. Skill /ai1:design-review-usability checks that a flow is intuitive for the people who use it: an agent that knows only their profile and the goal tries the task, every step is walked, findings land on the storyboard. Points to the impeccable and frontend-design skills when they are installed.',
+    description: 'For repos with a frontend. Gives the agent the UI rules at session start (read the product and design-system context, avoid the generic AI look, keep a quality floor) and checks every UI file it edits with deterministic rules (overused fonts, purple gradients, low contrast, skipped headings, tiny text...), reporting what the edit introduced. Skill /ai1:design-gather-brand gathers the brand of a client (colours, logo, typefaces, images) from the repo, other projects of the person with that client (`ai1 brand find`), its website and the person, and records it so the design uses it. Skill /ai1:design-review-usability checks that a flow is intuitive for the people who use it: an agent that knows only their profile and the goal tries the task, every step is walked, findings land on the storyboard. Points to the impeccable and frontend-design skills when they are installed.',
     enabledByDefault: true,
   },
   {

@@ -5,7 +5,7 @@ description: UI rules at session start and deterministic design checks on every 
 tags: [design, frontend, ui, hooks, context, impeccable]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T11:56:07Z'
+  at: '2026-11-19T10:37:03Z'
 sources:
   - id: design-rules
     resource: src/design/design-rules.mjs
@@ -16,6 +16,12 @@ sources:
   - id: design-brief
     resource: src/design/design-brief.mjs
     title: SessionStart recipe
+  - id: brand-find
+    resource: src/design/brand-find.mjs
+    title: ai1 brand find
+  - id: gather-brand
+    resource: skills/design-gather-brand/SKILL.md
+    title: /ai1:design-gather-brand
 ---
 
 # Why
@@ -51,6 +57,36 @@ the agent to ask the person and record it before a sizeable UI task.
 The user profiles live in a `## Users` section of the `Product` concept, one `### <name>` per profile
 (who they are, what they already know, device, what they come to do): the same heading Impeccable
 uses in `PRODUCT.md`, so both read one context.
+
+# Client brand (/ai1:design-gather-brand, ai1 brand find, since v0.51.0)
+
+Asked by the person on 2026-11-19: designing a client's web, the agent neither looked at the client's
+colours, logo or images nor asked for them, nor reused them from other projects with that client, and
+frontend-design made up a style from scratch.
+
+- **Where it lives**: the `DesignSystem` concept carries `brand_owner: <client>` in its frontmatter
+  and a `## Brand` section, one short line each for Logo, Colours (hex + role), Typefaces and Imagery,
+  each with its source (this repo, another repo, a URL, the person). Without a bundle, `DESIGN.md`.
+  Assets are copied into the repo's static folder.
+- **Brief** (`design-brief`): with no `## Brand` recorded, one line sends to /ai1:design-gather-brand
+  before designing a client's UI; with one, it names the file and says to design with its colours, logo
+  and typefaces. The frontend-design line says to set the direction within the brand.
+- **Skill** (customizable, project + person): who the client is (`Product`, `ai1 contacts`, else ask),
+  then in order this repo, `ai1 brand find`, the sources of the customization, the client's website
+  (logo in the header, og:image or a large favicon; main colours; fonts its CSS loads), and the person
+  for what is still missing; record, show a short summary. Fixed rules: never invent or use a doubtful
+  logo, every item has its source, the client's own images only for the client's web. Offered by the
+  brief only: whether a web is for a client depends on the task (a hook that blocks UI edits without a
+  brand was rejected).
+- **`ai1 brand find "<owner>" [--json]`**: repos from the decision-log `.repo` sidecars
+  (`listLoggedRepositories`, every repo where ai1 ran on this machine) and `related`, each read through
+  its bundle; `DesignSystem` concepts whose `brand_owner` matches exactly after dropping case, accents
+  and punctuation (another client's brand is worse than none); the current repo (by main checkout)
+  excluded; backticked asset paths made absolute. No network.
+- The person's private sources (their tools and folders of client logos) go in their customization of
+  the skill, never in the plugin ([host tooling stays out](../decisions/host-tooling-out-of-plugin.md)).
+- Finding: the worst-case session start was at 9497 of 9500 characters before this line; the brief
+  wording was tightened to fit (the session-start budget test caught it).
 
 # Usability review (/ai1:design-review-usability, since v0.37.0)
 

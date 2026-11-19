@@ -21,6 +21,7 @@ export const SKILL_CUSTOMIZATION_INDEX = {
   'verify-evaluate-llm-prompts': { customizable: true, scopes: PROJECT_AND_USER, hints: 'where the reference cases live, the models and budget allowed, how runs are compared and recorded here' },
   'storyboard-record-flow': { customizable: true, scopes: PROJECT_AND_USER, hints: 'how the app starts here, how to log in (a test user, a seed), the routes of the main flows, viewports, where storyboards are published' },
   'reuse-encapsulate': { customizable: true, scopes: PROJECT_AND_USER, hints: 'where this repo keeps scripts and project skills, its naming, what must never be encapsulated' },
+  'design-gather-brand': { customizable: true, scopes: PROJECT_AND_USER, hints: 'where this person keeps clients\' logos and brand files (folders, tools), which client a repo is for' },
   'design-review-usability': { customizable: true, scopes: PROJECT_AND_USER, hints: 'who the users are when no Product concept says it, the start URL and test account, which flows matter most' },
   'watches-follow-release': { customizable: true, scopes: PROJECT_AND_USER, hints: 'how production is checked here (a health URL, a log or metrics command, the platform CLI), how long releases are followed' },
   'messages-draft-message': { customizable: true, scopes: PROJECT_AND_USER, hints: 'the tool that sends messages for this person, their signature, default language and tone' },
