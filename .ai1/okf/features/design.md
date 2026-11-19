@@ -58,7 +58,7 @@ The user profiles live in a `## Users` section of the `Product` concept, one `##
 (who they are, what they already know, device, what they come to do): the same heading Impeccable
 uses in `PRODUCT.md`, so both read one context.
 
-# Client brand (/ai1:design-gather-brand, ai1 brand find, since v0.51.0)
+# Client brand (/ai1:design-gather-brand, ai1 brand find, since v0.52.0)
 
 Asked by the person on 2026-11-19: designing a client's web, the agent neither looked at the client's
 colours, logo or images nor asked for them, nor reused them from other projects with that client, and
