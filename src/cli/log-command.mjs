@@ -8,11 +8,10 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { listStateDirectoriesToRead, readDecisionLog } from '../core/decision-log.mjs';
+import { listLoggedRepositories, readDecisionLog } from '../core/decision-log.mjs';
 
 const NOTEWORTHY_DECISIONS = new Set(['ask', 'deny', 'block', 'error']);
 const RECENT_ENTRY_COUNT = 10;
-const DECISION_LOG_FILE = /^decisions-([0-9a-f]+)\.jsonl$/;
 // How Claude Code records a permission the person refused (tool_result with is_error).
 const REFUSAL_TEXT = /doesn't want to proceed with this tool use|tool use was rejected/;
 
@@ -76,22 +75,8 @@ export function formatDecisionSummary(decisionSummary) {
 
 // Every repo's log in every state dir: [{ hash, name, path, entries }], named by its `.repo` sidecar.
 export function readAllDecisionLogs(environment = process.env, homeDirectory = homedir()) {
-  const repoLogs = new Map();
-  for (const stateDirectory of listStateDirectoriesToRead(environment, homeDirectory)) {
-    for (const stateFileName of readdirSync(stateDirectory)) {
-      const logHash = stateFileName.match(DECISION_LOG_FILE)?.[1];
-      if (!logHash) continue;
-      const sidecarPath = join(stateDirectory, `decisions-${logHash}.repo`);
-      const repoLog = repoLogs.get(logHash) || { hash: logHash, name: logHash, path: null };
-      try {
-        if (existsSync(sidecarPath)) Object.assign(repoLog, JSON.parse(readFileSync(sidecarPath, 'utf8')));
-      } catch {
-        // A broken sidecar only loses the name.
-      }
-      repoLogs.set(logHash, repoLog);
-    }
-  }
-  return [...repoLogs.values()].map((repoLog) => ({ ...repoLog, entries: repoLog.path ? readDecisionLog(repoLog.path, environment, homeDirectory) : [] }))
+  return listLoggedRepositories(environment, homeDirectory)
+    .map((repoLog) => ({ ...repoLog, entries: repoLog.path ? readDecisionLog(repoLog.path, environment, homeDirectory) : [] }))
     .filter((repoLog) => repoLog.entries.length);
 }
 

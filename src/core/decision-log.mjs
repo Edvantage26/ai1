@@ -70,6 +70,29 @@ export function listStateDirectoriesToRead(environment = process.env, homeDirect
   return [...pluginStateDirectories, fallbackDirectory].filter((stateDirectory) => existsSync(stateDirectory));
 }
 
+const DECISION_LOG_FILE = /^decisions-([0-9a-f]+)\.jsonl$/;
+
+// Every repo with a decision log on this machine: [{ hash, name, path }], named by the log's `.repo`
+// sidecar (path null when it has none or it is broken).
+export function listLoggedRepositories(environment = process.env, homeDirectory = homedir()) {
+  const loggedRepositories = new Map();
+  for (const stateDirectory of listStateDirectoriesToRead(environment, homeDirectory)) {
+    for (const stateFileName of readdirSync(stateDirectory)) {
+      const logHash = stateFileName.match(DECISION_LOG_FILE)?.[1];
+      if (!logHash) continue;
+      const loggedRepository = loggedRepositories.get(logHash) || { hash: logHash, name: logHash, path: null };
+      const sidecarPath = join(stateDirectory, `decisions-${logHash}.repo`);
+      try {
+        if (existsSync(sidecarPath)) Object.assign(loggedRepository, JSON.parse(readFileSync(sidecarPath, 'utf8')));
+      } catch {
+        // A broken sidecar only loses the name.
+      }
+      loggedRepositories.set(logHash, loggedRepository);
+    }
+  }
+  return [...loggedRepositories.values()];
+}
+
 function readLogLines(logPath) {
   return [`${logPath}.1`, logPath].filter((candidatePath) => existsSync(candidatePath)).flatMap((candidatePath) => readFileSync(candidatePath, 'utf8').split('\n'))
     .flatMap((logLine) => {

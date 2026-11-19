@@ -34,6 +34,7 @@ import { runMaintainCommand, MAINTAIN_USAGE } from '../src/cli/maintain-command.
 import { runWatchCommandLine, WATCH_USAGE } from '../src/cli/watch-command.mjs';
 import { runRoutineCommandLine, ROUTINE_USAGE } from '../src/cli/routine-command.mjs';
 import { loadContacts, formatContacts } from '../src/messages/contacts.mjs';
+import { findRecordedBrands, formatRecordedBrands } from '../src/design/brand-find.mjs';
 import { runKeysCommand, runLocalCommand, SEAL_USAGE } from '../src/cli/seal-command.mjs';
 import { runReuseCommand, REUSE_USAGE } from '../src/cli/reuse-command.mjs';
 import { runStoryboardCommand, STORYBOARD_USAGE } from '../src/cli/storyboard-command.mjs';
@@ -47,7 +48,7 @@ import { describeOverlap } from '../src/core/plugin-overlaps.mjs';
 import { resolveBundleDirectory, readBundleIndex } from '../src/okf/okf-bundle.mjs';
 import { buildFileMap } from '../src/okf/okf-file-map.mjs';
 import { checkClaudeMdFiles, formatClaudeMdReport } from '../src/okf/okf-claude-md-check.mjs';
-import { KNOWLEDGE_BUNDLE_PATH } from '../src/core/config.mjs';
+import { KNOWLEDGE_BUNDLE_PATH, loadHarnessConfig } from '../src/core/config.mjs';
 import { describeMigrationReports } from '../src/core/migrations.mjs';
 
 const [commandName, ...commandArguments] = process.argv.slice(2);
@@ -207,6 +208,16 @@ try {
     const [contactName] = commandArguments.filter((commandArgument) => !commandArgument.startsWith('--'));
     const contacts = loadContacts(repoRoot, findMainCheckout(repoRoot)).filter((contact) => !contactName || contact.name.toLowerCase().includes(contactName.toLowerCase()));
     console.log(wantsJson ? JSON.stringify(contacts, null, 2) : formatContacts(contacts));
+  } else if (commandName === 'brand') {
+    const [subcommandName, ownerName] = commandArguments.filter((commandArgument) => !commandArgument.startsWith('--'));
+    if (subcommandName !== 'find' || !ownerName) {
+      console.log('usage: ai1 brand find "<client or owner name>" [--json]');
+      process.exitCode = 1;
+    } else {
+      const loadedConfig = loadHarnessConfig(repoRoot);
+      const recordedBrands = findRecordedBrands({ projectRoot: repoRoot, ownerName, relatedEntries: loadedConfig.config?.related ?? [] });
+      console.log(wantsJson ? JSON.stringify(recordedBrands, null, 2) : formatRecordedBrands(ownerName, recordedBrands));
+    }
   } else if (commandName === 'maintain') {
     const cliResult = runMaintainCommand(repoRoot, commandArguments);
     console.log(cliResult.output);
