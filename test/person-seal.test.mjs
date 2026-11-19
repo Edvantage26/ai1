@@ -169,6 +169,69 @@ test('sealed sync hooks: the stop hook seals through the dispatcher and says not
   assert.doesNotMatch(JSON.stringify(hookOutput || {}), /sealed|additionalContext/);
 });
 
+test('password: set on one machine, a machine with no usable key unlocks once and never asks again [seal-any-machine:S2]', () => {
+  const projectRoot = createRepoFor('ana@x.com');
+  const firstMachine = createPathOptions();
+  mkdirSync(join(projectRoot, '.ai1', 'local'), { recursive: true });
+  writeFileSync(join(projectRoot, '.ai1', 'local', 'contacts.md'), '## Laura\nTuteo.\n');
+  assert.match(runLocalCommand(projectRoot, ['password'], { pathOptions: firstMachine, secretText: 'short' }).output, /at least 12 characters/);
+  assert.equal(existsSync(identityKeyPath(firstMachine)), false, 'nothing is created on a refused password');
+  assert.match(runLocalCommand(projectRoot, ['password'], { pathOptions: firstMachine, secretText: 'correct horse battery' }).output, /password set/);
+  runLocalCommand(projectRoot, ['seal'], { pathOptions: firstMachine });
+  const sealedText = readFileSync(join(projectRoot, '.ai1', 'contributors', 'ana@x.com.sealed'), 'utf8');
+  assert.match(sealedText, /^identity-password: /m, 'the file carries the ai1 key closed with the password');
+  assert.doesNotMatch(sealedText, /correct horse battery/);
+
+  const otherClone = createRepoFor('ana@x.com');
+  mkdirSync(join(otherClone, '.ai1', 'contributors'), { recursive: true });
+  writeFileSync(join(otherClone, '.ai1', 'contributors', 'ana@x.com.sealed'), sealedText);
+  const keylessMachine = createPathOptions();
+  assert.throws(() => runLocalCommand(otherClone, ['unlock'], { pathOptions: keylessMachine, secretText: 'wrong horse battery' }), /wrong password/);
+  assert.match(runLocalCommand(otherClone, ['unlock'], { pathOptions: keylessMachine, secretText: 'correct horse battery' }).output, /unlocked: .*no password again here.*unsealed contacts\.md/);
+  assert.equal(readFileSync(join(otherClone, '.ai1', 'local', 'contacts.md'), 'utf8'), '## Laura\nTuteo.\n');
+  assert.equal(readFileSync(identityKeyPath(keylessMachine), 'utf8'), readFileSync(identityKeyPath(firstMachine), 'utf8'), 'the same ai1 key is back on this machine');
+  writeFileSync(join(otherClone, '.ai1', 'local', 'contacts.md'), '## Laura\nChanged here.\n');
+  runLocalCommand(otherClone, ['seal'], { pathOptions: keylessMachine });
+  assert.match(readFileSync(join(otherClone, '.ai1', 'contributors', 'ana@x.com.sealed'), 'utf8'), /^identity-password: /m, 'a reseal keeps the password line');
+  assert.match(runLocalCommand(otherClone, ['unseal', '--force'], { pathOptions: keylessMachine }).output, /unsealed/, 'later opens need no password');
+});
+
+test('password: an empty one is generated and shown once; unlock refuses to replace another ai1 key without --force; changing it needs the key', () => {
+  const projectRoot = createRepoFor('ana@x.com');
+  const firstMachine = createPathOptions();
+  mkdirSync(join(projectRoot, '.ai1', 'local'), { recursive: true });
+  writeFileSync(join(projectRoot, '.ai1', 'local', 'contacts.md'), '## Laura\n');
+  runKeysCommand(['init'], { pathOptions: firstMachine });
+  runLocalCommand(projectRoot, ['seal'], { pathOptions: firstMachine });
+  const generatedOutput = runLocalCommand(projectRoot, ['password'], { pathOptions: firstMachine, secretText: '' }).output;
+  const generatedPassword = generatedOutput.match(/shown once; [^:]*: (\S+)/)[1];
+  assert.match(generatedPassword, /^[a-z2-9]{5}(-[a-z2-9]{5}){4}$/);
+  assert.match(generatedOutput, /resealed your file here/);
+  const machineWithOtherKey = createPathOptions();
+  runKeysCommand(['init'], { pathOptions: machineWithOtherKey });
+  assert.match(runLocalCommand(projectRoot, ['unlock'], { pathOptions: machineWithOtherKey, secretText: generatedPassword }).output, /already has another ai1 key/);
+  assert.match(runLocalCommand(projectRoot, ['unlock', '--force'], { pathOptions: machineWithOtherKey, secretText: generatedPassword }).output, /unlocked/);
+  assert.match(runLocalCommand(projectRoot, ['password'], { pathOptions: createPathOptions(), secretText: 'another long password' }).output, /run `! ai1 local unlock` with your current password first/);
+});
+
+test('password prompt: read from a terminal without echo, Backspace removes, Ctrl+C cancels', async () => {
+  const { EventEmitter } = await import('node:events');
+  const { readSecretLine } = await import('../src/cli/secret-input.mjs');
+  const createFakeTerminal = () => Object.assign(new EventEmitter(), { isTTY: true, setRawMode() {}, resume() {}, pause() {}, setEncoding() {} });
+  const writtenText = [];
+  const outputStream = { write: (text) => writtenText.push(text) };
+  const fakeTerminal = createFakeTerminal();
+  const secretPromise = readSecretLine('ai1 password: ', { inputStream: fakeTerminal, outputStream });
+  fakeTerminal.emit('data', 'secrex\u007ft');
+  fakeTerminal.emit('data', '\r');
+  assert.equal(await secretPromise, 'secret');
+  assert.doesNotMatch(writtenText.join(''), /secre/);
+  const cancelledTerminal = createFakeTerminal();
+  const cancelledPromise = readSecretLine('ai1 password: ', { inputStream: cancelledTerminal, outputStream });
+  cancelledTerminal.emit('data', 'ab\u0003');
+  await assert.rejects(cancelledPromise, /cancelled/);
+});
+
 test('seal v2: one file for the ai1 key and several ssh-ed25519 keys; each opens it, another key does not', () => {
   const identityPrivateKey = parseIdentityText(generateIdentityText());
   const laptopHome = mkdtempSync(join(tmpdir(), 'ai1-home-'));

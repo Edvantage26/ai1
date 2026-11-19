@@ -35,7 +35,8 @@ import { runWatchCommandLine, WATCH_USAGE } from '../src/cli/watch-command.mjs';
 import { runRoutineCommandLine, ROUTINE_USAGE } from '../src/cli/routine-command.mjs';
 import { loadContacts, formatContacts } from '../src/messages/contacts.mjs';
 import { findRecordedBrands, formatRecordedBrands } from '../src/design/brand-find.mjs';
-import { runKeysCommand, runLocalCommand, SEAL_USAGE } from '../src/cli/seal-command.mjs';
+import { runKeysCommand, runLocalCommand, SEAL_USAGE, PASSWORD_SUBCOMMANDS } from '../src/cli/seal-command.mjs';
+import { readPasswordFor } from '../src/cli/secret-input.mjs';
 import { runReuseCommand, REUSE_USAGE } from '../src/cli/reuse-command.mjs';
 import { runStoryboardCommand, STORYBOARD_USAGE } from '../src/cli/storyboard-command.mjs';
 import { runOkfCommand, OKF_USAGE } from '../src/cli/okf-command.mjs';
@@ -199,9 +200,10 @@ try {
     console.log(cliResult.output);
     process.exitCode = cliResult.exitCode;
   } else if (commandName === 'keys' || commandName === 'local') {
+    const secretText = commandName === 'local' && PASSWORD_SUBCOMMANDS.includes(commandArguments[0]) ? await readPasswordFor(commandArguments[0]) : undefined;
     const cliResult = commandName === 'keys'
       ? runKeysCommand(commandArguments, { readStandardInput: () => readFileSync(0, 'utf8') })
-      : runLocalCommand(repoRoot, commandArguments);
+      : runLocalCommand(repoRoot, commandArguments, { secretText });
     console.log(cliResult.output);
     process.exitCode = cliResult.exitCode;
   } else if (commandName === 'contacts') {

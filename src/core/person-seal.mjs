@@ -5,7 +5,7 @@
 // The private key lives in the person's ai1 config folder, never in a repo; the sealed file is base64
 // text, read the same with LF or CRLF line ends. `state.json` is never sealed.
 
-import { createCipheriv, createDecipheriv, createHash, createPrivateKey, createPublicKey, diffieHellman, generateKeyPairSync, hkdfSync, randomBytes } from 'node:crypto';
+import { createCipheriv, createDecipheriv, createHash, createPrivateKey, createPublicKey, diffieHellman, generateKeyPairSync, hkdfSync, randomBytes, scryptSync } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -66,6 +66,79 @@ export function readIdentity(pathOptions) {
 
 export function readIdentityIfPresent(pathOptions) {
   return existsSync(identityKeyPath(pathOptions)) ? readIdentity(pathOptions) : null;
+}
+
+// ---- Password fallback: the ai1 key closed with the person's password (scrypt -> AES-256-GCM) ----
+// One line, `identity-password: <ai1 key fingerprint> <salt> <log2 N> <closed key>`, kept in the person's
+// ai1 config folder and copied into every sealed file, so a machine with no usable key gets the ai1 key
+// back with the password once (`ai1 local unlock`). Never computed in a hook: scrypt is slow on purpose.
+
+export const MIN_PASSWORD_LENGTH = 12;
+const PASSWORD_SCRYPT_LOG_N = 17;
+const PASSWORD_SCRYPT_BLOCK_SIZE = 8;
+const PASSWORD_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
+
+export function identityPasswordPath({ environment = process.env, homeDirectory = homedir() } = {}) {
+  return join(userConfigDirectory(environment, homeDirectory), 'identity-password');
+}
+
+function derivePasswordKey(passwordText, saltBytes, scryptLogN) {
+  const costFactor = 2 ** scryptLogN;
+  return scryptSync(String(passwordText).normalize('NFC'), saltBytes, 32, {
+    N: costFactor, r: PASSWORD_SCRYPT_BLOCK_SIZE, p: 1, maxmem: 128 * costFactor * PASSWORD_SCRYPT_BLOCK_SIZE * 2,
+  });
+}
+
+// Five groups of five letters and digits without look-alikes (about 120 bits).
+export function generatePassword() {
+  const randomValues = randomBytes(25);
+  const passwordCharacters = [...randomValues].map((randomValue) => PASSWORD_ALPHABET[randomValue % PASSWORD_ALPHABET.length]);
+  return [0, 5, 10, 15, 20].map((groupStart) => passwordCharacters.slice(groupStart, groupStart + 5).join('')).join('-');
+}
+
+export function closeIdentityWithPassword(identityPrivateKey, passwordText) {
+  if (String(passwordText).length < MIN_PASSWORD_LENGTH) throw new Error(`the password needs at least ${MIN_PASSWORD_LENGTH} characters (leave it empty and ai1 makes one for you)`);
+  const saltBytes = randomBytes(16);
+  const closedKey = encryptWithKey(derivePasswordKey(passwordText, saltBytes, PASSWORD_SCRYPT_LOG_N), identityPrivateKey.export({ format: 'der', type: 'pkcs8' }));
+  return `identity-password: ${keyFingerprint(createPublicKey(identityPrivateKey))} ${saltBytes.toString('base64')} ${PASSWORD_SCRYPT_LOG_N} ${closedKey.toString('base64')}`;
+}
+
+function parseIdentityPasswordLine(passwordLine) {
+  const [lineName, fingerprint, saltBase64, scryptLogNText, closedKeyBase64] = String(passwordLine || '').trim().split(/\s+/);
+  const scryptLogN = Number(scryptLogNText);
+  if (lineName !== 'identity-password:' || !closedKeyBase64 || !Number.isInteger(scryptLogN) || scryptLogN < 10 || scryptLogN > 22) return null;
+  return { fingerprint, saltBytes: Buffer.from(saltBase64, 'base64'), scryptLogN, closedKey: Buffer.from(closedKeyBase64, 'base64') };
+}
+
+export function openIdentityWithPassword(passwordLine, passwordText) {
+  const parsedLine = parseIdentityPasswordLine(passwordLine);
+  if (!parsedLine) throw new Error('broken identity-password line');
+  let pkcs8Bytes;
+  try {
+    pkcs8Bytes = decryptWithKey(derivePasswordKey(passwordText, parsedLine.saltBytes, parsedLine.scryptLogN), parsedLine.closedKey);
+  } catch {
+    throw new Error('wrong password');
+  }
+  return parseIdentityText(pkcs8Bytes.toString('base64'));
+}
+
+export function readIdentityPasswordLine(pathOptions) {
+  const passwordPath = identityPasswordPath(pathOptions);
+  return existsSync(passwordPath) ? readFileSync(passwordPath, 'utf8').trim() : null;
+}
+
+export function writeIdentityPasswordLine(passwordLine, pathOptions) {
+  const passwordPath = identityPasswordPath(pathOptions);
+  mkdirSync(dirname(passwordPath), { recursive: true });
+  writeFileSync(passwordPath, `${passwordLine.trim()}\n`, { mode: 0o600 });
+  return passwordPath;
+}
+
+// The password line that belongs to this ai1 key (the person's config first, then the previous file's).
+function passwordLineFor(identityPublicKey, candidateLines) {
+  if (!identityPublicKey) return null;
+  const identityFingerprint = keyFingerprint(identityPublicKey);
+  return candidateLines.find((candidateLine) => parseIdentityPasswordLine(candidateLine)?.fingerprint === identityFingerprint) || null;
 }
 
 function deriveKey(sharedSecret, ephemeralPublicDer, recipientPublicDer, hkdfInfo = HKDF_INFO) {
@@ -251,10 +324,11 @@ export function collectSealRecipients(repoRoot, personEmail, pathOptions) {
   for (const machineKey of listMachineSshKeys(pathOptions).usableKeys) {
     if (!knownFingerprints.has(machineKey.fingerprint)) sshRecipients.push({ publicBlob: machineKey.publicBlob, origin: 'machine' });
   }
+  const identityPublicKey = identityPrivateKey ? createPublicKey(identityPrivateKey) : previousSealed?.identityPublicKey || null;
   return {
-    identityPublicKey: identityPrivateKey ? createPublicKey(identityPrivateKey) : previousSealed?.identityPublicKey || null,
+    identityPublicKey,
     sshRecipients,
-    identityPasswordLine: previousSealed?.identityPasswordLine || null,
+    identityPasswordLine: passwordLineFor(identityPublicKey, [readIdentityPasswordLine(pathOptions), previousSealed?.identityPasswordLine].filter(Boolean)),
   };
 }
 
