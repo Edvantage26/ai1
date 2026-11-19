@@ -245,8 +245,36 @@ test('design-brief: with frontend-design installed, its tokens go to the DesignS
   mkdirSync(join(homeDirectory, '.claude', 'plugins'), { recursive: true });
   writeFileSync(join(homeDirectory, '.claude', 'plugins', 'installed_plugins.json'), JSON.stringify({ version: 2, plugins: { 'frontend-design@claude-plugins-official': [] } }));
   const contextText = startSessionContext(projectRoot, hookOptions(homeDirectory));
-  assert.match(contextText, /frontend-design skill is installed: use it to set the visual direction[\s\S]*the `DesignSystem` concept/);
+  assert.match(contextText, /frontend-design skill is installed: use it for the visual direction[\s\S]*the `DesignSystem` concept/);
   assert.doesNotMatch(contextText, /\/impeccable critique/, 'each installed skill is detected on its own');
+});
+
+test('design-brief: with no recorded brand, says to gather the client brand first and frontend-design works within it [design-client-brand:S1]', () => {
+  const projectRoot = createFrontendProject({ features: { okf: true, design: true } });
+  mkdirSync(join(projectRoot, '.ai1', 'okf', 'design'), { recursive: true });
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'index.md'), '---\nokf_version: "0.2"\n---\n# Index\n');
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'design', 'system.md'), '---\ntype: DesignSystem\ntitle: Design system\n---\n## Palette\nBlue.\n');
+  const homeDirectory = mkdtempSync(join(tmpdir(), 'ai1-home-'));
+  mkdirSync(join(homeDirectory, '.claude', 'plugins'), { recursive: true });
+  writeFileSync(join(homeDirectory, '.claude', 'plugins', 'installed_plugins.json'), JSON.stringify({ version: 2, plugins: { 'frontend-design@claude-plugins-official': [] } }));
+  const contextText = startSessionContext(projectRoot, hookOptions(homeDirectory));
+  assert.match(contextText, /- Client brand: gather it first \(colours, logo, images: \/ai1:design-gather-brand\); design within it/);
+  assert.match(contextText, /frontend-design skill is installed: use it for the visual direction of new UI within the brand; record/);
+  assert.match(startSessionContext(createFrontendProject({ features: { okf: true, design: true } })), /- Client brand: gather it first/, 'also with no design context at all');
+});
+
+test('design-brief: with a recorded brand, says to design with it and does not ask to gather it [design-client-brand:S2]', () => {
+  const projectRoot = createFrontendProject({ features: { okf: true, design: true } });
+  mkdirSync(join(projectRoot, '.ai1', 'okf', 'design'), { recursive: true });
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'index.md'), '---\nokf_version: "0.2"\n---\n# Index\n');
+  writeFileSync(join(projectRoot, '.ai1', 'okf', 'design', 'system.md'), '---\ntype: DesignSystem\ntitle: Design system\nbrand_owner: Clínica Sol\n---\n## Brand\n- Logo: `public/logo.svg`\n');
+  const contextText = startSessionContext(projectRoot);
+  assert.match(contextText, /- Brand: recorded in `\.ai1\/okf\/design\/system\.md` \(`## Brand`\): design with its colours, logo and typefaces/);
+  assert.doesNotMatch(contextText, /design-gather-brand/);
+
+  const impeccableProject = createFrontendProject({ features: { okf: false, design: true } });
+  writeFileSync(join(impeccableProject, 'DESIGN.md'), '# Design\n## Brand\n- Colours: #123456 primary\n');
+  assert.match(startSessionContext(impeccableProject), /- Brand: recorded in `DESIGN\.md`/);
 });
 
 test('design-brief: on by default but quiet in a repo without a frontend', () => {
