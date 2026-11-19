@@ -8,7 +8,7 @@ import { normalizeEmail, readGitUserEmail, readPersonProfile, writePersonProfile
 import {
   generateIdentityText, parseIdentityText, writeIdentityFile, readIdentity, readIdentityIfPresent, identityKeyPath, keyFingerprint, sealLocalFiles, unsealLocalFiles, isSealedSyncOn,
   sealedFilePath, parseSealedText, CONTRIBUTORS_DIRECTORY, MIN_PASSWORD_LENGTH, generatePassword, closeIdentityWithPassword, openIdentityWithPassword,
-  writeIdentityPasswordLine, localFilesHash,
+  writeIdentityPasswordLine, localFilesHash, findPersonFile,
 } from '../core/person-seal.mjs';
 import { readPublishedKeys, refreshPublishedKeys, setKeySources } from '../core/published-keys.mjs';
 
@@ -152,8 +152,8 @@ export function runLocalCommand(repoRoot, commandArguments, { pathOptions, secre
   const sharedRoot = findMainCheckout(repoRoot);
   const personEmail = readGitUserEmail(repoRoot);
   if (subcommandName === 'seal') {
-    const { sealedPath, fileNames } = sealLocalFiles(repoRoot, sharedRoot, personEmail, pathOptions);
-    return { output: `sealed ${fileNames.join(', ')} into ${sealedPath}: only your key opens it; commit it to carry them to your other clones (state.json is never sealed). From now on ai1 keeps it in sync by itself (ai1 local sync off stops it)`, exitCode: 0 };
+    const { sealedPath, fileNames, isPlainMode } = sealLocalFiles(repoRoot, sharedRoot, personEmail, pathOptions);
+    return { output: `${isPlainMode ? 'packed' : 'sealed'} ${fileNames.join(', ')} into ${sealedPath}: ${isPlainMode ? 'compressed, NOT encrypted (anyone with the repo reads it)' : 'only your keys open it'}; commit it to carry them to your other clones (state.json is never sealed). From now on ai1 keeps it in sync by itself (ai1 local sync off stops it)`, exitCode: 0 };
   }
   if (subcommandName === 'unseal') {
     const { fileNames, replaced } = unsealLocalFiles(repoRoot, sharedRoot, personEmail, { force: commandArguments.includes('--force'), ...pathOptions });
@@ -164,13 +164,27 @@ export function runLocalCommand(repoRoot, commandArguments, { pathOptions, secre
   if (subcommandName === 'unlock') return unlockWithPassword(repoRoot, sharedRoot, personEmail, { secretText, force: commandArguments.includes('--force'), pathOptions });
   if (subcommandName === 'sync') {
     const [, syncSetting] = commandArguments;
-    if (syncSetting === 'on' || syncSetting === 'off') {
-      writePersonProfile(sharedRoot, { ...readPersonProfile(sharedRoot), sealedSync: syncSetting === 'on' });
-      return { output: syncSetting === 'on'
-        ? 'sealed sync on: your .ai1/local/ is sealed at the end of a turn when it changed, and unsealed at session start when a newer copy arrives'
-        : 'sealed sync off: ai1 no longer seals or unseals by itself (ai1 local seal|unseal still work)', exitCode: 0 };
+    if (syncSetting === 'off') {
+      writePersonProfile(sharedRoot, { ...readPersonProfile(sharedRoot), sealedSync: false });
+      return { output: 'sealed sync off: ai1 no longer seals or unseals by itself (ai1 local seal|unseal still work)', exitCode: 0 };
     }
-    if (syncSetting === 'status' || syncSetting === undefined) return { output: `sealed sync: ${isSealedSyncOn(repoRoot, sharedRoot, personEmail) ? 'on' : 'off'}`, exitCode: 0 };
+    if (syncSetting === 'on') {
+      const sealedMode = commandArguments.includes('--plain') ? 'plain' : 'encrypted';
+      const previousMode = readPersonProfile(sharedRoot).sealedMode === 'plain' ? 'plain' : 'encrypted';
+      writePersonProfile(sharedRoot, { ...readPersonProfile(sharedRoot), sealedSync: true, sealedMode });
+      const outputLines = [sealedMode === 'plain'
+        ? `sealed sync on, PLAIN: your .ai1/local/ goes to ${CONTRIBUTORS_DIRECTORY}/<email>.packed only compressed, NOT encrypted - anyone who can read this repo reads your profile, contacts, subscriptions and routines. \`ai1 local sync on\` turns encryption back on.`
+        : 'sealed sync on: your .ai1/local/ is sealed (encrypted) at the end of a turn when it changed, and unsealed at session start when a newer copy arrives'];
+      if (sealedMode !== previousMode && findPersonFile(repoRoot, personEmail) && localFilesHash(sharedRoot)) {
+        const { sealedPath } = sealLocalFiles(repoRoot, sharedRoot, personEmail, pathOptions);
+        outputLines.push(`switched to ${sealedPath} (the other file is removed); commit both changes`);
+      }
+      return { output: outputLines.join('\n'), exitCode: 0 };
+    }
+    if (syncSetting === 'status' || syncSetting === undefined) {
+      const syncOn = isSealedSyncOn(repoRoot, sharedRoot, personEmail);
+      return { output: `sealed sync: ${syncOn ? `on (${readPersonProfile(sharedRoot).sealedMode === 'plain' ? 'plain, not encrypted' : 'encrypted'})` : 'off'}`, exitCode: 0 };
+    }
   }
   return { output: `usage: ${SEAL_USAGE}`, exitCode: 1 };
 }

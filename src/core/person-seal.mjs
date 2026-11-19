@@ -6,7 +6,8 @@
 // text, read the same with LF or CRLF line ends. `state.json` is never sealed.
 
 import { createCipheriv, createDecipheriv, createHash, createPrivateKey, createPublicKey, diffieHellman, generateKeyPairSync, hkdfSync, randomBytes, scryptSync } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { deflateSync, inflateSync } from 'node:zlib';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { AI1_DIRECTORY } from './config.mjs';
@@ -18,6 +19,7 @@ import { ed25519PublicToX25519, listMachineSshKeys, parsePublicKeyLine, publicKe
 
 export const SEALED_HEADER = 'ai1-sealed-v2';
 export const SEALED_HEADER_V1 = 'ai1-sealed-v1';
+export const PACKED_HEADER = 'ai1-plain-v1';
 export const CONTRIBUTORS_DIRECTORY = `${AI1_DIRECTORY}/contributors`;
 export const SEALED_FILE_NAMES = [PROFILE_FILE_NAME, 'subscriptions.json', 'contacts.md', 'routines.json'];
 const HKDF_INFO = 'ai1-seal-v1';
@@ -349,22 +351,65 @@ export function sealLocalFiles(repoRoot, sharedRoot, personEmail, pathOptions, {
     if (existsSync(localPath)) localFiles[fileName] = readFileSync(localPath, 'utf8');
   }
   if (!Object.keys(localFiles).length) throw new Error(`nothing to seal in .ai1/local/ (${SEALED_FILE_NAMES.join(', ')})`);
-  const sealedPath = sealedFilePath(repoRoot, personEmail);
+  const payloadBytes = Buffer.from(JSON.stringify({ version: 1, files: localFiles }));
+  const isPlainMode = readPersonProfile(sharedRoot).sealedMode === 'plain';
+  const sealedPath = isPlainMode ? packedFilePath(repoRoot, personEmail) : sealedFilePath(repoRoot, personEmail);
   mkdirSync(dirname(sealedPath), { recursive: true });
-  writeFileSync(sealedPath, sealForRecipients(Buffer.from(JSON.stringify({ version: 1, files: localFiles })), sealRecipients));
+  writeFileSync(sealedPath, isPlainMode ? packBytes(payloadBytes) : sealForRecipients(payloadBytes, sealRecipients));
+  rmSync(isPlainMode ? sealedFilePath(repoRoot, personEmail) : packedFilePath(repoRoot, personEmail), { force: true });
   recordSyncPoint(sharedRoot, { localHash: localFilesHash(sharedRoot), sealedHash: sealedFileHash(repoRoot, personEmail) });
-  return { sealedPath, fileNames: Object.keys(localFiles) };
+  return { sealedPath, fileNames: Object.keys(localFiles), isPlainMode };
+}
+
+// ---- Plain mode: `<email>.packed`, only compressed (deflate), readable by anyone with the repo ----
+
+export function packedFilePath(repoRoot, personEmail) {
+  return join(repoRoot, CONTRIBUTORS_DIRECTORY, `${normalizeEmail(personEmail)}.packed`);
+}
+
+export function packBytes(plainBytes) {
+  return [PACKED_HEADER, '', wrapBase64(deflateSync(plainBytes).toString('base64')), ''].join('\n');
+}
+
+export function unpackText(packedText) {
+  const packedLines = String(packedText).split(/\r?\n/).map((packedLine) => packedLine.trim());
+  if (packedLines[0] !== PACKED_HEADER) throw new Error(`not an ai1 packed file (expected "${PACKED_HEADER}")`);
+  try {
+    return inflateSync(Buffer.from(packedLines.slice(packedLines.indexOf('') + 1).join(''), 'base64'));
+  } catch {
+    throw new Error('broken ai1 packed file');
+  }
+}
+
+// The person's file in this repo: { kind: 'sealed' | 'packed' | 'both', filePath } or null.
+export function findPersonFile(repoRoot, personEmail) {
+  if (!normalizeEmail(personEmail)) return null;
+  const sealedPath = sealedFilePath(repoRoot, personEmail);
+  const packedPath = packedFilePath(repoRoot, personEmail);
+  const hasSealed = existsSync(sealedPath);
+  const hasPacked = existsSync(packedPath);
+  if (hasSealed && hasPacked) return { kind: 'both', filePath: sealedPath };
+  if (hasSealed) return { kind: 'sealed', filePath: sealedPath };
+  return hasPacked ? { kind: 'packed', filePath: packedPath } : null;
+}
+
+const BOTH_FILES_MESSAGE = 'both your encrypted (.sealed) and your plain (.packed) file are in the repo: keep one - `ai1 local sync on` (encrypted) or `ai1 local sync on --plain`, then `ai1 local seal`';
+
+// The person's files from this repo's .sealed or .packed, opened with this machine's keys.
+function readPersonPayload(repoRoot, personEmail, pathOptions) {
+  const personFile = findPersonFile(repoRoot, personEmail || '');
+  if (!personFile) throw new Error(`no sealed file for ${personEmail || 'your git email'} at ${CONTRIBUTORS_DIRECTORY}/`);
+  if (personFile.kind === 'both') throw new Error(BOTH_FILES_MESSAGE);
+  const fileText = readFileSync(personFile.filePath, 'utf8');
+  const plainBytes = personFile.kind === 'packed'
+    ? unpackText(fileText)
+    : openSealedText(fileText, { identityPrivateKey: readIdentityIfPresent(pathOptions), machineSshKeys: listMachineSshKeys(pathOptions).usableKeys }).plainBytes;
+  return JSON.parse(plainBytes.toString('utf8'));
 }
 
 // Writes the sealed files that are missing in .ai1/local/; refuses to replace different ones unless forced.
 export function unsealLocalFiles(repoRoot, sharedRoot, personEmail, { force = false, ...pathOptions } = {}) {
-  const sealedPath = sealedFilePath(repoRoot, personEmail || '');
-  if (!normalizeEmail(personEmail) || !existsSync(sealedPath)) throw new Error(`no sealed file for ${personEmail || 'your git email'} at ${CONTRIBUTORS_DIRECTORY}/`);
-  const { plainBytes } = openSealedText(readFileSync(sealedPath, 'utf8'), {
-    identityPrivateKey: readIdentityIfPresent(pathOptions),
-    machineSshKeys: listMachineSshKeys(pathOptions).usableKeys,
-  });
-  const sealedPayload = JSON.parse(plainBytes.toString('utf8'));
+  const sealedPayload = readPersonPayload(repoRoot, personEmail, pathOptions);
   const localDirectory = localDirectoryPath(sharedRoot);
   const conflictingNames = Object.entries(sealedPayload.files).filter(([fileName, fileText]) => {
     const localPath = join(localDirectory, fileName);
@@ -401,8 +446,10 @@ export function localFilesHash(sharedRoot) {
 
 // Fingerprint of the person's sealed file in this checkout, the same with LF or CRLF (null when missing).
 export function sealedFileHash(repoRoot, personEmail) {
-  const sealedPath = normalizeEmail(personEmail) ? sealedFilePath(repoRoot, personEmail) : null;
-  return sealedPath && existsSync(sealedPath) ? hashText(readFileSync(sealedPath, 'utf8').replace(/\r/g, '')) : null;
+  const personFile = findPersonFile(repoRoot, personEmail);
+  if (!personFile) return null;
+  const filePaths = personFile.kind === 'both' ? [sealedFilePath(repoRoot, personEmail), packedFilePath(repoRoot, personEmail)] : [personFile.filePath];
+  return hashText(filePaths.map((filePath) => readFileSync(filePath, 'utf8').replace(/\r/g, '')).join('\n'));
 }
 
 function readSyncPoint(sharedRoot) {
@@ -424,7 +471,7 @@ export function mayUseSealedSync(repoRoot, sharedRoot) {
 export function isSealedSyncOn(repoRoot, sharedRoot, personEmail) {
   const syncSetting = readPersonProfile(sharedRoot).sealedSync;
   if (syncSetting === false || !normalizeEmail(personEmail)) return false;
-  return syncSetting === true || existsSync(sealedFilePath(repoRoot, personEmail));
+  return syncSetting === true || Boolean(findPersonFile(repoRoot, personEmail));
 }
 
 // A message for the person once per situation (the same conflict or missing key is not repeated).
@@ -486,11 +533,10 @@ export function syncLocalFilesAtStart({ repoRoot, sharedRoot, personEmail, pathO
   const sealedHash = sealedFileHash(repoRoot, personEmail);
   const syncPoint = readSyncPoint(sharedRoot);
   if (!sealedHash || sealedHash === syncPoint.sealedHash) return { action: 'none' };
-  const sealedText = readFileSync(sealedFilePath(repoRoot, personEmail), 'utf8');
   try {
-    openSealedText(sealedText, { identityPrivateKey: readIdentityIfPresent(pathOptions), machineSshKeys: listMachineSshKeys(pathOptions).usableKeys });
+    readPersonPayload(repoRoot, personEmail, pathOptions);
   } catch (openError) {
-    if (openError.code === 'AI1_NO_MATCHING_KEY') return noKeyNotice(sharedRoot, sealedText, sealedHash, personEmail, pathOptions);
+    if (openError.code === 'AI1_NO_MATCHING_KEY') return noKeyNotice(sharedRoot, readFileSync(sealedFilePath(repoRoot, personEmail), 'utf8'), sealedHash, personEmail, pathOptions);
     return noticeOnce(sharedRoot, `unseal-failed:${sealedHash}`, `ai1: could not open your sealed .ai1/local/: ${openError.message}`);
   }
   const localHash = localFilesHash(sharedRoot);

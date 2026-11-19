@@ -169,6 +169,38 @@ test('sealed sync hooks: the stop hook seals through the dispatcher and says not
   assert.doesNotMatch(JSON.stringify(hookOutput || {}), /sealed|additionalContext/);
 });
 
+test('plain mode: `sync on --plain` warns, writes <email>.packed (compressed, not encrypted) any clone unpacks with no key; switching back restores .sealed [seal-any-machine:S4]', () => {
+  const firstMachine = createPathOptions();
+  runKeysCommand(['init'], { pathOptions: firstMachine });
+  const firstClone = createRepoFor('ana@x.com');
+  mkdirSync(join(firstClone, '.ai1', 'local'), { recursive: true });
+  writeFileSync(join(firstClone, '.ai1', 'local', 'contacts.md'), '## Laura\nTuteo.\n');
+  runLocalCommand(firstClone, ['seal'], { pathOptions: firstMachine });
+  const contributorsDirectory = join(firstClone, '.ai1', 'contributors');
+  const switchOutput = runLocalCommand(firstClone, ['sync', 'on', '--plain'], { pathOptions: firstMachine }).output;
+  assert.match(switchOutput, /PLAIN: .*<email>\.packed only compressed, NOT encrypted - anyone who can read this repo reads/);
+  assert.match(switchOutput, /switched to .*ana@x\.com\.packed \(the other file is removed\)/);
+  assert.equal(existsSync(join(contributorsDirectory, 'ana@x.com.sealed')), false);
+  const packedText = readFileSync(join(contributorsDirectory, 'ana@x.com.packed'), 'utf8');
+  assert.match(packedText, /^ai1-plain-v1\n\n/);
+  assert.doesNotMatch(packedText, /Laura/, 'compressed, not readable as is');
+  assert.equal(runLocalCommand(firstClone, ['sync', 'status']).output, 'sealed sync: on (plain, not encrypted)');
+
+  const secondClone = createRepoFor('ana@x.com');
+  mkdirSync(join(secondClone, '.ai1', 'contributors'), { recursive: true });
+  writeFileSync(join(secondClone, '.ai1', 'contributors', 'ana@x.com.packed'), packedText.replace(/\n/g, '\r\n'));
+  const keylessMachine = createPathOptions();
+  assert.deepEqual(syncLocalFilesAtStart({ repoRoot: secondClone, sharedRoot: secondClone, personEmail: 'ana@x.com', pathOptions: keylessMachine }), { action: 'unsealed' });
+  assert.equal(readFileSync(join(secondClone, '.ai1', 'local', 'contacts.md'), 'utf8'), '## Laura\nTuteo.\n');
+
+  writeFileSync(join(secondClone, '.ai1', 'contributors', 'ana@x.com.sealed'), 'ai1-sealed-v2\n\nAAAA\n');
+  assert.throws(() => runLocalCommand(secondClone, ['unseal', '--force'], { pathOptions: keylessMachine }), /both your encrypted \(\.sealed\) and your plain \(\.packed\) file .*keep one/);
+
+  assert.match(runLocalCommand(firstClone, ['sync', 'on'], { pathOptions: firstMachine }).output, /switched to .*ana@x\.com\.sealed/);
+  assert.equal(existsSync(join(contributorsDirectory, 'ana@x.com.packed')), false);
+  assert.match(readFileSync(join(contributorsDirectory, 'ana@x.com.sealed'), 'utf8'), /^ai1-sealed-v2\n/);
+});
+
 function runSessionStartHook(projectRoot, pathOptions) {
   return runHookEvent('SessionStart', { session_id: 'session-1', cwd: projectRoot, hook_event_name: 'SessionStart' }, {
     environment: { ...pathOptions.environment, CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'ai1-data-')) },
