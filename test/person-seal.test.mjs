@@ -2,17 +2,18 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createPublicKey } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  generateIdentityText, parseIdentityText, sealBytes, unsealText, writeIdentityFile, identityKeyPath,
+  generateIdentityText, parseIdentityText, sealBytes, unsealText, writeIdentityFile, identityKeyPath, sealForRecipients, openSealedText, parseSealedText,
   syncLocalFilesAtStop, syncLocalFilesAtStart, mayUseSealedSync,
 } from '../src/core/person-seal.mjs';
 import { runHookEvent } from '../src/core/dispatcher.mjs';
 import { runKeysCommand, runLocalCommand } from '../src/cli/seal-command.mjs';
-import { createTemporaryProject } from './helpers.mjs';
+import { createTemporaryProject, writeSshEd25519KeyPair } from './helpers.mjs';
+import { listMachineSshKeys } from '../src/core/ssh-keys.mjs';
 
 const emptyGitConfigPath = join(mkdtempSync(join(tmpdir(), 'ai1-gitconfig-')), 'gitconfig');
 writeFileSync(emptyGitConfigPath, '');
@@ -86,12 +87,14 @@ test('local seal and unseal carry the person\'s files to another clone; another 
   assert.throws(() => runLocalCommand(secondClone, ['unseal', '--force'], { pathOptions: bobPaths }), /only its owner can open it/);
 });
 
-test('local seal needs a key and something to seal', () => {
+test('local seal needs something to seal and a key to seal for (ai1 key or ssh-ed25519)', () => {
   const projectRoot = createRepoFor('ana@x.com');
-  assert.throws(() => runLocalCommand(projectRoot, ['seal'], { pathOptions: createPathOptions() }), /no ai1 key at .*ai1 keys init/);
   const withKey = createPathOptions();
   runKeysCommand(['init'], { pathOptions: withKey });
   assert.throws(() => runLocalCommand(projectRoot, ['seal'], { pathOptions: withKey }), /nothing to seal/);
+  mkdirSync(join(projectRoot, '.ai1', 'local'), { recursive: true });
+  writeFileSync(join(projectRoot, '.ai1', 'local', 'contacts.md'), '## Laura\n');
+  assert.throws(() => runLocalCommand(projectRoot, ['seal'], { pathOptions: createPathOptions() }), /nobody to seal for: .*ai1 local password/);
 });
 
 // Two clones of one repo for the same person, each with its own .ai1/local/, sharing the sealed file by copy (a push and a pull).
@@ -164,4 +167,89 @@ test('sealed sync hooks: the stop hook seals through the dispatcher and says not
   });
   assert.notEqual(readFileSync(join(firstClone, '.ai1', 'contributors', 'ana@x.com.sealed'), 'utf8'), sealedBefore);
   assert.doesNotMatch(JSON.stringify(hookOutput || {}), /sealed|additionalContext/);
+});
+
+test('seal v2: one file for the ai1 key and several ssh-ed25519 keys; each opens it, another key does not', () => {
+  const identityPrivateKey = parseIdentityText(generateIdentityText());
+  const laptopHome = mkdtempSync(join(tmpdir(), 'ai1-home-'));
+  const serverHome = mkdtempSync(join(tmpdir(), 'ai1-home-'));
+  const strangerHome = mkdtempSync(join(tmpdir(), 'ai1-home-'));
+  const laptopPair = writeSshEd25519KeyPair(laptopHome);
+  const serverPair = writeSshEd25519KeyPair(serverHome);
+  writeSshEd25519KeyPair(strangerHome);
+  const sealedText = sealForRecipients(Buffer.from('my contacts'), {
+    identityPublicKey: createPublicKey(identityPrivateKey),
+    sshRecipients: [{ publicBlob: laptopPair.publicBlob, origin: 'published' }, { publicBlob: serverPair.publicBlob, origin: 'machine' }, { publicBlob: laptopPair.publicBlob, origin: 'published' }],
+  });
+  const parsedSealed = parseSealedText(sealedText);
+  assert.equal(parsedSealed.sshRecipients.length, 2, 'a repeated key is sealed for once');
+  assert.deepEqual(parsedSealed.sshRecipients.map((sshRecipient) => sshRecipient.origin), ['published', 'machine']);
+  assert.equal(unsealText(sealedText, identityPrivateKey).toString('utf8'), 'my contacts');
+  for (const homeDirectory of [laptopHome, serverHome]) {
+    const openedSealed = openSealedText(sealedText, { machineSshKeys: listMachineSshKeys({ homeDirectory }).usableKeys });
+    assert.equal(openedSealed.plainBytes.toString('utf8'), 'my contacts');
+    assert.equal(openedSealed.openedWith, '~/.ssh/id_ed25519');
+  }
+  assert.throws(() => openSealedText(sealedText, { machineSshKeys: listMachineSshKeys({ homeDirectory: strangerHome }).usableKeys }), /only its owner can open it \(tried ~\/\.ssh\/id_ed25519\)/);
+  assert.throws(() => openSealedText(sealedText), /no ai1 key and no usable ssh-ed25519 key/);
+  assert.equal(openSealedText(sealedText.replace(/\n/g, '\r\n'), { identityPrivateKey }).plainBytes.toString('utf8'), 'my contacts', 'CRLF line ends still open');
+});
+
+test('seal v2: a changed header line or body byte is refused; a newer format asks to update ai1', () => {
+  const identityPrivateKey = parseIdentityText(generateIdentityText());
+  const sealedText = sealForRecipients(Buffer.from('notes'), { identityPublicKey: createPublicKey(identityPrivateKey), identityPasswordLine: 'identity-password: c2FsdA== 17 AAAA' });
+  const swappedHeader = sealedText.replace('identity-password: c2FsdA== 17 AAAA', 'identity-password: c2FsdA== 17 BBBB');
+  assert.throws(() => unsealText(swappedHeader, identityPrivateKey), /changed after it was sealed/);
+  const sealedLines = sealedText.split('\n');
+  const bodyIndex = sealedLines.indexOf('') + 1;
+  sealedLines[bodyIndex] = `${sealedLines[bodyIndex].slice(0, -2)}${sealedLines[bodyIndex].endsWith('AA') ? 'BB' : 'AA'}`;
+  assert.throws(() => unsealText(sealedLines.join('\n'), identityPrivateKey), /changed after it was sealed/);
+  assert.throws(() => unsealText(sealedText.replace('ai1-sealed-v2', 'ai1-sealed-v9'), identityPrivateKey), /needs a newer ai1 \(ai1-sealed-v9\): update ai1/);
+});
+
+test('seal v2: a v1 file still opens, and the next seal writes v2 for the same key [seal-any-machine:S5]', () => {
+  const pathOptions = createPathOptions();
+  const fixtureIdentityText = readFileSync(join(FIXTURES_DIRECTORY, 'test-only-identity.key'), 'utf8');
+  writeIdentityFile(fixtureIdentityText, pathOptions);
+  const projectRoot = createRepoFor('ana@x.com');
+  mkdirSync(join(projectRoot, '.ai1', 'contributors'), { recursive: true });
+  const sealedPath = join(projectRoot, '.ai1', 'contributors', 'ana@x.com.sealed');
+  writeFileSync(sealedPath, readFileSync(join(FIXTURES_DIRECTORY, 'ana@x.com.sealed'), 'utf8'));
+  assert.match(readFileSync(sealedPath, 'utf8'), /^ai1-sealed-v1\n/);
+  assert.match(runLocalCommand(projectRoot, ['unseal'], { pathOptions }).output, /unsealed contacts\.md/);
+  assert.equal(readFileSync(join(projectRoot, '.ai1', 'local', 'contacts.md'), 'utf8'), '## Laura\nTuteo.\n');
+  runLocalCommand(projectRoot, ['seal'], { pathOptions });
+  assert.match(readFileSync(sealedPath, 'utf8'), /^ai1-sealed-v2\n/);
+  const resealedPayload = JSON.parse(unsealText(readFileSync(sealedPath, 'utf8'), parseIdentityText(fixtureIdentityText)).toString('utf8'));
+  assert.equal(resealedPayload.files['contacts.md'], '## Laura\nTuteo.\n');
+});
+
+test('seal v2: a machine with no ai1 key opens by SSH and reseals keeping every recipient, adding its own key [seal-any-machine:S3]', () => {
+  const projectRoot = createRepoFor('ana@x.com');
+  const firstMachine = createPathOptions();
+  runKeysCommand(['init'], { pathOptions: firstMachine });
+  const secondMachine = createPathOptions();
+  const secondMachinePair = writeSshEd25519KeyPair(secondMachine.homeDirectory);
+  const thirdMachine = createPathOptions();
+  const thirdMachinePair = writeSshEd25519KeyPair(thirdMachine.homeDirectory);
+  mkdirSync(join(projectRoot, '.ai1', 'contributors'), { recursive: true });
+  const sealedPath = join(projectRoot, '.ai1', 'contributors', 'ana@x.com.sealed');
+  const firstMachineKey = parseIdentityText(readFileSync(identityKeyPath(firstMachine), 'utf8'));
+  writeFileSync(sealedPath, sealForRecipients(Buffer.from(JSON.stringify({ version: 1, files: { 'contacts.md': '## Laura\n' } })), {
+    identityPublicKey: createPublicKey(firstMachineKey), sshRecipients: [{ publicBlob: secondMachinePair.publicBlob, origin: 'published' }],
+  }));
+  assert.match(runLocalCommand(projectRoot, ['unseal'], { pathOptions: secondMachine }).output, /unsealed contacts\.md/);
+  writeFileSync(join(projectRoot, '.ai1', 'local', 'contacts.md'), '## Laura\nFrom the second machine.\n');
+  runLocalCommand(projectRoot, ['seal'], { pathOptions: thirdMachine });
+  const resealed = parseSealedText(readFileSync(sealedPath, 'utf8'));
+  assert.ok(resealed.identityPublicKey, 'the ai1 key stays a recipient though this machine has none');
+  assert.deepEqual(resealed.sshRecipients.map(({ origin }) => origin), ['published', 'machine']);
+  assert.ok(resealed.sshRecipients[1].publicBlob.equals(thirdMachinePair.publicBlob));
+  for (const machineOptions of [firstMachine, secondMachine, thirdMachine]) {
+    const openedSealed = openSealedText(readFileSync(sealedPath, 'utf8'), {
+      identityPrivateKey: existsSync(identityKeyPath(machineOptions)) ? parseIdentityText(readFileSync(identityKeyPath(machineOptions), 'utf8')) : null,
+      machineSshKeys: listMachineSshKeys(machineOptions).usableKeys,
+    });
+    assert.match(JSON.parse(openedSealed.plainBytes.toString('utf8')).files['contacts.md'], /From the second machine/);
+  }
 });
