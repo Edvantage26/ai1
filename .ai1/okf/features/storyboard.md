@@ -5,7 +5,7 @@ description: Storyboard of the user flow after a visual change - numbered steps 
 tags: [storyboard, ui, screenshots, pdf, worktrees]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-19T09:46:18Z'
+  at: '2026-11-19T10:06:51Z'
 sources:
   - id: storyboard
     resource: src/storyboard/storyboard-steps.mjs
@@ -135,3 +135,8 @@ ai1 never drives the browser: the agent captures with its own tool and hands the
   (`~/.cache/...`): for scratch captures, pick a Playwright Chromium from `findChromeBinaries()`
   (the `ms-playwright` paths), which writes anywhere.
 - Tests that serve must stop their servers in `after` (a failed assertion left detached servers).
+- The PDF is printed with `body.slides` on (the page opens in slides mode): anything hidden in slides
+  (`body.slides X{display:none}`) disappears from the PDF too unless the print stylesheet shows it
+  again. Found on 2026-11-19 with the section titles, by building a demo storyboard from a script
+  (`addCapture`, `addEvidenceFile`, `buildStoryboard`, `printStoryboardPdf`) and reading each page
+  rendered with `pdftoppm`.
