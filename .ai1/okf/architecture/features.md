@@ -5,7 +5,7 @@ description: What a repo chooses in .ai1/config.json; each hook module belongs t
 tags: [features, config]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-18T16:52:08Z'
+  at: '2026-11-19T09:34:32Z'
 sources:
   - id: features-source
     resource: src/core/features.mjs
@@ -22,9 +22,9 @@ when that feature is on, unless the repo switches the single module off with `mo
 | Feature | Default | Modules | Ships |
 |---|---|---|---|
 | `okf` | on | `okf-index` (SessionStart), `okf-claude-md` (SessionStart), `okf-recall` (UserPromptSubmit), `okf-file-context` (PostToolUse Read/Edit/Write/MultiEdit), `okf-upkeep` (Stop) | OKF pack skills and agents, see [okf feature](/features/okf.md) |
-| `danger` | on | `danger` (PreToolUse Bash), `config-guard` and `repo-rules` (PreToolUse Edit/Write/MultiEdit/NotebookEdit/Bash) | `/ai1:danger-write-rule`, see [danger guard](/guards/danger.md), [config-guard](/guards/config-guard.md), [repo-rules](/guards/repo-rules.md) |
+| `danger` | on | `danger` (PreToolUse Bash), `config-guard` and `repo-rules` (PreToolUse Edit/Write/MultiEdit/NotebookEdit/Bash), `rule-offer` (UserPromptSubmit) | `/ai1:danger-write-rule`, see [danger guard](/guards/danger.md), [config-guard](/guards/config-guard.md), [repo-rules](/guards/repo-rules.md) |
 | `craft` | on | `craft-brief` (SessionStart) | see [craft feature](/features/craft.md) |
-| `verify` | on | `verify-gate` (Stop), `test-guard` (PreToolUse Edit/Write/MultiEdit/Bash, see [test-guard](/guards/test-guard.md)), `fix-loop` (PostToolUse Edit/Write/MultiEdit), `tool-loop` (PreToolUse Bash/Edit/Write/MultiEdit/NotebookEdit) | `ai1 verify`, `ai1 step-done`, `/ai1:verify-debug-systematically`, see [verify feature](/features/verify.md) |
+| `verify` | on | `verify-gate` (Stop), `test-guard` (PreToolUse Edit/Write/MultiEdit/Bash, see [test-guard](/guards/test-guard.md)), `fix-loop` (PostToolUse Edit/Write/MultiEdit), `tool-loop` (PreToolUse Bash/Edit/Write/MultiEdit/NotebookEdit), `llm-brief` (SessionStart) | `ai1 verify`, `ai1 step-done`, `/ai1:verify-debug-systematically`, `/ai1:verify-evaluate-llm-prompts`, see [verify feature](/features/verify.md) |
 | `sizing` | on | `sizing-brief` (SessionStart), `sizing-approval` (UserPromptSubmit), `sizing-gate` and `sizing-escalate` (PreToolUse Edit/Write/Bash) | `/ai1:sizing-design-before-code`, see [sizing feature](/features/sizing.md) |
 | `worktrees` | on | `worktree-brief` (SessionStart), `worktree-reminder` (UserPromptSubmit) | `/ai1:worktrees-plan-recipe`, `ai1 worktree`, see [worktrees feature](/features/worktrees.md) |
 | `later` | on | `later-brief` (SessionStart), `later-recall` (UserPromptSubmit), `later-upkeep` (Stop) | `/ai1:later-write`, `ai1 later`, see [later feature](/features/later.md) (called `rfc` until v0.17 and `proposals` until v0.24) |

@@ -5,14 +5,14 @@ description: Maintenance tasks only for the people who maintain ai1 in a repo (m
 tags: [maintenance, maintainers, hooks, cli]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-18T16:52:08Z'
+  at: '2026-11-19T09:34:32Z'
 sources:
   - id: tasks
     resource: src/maintenance/maintenance-tasks.mjs
     title: Task registry, gate, muting
   - id: notice
-    resource: src/maintenance/maintenance-notice.mjs
-    title: SessionStart module
+    resource: src/routines/routine-notice.mjs
+    title: SessionStart module (built-in routines; replaced maintenance-notice)
   - id: command
     resource: src/cli/maintain-command.mjs
     title: ai1 maintain

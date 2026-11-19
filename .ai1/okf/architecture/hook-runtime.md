@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-18T16:52:08Z'
+  at: '2026-11-19T09:34:32Z'
 ---
 
 # Flow
@@ -96,12 +96,14 @@ logged with an error signature and offered to the person as an issue ([issue rep
 | `okf-file-context` | PostToolUse (Read, Edit, Write, MultiEdit) | okf |
 | `danger` | PreToolUse (Bash) | danger |
 | `config-guard`, `repo-rules` | PreToolUse (Edit, Write, MultiEdit, NotebookEdit, Bash) | danger |
+| `rule-offer` | UserPromptSubmit | danger: a lasting correction ("no vuelvas a...") -> offer a repo rule, see [repo-rules](../guards/repo-rules.md) |
 | `okf-upkeep` | Stop | okf |
 | `craft-brief` | SessionStart | craft |
 | `verify-gate` | Stop | verify |
 | `test-guard` | PreToolUse (Edit, Write, MultiEdit, Bash) | verify |
 | `fix-loop` | PostToolUse (Edit, Write, MultiEdit) | verify |
 | `tool-loop` | PreToolUse (Bash, Edit, Write, MultiEdit, NotebookEdit) | verify |
+| `llm-brief` | SessionStart | verify: a repo with an LLM SDK -> /ai1:verify-evaluate-llm-prompts, see [verify](../features/verify.md) |
 | `sizing-brief` | SessionStart | sizing |
 | `sizing-approval` | UserPromptSubmit | sizing |
 | `sizing-gate`, `sizing-escalate` | PreToolUse (Edit, Write, MultiEdit, NotebookEdit, Bash) | sizing |
@@ -115,6 +117,8 @@ logged with an error signature and offered to the person as an issue ([issue rep
 | `routine-notice` | SessionStart | routines: the person's due routines and, for maintainers, the built-in ones (replaced `maintenance-notice`), see [routines](../features/routines.md) |
 | `watch-notice` | SessionStart | watches: what changed in the watches the person follows, see [watches](../features/watches.md) |
 | `watch-release-detect` | PostToolUse (Bash) | watches: a release to production, once per session |
+| `storyboard-reminder` | Stop | storyboard: UI files changed with no storyboard after them, see [storyboard](../features/storyboard.md) |
+| `reuse-brief` / `reuse-check` | SessionStart / Stop | reuse, see [reuse](../features/reuse.md) |
 
 Shared helpers in `src/core/`: `shell-parse.mjs` (split commands), `shell-writes.mjs` (files a shell
 command writes, with relative targets moved by an earlier `cd <dir>` in the line since 2026-11-09 - before, `cd /repo && sed -i ... .ai1/work/x/plan.md` from a worktree was refused as a worktree plan; used by okf-upkeep and sizing-gate), `session-base.mjs` (HEAD at session start, recorded
