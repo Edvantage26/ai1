@@ -11,7 +11,7 @@ import {
   syncLocalFilesAtStop, syncLocalFilesAtStart, mayUseSealedSync,
 } from '../src/core/person-seal.mjs';
 import { runHookEvent } from '../src/core/dispatcher.mjs';
-import { runKeysCommand, runLocalCommand } from '../src/cli/seal-command.mjs';
+import { refreshPublishedKeysBefore, runKeysCommand, runLocalCommand } from '../src/cli/seal-command.mjs';
 import { createTemporaryProject, writeSshEd25519KeyPair } from './helpers.mjs';
 import { listMachineSshKeys } from '../src/core/ssh-keys.mjs';
 
@@ -146,7 +146,7 @@ test('sealed sync: a machine without the key is told once; sync off stops it; a 
   const { firstClone, secondClone, carrySealedFile, syncArguments } = createSyncedClones();
   carrySealedFile(firstClone, secondClone);
   const keylessArguments = { ...syncArguments(secondClone), pathOptions: createPathOptions() };
-  assert.match(syncLocalFilesAtStart(keylessArguments).text, /this machine has no ai1 key: run `ai1 keys import`/);
+  assert.match(syncLocalFilesAtStart(keylessArguments).text, /no key of this machine opens it \(this machine has no ai1 key and no usable ssh-ed25519 key\)\. Bring your ai1 key: `ai1 keys import`/);
   assert.deepEqual(syncLocalFilesAtStart(keylessArguments), { action: 'none' });
   assert.match(runLocalCommand(firstClone, ['sync', 'off']).output, /sealed sync off/);
   writeFileSync(join(firstClone, '.ai1', 'local', 'contacts.md'), '## Laura\nChanged.\n');
@@ -167,6 +167,77 @@ test('sealed sync hooks: the stop hook seals through the dispatcher and says not
   });
   assert.notEqual(readFileSync(join(firstClone, '.ai1', 'contributors', 'ana@x.com.sealed'), 'utf8'), sealedBefore);
   assert.doesNotMatch(JSON.stringify(hookOutput || {}), /sealed|additionalContext/);
+});
+
+function runSessionStartHook(projectRoot, pathOptions) {
+  return runHookEvent('SessionStart', { session_id: 'session-1', cwd: projectRoot, hook_event_name: 'SessionStart' }, {
+    environment: { ...pathOptions.environment, CLAUDE_PLUGIN_DATA: mkdtempSync(join(tmpdir(), 'ai1-data-')) },
+    homeDirectory: pathOptions.homeDirectory,
+    reportInternalError: (errorMessage) => { throw new Error(errorMessage); },
+  });
+}
+
+test('sealed sync: a clone on a machine whose ssh-ed25519 key is published gets the files at session start, no question [seal-any-machine:S1]', async () => {
+  const firstMachine = createPathOptions();
+  runKeysCommand(['init'], { pathOptions: firstMachine });
+  const secondMachine = createPathOptions();
+  const secondMachinePair = writeSshEd25519KeyPair(secondMachine.homeDirectory);
+  await refreshPublishedKeysBefore('keys', ['published', 'github:ana'], { pathOptions: firstMachine, fetchText: async () => `${secondMachinePair.publicLine}\n`, runSsh: () => '' });
+  const firstClone = createRepoFor('ana@x.com');
+  mkdirSync(join(firstClone, '.ai1', 'local'), { recursive: true });
+  writeFileSync(join(firstClone, '.ai1', 'local', 'contacts.md'), '## Laura\nTuteo.\n');
+  runLocalCommand(firstClone, ['seal'], { pathOptions: firstMachine });
+  const secondClone = createRepoFor('ana@x.com');
+  mkdirSync(join(secondClone, '.ai1', 'contributors'), { recursive: true });
+  writeFileSync(join(secondClone, '.ai1', 'contributors', 'ana@x.com.sealed'), readFileSync(join(firstClone, '.ai1', 'contributors', 'ana@x.com.sealed'), 'utf8'));
+  const hookOutput = runSessionStartHook(secondClone, secondMachine);
+  assert.equal(readFileSync(join(secondClone, '.ai1', 'local', 'contacts.md'), 'utf8'), '## Laura\nTuteo.\n');
+  assert.doesNotMatch(JSON.stringify(hookOutput || {}), /ai1 keys import|unlock|no key/);
+  assert.equal(existsSync(identityKeyPath(secondMachine)), false, 'no ai1 key was needed');
+});
+
+test('sealed sync: no usable key here -> one notice naming the keys tried and `! ai1 local unlock`; after unlocking, later versions open with no question [seal-any-machine:S2]', () => {
+  const firstMachine = createPathOptions();
+  const firstClone = createRepoFor('ana@x.com');
+  mkdirSync(join(firstClone, '.ai1', 'local'), { recursive: true });
+  writeFileSync(join(firstClone, '.ai1', 'local', 'contacts.md'), '## Laura\n');
+  runLocalCommand(firstClone, ['password'], { pathOptions: firstMachine, secretText: 'correct horse battery' });
+  runLocalCommand(firstClone, ['seal'], { pathOptions: firstMachine });
+  const carrySealed = () => writeFileSync(join(secondClone, '.ai1', 'contributors', 'ana@x.com.sealed'), readFileSync(join(firstClone, '.ai1', 'contributors', 'ana@x.com.sealed'), 'utf8'));
+  const secondMachine = createPathOptions();
+  writeSshEd25519KeyPair(secondMachine.homeDirectory, 'id_ed25519');
+  writeSshEd25519KeyPair(secondMachine.homeDirectory, 'id_locked', { cipherName: 'aes256-ctr' });
+  const secondClone = createRepoFor('ana@x.com');
+  mkdirSync(join(secondClone, '.ai1', 'contributors'), { recursive: true });
+  carrySealed();
+  const syncArguments = { repoRoot: secondClone, sharedRoot: secondClone, personEmail: 'ana@x.com', pathOptions: secondMachine };
+  const noticeText = syncLocalFilesAtStart(syncArguments).text;
+  assert.match(noticeText, /no key of this machine opens it \(tried ~\/\.ssh\/id_ed25519\)/);
+  assert.match(noticeText, /~\/\.ssh\/id_ed25519 is not among its recipients yet: .*gh ssh-key add ~\/\.ssh\/id_ed25519\.pub/);
+  assert.match(noticeText, /Not usable here: ~\/\.ssh\/id_locked - it has a passphrase/);
+  assert.match(noticeText, /Open it now with your ai1 password: `! ai1 local unlock` \(once on this machine\)/);
+  assert.deepEqual(syncLocalFilesAtStart(syncArguments), { action: 'none' }, 'told once');
+  runLocalCommand(secondClone, ['unlock'], { pathOptions: secondMachine, secretText: 'correct horse battery' });
+  writeFileSync(join(firstClone, '.ai1', 'local', 'contacts.md'), '## Laura\nA newer version.\n');
+  runLocalCommand(firstClone, ['seal'], { pathOptions: firstMachine });
+  carrySealed();
+  assert.deepEqual(syncLocalFilesAtStart(syncArguments), { action: 'unsealed' });
+  assert.equal(readFileSync(join(secondClone, '.ai1', 'local', 'contacts.md'), 'utf8'), '## Laura\nA newer version.\n');
+});
+
+test('sealed sync: the stop hook seals on a machine with only an SSH key, and tells once when there is nobody to seal for', () => {
+  const sshOnlyMachine = createPathOptions();
+  writeSshEd25519KeyPair(sshOnlyMachine.homeDirectory);
+  const projectRoot = createRepoFor('ana@x.com');
+  runLocalCommand(projectRoot, ['sync', 'on']);
+  mkdirSync(join(projectRoot, '.ai1', 'local'), { recursive: true });
+  writeFileSync(join(projectRoot, '.ai1', 'local', 'contacts.md'), '## Laura\n');
+  const syncArguments = (pathOptions) => ({ repoRoot: projectRoot, sharedRoot: projectRoot, personEmail: 'ana@x.com', pathOptions });
+  const keylessMachine = createPathOptions();
+  assert.match(syncLocalFilesAtStop(syncArguments(keylessMachine)).text, /nobody to seal it for on this machine .*`! ai1 local password`/);
+  assert.deepEqual(syncLocalFilesAtStop(syncArguments(keylessMachine)), { action: 'none' }, 'told once');
+  assert.deepEqual(syncLocalFilesAtStop(syncArguments(sshOnlyMachine)), { action: 'sealed' });
+  assert.equal(parseSealedText(readFileSync(join(projectRoot, '.ai1', 'contributors', 'ana@x.com.sealed'), 'utf8')).sshRecipients[0].origin, 'machine');
 });
 
 test('password: set on one machine, a machine with no usable key unlocks once and never asks again [seal-any-machine:S2]', () => {

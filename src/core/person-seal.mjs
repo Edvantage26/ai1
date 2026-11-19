@@ -440,15 +440,45 @@ function conflictNotice(sharedRoot, localHash, sealedHash) {
     + 'Keep this one: `ai1 local seal`; take the repo\'s: `ai1 local unseal --force`.');
 }
 
+// Seals at Stop when there is someone to seal for (the ai1 key, the previous file's recipients or this
+// machine's own SSH key); no ai1 key needed. Nobody: told once.
 export function syncLocalFilesAtStop({ repoRoot, sharedRoot, personEmail, pathOptions }) {
-  if (!isSealedSyncOn(repoRoot, sharedRoot, personEmail) || !existsSync(identityKeyPath(pathOptions))) return { action: 'none' };
+  if (!isSealedSyncOn(repoRoot, sharedRoot, personEmail)) return { action: 'none' };
   const localHash = localFilesHash(sharedRoot);
   const syncPoint = readSyncPoint(sharedRoot);
   if (!localHash || localHash === syncPoint.localHash) return { action: 'none' };
   const sealedHash = sealedFileHash(repoRoot, personEmail);
   if (sealedHash && sealedHash !== syncPoint.sealedHash) return conflictNotice(sharedRoot, localHash, sealedHash);
+  const sealRecipients = collectSealRecipients(repoRoot, personEmail, pathOptions);
+  if (!sealRecipients.identityPublicKey && !sealRecipients.sshRecipients.length) {
+    return noticeOnce(sharedRoot, `no-recipient:${localHash}`, 'ai1: your .ai1/local/ changed but there is nobody to seal it for on this machine (no ai1 key, no ssh-ed25519 key): set a password with `! ai1 local password`, or add an ssh-ed25519 key (`ssh-keygen -t ed25519`).');
+  }
   sealLocalFiles(repoRoot, sharedRoot, personEmail, pathOptions);
   return { action: 'sealed' };
+}
+
+// Why no key of this machine opens the file, and what the person can do: once per sealed version.
+function noKeyNotice(sharedRoot, sealedText, sealedHash, personEmail, pathOptions) {
+  const { usableKeys, unusableKeys } = listMachineSshKeys(pathOptions);
+  let parsedSealed = null;
+  try {
+    parsedSealed = parseSealedText(sealedText);
+  } catch {
+    // an unreadable header is reported by the open itself
+  }
+  const recipientFingerprints = new Set((parsedSealed?.sshRecipients || []).map(({ fingerprint }) => fingerprint));
+  const triedKeys = [existsSync(identityKeyPath(pathOptions)) ? 'the ai1 key' : null, ...usableKeys.map(({ keyName }) => `~/.ssh/${keyName}`)].filter(Boolean);
+  const noticeParts = [`ai1: the repo has your sealed .ai1/local/ (${CONTRIBUTORS_DIRECTORY}/${normalizeEmail(personEmail)}.sealed) but no key of this machine opens it`];
+  noticeParts.push(triedKeys.length ? `(tried ${triedKeys.join(', ')}).` : '(this machine has no ai1 key and no usable ssh-ed25519 key).');
+  const keysNotYetRecipients = usableKeys.filter(({ fingerprint }) => !recipientFingerprints.has(fingerprint));
+  if (keysNotYetRecipients.length) {
+    noticeParts.push(`${keysNotYetRecipients.map(({ keyName }) => `~/.ssh/${keyName}`).join(', ')} is not among its recipients yet: it gets in at the next seal from a machine of yours once it is published on your git host (\`gh ssh-key add ~/.ssh/${keysNotYetRecipients[0].keyName}.pub\`, or your host's SSH key settings).`);
+  }
+  if (unusableKeys.length) noticeParts.push(`Not usable here: ${unusableKeys.map(({ keyName, reason }) => `~/.ssh/${keyName} - ${reason}`).join('; ')}.`);
+  noticeParts.push(parsedSealed?.identityPasswordLine
+    ? 'Open it now with your ai1 password: `! ai1 local unlock` (once on this machine).'
+    : 'Bring your ai1 key: `ai1 keys import` and paste the line you kept.');
+  return noticeOnce(sharedRoot, `no-key:${sealedHash}`, noticeParts.join(' '));
 }
 
 export function syncLocalFilesAtStart({ repoRoot, sharedRoot, personEmail, pathOptions }) {
@@ -456,8 +486,12 @@ export function syncLocalFilesAtStart({ repoRoot, sharedRoot, personEmail, pathO
   const sealedHash = sealedFileHash(repoRoot, personEmail);
   const syncPoint = readSyncPoint(sharedRoot);
   if (!sealedHash || sealedHash === syncPoint.sealedHash) return { action: 'none' };
-  if (!existsSync(identityKeyPath(pathOptions))) {
-    return noticeOnce(sharedRoot, `no-key:${sealedHash}`, `ai1: the repo has your sealed .ai1/local/ (${CONTRIBUTORS_DIRECTORY}/${normalizeEmail(personEmail)}.sealed) but this machine has no ai1 key: run \`ai1 keys import\` and paste the line you kept.`);
+  const sealedText = readFileSync(sealedFilePath(repoRoot, personEmail), 'utf8');
+  try {
+    openSealedText(sealedText, { identityPrivateKey: readIdentityIfPresent(pathOptions), machineSshKeys: listMachineSshKeys(pathOptions).usableKeys });
+  } catch (openError) {
+    if (openError.code === 'AI1_NO_MATCHING_KEY') return noKeyNotice(sharedRoot, sealedText, sealedHash, personEmail, pathOptions);
+    return noticeOnce(sharedRoot, `unseal-failed:${sealedHash}`, `ai1: could not open your sealed .ai1/local/: ${openError.message}`);
   }
   const localHash = localFilesHash(sharedRoot);
   if (localHash && localHash !== syncPoint.localHash) return conflictNotice(sharedRoot, localHash, sealedHash);
