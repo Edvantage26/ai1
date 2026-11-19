@@ -13,6 +13,7 @@ import { AI1_DIRECTORY } from './config.mjs';
 import { userConfigDirectory } from './skill-customization.mjs';
 import { localDirectoryPath, normalizeEmail, PROFILE_FILE_NAME, readPersonProfile, readPersonState, writePersonState } from './person-project.mjs';
 import { ensureDirectoryIgnoredByItself } from './project-paths.mjs';
+import { readPublishedBlobs } from './published-keys.mjs';
 import { ed25519PublicToX25519, listMachineSshKeys, parsePublicKeyLine, publicKeyLineFromBlob, sshKeyFingerprint, SSH_ED25519_TYPE } from './ssh-keys.mjs';
 
 export const SEALED_HEADER = 'ai1-sealed-v2';
@@ -314,12 +315,17 @@ function readPreviousSealed(repoRoot, personEmail) {
   }
 }
 
-// Who a new seal is for, with no network: the ai1 key (this machine's, else the previous file's), the
-// previous file's ssh-ed25519 recipients, and this machine's own usable ssh-ed25519 keys (origin machine).
+// Who a new seal is for, with no network: the ai1 key (this machine's, else the previous file's); the
+// published keys last fetched by the CLI (else the previous file's published ones); the previous file's
+// machine keys; and this machine's own usable ssh-ed25519 keys (origin machine).
 export function collectSealRecipients(repoRoot, personEmail, pathOptions) {
   const previousSealed = readPreviousSealed(repoRoot, personEmail);
   const identityPrivateKey = readIdentityIfPresent(pathOptions);
-  const sshRecipients = (previousSealed?.sshRecipients || []).map(({ publicBlob, origin }) => ({ publicBlob, origin }));
+  const previousRecipients = (previousSealed?.sshRecipients || []).map(({ publicBlob, origin }) => ({ publicBlob, origin }));
+  const publishedBlobs = readPublishedBlobs(pathOptions);
+  const sshRecipients = publishedBlobs
+    ? [...publishedBlobs.map((publicBlob) => ({ publicBlob, origin: 'published' })), ...previousRecipients.filter(({ origin }) => origin === 'machine')]
+    : previousRecipients;
   const knownFingerprints = new Set(sshRecipients.map(({ publicBlob }) => sshKeyFingerprint(publicBlob)));
   for (const machineKey of listMachineSshKeys(pathOptions).usableKeys) {
     if (!knownFingerprints.has(machineKey.fingerprint)) sshRecipients.push({ publicBlob: machineKey.publicBlob, origin: 'machine' });
@@ -333,9 +339,10 @@ export function collectSealRecipients(repoRoot, personEmail, pathOptions) {
 }
 
 // Seals the person's local files present now into `.ai1/contributors/<email>.sealed`; returns the names sealed.
-export function sealLocalFiles(repoRoot, sharedRoot, personEmail, pathOptions) {
+export function sealLocalFiles(repoRoot, sharedRoot, personEmail, pathOptions, { excludedFingerprints = [] } = {}) {
   if (!normalizeEmail(personEmail)) throw new Error('sealing needs your git email (git config user.email): it names your sealed file');
   const sealRecipients = collectSealRecipients(repoRoot, personEmail, pathOptions);
+  sealRecipients.sshRecipients = sealRecipients.sshRecipients.filter(({ publicBlob }) => !excludedFingerprints.includes(sshKeyFingerprint(publicBlob)));
   const localFiles = {};
   for (const fileName of SEALED_FILE_NAMES) {
     const localPath = join(localDirectoryPath(sharedRoot), fileName);

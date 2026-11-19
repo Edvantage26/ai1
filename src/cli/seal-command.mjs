@@ -10,8 +10,9 @@ import {
   sealedFilePath, parseSealedText, CONTRIBUTORS_DIRECTORY, MIN_PASSWORD_LENGTH, generatePassword, closeIdentityWithPassword, openIdentityWithPassword,
   writeIdentityPasswordLine, localFilesHash,
 } from '../core/person-seal.mjs';
+import { readPublishedKeys, refreshPublishedKeys, setKeySources } from '../core/published-keys.mjs';
 
-export const SEAL_USAGE = 'ai1 keys init [--force] | ai1 keys import < key.txt | ai1 keys show | ai1 local seal | ai1 local unseal [--force] | ai1 local password | ai1 local unlock [--force] | ai1 local sync on|off|status';
+export const SEAL_USAGE = 'ai1 keys init [--force] | ai1 keys import < key.txt | ai1 keys show | ai1 keys published [github:<user>|gitlab:<user>...] | ai1 local seal | ai1 local unseal [--force] | ai1 local password | ai1 local unlock [--force] | ai1 local recipients [remove <fingerprint>] | ai1 local sync on|off|status';
 // Subcommands of `ai1 local` that read a password (from the terminal, hidden, or from stdin).
 export const PASSWORD_SUBCOMMANDS = ['password', 'unlock'];
 
@@ -38,6 +39,7 @@ export function runKeysCommand(commandArguments, { readStandardInput, pathOption
     parseIdentityText(identityText);
     return { output: `imported your ai1 key to ${writeIdentityFile(identityText, pathOptions)}`, exitCode: 0 };
   }
+  if (subcommandName === 'published') return { output: describePublishedKeys(pathOptions), exitCode: 0 };
   if (subcommandName === 'show') {
     return { output: `ai1 key ${keyFingerprint(createPublicKey(readIdentity(pathOptions)))} at ${identityKeyPath(pathOptions)}`, exitCode: 0 };
   }
@@ -100,6 +102,51 @@ function unlockWithPassword(repoRoot, sharedRoot, personEmail, { secretText, for
   return { output: `unlocked: this machine has your ai1 key now (no password again here); unsealed ${fileNames.join(', ')} into .ai1/local/`, exitCode: 0 };
 }
 
+// The network part of `ai1 keys published`, `ai1 local seal` and `ai1 local sync on`, run by the CLI
+// before the command itself: fetches the person's published ssh-ed25519 keys. Returns notes to print.
+export async function refreshPublishedKeysBefore(commandName, commandArguments, { pathOptions, fetchText, runSsh } = {}) {
+  const [subcommandName, ...restArguments] = commandArguments;
+  if (commandName === 'keys' && subcommandName === 'published') {
+    if (!restArguments.length) return [];
+    setKeySources(restArguments, pathOptions);
+  } else if (!(commandName === 'local' && (subcommandName === 'seal' || (subcommandName === 'sync' && restArguments[0] === 'on')))) {
+    return [];
+  }
+  return (await refreshPublishedKeys(pathOptions, { fetchText, runSsh })).notes;
+}
+
+function describePublishedKeys(pathOptions) {
+  const { sources, keysBySource } = readPublishedKeys(pathOptions);
+  if (!sources.length) return 'no published SSH keys set: `ai1 keys published github:<user>` (or gitlab:<user>; several allowed)';
+  return sources.map((sourceText) => {
+    const fetchedKeys = keysBySource[sourceText];
+    return fetchedKeys ? `${sourceText}: ${fetchedKeys.lines.length} ssh-ed25519 key(s), fetched ${fetchedKeys.fetchedAt}` : `${sourceText}: not fetched yet`;
+  }).join('\n');
+}
+
+// `ai1 local recipients [remove <fingerprint>]`: who this repo's sealed file opens for.
+function manageRecipients(repoRoot, sharedRoot, personEmail, commandArguments, pathOptions) {
+  const sealedPath = normalizeEmail(personEmail) ? sealedFilePath(repoRoot, personEmail) : null;
+  if (!sealedPath || !existsSync(sealedPath)) return { output: `no sealed file for ${personEmail || 'your git email'} at ${CONTRIBUTORS_DIRECTORY}/`, exitCode: 1 };
+  const parsedSealed = parseSealedText(readFileSync(sealedPath, 'utf8'));
+  const [, actionName, fingerprintToRemove] = commandArguments;
+  if (actionName === 'remove') {
+    const removedRecipient = parsedSealed.sshRecipients.find((sshRecipient) => sshRecipient.fingerprint === fingerprintToRemove);
+    if (!removedRecipient) return { output: `no ssh-ed25519 recipient ${fingerprintToRemove || '(fingerprint missing)'} in your sealed file (see \`ai1 local recipients\`)`, exitCode: 1 };
+    sealLocalFiles(repoRoot, sharedRoot, personEmail, pathOptions, { excludedFingerprints: [fingerprintToRemove] });
+    return {
+      output: `resealed without ${fingerprintToRemove}; commit it. Older versions in git history still open with that key.${removedRecipient.origin === 'published' ? ' It is published on your git host: remove it there too, or the next fetch adds it back.' : ''}`,
+      exitCode: 0,
+    };
+  }
+  const recipientLines = [
+    parsedSealed.formatVersion === 1 ? 'format v1: only the ai1 key (the next seal writes v2)' : null,
+    parsedSealed.identityPublicKey ? `ai1 key ${keyFingerprint(parsedSealed.identityPublicKey)}${parsedSealed.identityPasswordLine ? ' (also opens with your password)' : ''}` : null,
+    ...parsedSealed.sshRecipients.map((sshRecipient) => `ssh-ed25519 ${sshRecipient.fingerprint} (${sshRecipient.origin === 'machine' ? 'a machine of yours' : 'published on your git host'})`),
+  ].filter(Boolean);
+  return { output: recipientLines.join('\n'), exitCode: 0 };
+}
+
 export function runLocalCommand(repoRoot, commandArguments, { pathOptions, secretText } = {}) {
   const [subcommandName] = commandArguments;
   const sharedRoot = findMainCheckout(repoRoot);
@@ -112,6 +159,7 @@ export function runLocalCommand(repoRoot, commandArguments, { pathOptions, secre
     const { fileNames, replaced } = unsealLocalFiles(repoRoot, sharedRoot, personEmail, { force: commandArguments.includes('--force'), ...pathOptions });
     return { output: `unsealed ${fileNames.join(', ')} into .ai1/local/${replaced.length ? ` (replaced ${replaced.join(', ')})` : ''}`, exitCode: 0 };
   }
+  if (subcommandName === 'recipients') return manageRecipients(repoRoot, sharedRoot, personEmail, commandArguments, pathOptions);
   if (subcommandName === 'password') return setPassword(repoRoot, sharedRoot, personEmail, { secretText, pathOptions });
   if (subcommandName === 'unlock') return unlockWithPassword(repoRoot, sharedRoot, personEmail, { secretText, force: commandArguments.includes('--force'), pathOptions });
   if (subcommandName === 'sync') {
