@@ -94,7 +94,7 @@ test('the worst-case session start keeps every rule text whole; only list items 
   // The fixture really is the worst case: every conditional text is there, and its rules whole.
   for (const expectedText of [/Plugins that overlap with ai1/, /skills listed for this repo do not match/, /frontend-design skill is installed/,
     /impeccable skill is installed/, /Unfinished plans/, /Related repositories/, /CLAUDE\.md/,
-    /Later is only on demand: an entry is created only when the person explicitly asks for it/, /never offered for fork/,
+    /Later is only on demand: an entry exists only when the person asks for it/, /never offered for fork or later/,
     /create one before the first edit/, /Close it yourself, without asking/, /deep: .*\/ai1:sizing-design-before-code/,
     /Ask the person only for what is truly delicate/, /Reuse:/, /Craft:/, /Design:/]) {
     assert.match(contextText, expectedText);
@@ -102,7 +102,7 @@ test('the worst-case session start keeps every rule text whole; only list items 
   assert.match(contextText, /- \.\.\. and \d+ more in `\.ai1\/later\/README\.md`/, 'the later list says how many it left out');
   assert.match(contextText, /- \.\.\. and \d+ more in `\.ai1\/work\/`/, 'the plans list too');
   assert.match(contextText, /\[\.\.\. \d+ more lines of the index; read \.ai1\/okf\/index\.md\]/, 'and the index');
-  assert.doesNotMatch(contextText, /x{20}/, 'long list titles are shortened');
+  assert.doesNotMatch(contextText, /x{61}/, 'long list titles are shortened (to 60 characters)');
 });
 
 // On a copy of what this repository versions for ai1, so the session's own plans and worktree do not count.

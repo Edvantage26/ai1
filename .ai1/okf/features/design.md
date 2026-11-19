@@ -85,7 +85,7 @@ frontend-design made up a style from scratch.
   excluded; backticked asset paths made absolute. No network.
 - The person's private sources (their tools and folders of client logos) go in their customization of
   the skill, never in the plugin ([host tooling stays out](../decisions/host-tooling-out-of-plugin.md)).
-- Finding: the worst-case session start was at 9497 of 9500 characters before this line; the brief
+- Finding: the worst-case session start was at 9497 of 9500 characters before this line (9406 after the later/sizing briefs were tightened on 2026-11-19); the brief
   wording was tightened to fit (the session-start budget test caught it).
 
 # Usability review (/ai1:design-review-usability, since v0.37.0)

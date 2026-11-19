@@ -147,13 +147,13 @@ test('later-brief: the recipe and the open entries; silent on resume; off with f
   const contextText = startSession(projectRoot, hookOptions()).hookSpecificOutput.additionalContext;
   assert.match(contextText, /Later: large changes .* noted down for later in `\.ai1\/later\/`/);
   assert.match(contextText, /"acepto la propuesta" in the conversation mean your own proposal in this conversation \(answer it, or build it by its size\), never this feature/);
-  assert.match(contextText, /Later is only on demand: an entry is created only when the person explicitly asks for it, in their own words \("apúntalo para luego", "anótalo en later"/);
-  assert.match(contextText, /Never offer it, recommend it or mention it as an option, never note one down on your own/);
+  assert.match(contextText, /Later is only on demand: an entry exists only when the person asks for it in their own words \("apúntalo para luego", "anótalo en later"/);
+  assert.match(contextText, /Never offer, recommend or mention it, never note one down on your own or as a "next step"/);
   assert.match(contextText, /A "sí", "adelante" or "ok" to a reply is never a request for it/);
-  assert.match(contextText, /The subject the person is talking about is never offered for fork, however large, nor its ideas, follow-ups or next steps: the default is to build it now/);
-  assert.match(contextText, /with the way you recommend: do it here or fork it into a new conversation \(\/ai1:session-fork-conversation\); do not stop to ask/);
+  assert.match(contextText, /The subject the person is talking about \(its ideas, follow-ups, next steps\) is never offered for fork or later: build it now, closing with its size/);
+  assert.match(contextText, /one line at the end recommending here or a fork \(\/ai1:session-fork-conversation\), without stopping to ask/);
   assert.doesNotMatch(contextText, /Recomiendo apuntarlo para luego|note it down for later\)|a yes means the way you recommended/);
-  assert.match(contextText, /accept, reject or resume one the person names by number, load \/ai1:later-write/);
+  assert.match(contextText, /act on one named by number, load \/ai1:later-write/);
   assert.match(contextText, /0001 "Guard writes to production" \(idea, draft\)/);
   assert.doesNotMatch(contextText, /Old idea/, 'rejected entries are not open');
   assert.doesNotMatch(startSession(projectRoot, hookOptions(), 'resume').hookSpecificOutput.additionalContext, /Later: large changes/);

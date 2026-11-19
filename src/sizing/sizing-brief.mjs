@@ -23,10 +23,10 @@ export function buildSizingRecipe(verifyCommands, usesWorktrees = false) {
   return [
     'Sizing: size every new task before acting and say the size in one line ("Size: quick, because ...").',
     `- quick: a clear, contained change that could be resumed from the request and \`git diff\` alone (a bug, a wording, a small tweak). Do it, run ${verifyText}, report.`,
-    '- plan: several pieces, a clear goal. Say the plan in a few lines (files, steps, how you will verify) and start; do not wait for a yes. Over about 3 steps or more than one go, also write `' + WORK_DIRECTORY + '/<slug>/plan.md` (frontmatter `size: plan`, `status: active`, `title`; steps as `- [ ]`), tick each step and close with `ai1 plan-done <slug>`.',
-    '- deep: unclear goal, design choices, a risky area (auth, data or irreversible effects, money, migrations, a public API or contract others use, concurrency, deploy or environment, code no test would catch breaking) or hours of work. Load /ai1:sizing-design-before-code and follow it (a design the person approves before code).',
+    '- plan: several pieces, a clear goal. Say the plan in a few lines (files, steps, check) and start, no yes needed. Over ~3 steps or more than one go, keep `' + WORK_DIRECTORY + '/<slug>/plan.md` (frontmatter `size: plan`, `status: active`, `title`; steps `- [ ]`), tick them, close with `ai1 plan-done <slug>`.',
+    '- deep: unclear goal, design choices, a risky area (auth, data or irreversible effects, money, migrations, a public API or contract others use, concurrency, deploy or environment, code no test would catch breaking) or hours of work. Load /ai1:sizing-design-before-code (a design the person approves before code).',
     ...(usesWorktrees ? ['- plan and deep tasks are built in their own worktree; name it in the plan.'] : []),
-    'Pick the lightest size that fits; the number of files never decides it. "rápido"/"quick" or "piénsalo bien"/"think it through" from the person sets the size. When a quick task grows, stop and move to plan.',
+    'Pick the lightest size that fits; the number of files never decides it. "rápido"/"quick" or "piénsalo bien"/"think it through" from the person sets it. A quick task that grows moves to plan.',
   ].join('\n');
 }
 
