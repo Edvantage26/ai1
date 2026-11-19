@@ -184,7 +184,7 @@ main{max-width:1400px;margin:0 auto;padding:24px}
 body.slides .step{display:none;min-height:calc(100vh - 110px)}body.slides .step.current{display:block}
 .pager{display:none;gap:8px;align-items:center}body.slides .pager{display:flex}
 @page{size:A4 landscape;margin:10mm}
-@media print{.zoom{display:none}.top{position:static;background:none;color:var(--ink);border-bottom:2px solid var(--ink)}.top button,.pager{display:none!important}
+@media print{.zoom{display:none}body.slides .section-title{display:block}.sections{padding:0}.top{position:static;background:none;color:var(--ink);border-bottom:2px solid var(--ink)}.top button,.pager{display:none!important}
 body{background:#fff}main{padding:0;max-width:none}body.slides .step,.step{display:block!important;min-height:0;border:0;padding:0;break-after:page;page-break-after:always}
 .step:last-child{break-after:auto;page-break-after:auto}.step-head{margin-bottom:6px}.row{break-inside:avoid;margin-top:6px}
 .shot img{max-height:34vh;width:auto;max-width:100%}.missing{min-height:60px}}

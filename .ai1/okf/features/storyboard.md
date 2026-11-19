@@ -1,11 +1,11 @@
 ---
 type: Component
 title: storyboard feature
-description: Storyboard of the user flow after a visual change - numbered steps with desktop/mobile screenshots, before/after, HTML served at a local URL and a PDF, kept in .ai1/storyboards/ (git-ignored); residual screenshots deleted on close; Stop reminder; publishing only through a skill customization.
+description: Storyboard of the user flow after a visual change - numbered steps in sections with desktop/mobile screenshots, before/after, input/output files as evidence with a short card and a preview, HTML served at a local URL and a PDF, kept in .ai1/storyboards/ (git-ignored); residual screenshots deleted on close; Stop reminder; publishing only through a skill customization.
 tags: [storyboard, ui, screenshots, pdf, worktrees]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-14T15:15:14Z'
+  at: '2026-11-19T09:46:18Z'
 sources:
   - id: storyboard
     resource: src/storyboard/storyboard-steps.mjs
@@ -13,6 +13,12 @@ sources:
   - id: build
     resource: src/storyboard/storyboard-build.mjs
     title: index.html and SUMMARY.md
+  - id: files
+    resource: src/storyboard/storyboard-files.mjs
+    title: ai1 storyboard file - evidence files on a step
+  - id: preview
+    resource: src/storyboard/storyboard-file-preview.mjs
+    title: file previews (csv/xlsx/text/eml/pdf/image), own zip reader, masking
   - id: pdf
     resource: src/storyboard/storyboard-pdf.mjs
     title: Chrome discovery and PDF printing
@@ -59,7 +65,32 @@ ai1 never drives the browser: the agent captures with its own tool and hands the
   (decided 2026-11-09, replacing a destination setting with mount checks). A symlinked folder must be
   excluded by that tooling (`.git/info/exclude`): git sees a symlink as a file.
 - **Slug**: `--slug`, else the worktree name (a trailing `-before` stripped), else the only open plan.
-- **CLI** `ai1 storyboard add|note|build [--pdf]|serve|stop|list|clean` (src/cli/storyboard-command.mjs).
+- **CLI** `ai1 storyboard add|file|note|build [--pdf]|serve|stop|list|clean` (src/cli/storyboard-command.mjs).
+- **Short texts** (since v0.50.0, decided with the person on 2026-11-18: "no quiero mucho texto"): the
+  skill writes `--detail` (1-2 lines) only when a screenshot does not explain itself, summarizing what
+  the process does in the user's terms; `add` and `file` print `warning:` (never refuse) when
+  `--detail`, `--section` or a file card field is over 200 characters.
+- **Sections** (since v0.50.0): `--section "<name>"` on `add`/`file`, stored on the step and kept when
+  a later `add` omits it. A section starts each time a step's section differs from the previous step's
+  (step order, no regrouping). HTML: an index of sections under the top bar (links jump to the slide),
+  a section title before its first step in strip and print, the section name above every step title;
+  `SUMMARY.md`: `## <section>` with the steps as `###`.
+- **Evidence files** (since v0.50.0, issue #3): `ai1 storyboard file --step <caption> --file <path>
+  --role input|output [--contains] [--use] [--check] [--preview <png>] [--mask]` attaches a file the
+  flow takes in or gives out to a step (created if new; a step may hold only files and is then never
+  marked new/removed). Same step + name + role replaces the entry. The file is copied to `files/`
+  unless masked or over 20 MB; the original is **never deleted** (it may be the user's own), while a
+  `--preview` image is cleaned like a screenshot. The preview is worked out when added and stored in
+  `steps.json` (publishers get it): `table` (csv/tsv by guessed delimiter, xlsx through an own zip
+  reader - central directory, stored/deflated, no zip64 - shared and inline strings, values as stored,
+  so dates are Excel serials), `lines` (text, first 20), `eml` (from/to/subject/date, RFC 2047, first 10
+  lines of the text or html part, attachment names), `pdf` (page count; the agent passes its own
+  screenshot of page 1), `image`, `generic`. A broken file falls back to `generic` with `preview_error`.
+  Caps always on: 10 rows (header included), 12 columns, 5 sheets, cells cut at 40 characters.
+  `--mask` (the person chose this over masking by default, 2026-11-18): letters to X/x, digits to 9,
+  punctuation kept, table headers and the email date unmasked, raw file not copied. Rendered as a card
+  labelled Input/Output (English like the rest of the page) with Contains / Used for / Check, under the
+  step's screenshots; `SUMMARY.md` lists `Files:` per step.
 - **`steps.json`** (contract for publishers, with `SUMMARY.md`): steps keyed by id (from the caption or
   `--id`), captures by variant (before/after) and viewport (desktop/mobile), each with its `source`
   (path, size, mtime) until cleaned. Same step+variant+viewport replaces the image.
@@ -75,8 +106,8 @@ ai1 never drives the browser: the agent captures with its own tool and hands the
 - **`serve`**: detached Node server on 127.0.0.1 (`--host`), port from `pickWorktreePort('storyboard:'+slug)`
   avoiding listening and worktree ports, TTL 8 h, `server.json` record (stale ones removed).
 - **Close**: `ai1 worktree finish|drop` (or `ai1 storyboard stop` + `clean`) stop the server and delete
-  the screenshots `add` copied from - only unchanged, untracked images outside the storyboard. The
-  storyboard stays.
+  the screenshots `add` copied from (and `file --preview` images) - only unchanged, untracked images
+  outside the storyboard; evidence files are never deleted. The storyboard stays.
 - **`storyboard-reminder`** (Stop): UI files (design-detect's classification) changed in the session
   and no `index.html` in `.ai1/storyboards/` newer than them -> one block per set of files, at most 2
   per session. `modules.storyboard-reminder.ignore`: globs.
