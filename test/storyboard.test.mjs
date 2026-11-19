@@ -454,6 +454,28 @@ test('closing the change keeps the evidence files and deletes only the agent\'s 
   assert.match(readFileSync(join(storyboardPath, 'index.html'), 'utf8'), /alt="clientes\.pdf preview" src="data:image\/png;base64,/);
 });
 
+test('previews render as a table or email in the HTML; --mask keeps no raw copy and says masked [storyboard-files:S3] [storyboard-files:S6]', () => {
+  const projectRoot = createUiRepo();
+  const clientsFile = writeEvidenceFile(projectRoot, 'clientes.csv', 'nombre,telefono\nJuan Pérez,612345678\n');
+  const emailFile = writeEvidenceFile(projectRoot, 'aviso.eml', 'From: ana@example.com\nSubject: Pedido listo\nDate: Tue, 18 Nov 2026 10:00:00 +0100\n\nYa puedes recogerlo.\n');
+  const maskedRun = runAi1(projectRoot, ['storyboard', 'file', '--slug', 'mask', '--step', 'Uploads the clients', '--file', clientsFile, '--role', 'input', '--mask']);
+  assert.equal(maskedRun.status, 0, maskedRun.stderr);
+  assert.match(maskedRun.stdout, /preview table, masked, file not copied/);
+  runAi1(projectRoot, ['storyboard', 'file', '--slug', 'mask', '--step', 'Gets the email', '--file', emailFile, '--role', 'output']);
+
+  const storyboardPath = storyboardDirectory(projectRoot, 'mask');
+  const maskedFile = readStoryboard(storyboardPath).steps[0].files[0];
+  assert.equal(maskedFile.masked, true);
+  assert.equal(maskedFile.path, undefined);
+  assert.equal(existsSync(join(storyboardPath, 'files', 'uploads-the-clients-input-clientes-csv.csv')), false);
+  assert.equal(runAi1(projectRoot, ['storyboard', 'build', '--slug', 'mask']).status, 0);
+  const storyboardHtml = readFileSync(join(storyboardPath, 'index.html'), 'utf8');
+  assert.match(storyboardHtml, /<strong>clientes\.csv<\/strong><span class="meta">csv · \d+ B · masked<\/span>/);
+  assert.match(storyboardHtml, /2 rows × 2 columns[\s\S]*<th>nombre<\/th><th>telefono<\/th>[\s\S]*<td>Xxxx Xxxxx<\/td><td>999999999<\/td>/);
+  assert.doesNotMatch(storyboardHtml, /Juan Pérez|612345678/);
+  assert.match(storyboardHtml, /<dt>subject<\/dt><dd>Pedido listo<\/dd>[\s\S]*<pre>Ya puedes recogerlo\.<\/pre>/);
+});
+
 test('a detail or section over 200 characters is recorded with a warning to shorten it [storyboard-files:S4]', () => {
   const projectRoot = createUiRepo();
   const screenshot = writeScreenshot(projectRoot, 'shot.png');

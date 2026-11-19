@@ -175,7 +175,7 @@ main{max-width:1400px;margin:0 auto;padding:24px}
 .files{display:grid;gap:12px;margin-top:12px}.file{border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:6px;padding:10px 12px}.file-output{border-left-color:#3d5a98}
 .file header{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}.file .meta{color:var(--muted);font-size:13px}.file a{color:inherit}
 .file-role{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--accent)}.file-output .file-role{color:#3d5a98}
-.file-card,.eml-headers{display:grid;grid-template-columns:max-content 1fr;gap:2px 12px;margin:8px 0}.file-card dt,.eml-headers dt{color:var(--muted);font-size:13px}.file-card dd,.eml-headers dd{margin:0}
+.file-card,.eml-headers{display:grid;grid-template-columns:max-content 1fr;gap:2px 12px;margin:8px 0}.file-card dt,.eml-headers dt{color:var(--muted);font-size:13px}.eml-headers dt{text-transform:capitalize}.file-card dd,.eml-headers dd{margin:0}
 .sheet-name{margin:8px 0 4px;color:var(--muted);font-size:13px}.table-wrap{overflow-x:auto}.file table{border-collapse:collapse;font-size:12px}.file th,.file td{border:1px solid var(--line);padding:3px 6px;text-align:left;white-space:nowrap}.file th{background:#f2f1ee}
 .file pre{margin:8px 0;padding:8px;background:#f2f1ee;border-radius:4px;font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}.file .shot img{max-width:420px}
 .synthetic{max-width:1400px;margin:16px auto 0;padding:0 24px;color:var(--muted);font-size:13px}
