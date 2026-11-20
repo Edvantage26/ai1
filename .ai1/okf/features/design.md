@@ -1,11 +1,11 @@
 ---
 type: Component
 title: design feature
-description: UI rules at session start and deterministic design checks on every edited UI file - the generic AI look and basic quality problems - with the design context kept as OKF concepts, and a usability review of a flow by an agent playing its user. Ideas from Impeccable and UXAgent.
-tags: [design, frontend, ui, hooks, context, impeccable]
+description: UI rules at session start and deterministic design checks on every edited UI file - the generic AI look and basic quality problems - with the design context kept as OKF concepts, and a usability review of a flow by an agent playing its user. Ideas from Impeccable, Hallmark and UXAgent.
+tags: [design, frontend, ui, hooks, context, impeccable, hallmark]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-19T10:37:03Z'
+  at: '2026-11-20T07:55:31Z'
 sources:
   - id: design-rules
     resource: src/design/design-rules.mjs
@@ -40,8 +40,8 @@ tracked UI files, `repoHasFrontend`), and `design-detect` only checks UI files.
 
 | Module | Event | What it does |
 |---|---|---|
-| `design-brief` | SessionStart | Context first (lists the design context files) and the installed design skills, then the generic AI look and the quality floor in one line (design-detect reports the detail on each edit that breaks one), the usability review after a storyboard. With no context, asks for the user profiles in the `## Users` shape. Mentions `/impeccable critique`, `audit`, `polish` only when Impeccable is installed, and frontend-design (set the visual direction, then record its palette, typefaces and type scale in `DesignSystem`) only when that skill is installed (`isDesignSkillInstalled`: a plugin of that name or a skill folder). Skipped on `resume`. |
-| `design-detect` | PostToolUse (Edit, Write, MultiEdit) | Scans the edited UI file, keeps the findings on lines this edit wrote (Write = whole file; Edit/MultiEdit = where `new_string` landed), reports each once per session (keyed by rule + line text), as `additionalContext`. Never blocks. |
+| `design-brief` | SessionStart | Context first (lists the design context files) and the installed design skills, then the generic AI look and the quality floor in one line (design-detect reports the detail on each edit that breaks one), the usability review after a storyboard. With no context, asks for the user profiles in the `## Users` shape. Mentions `/impeccable critique`, `audit`, `polish` only when Impeccable is installed, and frontend-design (set the visual direction, then record its palette, typefaces and type scale in `DesignSystem`) only when that skill is installed, and `/hallmark` for a new page (redesign or audit only when the person names it, Hallmark's own rule) only when Hallmark is installed (`isDesignSkillInstalled`: a plugin of that name or a skill folder). Skipped on `resume`. |
+| `design-detect` | PostToolUse (Edit, Write, MultiEdit) | Scans the edited UI file, keeps the findings on lines this edit wrote (Write = whole file; Edit/MultiEdit = where `new_string` landed), reports each once per session (keyed by rule + line text), as `additionalContext`. Never blocks. In a page Hallmark built (`/* Hallmark` stamp in the file, or a `.hallmark/` folder between the file and the project root), skips the rules that carry a `hallmarkGate`: Hallmark's own hook and sweep check those. |
 
 Only files inside the project. UI files: `.css .scss .sass .less .pcss` (style) and `.html .htm .jsx .tsx .vue .svelte .astro`
 (markup); `*.min.*` is skipped. Option `modules.design-detect.ignore_rules` switches rules off.
@@ -113,8 +113,11 @@ ver"); prior art reviewed the same day ([prior art](/decisions/prior-art.md#usab
 
 # Rules
 
-26 rules, ids taken from Impeccable's catalogue, checks written from scratch for source text
-(regex and colour arithmetic, no code from Impeccable):
+35 rules, checks written from scratch for source text (regex and colour arithmetic, no code from
+Impeccable or Hallmark). Ids of the first 26 from Impeccable's catalogue; the last 9 from Hallmark's
+gates ([review](/decisions/prior-art.md#hallmark-review-2026-11-20), 2026-11-20). Each rule that
+matches a Hallmark gate names it in `hallmarkGate` (25 of them), which is what the Hallmark-page skip
+reads.
 
 - **slop**: overused-font, gradient-text, ai-color-palette (purple/violet 300-900 or hue 255-300),
   side-tab, dark-glow, bounce-easing (hint), pulsing-dot, marquee, kicker-above-heading,
@@ -124,6 +127,18 @@ ver"); prior art reviewed the same day ([prior art](/decisions/prior-art.md#usab
 - **quality**: hard-offset-shadow (hint), organic-clip-path, broken-image, skipped-heading,
   gray-on-color, low-contrast (CSS blocks with solid colour and background, WCAG 4.5:1),
   tiny-text (< 11px), justified-text (hint).
+- **from Hallmark** (2026-11-20): transition-all (`transition: all`, or width/height/top/left, gate
+  10a), outline-removed (outline none with no focus style in the file: no `:focus`, `focus-visible`,
+  `focus-within` or Tailwind `focus:`, 26a),
+  no-reduced-motion (`@keyframes` with no `prefers-reduced-motion` / `motion-reduce:` in the file, 27),
+  hidden-until-js (reveal, fade-in, appear, on-scroll or `data-animate` selector, comments dropped, at
+  opacity 0 or visibility hidden, not scoped to `.js` nor a `:hover`/`:focus` state, no `@starting-style`,
+  62), autoplay-unmuted (28a), viewport-units (hint: a fixed `height: 100vh`/`h-screen`, or
+  `100vw`/`w-screen`; `min-h-screen` is left alone, 6a/34), emoji-icon (an emoji alone in an element or leading a heading, list
+  item or button; ©/™ excluded, 30a), template-punctuation (two or more middle dots, or an arrow
+  ending link or button text, 63), placeholder-name (Jane/John Doe or Smith, Acme, lorem ipsum, 19).
+  Left out of Hallmark on purpose: its house rules (stamp, every colour through a token, ~80 words per
+  screen) and everything that needs the rendered page.
 
 Each rule has a flagged and a clean sample in `test/design.test.mjs`; a new rule without both
 fails the suite. Adding a rule: one entry in `DESIGN_RULES`, its id in the schema enum
@@ -139,6 +154,16 @@ fails the suite. Adding a rule: one entry in `DESIGN_RULES`, its id in the schem
   fonts and colours against the `DesignSystem` concept.
 
 # Verified
+
+- Hallmark rules (2026-11-20): scan of 465 tracked UI files in 6 repos of the dev server
+  (`scanUiFile` per file, new rules only). First pass too noisy: `min-h-screen` page wrappers (123),
+  `outline-none` with a `focus:` or `:focus` replacement, hover-revealed elements and comments read as
+  selectors; tightened to viewport-units 33 (fixed `h-screen` loaders), outline-removed 6,
+  hidden-until-js 0, emoji-icon 4 (all real), template-punctuation 2, transition-all 76 (mostly
+  Tailwind `transition-all` on hover, as Hallmark rules it).
+- Speed (same day): `listCssBlocks` was a regex that went quadratic on large HTML with inline
+  scripts (about 700 ms per rule on a 100 KB mockup, three rules use it); now one linear pass cached
+  per file, the same blocks on all 311 files of fisio-rider, slowest file 15 ms for any rule.
 
 - `npm test` (2026-11-08): 35 design tests (26 rule pairs, ranges, dispatcher flow, brief).
 - Scan of 8 real frontends on the dev server (about 750 UI files): false positives found and fixed

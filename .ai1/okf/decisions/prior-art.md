@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-20T07:42:30Z'
+  at: '2026-11-20T07:47:23Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -16,7 +16,7 @@ First review on 2026-10-30 by reading the repositories.
 | [rsc-harness](https://github.com/ericrisco/rsc-harness) v3.6.0 (MIT) | Meta-harness: memory/hands/trade/reflexes, lanes Answer / FTD (Fast-Track Development) / ASDD (Agent Spec-Driven Development), hooks, 269 skills | The four pieces, lanes, tools with connection tests, refuting finding-verifier, OKF as memory | Auto-update from npm every session, grants `git commit`/`git push` without asking, ~56k lines of skills |
 | [andrej-karpathy-skills](https://github.com/forrestchang/andrej-karpathy-skills) | One CLAUDE.md with four rules against common LLM coding mistakes: think before coding, simplicity first, surgical changes, goal-driven execution | Simplicity first and surgical changes, in the [craft feature](/features/craft.md) | Think before coding and goal-driven execution: already covered by lanes and the verify gate |
 | [Impeccable](https://github.com/pbakaus/impeccable) (Apache 2.0, Paul Bakaus; reviewed 2026-11-08) | Design skill for coding agents: one `/impeccable` skill with ~24 commands (critique, audit, polish...), `PRODUCT.md`/`DESIGN.md` context, and a deterministic anti-pattern detector (62 rules, Rust) run as a hook, CLI and browser extension | The detector-as-hook idea and rule ids, re-implemented for source text, and the product/design context (as OKF concepts) in the [design feature](/features/design.md) | The command set and its reference texts: install Impeccable for those; ai1 points to it when present |
-| [Hallmark](https://github.com/Nutlope/hallmark) v2.0.0 (MIT, Together AI; ~58k stars; reviewed 2026-11-20 at commit `04977e1`) | Design skill that generates new pages: 50 themes, ~80 tiered gates (Floor / Reflex waivable on the record / Finish), `sloplint` (static + puppeteer render at 8 widths), fresh-context hero and finish reviews, Floor-only PostToolUse hook | Nothing yet; see [Hallmark review](#hallmark-review-2026-11-20) | Themes, photo library, the stamp, tokens-only and 80-words house rules, the render tier (needs puppeteer + Chrome) |
+| [Hallmark](https://github.com/Nutlope/hallmark) v2.0.0 (MIT, Together AI; ~58k stars; reviewed 2026-11-20 at commit `04977e1`) | Design skill that generates new pages: 50 themes, ~80 tiered gates (Floor / Reflex waivable on the record / Finish), `sloplint` (static + puppeteer render at 8 widths), fresh-context hero and finish reviews, Floor-only PostToolUse hook | Nine static gates rewritten as [design](/features/design.md) rules, a `/hallmark` line in the brief when installed, and the Hallmark-page skip; see [Hallmark review](#hallmark-review-2026-11-20) | Themes, photo library, the stamp, tokens-only and 80-words house rules, the render tier (needs puppeteer + Chrome) |
 | [rsc-factory](https://github.com/gregoryjp/rsc-factory) (unofficial) | PRD-to-product engine outside the agent | Risk classifier idea (auto vs human PR) for a future pipeline mode | Whole engine: out of scope |
 | [graphify](https://github.com/gmh5225/graphify) (reviewed 2026-11-09 from its docs and third-party reviews, not its code) | `/graphify` skill: tree-sitter code graph + LLM pass over docs/PDFs/images into `graphify-out/` (`graph.json`, `GRAPH_REPORT.md`, `graph.html`), Leiden clusters, EXTRACTED/INFERRED/AMBIGUOUS edges, PreToolUse nudge on Grep/Glob, MCP server, git hooks | Nothing yet; see [graphify review](#graphify-review-2026-11-09) | The LLM semantic pass (the OKF bundle covers it, curated), Python + native deps, git hooks, a committed `graph.json` |
 | [gentle-ai](https://github.com/Gentleman-Programming/gentle-ai) (MIT; reviewed 2026-11-09 from its docs and `odd/tasks/`) | Go installer that configures many agents: persistent memory (Engram), ODD (Organic-Driven Development) as its only workflow after retiring SDD/OpenSpec, risk-tiered review (RDD), skills, personas | Sizing by "resumable from the request + `git diff`" and its fuller risk list, the request word for word in the plan, handoffs by reference, in [lanes](/features/sizing.md); see [gentle-ai review](#gentle-ai-review-2026-11-09) | Engram, test-first by default, mandatory delegation, ~400-line work units and chained PRs, RDD consent, ~40 KB of routing prompt |
@@ -504,7 +504,7 @@ noise in existing projects.
   `/* Hallmark` stamp or under a `.hallmark/` folder; outside those it is silent.
 - **Its context**: pre-flight reads `design.md`/`DESIGN.md` at the root and `.hallmark/brand-spec.md`,
   not the OKF `DesignSystem` concept.
-- **Candidates, not decided**: (A) point to `/hallmark` in `design-brief` when installed, for new
+- **Built on 2026-11-20** (A, B, C below, the person's yes); D stays a candidate, not decided: (A) point to `/hallmark` in `design-brief` when installed, for new
   pages only (its own rule: redesign/audit only when named), within the session-start budget;
   (B) rewrite its static gates missing here: 10a `transition: all` / layout animation, 26a/15 removed
   or fading focus ring, 27 no reduced-motion fallback, 62 content hidden until JS, 28a autoplay without

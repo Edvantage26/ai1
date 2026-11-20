@@ -3,7 +3,7 @@
 // and expect design-detect to report on every UI file it edits. The design context lives in the
 // knowledge bundle as concepts of type `Product` (with the user profiles under `## Users`, which
 // /ai1:design-review-usability reads) and `DesignSystem`; Impeccable's PRODUCT.md and DESIGN.md at the
-// repo root are read too, so both tools can share the same context. When the Impeccable or the
+// repo root are read too, so both tools can share the same context. When the Impeccable, Hallmark or
 // frontend-design skill is installed, the brief points to it instead of repeating it, and asks that
 // the tokens frontend-design decides land in the design-system context. A client's brand (`## Brand` of
 // the `DesignSystem` concept or DESIGN.md) is used when recorded, else gathered with
@@ -62,7 +62,7 @@ export function isDesignSkillInstalled(skillName, projectRoot, homeDirectory = h
   }
 }
 
-export function buildDesignRecipe({ contextFiles, brandFile, canRecordInBundle, hasImpeccable, hasFrontendDesign }) {
+export function buildDesignRecipe({ contextFiles, brandFile, canRecordInBundle, hasImpeccable, hasFrontendDesign, hasHallmark }) {
   let contextRule;
   if (contextFiles.length) {
     contextRule = `- Context first: before building or changing UI, read the product and design-system context (${contextFiles.map((contextFile) => `\`${contextFile}\``).join(', ')}): who the product is for, its tone, palette, type scale, spacing and radii. Use its tokens; a new colour, font or size is a deliberate addition to that context, not a one-off.`;
@@ -83,6 +83,9 @@ export function buildDesignRecipe({ contextFiles, brandFile, canRecordInBundle, 
   ];
   if (hasFrontendDesign) {
     recipeLines.push(`- The frontend-design skill is installed: use it for the visual direction of new UI within the brand; record its palette, fonts and type scale in ${canRecordInBundle ? 'the `DesignSystem` concept' : 'the design-system context'}.`);
+  }
+  if (hasHallmark) {
+    recipeLines.push('- The hallmark skill is installed: /hallmark builds a new page; redesign or audit an existing one only when the person names it.');
   }
   if (hasImpeccable) {
     recipeLines.push('- The impeccable skill is installed: for a deeper pass use /impeccable critique or /impeccable audit to review, and /impeccable polish before calling UI work done.');
@@ -112,6 +115,7 @@ export default {
       canRecordInBundle: isFeatureEnabled('okf', config),
       hasImpeccable: isDesignSkillInstalled('impeccable', projectRoot, homeDirectory),
       hasFrontendDesign: isDesignSkillInstalled('frontend-design', projectRoot, homeDirectory),
+      hasHallmark: isDesignSkillInstalled('hallmark', projectRoot, homeDirectory),
     }));
   },
 };

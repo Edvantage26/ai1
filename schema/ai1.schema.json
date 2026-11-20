@@ -609,7 +609,16 @@
                       "gray-on-color",
                       "low-contrast",
                       "tiny-text",
-                      "justified-text"
+                      "justified-text",
+                      "transition-all",
+                      "outline-removed",
+                      "no-reduced-motion",
+                      "hidden-until-js",
+                      "autoplay-unmuted",
+                      "viewport-units",
+                      "emoji-icon",
+                      "template-punctuation",
+                      "placeholder-name"
                     ]
                   }
                 }

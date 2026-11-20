@@ -69,6 +69,8 @@ function createWorstCaseHome() {
   writeFileSync(join(homeDirectory, '.claude', 'plugins', 'installed_plugins.json'), JSON.stringify({ version: 2, plugins: { 'frontend-design@claude-plugins-official': [] } }));
   mkdirSync(join(homeDirectory, '.claude', 'skills', 'impeccable'), { recursive: true });
   writeFileSync(join(homeDirectory, '.claude', 'skills', 'impeccable', 'SKILL.md'), '---\nname: impeccable\n---\n');
+  mkdirSync(join(homeDirectory, '.claude', 'skills', 'hallmark'), { recursive: true });
+  writeFileSync(join(homeDirectory, '.claude', 'skills', 'hallmark', 'SKILL.md'), '---\nname: hallmark\n---\n');
   return homeDirectory;
 }
 
@@ -93,7 +95,7 @@ test('the worst-case session start keeps every rule text whole; only list items 
   assert.ok(contextText.length <= MAX_FIELD_CHARACTERS && !TRIM_MARKER.test(contextText), sizeReport);
   // The fixture really is the worst case: every conditional text is there, and its rules whole.
   for (const expectedText of [/Plugins that overlap with ai1/, /skills listed for this repo do not match/, /frontend-design skill is installed/,
-    /impeccable skill is installed/, /Unfinished plans/, /Related repositories/, /CLAUDE\.md/,
+    /impeccable skill is installed/, /hallmark skill is installed/, /Unfinished plans/, /Related repositories/, /CLAUDE\.md/,
     /Later is only on demand: an entry exists only when the person asks for it/, /never offered for fork or later/,
     /create one before the first edit/, /Close it yourself, without asking/, /deep: .*\/ai1:sizing-design-before-code/,
     /Ask the person only for what is truly delicate/, /Reuse:/, /Craft:/, /Design:/]) {

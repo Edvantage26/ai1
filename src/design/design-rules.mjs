@@ -6,8 +6,11 @@
 // (https://github.com/pbakaus/impeccable, Apache 2.0, by Paul Bakaus). The checks are written from
 // scratch for source text; no code was taken from it. Problems that need the rendered page (real
 // contrast over images, overflow, line length) are left to Impeccable's own detector.
+// Some rules come from the gates of Hallmark (https://github.com/Nutlope/hallmark, MIT, Together AI),
+// also written from scratch; `hallmarkGate` names the Hallmark gate a rule matches, so design-detect
+// can leave those to Hallmark's own checks in a page Hallmark built.
 //
-// A rule: { id, category: 'slop' | 'quality', isHint?, fileKinds, summary, findLines(uiFile) -> [line] }
+// A rule: { id, category: 'slop' | 'quality', isHint?, hallmarkGate?, fileKinds, summary, findLines(uiFile) -> [line] }
 // `uiFile` is { kind: 'style' | 'markup', text, lines }; line numbers are 1-based.
 
 import { extname } from 'node:path';
@@ -114,12 +117,29 @@ function listTextSegments(uiFile) {
   return textSegments;
 }
 
-// CSS rule blocks (`selector { declarations }`) in a stylesheet or a <style> element.
+// CSS rule blocks (`selector { declarations }`, innermost braces) in a stylesheet or a <style> element.
+// One linear pass, worked out once per file: a regex over the same shape went quadratic on large HTML
+// with inline scripts (about 700 ms a rule on a 100 KB mockup).
 function listCssBlocks(uiFile) {
+  if (uiFile.cssBlocks) return uiFile.cssBlocks;
   const cssBlocks = [];
-  for (const blockMatch of uiFile.text.matchAll(/([^{}]*)\{([^{}]*)\}/g)) {
-    cssBlocks.push({ selector: blockMatch[1].trim(), declarations: blockMatch[2], startIndex: blockMatch.index + blockMatch[1].length });
+  const fileText = uiFile.text;
+  let selectorStartIndex = 0;
+  let openBraceIndex = -1;
+  for (let characterIndex = 0; characterIndex < fileText.length; characterIndex += 1) {
+    const character = fileText[characterIndex];
+    if (character === '{') {
+      if (openBraceIndex >= 0) selectorStartIndex = openBraceIndex + 1;
+      openBraceIndex = characterIndex;
+    } else if (character === '}') {
+      if (openBraceIndex >= 0) {
+        cssBlocks.push({ selector: fileText.slice(selectorStartIndex, openBraceIndex).trim(), declarations: fileText.slice(openBraceIndex + 1, characterIndex), startIndex: openBraceIndex });
+      }
+      openBraceIndex = -1;
+      selectorStartIndex = characterIndex + 1;
+    }
   }
+  uiFile.cssBlocks = cssBlocks;
   return cssBlocks;
 }
 
@@ -133,6 +153,10 @@ const OVERUSED_FONT_NAMES = ['Inter', 'Roboto', 'Fraunces', 'Geist', 'Plus Jakar
 const OVERUSED_FONT_ALTERNATION = OVERUSED_FONT_NAMES.map((fontName) => fontName.replace(/ /g, '[ _+-]')).join('|');
 const BUZZWORDS = ['streamline', 'empower', 'supercharge', 'world-class', 'enterprise-grade', 'next-generation', 'next-gen',
   'cutting-edge', 'best-in-class', 'game-changing', 'game-changer', 'revolutionize', 'unleash', 'seamless', 'seamlessly'];
+// An emoji drawn as a picture: presentation by default, or text-style followed by the emoji selector (not ©, ™).
+const EMOJI = String.raw`(?:\p{Emoji_Presentation}|\p{Extended_Pictographic}\uFE0F)`;
+const EMOJI_ONLY_PATTERN = new RegExp(String.raw`^${EMOJI}(?:\uFE0F|\u200D|\p{Emoji_Presentation}|\p{Extended_Pictographic})*$`, 'u');
+const EMOJI_LEADING_ITEM_PATTERN = new RegExp(String.raw`<(?:h[1-6]|li|button)\b[^>]*>\s*${EMOJI}`, 'u');
 const CHROMATIC_TAILWIND_COLORS = 'red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose';
 
 // --- the rules ------------------------------------------------------------------------------------
@@ -140,6 +164,7 @@ const CHROMATIC_TAILWIND_COLORS = 'red|orange|amber|yellow|lime|green|emerald|te
 export const DESIGN_RULES = [
   {
     id: 'overused-font',
+    hallmarkGate: '1',
     category: 'slop',
     fileKinds: ['style', 'markup'],
     summary: 'Inter, Roboto, Geist, Fraunces, Plus Jakarta Sans or Space Grotesk as the main font: the default of every generated UI. Pick a typeface that comes from the product.',
@@ -153,6 +178,7 @@ export const DESIGN_RULES = [
   },
   {
     id: 'gradient-text',
+    hallmarkGate: '2b',
     category: 'slop',
     fileKinds: ['style', 'markup'],
     summary: 'Gradient-filled text is decoration, not meaning, and a common AI tell on headings and metrics. Use a solid colour.',
@@ -161,6 +187,7 @@ export const DESIGN_RULES = [
   },
   {
     id: 'ai-color-palette',
+    hallmarkGate: '2a',
     category: 'slop',
     fileKinds: ['style', 'markup'],
     summary: 'Purple / violet gradient: the most recognisable colour of generated UIs. Take the palette from the brand or the product.',
@@ -170,6 +197,7 @@ export const DESIGN_RULES = [
   },
   {
     id: 'side-tab',
+    hallmarkGate: '3',
     category: 'slop',
     fileKinds: ['style', 'markup'],
     summary: 'Thick coloured border on one side of a card: a signature of generated UIs. Use a subtler accent or none.',
@@ -180,6 +208,7 @@ export const DESIGN_RULES = [
   },
   {
     id: 'dark-glow',
+    hallmarkGate: '29',
     category: 'slop',
     fileKinds: ['style', 'markup'],
     summary: 'Coloured glow (a zero-offset chromatic shadow): the default "cool" effect of generated UIs. Use a neutral shadow, or none.',
@@ -192,6 +221,7 @@ export const DESIGN_RULES = [
   },
   {
     id: 'bounce-easing',
+    hallmarkGate: '12',
     category: 'slop',
     isHint: true,
     fileKinds: ['style', 'markup'],
@@ -220,6 +250,7 @@ export const DESIGN_RULES = [
   },
   {
     id: 'kicker-above-heading',
+    hallmarkGate: '54',
     category: 'slop',
     fileKinds: ['markup'],
     summary: 'Tiny uppercase, letter-spaced label (or pill chip) right above a heading: the default generated hero and section. Let the heading stand alone.',
@@ -230,6 +261,7 @@ export const DESIGN_RULES = [
   },
   {
     id: 'icon-tile-stack',
+    hallmarkGate: '3',
     category: 'slop',
     fileKinds: ['markup'],
     summary: 'Rounded-square icon tile stacked above a heading: the universal generated feature card. Try the icon beside the heading, or no icon.',
@@ -240,6 +272,7 @@ export const DESIGN_RULES = [
   },
   {
     id: 'italic-serif-display',
+    hallmarkGate: '38ii',
     category: 'slop',
     fileKinds: ['markup'],
     summary: 'Oversized italic serif as the hero headline: the new default of AI startup pages. Choose the display face for this product.',
@@ -248,6 +281,7 @@ export const DESIGN_RULES = [
   },
   {
     id: 'cream-palette',
+    hallmarkGate: '65',
     category: 'slop',
     fileKinds: ['style', 'markup'],
     summary: 'Warm cream / beige page background: the reflex "tasteful" surface of generated UIs. Take the background from a deliberate palette.',
@@ -267,6 +301,7 @@ export const DESIGN_RULES = [
   },
   {
     id: 'marketing-buzzword',
+    hallmarkGate: '19',
     category: 'slop',
     fileKinds: ['markup'],
     summary: 'Generic SaaS wording (streamline, empower, seamless, cutting-edge...): an instant AI tell. Say the specific thing the product does.',
@@ -304,6 +339,7 @@ export const DESIGN_RULES = [
   },
   {
     id: 'codex-grid-background',
+    hallmarkGate: '47c',
     category: 'slop',
     isHint: true,
     fileKinds: ['style', 'markup'],
@@ -343,6 +379,7 @@ export const DESIGN_RULES = [
   },
   {
     id: 'broken-image',
+    hallmarkGate: '76',
     category: 'quality',
     fileKinds: ['markup'],
     summary: 'Image with no src, an empty one, or a placeholder service: it ships as a broken box. Use a real asset or remove the tag.',
@@ -371,6 +408,7 @@ export const DESIGN_RULES = [
   },
   {
     id: 'gray-on-color',
+    hallmarkGate: '41',
     category: 'quality',
     fileKinds: ['markup'],
     summary: 'Gray text on a coloured background looks washed out. Use a dark shade of the background hue, or white.',
@@ -379,6 +417,7 @@ export const DESIGN_RULES = [
   },
   {
     id: 'low-contrast',
+    hallmarkGate: '40',
     category: 'quality',
     fileKinds: ['style', 'markup'],
     summary: 'Text colour against its background is below WCAG AA (4.5:1). Raise the contrast.',
@@ -398,6 +437,7 @@ export const DESIGN_RULES = [
   },
   {
     id: 'tiny-text',
+    hallmarkGate: '75',
     category: 'quality',
     fileKinds: ['style', 'markup'],
     summary: 'Text below 11px is a legibility failure, not a style. Use 14-16px for body text and at least 12px for labels.',
@@ -413,6 +453,118 @@ export const DESIGN_RULES = [
     fileKinds: ['style', 'markup'],
     summary: 'Justified text without hyphenation opens rivers of white in narrow columns. Prefer left-aligned text.',
     findLines: (uiFile) => linesMatching(uiFile, (lineText) => /text-align\s*:\s*justify|textAlign\s*:\s*['"]justify|\btext-justify\b/.test(lineText)),
+  },
+  {
+    id: 'transition-all',
+    category: 'quality',
+    hallmarkGate: '10a',
+    fileKinds: ['style', 'markup'],
+    summary: '`transition: all`, or animating width, height, top or left: it animates what nobody meant to and forces layout on every frame. List the properties and move things with transform and opacity.',
+    findLines: (uiFile) => linesMatching(uiFile, (lineText) =>
+      /transition(?:-property)?\s*:\s*all\b|transition(?:Property)?\s*:\s*['"`]all\b|\btransition-all\b/.test(lineText)
+      || /transition(?:-property)?\s*:\s*[^;]*(?:^|[\s,:])(?:width|height|top|left)\b/i.test(lineText)
+      || /\btransition-\[(?:width|height|top|left)\]/.test(lineText)),
+  },
+  {
+    id: 'outline-removed',
+    category: 'quality',
+    hallmarkGate: '26a',
+    fileKinds: ['style', 'markup'],
+    summary: 'Focus outline removed and no `:focus-visible` style anywhere in the file: keyboard users lose where they are. Keep a visible focus ring (3:1 contrast, shown instantly).',
+    findLines: (uiFile) => {
+      // Any focus style in the file (a :focus rule, a Tailwind focus: variant) is taken as the replacement.
+      if (/focus-visible|focus-within|:focus\b|\bfocus:/.test(uiFile.text)) return [];
+      return linesMatching(uiFile, (lineText) => /outline\s*:\s*(?:none|0)\b|outline\s*:\s*['"`](?:none|0)\b|\boutline-none\b/.test(lineText));
+    },
+  },
+  {
+    id: 'no-reduced-motion',
+    category: 'quality',
+    hallmarkGate: '27',
+    fileKinds: ['style', 'markup'],
+    summary: 'Keyframe animation with no `prefers-reduced-motion: reduce` fallback in the file: motion can make some people sick. Add the media query (or Tailwind `motion-reduce:`) that stills it.',
+    findLines: (uiFile) => {
+      if (/prefers-reduced-motion|\bmotion-(?:reduce|safe):/.test(uiFile.text)) return [];
+      return linesMatching(uiFile, (lineText) => /@keyframes\s/.test(lineText));
+    },
+  },
+  {
+    id: 'hidden-until-js',
+    category: 'quality',
+    hallmarkGate: '62',
+    fileKinds: ['style', 'markup'],
+    summary: 'Reveal-on-scroll class hidden with opacity 0 or visibility hidden until a script shows it: if the script fails or is slow, the page ships blank. Scope it to `.js`, animate from visible, or use `@starting-style`.',
+    findLines: (uiFile) => {
+      if (/@starting-style/.test(uiFile.text)) return [];
+      const hiddenLines = [];
+      for (const cssBlock of listCssBlocks(uiFile)) {
+        const selectorText = cssBlock.selector.replace(/\/\*[\s\S]*?\*\//g, '');
+        if (!/reveal|fade-?in|appear|animate-?on|on-?scroll|\[data-(?:animate|reveal|aos)|\baos\b/i.test(selectorText)
+          || /(?:^|[\s,])\.?js\b|no-js|is-visible|is-revealed|in-view\b|\.visible\b|:hover|:focus/.test(selectorText)) continue;
+        if (readDeclaration(cssBlock.declarations, 'animation')) continue;
+        const opacityDeclaration = readDeclaration(cssBlock.declarations, 'opacity');
+        const visibilityDeclaration = readDeclaration(cssBlock.declarations, 'visibility');
+        const hidingDeclaration = (opacityDeclaration && /^0(?:\.0+)?(?:\s|!|$)/.test(opacityDeclaration.value) && opacityDeclaration)
+          || (visibilityDeclaration && /^hidden\b/.test(visibilityDeclaration.value) && visibilityDeclaration);
+        if (hidingDeclaration) hiddenLines.push(lineNumberAt(uiFile.text, cssBlock.startIndex + hidingDeclaration.offset + 1));
+      }
+      return hiddenLines;
+    },
+  },
+  {
+    id: 'autoplay-unmuted',
+    category: 'quality',
+    hallmarkGate: '28a',
+    fileKinds: ['markup'],
+    summary: 'Video that autoplays without `muted`: browsers block it and, where they do not, it startles. Use `autoplay muted loop playsinline`, or no autoplay.',
+    findLines: (uiFile) => [...uiFile.text.matchAll(/<video(?=[\s>])(?:[^>"']|"[^"]*"|'[^']*')*>/gi)]
+      .filter((videoTag) => /\bautoplay\b/i.test(videoTag[0]) && !/\bmuted\b/i.test(videoTag[0]))
+      .map((videoTag) => lineNumberAt(uiFile.text, videoTag.index)),
+  },
+  {
+    id: 'viewport-units',
+    category: 'quality',
+    isHint: true,
+    hallmarkGate: '6a',
+    fileKinds: ['style', 'markup'],
+    summary: 'Fixed full-screen height in `vh` (content cut behind the mobile address bar) or width in `100vw` (adds a horizontal scroll next to a scrollbar). Prefer `dvh`/`svh` (`h-dvh`) and `width: 100%`.',
+    findLines: (uiFile) => linesMatching(uiFile, (lineText) =>
+      /(?:^|[\s;{])height\s*:\s*100vh\b|(?:^|[\s{,])height\s*:\s*['"`]100vh\b|(?:^|[\s"'`])h-screen\b/.test(lineText)
+      || /(?:^|[\s;{])(?:min-)?width\s*:\s*100vw\b|\bw-screen\b/.test(lineText)),
+  },
+  {
+    id: 'emoji-icon',
+    category: 'slop',
+    hallmarkGate: '30a',
+    fileKinds: ['markup'],
+    summary: 'Emoji standing in for an icon (alone in an element, or leading a heading, list item or button): it renders differently on every system and reads as generated. Use one icon set, or plain type.',
+    findLines: (uiFile) => {
+      const emojiOnlyLines = listTextSegments(uiFile)
+        .filter((textSegment) => EMOJI_ONLY_PATTERN.test(textSegment.text.trim()))
+        .map((textSegment) => textSegment.line);
+      return emojiOnlyLines.concat(linesMatching(uiFile, (lineText) => EMOJI_LEADING_ITEM_PATTERN.test(lineText)));
+    },
+  },
+  {
+    id: 'template-punctuation',
+    category: 'slop',
+    hallmarkGate: '63',
+    fileKinds: ['markup'],
+    summary: 'Template punctuation: meta joined by middle dots (`A · B · C`) or an arrow glued to link and button text (`Learn more →`). Write the meta as a phrase and let the link say where it goes.',
+    findLines: (uiFile) => listTextSegments(uiFile)
+      .filter((textSegment) => (textSegment.text.match(/\s[·•]\s/g) || []).length >= 2
+        || (/\S\s*[→↗➜➔»]\s*$/.test(textSegment.text) && /<(?:a|button|Link)\b/.test(uiFile.lines[textSegment.line - 1])))
+      .map((textSegment) => textSegment.line),
+  },
+  {
+    id: 'placeholder-name',
+    category: 'slop',
+    hallmarkGate: '19',
+    fileKinds: ['markup'],
+    summary: 'Placeholder copy (Jane Doe, John Smith, Acme, Lorem ipsum) left in the page: it reads as unfinished and generated. Use the real name or leave the slot visibly empty.',
+    findLines: (uiFile) => listTextSegments(uiFile)
+      .filter((textSegment) => /\b(?:Jane|John) (?:Doe|Smith)\b|\bAcme(?: (?:Inc|Corp|Co)\b\.?)?|\blorem ipsum\b/i.test(textSegment.text))
+      .map((textSegment) => textSegment.line),
   },
 ];
 

@@ -4,9 +4,11 @@
 // never a block: the edit already happened and some findings are deliberate choices.
 //
 // Options (modules.design-detect): ignore_rules: rule ids to switch off in this repo.
+// In a page Hallmark built (its `/* Hallmark` stamp, or a `.hallmark/` folder above the file), the rules
+// with a Hallmark gate are left to Hallmark's own hook and sweep, so one edit does not get both.
 
 import { existsSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { allowDecision, contextDecision } from '../core/hook-io.mjs';
 import { projectRelativePath } from '../core/project-paths.mjs';
 import { resolveStateDirectory, sessionStatePath, readStateText, writeStateText, shortHash } from '../core/session-state.mjs';
@@ -36,6 +38,19 @@ export function findEditedLineRanges(hookInput, fileText) {
     }
   }
   return editedRanges;
+}
+
+const HALLMARK_GATED_RULE_IDS = DESIGN_RULES.filter((designRule) => designRule.hallmarkGate).map((designRule) => designRule.id);
+
+export function isHallmarkPage(projectRoot, relativePath, fileText) {
+  if (/\/\*\s*Hallmark\b/.test(fileText)) return true;
+  let folderPath = dirname(join(projectRoot, relativePath));
+  while (folderPath.startsWith(projectRoot)) {
+    if (existsSync(join(folderPath, '.hallmark'))) return true;
+    if (folderPath === projectRoot) break;
+    folderPath = dirname(folderPath);
+  }
+  return false;
 }
 
 const isLineInRanges = (lineNumber, editedRanges) => editedRanges === null
@@ -74,7 +89,9 @@ export default {
     const fileText = readFileSync(absolutePath, 'utf8');
     const editedRanges = findEditedLineRanges(hookInput, fileText);
     const fileLines = fileText.split('\n');
-    const editFindings = scanUiFile(absolutePath, fileText, moduleOptions.ignore_rules ?? [])
+    const ignoredRuleIds = (moduleOptions.ignore_rules ?? [])
+      .concat(isHallmarkPage(projectRoot, relativePath, fileText) ? HALLMARK_GATED_RULE_IDS : []);
+    const editFindings = scanUiFile(absolutePath, fileText, ignoredRuleIds)
       .filter((designFinding) => isLineInRanges(designFinding.line, editedRanges));
     if (!editFindings.length) return allowDecision();
 

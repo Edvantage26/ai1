@@ -114,6 +114,42 @@ const RULE_SAMPLES = {
     flagged: ['styles.css', 'p { text-align: justify; }'],
     clean: ['styles.css', 'p { text-align: left; }'],
   },
+  'transition-all': {
+    flagged: ['styles.css', '.drawer { transition: width 200ms ease-out; }'],
+    clean: ['styles.css', '.drawer { transition: transform 200ms ease-out, opacity 200ms ease-out; }'],
+  },
+  'outline-removed': {
+    flagged: ['styles.css', 'button { outline: none; }'],
+    clean: ['styles.css', 'button { outline: none; }\nbutton:focus { box-shadow: 0 0 0 3px #1d4ed8; }'],
+  },
+  'no-reduced-motion': {
+    flagged: ['styles.css', '@keyframes rise { from { transform: translateY(8px); } }\n.card { animation: rise 300ms; }'],
+    clean: ['styles.css', '@keyframes rise { from { transform: translateY(8px); } }\n.card { animation: rise 300ms; }\n@media (prefers-reduced-motion: reduce) { .card { animation: none; } }'],
+  },
+  'hidden-until-js': {
+    flagged: ['styles.css', '.reveal {\n  opacity: 0;\n  transform: translateY(12px);\n}'],
+    clean: ['styles.css', '.js .reveal {\n  opacity: 0;\n  transform: translateY(12px);\n}'],
+  },
+  'autoplay-unmuted': {
+    flagged: ['hero.html', '<video src="/intro.mp4" autoplay loop></video>'],
+    clean: ['hero.html', '<video src="/intro.mp4" autoplay muted loop playsinline></video>'],
+  },
+  'viewport-units': {
+    flagged: ['hero.tsx', '<section className="h-screen grid place-items-center">x</section>'],
+    clean: ['hero.tsx', '<section className="min-h-screen grid place-items-center">x</section>'],
+  },
+  'emoji-icon': {
+    flagged: ['features.tsx', '<div className="text-3xl">🚀</div>\n<h3>Fast deploys</h3>'],
+    clean: ['features.tsx', '<p>© 2026 Fieldbook™, made in Lleida 🎉 with care</p>'],
+  },
+  'template-punctuation': {
+    flagged: ['post.html', '<p>Guides · 5 min read · March 2026</p>'],
+    clean: ['post.html', '<p>A five-minute guide, from March 2026</p>'],
+  },
+  'placeholder-name': {
+    flagged: ['quote.html', '<cite>Jane Doe, CEO at Acme</cite>'],
+    clean: ['quote.html', '<cite>Marta Puig, who runs the Lleida clinic</cite>'],
+  },
 };
 
 const ruleIdsFound = (fileName, fileText) => scanUiFile(fileName, fileText).map((designFinding) => designFinding.ruleId);
@@ -287,4 +323,32 @@ test('design-brief: on by default but quiet in a repo without a frontend', () =>
 test('design-brief: off with features.design false and silent on resume', () => {
   assert.doesNotMatch(startSessionContext(createTemporaryProject({ features: { okf: false, design: false } })), /Design: UI/);
   assert.doesNotMatch(startSessionContext(createTemporaryProject({ features: { okf: false, design: true } }), hookOptions(), 'resume'), /Design: UI/);
+});
+
+test('design-brief: names /hallmark for new pages only when the hallmark skill is installed', () => {
+  const projectRoot = createFrontendProject({ features: { okf: true, design: true } });
+  assert.doesNotMatch(startSessionContext(projectRoot), /hallmark/i);
+  const homeDirectory = mkdtempSync(join(tmpdir(), 'ai1-home-'));
+  mkdirSync(join(homeDirectory, '.claude', 'skills', 'hallmark'), { recursive: true });
+  writeFileSync(join(homeDirectory, '.claude', 'skills', 'hallmark', 'SKILL.md'), '---\nname: hallmark\n---\n');
+  assert.match(startSessionContext(projectRoot, hookOptions(homeDirectory)), /hallmark skill is installed: \/hallmark builds a new page; redesign or audit an existing one only when the person names it/);
+});
+
+test('design-detect: in a page Hallmark built, leaves the rules with a Hallmark gate to Hallmark and keeps the rest', () => {
+  const hallmarkLine = '.legal { font-size: 9px; letter-spacing: -0.08em; }';
+  const stampedProject = createTemporaryProject({ features: { okf: false, design: true } });
+  writeFileSync(join(stampedProject, 'styles.css'), `/* Hallmark · theme: coral */\n${hallmarkLine}\n`);
+  const stampedContext = postToolUseContext(runHookEvent('PostToolUse', editPayload(stampedProject, 'styles.css', hallmarkLine), hookOptions()));
+  assert.doesNotMatch(stampedContext, /tiny-text/, 'tiny-text has a Hallmark gate (75)');
+  assert.match(stampedContext, /extreme-negative-tracking/, 'a rule with no Hallmark gate still reports');
+
+  const folderProject = createTemporaryProject({ features: { okf: false, design: true } });
+  mkdirSync(join(folderProject, '.hallmark'));
+  mkdirSync(join(folderProject, 'src'));
+  writeFileSync(join(folderProject, 'src', 'styles.css'), `${hallmarkLine}\n`);
+  assert.doesNotMatch(postToolUseContext(runHookEvent('PostToolUse', editPayload(folderProject, 'src/styles.css', hallmarkLine), hookOptions())), /tiny-text/);
+
+  const plainProject = createTemporaryProject({ features: { okf: false, design: true } });
+  writeFileSync(join(plainProject, 'styles.css'), `${hallmarkLine}\n`);
+  assert.match(postToolUseContext(runHookEvent('PostToolUse', editPayload(plainProject, 'styles.css', hallmarkLine), hookOptions())), /tiny-text/);
 });
