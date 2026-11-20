@@ -57,3 +57,11 @@ export function bashPayload(projectRoot, commandLine) {
     tool_input: { command: commandLine },
   };
 }
+
+// A git checkout named `folderName` with one remote, as files only (no git process).
+export function createFakeRepo(folderName, remoteUrl) {
+  const repoRoot = join(mkdtempSync(join(tmpdir(), 'ai1-privacy-')), folderName);
+  mkdirSync(join(repoRoot, '.git'), { recursive: true });
+  writeFileSync(join(repoRoot, '.git', 'config'), `[core]\n\tbare = false\n[remote "origin"]\n\turl = ${remoteUrl}\n`);
+  return repoRoot;
+}

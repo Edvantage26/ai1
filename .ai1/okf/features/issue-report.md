@@ -5,13 +5,14 @@ description: Report a problem with ai1 as an issue on the public Edvantage26/ai1
 tags: [core, issues, feedback, github]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-09T12:14:40Z'
+  at: '2026-11-20T23:17:13Z'
 ---
 
-Module `core`: a skill, a CLI command and the `issue-offer` hook, no entry needed in `.ai1/config.json`,
+Module `core`: a skill, a CLI command and the `issue-offer` and `issue-guard` hooks, no entry needed in `.ai1/config.json`,
 so any person using ai1 can report a problem from whatever repo they are in. Code in
-`src/cli/issue-command.mjs` and `src/core/issue-offer.mjs`; tests in `test/issue.test.mjs` and
-`test/issue-offer.test.mjs`.
+`src/cli/issue-command.mjs`, `src/core/issue-offer.mjs`, `src/core/issue-privacy.mjs` and
+`src/core/issue-guard.mjs`; tests in `test/issue.test.mjs`, `test/issue-offer.test.mjs`,
+`test/issue-privacy.test.mjs` and `test/issue-guard.test.mjs`.
 
 # Offered when ai1 itself fails (since 2026-11-09)
 
@@ -48,11 +49,39 @@ author runs with `auto` (decided 2026-11-09). An unknown value means `ask`.
 2. Duplicates are searched with `gh issue list -R Edvantage26/ai1`; a match gets a comment instead.
 3. The draft (`.ai1/work/issue-<slug>.md`) is a minimal reproduction: what happened, expected, steps,
    environment. Paths, hostnames, private services, client names, secrets and the person's code are
-   removed or made generic before the person sees it.
+   removed or made generic before the person sees it, and `ai1 issue check <draft> --title "<t>"`
+   must pass (see below).
 4. The person approves the exact text: the repo is public.
 5. `gh issue create` (label `bug` or `enhancement`, retried without it if refused); without `gh`,
    `ai1 issue url` prints a prefilled `issues/new` link (title only past 8000 characters, the body
    is then pasted from the file).
+
+# Private data check
+
+Since 2026-11-20 (issue #6): an agent wrote an issue by hand, without the skill, naming the person's
+private repo, which revealed a client. The cleaning rule was only an instruction; now it is checked.
+
+- **Scanner** `src/core/issue-privacy.mjs`, deterministic and offline. Finds, each with its
+  placeholder: repo names (`<repo>`: folder name and remote owner/name of the current repo and of
+  every repo whose home path appears in the session transcript's last 1 MB; remotes read from the git
+  config as text, worktrees followed to their common dir; ai1's own repo gives none), home paths
+  (`<home>`: `/home/<u>`, `/Users/<u>`, `C:\Users\<u>`), the OS user name (`<user>`), emails
+  (`<email>`), IPv4 (`<ip>`, not 127.0.0.1/0.0.0.0), hostnames (`<host>`: after `http(s)://`, or
+  `a.b.tld` with a real TLD that is not a file extension; a short list of public domains passes),
+  secrets (`<secret>`, the patterns of `secret-lines.mjs`), contacts (`<contact>`, the
+  [messages](messages.md) contacts) and clients (`<client>`, `brand_owner` of DesignSystem concepts).
+  Names under 4 characters and common words (`app`, `web`, `api`, `docs`, `user`, `runner`...) are
+  never private, so a repo called `web` does not block every report. `Edvantage26/ai1` and its
+  GitHub URLs are always allowed. No override: a false positive is rewritten.
+- **`ai1 issue check <draft> [--title]`**: lists the hits, exit 1 while any; the skill runs it before
+  showing the draft and in auto mode. Checks the current repo, not the session's other repos (it has
+  no transcript): the guard may still refuse once.
+- **`issue-guard`** (PreToolUse Bash, core, `modules.issue-guard: false`): `gh issue|pr
+  create|comment|edit` aimed at the ai1 repo (`-R`/`--repo`, `GH_REPO=`, or no repo flag inside a
+  checkout whose remote is ai1) and `ai1 issue url`: reads `--title`, `--body`, `--body-file` and
+  denies while there are hits. A body it cannot read is denied too: a shell expansion
+  (`--body "$(...)"`), stdin (`-F -`) or a file the same command writes. `gh api` is not covered;
+  the skill never uses it. Like every guard it runs only where ai1 is active.
 
 # Decisions
 

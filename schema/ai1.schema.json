@@ -186,6 +186,22 @@
             }
           ]
         },
+        "issue-guard": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
         "customization-check": {
           "oneOf": [
             {

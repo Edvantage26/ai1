@@ -10,6 +10,7 @@
 export const MODULE_INDEX = [
   { id: 'brief', event: 'SessionStart', feature: 'core', modulePath: '../context/brief.mjs' },
   { id: 'issue-offer', event: 'UserPromptSubmit', feature: 'core', modulePath: './issue-offer.mjs' },
+  { id: 'issue-guard', event: 'PreToolUse', feature: 'core', toolNames: ['Bash'], modulePath: './issue-guard.mjs' },
   { id: 'customization-check', event: 'Stop', feature: 'core', modulePath: './customization-check.mjs' },
   { id: 'local-sync-start', event: 'SessionStart', feature: 'core', modulePath: './local-sync-start.mjs' },
   { id: 'local-sync-stop', event: 'Stop', feature: 'core', modulePath: './local-sync-stop.mjs' },

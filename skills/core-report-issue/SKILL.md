@@ -18,7 +18,8 @@ Only when the `issue-offer` hook says the person chose automatic reports of ai1'
    description, no context from the session or the repo. Anything more needs the normal flow below.
 2. Look for a duplicate (step 2): if the same module and error are already reported, comment instead
    (`gh issue comment <n> -R Edvantage26/ai1 --body "Seen again on ai1 <version>."`).
-3. Otherwise create it (step 5, `--label bug`), with the body written to a file first.
+3. Otherwise write the body to a file, run `ai1 issue check <file> --title "<title>"` (step 3) and create it
+   (step 5, `--label bug`). If the check finds anything, do not file it: tell the person what it found.
 4. Tell the person in one line what was filed or commented, with the link.
 
 Only for problems with ai1 (its hooks, skills, `ai1` CLI, config). A bug in the person's own code
@@ -81,10 +82,24 @@ Title: short and specific, prefixed with the module (`sizing: gate blocks a quic
 tokens, keys and any secret, and code or file contents from the person's repo beyond the minimum
 that reproduces the problem (rewrite it generically). When in doubt, leave it out and ask.
 
+Then check it:
+
+```bash
+ai1 issue check <draft> --title "<title>"
+```
+
+It lists what looks private - the repo's and the session's repo names, home paths and the user name,
+emails, IPs, hostnames, tokens, the project's contacts and clients - each with the placeholder that
+replaces it (`<repo>`, `<home>`, `<host>`, `<client>`...), and exits 1 while anything is left. Fix
+the draft and run it again until it passes. The `issue-guard` hook runs the same check on
+`gh issue|pr create|comment|edit` aimed at Edvantage26/ai1 and refuses while something is found,
+or when it cannot read the body (write the body to a file and use `--body-file`; never `--body
+"$(...)"`).
+
 ## 4. Approve
 
-Show the person the title and the full body, say it will be public, and ask: create, edit or
-cancel. Apply edits and show it again.
+Show the person the title and the full body, say it will be public and that `ai1 issue check`
+passed, and ask: create, edit or cancel. Apply edits and show it again.
 
 ## 5. Create it
 

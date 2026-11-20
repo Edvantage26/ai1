@@ -3,6 +3,8 @@
 //   url --title "<t>" --body-file <f>     a prefilled "new issue" link, for when `gh` cannot create it
 //   auto-body [--json]                    title and body of an automatic report of ai1's own errors:
 //                                         fixed facts only (env + error signatures), safe to publish unread
+//   check <draft> [--title "<t>"]         private data in a draft (repo, client, host names, paths, emails,
+//                                         IPs, secrets) with the placeholder for each; exit 1 when any
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -15,8 +17,9 @@ import { describeRepo, AI1_MARKETPLACE } from './setup-repo.mjs';
 import { listStateDirectoriesToRead } from '../core/decision-log.mjs';
 import { readPendingErrorsFrom } from '../core/pending-errors.mjs';
 import { findMainCheckout } from '../core/project-roots.mjs';
+import { collectPrivateNames, findPrivateData, formatPrivateHits } from '../core/issue-privacy.mjs';
 
-export const ISSUE_USAGE = 'usage: ai1 issue env [--json] | url --title "<t>" --body-file <body.md> | auto-body [--json]';
+export const ISSUE_USAGE = 'usage: ai1 issue env [--json] | url --title "<t>" --body-file <body.md> | auto-body [--json] | check <draft.md> [--title "<t>"]';
 export const ISSUE_REPOSITORY = AI1_MARKETPLACE.source.repo;
 // GitHub rejects longer "new issue" URLs; past it the link carries only the title.
 const MAX_ISSUE_URL_LENGTH = 8000;
@@ -96,6 +99,16 @@ export function runIssueCommand(repoRoot, commandArguments, { readOption, enviro
     }
     writeOutput(wantsJson ? JSON.stringify(automaticReport, null, 2) : `${automaticReport.title}\n\n${automaticReport.body}`);
     return 0;
+  }
+  if (subcommandName === 'check') {
+    const draftPath = commandArguments[1];
+    if (!draftPath || draftPath.startsWith('-')) throw new Error('usage: ai1 issue check <draft.md> [--title "<t>"]');
+    const privateHits = findPrivateData({ title: readOption('--title') ?? '', body: readFileSync(draftPath, 'utf8') },
+      collectPrivateNames({ projectRoot: repoRoot, sharedRoot: findMainCheckout(repoRoot) ?? repoRoot }));
+    if (wantsJson) writeOutput(JSON.stringify(privateHits, null, 2));
+    else if (privateHits.length === 0) writeOutput('ai1 issue check: passed - nothing private found in the title or the body.');
+    else writeOutput(`ai1 issue check: ${privateHits.length} private item(s) found; replace each with its placeholder before publishing:\n${formatPrivateHits(privateHits)}`);
+    return privateHits.length === 0 ? 0 : 1;
   }
   if (subcommandName === 'url') {
     const issueTitle = readOption('--title');
