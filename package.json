@@ -11,6 +11,6 @@
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "design-scan": "node scripts/design-rules-scan.mjs",
-    "readme-skills": "node scripts/readme-skills.mjs"
+    "readme-tables": "node scripts/readme-tables.mjs"
   }
 }

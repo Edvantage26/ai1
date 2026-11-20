@@ -25,10 +25,10 @@ OKF validator in `--strict` mode (`node bin/ai1 okf validate .ai1/okf --strict`)
   `.ai1/okf/decisions/principles.md`.
 - **Never grant the agent git permissions** (commit/push) from the plugin.
 - Every module ships with tests; run `npm test` and `claude plugin validate .` before committing.
-- Adding a module: one file (with its `feature`), one line in `src/core/module-index.mjs`, its entry in the schema.
+- Adding a module: one file (with its `feature`), one line in `src/core/module-index.mjs`, its entry in the schema, its description and origin in `src/core/readme-index.mjs` (then `npm run readme-tables` for the Hooks table of the README).
 - Skills live in `skills/<module>-<action>/`: Claude Code names a plugin skill by its folder. The OKF toolkit (`skills/okf-*`, `src/okf/okf-{validate,init,visualize}.mjs`, `vendor/`) is ours now (see `.ai1/okf/packs/okf-pack.md`); keep `THIRD-PARTY.md` in sync.
 - Designing a new skill or reviewing how the skills fit: the project skill `ai1-skill-design` (route, neighbours, fit map).
-- Adding a skill: its entry in `src/core/skill-customization-index.mjs` (customizable, with its scopes and `hints`, or not and why); a customizable one gets the `allowed-tools` permission, a `## Fixed rules` section and the `skill-context` injection as last line (the coherence test checks it; see `.ai1/okf/architecture/skill-customization.md`). Also its origin in `src/core/skill-origin-index.mjs` (written in ai1, imported from or based on which projects), then `npm run readme-skills` to refresh the Skills table of the README (a test fails when it is out of date).
+- Adding a skill: its entry in `src/core/skill-customization-index.mjs` (customizable, with its scopes and `hints`, or not and why); a customizable one gets the `allowed-tools` permission, a `## Fixed rules` section and the `skill-context` injection as last line (the coherence test checks it; see `.ai1/okf/architecture/skill-customization.md`). Also its origin in `src/core/readme-index.mjs` (written in ai1, imported from or based on which projects), then `npm run readme-tables` to refresh the Skills table of the README (a test fails when it is out of date).
 - Keep `.claude-plugin/plugin.json` and `marketplace.json` versions in sync; tag releases.
 - README describes only what exists; anything not built yet is marked *planned*.
 

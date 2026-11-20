@@ -106,7 +106,7 @@ apart, it is not part of writing the skill.
 - [ ] Its entry in `src/core/skill-customization-index.mjs`: customizable with scopes and `hints` (one line: what a project or person usually has to tell it, shown the first time it runs in a repo; then the
       `allowed-tools` line, `## Fixed rules`, `## Customization` and the `skill-context` injection
       as last line, copied from a customizable skill) or not, with the reason
-- [ ] Its entry in `src/core/skill-origin-index.mjs` (projects it imports from or is based on, with links; empty: written in ai1; anything copied also in `THIRD-PARTY.md`), then `npm run readme-skills` for the Skills table of the README
+- [ ] Its entry in `SKILL_ORIGIN_INDEX` of `src/core/readme-index.mjs` (projects it imports from or is based on, with links; empty: written in ai1; anything copied also in `THIRD-PARTY.md`), then `npm run readme-tables` for the Skills table of the README
 - [ ] `allowed-tools` grants only the `ai1` commands it runs, never a bare `Bash`, `Write` or `Edit`
 - [ ] The skill named in its feature's `description` in `src/core/features.mjs`
 - [ ] Its route: the hook text, the brief line or the hand-off line in the skill before it

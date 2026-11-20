@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-20T23:17:13Z'
+  at: '2026-11-20T23:36:13Z'
 ---
 
 # Flow
@@ -71,7 +71,11 @@ generated:
 
 Adding a module = one file (with its `feature`) + one line in `src/core/module-index.mjs` (id, event,
 feature, toolNames, path) + its entry in the schema. `test/dispatcher.test.mjs` fails if the index and
-the module file disagree, `test/config.test.mjs` if the schema and the index do.
+the module file disagree, `test/config.test.mjs` if the schema and the index do. Its description and
+origin (written in ai1, or based on which projects) go in `HOOK_README_INDEX` of
+`src/core/readme-index.mjs`, from which `npm run readme-tables` writes the Hooks table of the README;
+`test/readme-tables.test.mjs` fails when a module has no entry or the table is out of date (see
+[skill design](../features/skill-design.md#readme-tables-skills-hooks-and-where-each-comes-from)).
 
 # Failure policy
 
