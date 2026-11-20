@@ -5,7 +5,7 @@ description: UI rules at session start and deterministic design checks on every 
 tags: [design, frontend, ui, hooks, context, impeccable, hallmark]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-20T07:55:31Z'
+  at: '2026-11-20T08:24:18Z'
 sources:
   - id: design-rules
     resource: src/design/design-rules.mjs
@@ -143,6 +143,10 @@ reads.
 Each rule has a flagged and a clean sample in `test/design.test.mjs`; a new rule without both
 fails the suite. Adding a rule: one entry in `DESIGN_RULES`, its id in the schema enum
 (`modules.design-detect.ignore_rules`), its two samples.
+Then measure it on real frontends before shipping: `npm run design-scan -- <repo-path>... [--rules id,id]
+[--examples 4] [--json]` (`scripts/design-rules-scan.mjs`) gives, per rule, the lines it flags in the
+tracked UI files, a few examples spread over them, and the total and slowest time; that is how the
+false positives and the slow `listCssBlocks` in "Verified" were found.
 
 # Limits
 
