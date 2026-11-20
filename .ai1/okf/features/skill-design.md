@@ -11,9 +11,15 @@ sources:
   - id: customization-index
     resource: src/core/skill-customization-index.mjs
     title: one entry per plugin skill
+  - id: origin-index
+    resource: src/core/skill-origin-index.mjs
+    title: where each plugin skill comes from
+  - id: readme-skills
+    resource: scripts/readme-skills.mjs
+    title: generates the Skills table of the README
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-18T16:49:56Z'
+  at: '2026-11-20T23:26:33Z'
 ---
 
 Built 2026-11-18 at the person's request: a skill for developing ai1, not for the people who use
@@ -53,3 +59,16 @@ okf-maintain-knowledge trigger "any work in a repo with a bundle" dropped and th
 cut; strict YAML in later-write and worktrees-plan-recipe; hand-made skill lists in the architecture
 concepts replaced by pointers to the index and the folders; sizing's description says what it does
 and the redundant `user-invocable: true` is gone.
+
+# Skills table of the README and where each skill comes from
+
+Since 2026-11-21, at the person's request, the README lists every plugin skill with what it does and
+its origin. `src/core/skill-origin-index.mjs` holds one entry per `skills/<folder>`: `importedFrom`
+(code or text copied, also in `THIRD-PARTY.md` with its license) and `basedOn` (projects whose ideas or
+method it takes, no code copied); both empty means written in ai1. `npm run readme-skills`
+(`scripts/readme-skills.mjs`) writes the table between the `skills:start`/`skills:end` markers of the
+README, taking the first sentence of each skill's `description` without its feature prefix.
+`test/readme-skills.test.mjs` fails when a skill has no origin entry or the table is out of date, so a
+new skill, a changed description or a new origin reaches the README with the commit. Origins come from
+the [prior art](../decisions/prior-art.md) and the feature concepts; the Credits section of the README
+keeps the credits of hooks and features.

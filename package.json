@@ -10,6 +10,7 @@
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "design-scan": "node scripts/design-rules-scan.mjs"
+    "design-scan": "node scripts/design-rules-scan.mjs",
+    "readme-skills": "node scripts/readme-skills.mjs"
   }
 }
