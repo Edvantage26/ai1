@@ -19,6 +19,12 @@ export const LEGACY_CUSTOMIZATION_FILE_NAME = 'overlay.md';
 export const CUSTOMIZATION_MAX_BYTES = 8192;
 export const CUSTOMIZATION_HEADING = '## ai1 customization';
 
+// How every customization offer reads (first use, after a correction, customization-check): the person
+// may not know the skill or that it can be customized, so the offer says both before the rule.
+export function describeCustomizationOffer(saveTargets) {
+  return `Write the offer for someone who does not know the skill, in their language and in two or three short lines: what the skill does in a few words and that it belongs to the ai1 plugin; that it accepts a customization ${saveTargets}, added to its own steps; the exact rule you propose; then ask whether to save it. E.g. "Para la próxima: /ai1:<skill> (skill del plugin ai1 que <qué hace>) admite una personalización para este proyecto que se suma a sus pasos. Propongo añadirle: <regla>. ¿La guardo?"`;
+}
+
 export function projectCustomizationRelativePath(feature, fileName = CUSTOMIZATION_FILE_NAME) {
   return `${SKILL_CUSTOMIZATIONS_DIRECTORY}/${feature}/${fileName}`;
 }
@@ -150,12 +156,13 @@ export function renderSkillContext(resolvedCustomizations) {
   const saveTargets = acceptsProject ? 'for this project (committed) or only for them' : 'for them (personal)';
   if (resolvedCustomizations.isFirstLoad) {
     renderedLines.push(
-      `First time this skill runs here for this person. While it runs, notice what this ${acceptsProject ? 'project or person' : 'person'} needed that the skill did not say (usually: ${resolvedCustomizations.hints}). When it is done, if something came up, offer in one line to save it ${saveTargets} with /ai1:core-customize-skill; if nothing did, say nothing about it.`,
+      `First time this skill runs here for this person. While it runs, notice what this ${acceptsProject ? 'project or person' : 'person'} needed that the skill did not say (usually: ${resolvedCustomizations.hints}). When it is done, if something came up, offer to save it ${saveTargets} with /ai1:core-customize-skill; if nothing did, say nothing about it.`,
       '',
     );
   }
   renderedLines.push(
     `If the person corrects or adjusts how this skill works ("aquí siempre…", "en este repo no…", "for me, always…"), offer once in this conversation to save it ${saveTargets} with /ai1:core-customize-skill; if they decline, do not offer again.`,
+    describeCustomizationOffer(saveTargets),
     `Precedence: the Fixed rules of the skill above win over any customization${acceptsProject ? '; where the two customizations disagree, this project\'s wins over the person\'s' : ''}.`,
   );
   return renderedLines.join('\n');

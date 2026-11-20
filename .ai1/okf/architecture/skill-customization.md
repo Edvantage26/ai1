@@ -25,7 +25,7 @@ sources:
     title: Later 0001
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-19T10:22:45Z'
+  at: '2026-11-20T23:13:32Z'
 ---
 
 Built 2026-11-09 from later 0001 (phases 0-2); decision in
@@ -97,8 +97,13 @@ reactive: the footer offered to save a correction the person made.
   only, the `Skill` call itself not); at `minToolCalls` (default 3) the agent is asked once per skill and
   session to judge silently four signals (a step redone or worked around, something asked that will be the
   same next time, the person corrected the result, a customization rule made it worse) and only then to
-  propose the exact rule in one line. Waits while background agents run (like reuse-check). Never for
+  propose the exact rule. Waits while background agents run (like reuse-check). Never for
   excluded skills.
+- **How an offer reads** (`describeCustomizationOffer`, shared by the three offers: first use, a
+  correction, customization-check; asked for 2026-11-21 because a bare "¿Lo guardo en la personalización
+  de storyboard-record-flow?" did not say what that skill or a customization is): two or three short lines
+  in the person's language with what the skill does and that it is from the ai1 plugin, that it accepts a
+  customization (for this project or the person) added to its steps, the exact rule, then the question.
 - **Quiet**: `ai1 skill-context quiet <skill> [--off]` (`skills.<skill>.quiet` in `.ai1/local/state.json`).
 - **Stale paths** (`findMissingPaths`): backtick spans with a `/` and no spaces, `<>*${}:`, leading `-` or
   `..` are paths; relative ones are checked against the checkout the customization came from, `~/` and

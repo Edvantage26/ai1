@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createTemporaryProject } from './helpers.mjs';
 import { findMissingPaths, isSkillQuiet } from '../src/core/skill-customization.mjs';
+import { buildCustomizationCheckReason } from '../src/core/customization-check.mjs';
 import { runSkillContextCommand } from '../src/cli/skill-context-command.mjs';
 import { runHookEvent } from '../src/core/dispatcher.mjs';
 
@@ -30,7 +31,7 @@ test('first load of a skill in a repo with ai1: a "First time" paragraph with it
   const firstLoad = skillContext(['storyboard-record-flow'], projectRoot).printedText;
   assert.match(firstLoad, /First time this skill runs here for this person\./);
   assert.match(firstLoad, /how the app starts here, how to log in/);
-  assert.match(firstLoad, /offer in one line to save it for this project \(committed\) or only for them with \/ai1:core-customize-skill; if nothing did, say nothing about it\./);
+  assert.match(firstLoad, /offer to save it for this project \(committed\) or only for them with \/ai1:core-customize-skill; if nothing did, say nothing about it\./);
   const personState = JSON.parse(readFileSync(join(projectRoot, '.ai1', 'local', 'state.json'), 'utf8'));
   assert.ok(personState.skills['storyboard-record-flow'].firstLoadAt);
   assert.doesNotMatch(skillContext(['storyboard-record-flow'], projectRoot).printedText, /First time/);
@@ -137,4 +138,13 @@ test('customization-check: a quiet skill is not asked about [customization-upkee
   const transcriptPath = join(options.homeDirectory, 'transcript.jsonl');
   appendTranscriptLines(transcriptPath, [toolUseLine('Skill', { skill: 'ai1:storyboard-record-flow' }), toolUseLine('Bash'), toolUseLine('Bash'), toolUseLine('Bash')]);
   assert.equal(stopReason(projectRoot, transcriptPath, options), '');
+});
+
+test('every customization offer explains the skill (ai1 plugin, customizable) before the proposed rule [customization-upkeep:S5]', () => {
+  const projectRoot = createTemporaryProject({ version: 2 });
+  const offerShape = /what the skill does in a few words and that it belongs to the ai1 plugin; that it accepts a customization for this project \(committed\) or only for (them|the person), added to its own steps; the exact rule you propose/;
+  assert.match(skillContext(['storyboard-record-flow'], projectRoot).printedText, offerShape);
+  const checkReason = buildCustomizationCheckReason(['storyboard-record-flow']);
+  assert.match(checkReason, offerShape);
+  assert.doesNotMatch(checkReason, /¿Lo guardo en la personalización de <skill>\?/);
 });

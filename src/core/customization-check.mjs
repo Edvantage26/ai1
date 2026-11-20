@@ -2,7 +2,7 @@
 // agent (a `Skill` tool call `ai1:<skill>`) or typed by the person (`<command-name>/ai1:<skill>`) - and
 // `minToolCalls` tool calls followed it (counted across turns from the transcript, incremental read),
 // asks the agent once per skill and session to judge silently whether something could have gone better
-// and, only then, to propose in one line the customization rule that would have avoided it. Skills the
+// and, only then, to propose the customization rule (what the skill does, that it can be customized, the rule) that would have avoided it. Skills the
 // person quieted (`ai1 skill-context quiet <skill>`) are left out. No model, no network.
 //
 // Options (modules.customization-check): minToolCalls (default 3).
@@ -12,7 +12,7 @@ import { resolveStateDirectory, sessionStatePath, readStateJson, writeStateText 
 import { readNewTranscriptEvents, eventContentBlocks, isPersonPromptEvent, TOOL_USE_MARKER } from './transcript-scan.mjs';
 import { BACKGROUND_AGENT_MARKERS, updatePendingBackgroundAgents } from './background-agents.mjs';
 import { SKILL_CUSTOMIZATION_INDEX } from './skill-customization-index.mjs';
-import { isSkillQuiet } from './skill-customization.mjs';
+import { describeCustomizationOffer, isSkillQuiet } from './skill-customization.mjs';
 
 const MODULE_ID = 'customization-check';
 const DEFAULT_MIN_TOOL_CALLS = 3;
@@ -55,7 +55,8 @@ export function buildCustomizationCheckReason(skillFolders) {
   return [
     `Customization: ${skillNames} ran in this session. Judge silently whether it could have gone better here because of something the skill did not know about this project or this person:`,
     '- a step redone or worked around; something you had to ask that will be the same next time; the person corrected the result; a rule of its customization made it worse.',
-    `If none: finish without writing anything about it. If one did: one line at the end of your report with the exact rule to add or change and where (this project, committed, or only for the person): "Para la próxima: <rule>. ¿Lo guardo en la personalización de <skill>?". A yes loads /ai1:core-customize-skill; nothing is written without it. A "no me lo preguntes más" means \`ai1 skill-context quiet <skill>\`.`,
+    `If none: finish without writing anything about it. If one did: at the end of your report, offer the exact rule to add or change and where (this project, committed, or only for the person). A yes loads /ai1:core-customize-skill; nothing is written without it. A "no me lo preguntes más" means \`ai1 skill-context quiet <skill>\`.`,
+    describeCustomizationOffer('for this project (committed) or only for the person'),
     'Not this: work that repeats in this repo is a reuse proposal (its own line, never merged with this one); "never do X" is a guard rule (/ai1:danger-write-rule); tool data (where forks open, hook options, the worktree recipe) has its own place.',
   ].join('\n');
 }
