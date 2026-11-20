@@ -31,7 +31,7 @@ OKF validator in `--strict` mode (`node bin/ai1 okf validate .ai1/okf --strict`)
 - Adding a skill: its entry in `src/core/skill-customization-index.mjs` (customizable, with its scopes and `hints`, or not and why); a customizable one gets the `allowed-tools` permission, a `## Fixed rules` section and the `skill-context` injection as last line (the coherence test checks it; see `.ai1/okf/architecture/skill-customization.md`). Also its origin in `src/core/readme-index.mjs` (written in ai1, imported from or based on which projects), then `npm run readme-tables` to refresh the Skills table of the README (a test fails when it is out of date).
 - **Provenance**: whenever code, text or an idea from another project enters ai1 (in a new or an existing skill or hook, rules, `vendor/`), record where it came from in the same change: `importedFrom` / `basedOn` of its entry in `src/core/readme-index.mjs` + `npm run readme-tables`; anything copied also in `THIRD-PARTY.md` with its license (and `licenses/`); neither a skill nor a hook, in the README's Credits; the review behind it in `.ai1/okf/decisions/prior-art.md`. Tests only catch a missing entry, not a missing origin.
 - Keep `.claude-plugin/plugin.json` and `marketplace.json` versions in sync; tag releases.
-- README describes only what exists; anything not built yet is marked *planned*.
+- README describes only what exists; anything not built yet is marked *planned*. No old names, renames or migration history (`jig`, "called X until vN"): that history lives in the bundle.
 
 ## Layout
 
