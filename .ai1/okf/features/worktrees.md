@@ -5,7 +5,7 @@ description: A worktree per change (any edit to the repo files, created before t
 tags: [worktrees, git, skills, cli, hooks]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-17T14:28:38Z'
+  at: '2026-11-20T23:45:32Z'
 sources:
   - id: worktree-create
     resource: src/worktrees/worktree-create.mjs
@@ -144,6 +144,13 @@ verify, okf, design, guards) and a **shared root** (the main checkout: `.ai1/wor
 worktree's `.ai1/work/` until `finish` or `drop` moves them to the main checkout
 ([sizing](sizing.md)). A worktree without .ai1/config.json uses the main checkout's. See
 [hook runtime](/architecture/hook-runtime.md).
+
+A session isolated with EnterWorktree also meets a check of Claude Code itself (not of ai1): it
+refuses shell commands it cannot prove keep git operations inside the worktree, which catches
+commands that only name git as text (a heredoc writing `.git/config`, a `sed` program with `|`
+editing `bin/ai1`). Seen seven times in one session on 2026-11-20. The worktree rules in the brief
+and the project skill `/worktree` say the way round it: Edit/Write for files, a script in a file
+outside the repo run with a plain command. Reported upstream to Claude Code.
 
 # Limits
 

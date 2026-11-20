@@ -35,7 +35,7 @@ export function describeSessionWorktree(sessionWorktree) {
 export function buildWorktreeRules(hasProjectSkill = false) {
   return [
     `Worktrees: any change to the files of this repo happens in a worktree, never in the main checkout${hasProjectSkill ? ', following the project skill `/worktree` (its rules win over these)' : ''}. If the task needs edits and this session is not in a worktree, create one before the first edit and tell the person its name in one line; questions and research without edits need none.`,
-    '- `ai1 worktree create <name>`, then EnterWorktree with the printed path and run what it lists under "next"; work and run project steps only inside it (`ai1 worktree run <name> <command>`).',
+    '- `ai1 worktree create <name>`, then EnterWorktree with the printed path and run what it lists under "next"; work and run project steps only inside it (`ai1 worktree run <name> <command>`). Inside, edit with Edit/Write (Claude Code refuses heredocs or sed programs naming git).',
     '- Start every progress report with one line naming the worktree you work in.',
     '- Close it yourself, without asking, once the work is done and verified: commit in its branch and `ai1 worktree finish <name>` (nothing is pushed), or `ai1 worktree drop <name> --confirm`.',
     `- When \`ai1 worktree\` reports a gap in the recipe or a step was done by hand, add the fix to ${RECIPE_RELATIVE_PATH} yourself (/ai1:worktrees-plan-recipe) and say it in one line; propose it first when it would share a folder that holds state or delete data.`,

@@ -20,7 +20,11 @@ several sessions often work on ai1 at once, and two of them committing and relea
 
 1. **Create**: `ai1 worktree create <short-name>` (from `main`; mode auto, always full here: the repo
    is ~2 MB, nothing to install, no ports).
-2. **Enter**: EnterWorktree with the printed path. No setup step.
+2. **Enter**: EnterWorktree with the printed path. No setup step. Inside, Claude Code refuses
+   shell commands it cannot prove keep git in the worktree: a `python3 - <<'PY'` or a `sed` program
+   naming git, `.git` or `bin/ai1` with a `|`, a `$(...)` as a sed option. Edit files with Edit/Write;
+   a longer edit script goes in a file outside the repo (`/tmp/<task>/x.py`), run with
+   `python3 -I /tmp/<task>/x.py`.
 3. **Work inside**: edits and commits only in the worktree. Checks:
    `ai1 worktree run <name> test` (`npm test`), `ai1 worktree run <name> okf` (OKF validator
    --strict), `ai1 worktree run <name> validate` (`claude plugin validate .`).
