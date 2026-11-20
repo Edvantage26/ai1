@@ -4,7 +4,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { deflateRawSync } from 'node:zlib';
-import { buildFilePreview, maskValue, parseDelimitedText, readZipEntries } from '../src/storyboard/storyboard-file-preview.mjs';
+import { buildFilePreview, formatExcelDate, maskValue, parseDelimitedText, readZipEntries } from '../src/storyboard/storyboard-file-preview.mjs';
 
 function writeFixture(fileName, fileContent) {
   const fixturePath = join(mkdtempSync(join(tmpdir(), 'ai1-preview-')), fileName);
@@ -73,6 +73,21 @@ test('an xlsx previews each sheet: first 10 rows (header included), row and colu
   assert.deepEqual(clientsSheet.rows[0], ['Nombre', 'Teléfono', 'TRUE', 'Notas']);
   assert.deepEqual(clientsSheet.rows[1], ['Juan Pérez', '612345678', '', 'Nota & 0']);
   assert.deepEqual(emptySheet, { name: 'Vacía', rows_total: 0, columns_total: 0, rows: [] });
+});
+
+test('an xlsx shows date cells as dates, not Excel serial numbers (issue #7)', () => {
+  const datesWorkbook = buildZip({
+    'xl/workbook.xml': '<workbook><sheets><sheet name="Fechas" sheetId="1" r:id="rId1"/></sheets></workbook>',
+    'xl/_rels/workbook.xml.rels': '<Relationships><Relationship Id="rId1" Type="x" Target="worksheets/sheet1.xml"/></Relationships>',
+    // xf 0 General, 1 built-in 14 (mm-dd-yy), 2 custom date, 3 custom time, 4 custom number with a quoted "d", 5 built-in 22.
+    'xl/styles.xml': '<styleSheet><numFmts count="3"><numFmt numFmtId="164" formatCode="dd/mm/yyyy"/><numFmt numFmtId="165" formatCode="[h]:mm"/><numFmt numFmtId="166" formatCode="0.00&quot; d&quot;"/></numFmts>'
+      + '<cellXfs count="6"><xf numFmtId="0"/><xf numFmtId="14" applyNumberFormat="1"/><xf numFmtId="164"/><xf numFmtId="165"/><xf numFmtId="166"/><xf numFmtId="22"/></cellXfs></styleSheet>',
+    'xl/worksheets/sheet1.xml': '<worksheet><sheetData><row r="1"><c r="A1" t="inlineStr"><is><t>Fecha</t></is></c></row>'
+      + '<row r="2"><c r="A2" s="1"><v>45348</v></c><c r="B2" s="2"><v>45348</v></c><c r="C2" s="3"><v>0.5</v></c><c r="D2" s="4"><v>45348</v></c><c r="E2" s="5"><v>45348.75</v></c><c r="F2"><v>45348</v></c><c r="G2" s="1"><v>59</v></c><c r="H2" s="1"><v>61</v></c></row></sheetData></worksheet>',
+  });
+  const [datesSheet] = buildFilePreview(writeFixture('dates.xlsx', datesWorkbook)).sheets;
+  assert.deepEqual(datesSheet.rows[1], ['2024-02-26', '2024-02-26', '12:00', '45348', '2024-02-26 18:00', '45348', '1900-02-28', '1900-03-01']);
+  assert.equal(formatExcelDate('1461', true), '1908-01-01', 'the 1904 date system');
 });
 
 test('the zip reader takes stored and deflated entries and refuses what is not a zip', () => {

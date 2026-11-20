@@ -5,7 +5,7 @@ description: Storyboard of the user flow after a visual change - numbered steps 
 tags: [storyboard, ui, screenshots, pdf, worktrees]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-19T10:06:51Z'
+  at: '2026-11-20T23:27:05Z'
 sources:
   - id: storyboard
     resource: src/storyboard/storyboard-steps.mjs
@@ -82,8 +82,10 @@ ai1 never drives the browser: the agent captures with its own tool and hands the
   unless masked or over 20 MB; the original is **never deleted** (it may be the user's own), while a
   `--preview` image is cleaned like a screenshot. The preview is worked out when added and stored in
   `steps.json` (publishers get it): `table` (csv/tsv by guessed delimiter, xlsx through an own zip
-  reader - central directory, stored/deflated, no zip64 - shared and inline strings, values as stored,
-  so dates are Excel serials), `lines` (text, first 20), `eml` (from/to/subject/date, RFC 2047, first 10
+  reader - central directory, stored/deflated, no zip64 - shared and inline strings, values as stored
+  except date cells: a numeric cell whose style in `xl/styles.xml` has a date or time number format
+  (built-in 14-22, 45-47, or a custom code with d/m/y/h/s outside quotes) shows `YYYY-MM-DD`, plus
+  `HH:MM` when it has a time, 1900 and 1904 systems; before 2026-11-20 they were serials, issue #7), `lines` (text, first 20), `eml` (from/to/subject/date, RFC 2047, first 10
   lines of the text or html part, attachment names), `pdf` (page count; the agent passes its own
   screenshot of page 1), `image`, `generic`. A broken file falls back to `generic` with `preview_error`.
   Caps always on: 10 rows (header included), 12 columns, 5 sheets, cells cut at 40 characters.

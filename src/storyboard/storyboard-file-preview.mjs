@@ -124,7 +124,7 @@ export function readZipEntries(zipBytes) {
   return zipEntries;
 }
 
-// --- .xlsx: sheet names, shared and inline strings, cell values as stored ---
+// --- .xlsx: sheet names, shared and inline strings, cell values as stored; date cells as dates ---
 
 const XML_ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
 
@@ -150,7 +150,42 @@ function columnIndexFromReference(cellReference) {
   return [...columnLetters].reduce((columnNumber, columnLetter) => columnNumber * 26 + columnLetter.charCodeAt(0) - 64, 0) - 1;
 }
 
-function readSheetRows(sheetXml, sharedStrings) {
+// Built-in number formats that are dates or times (ECMA-376 18.8.30): 14-22 and 45-47.
+const BUILT_IN_DATE_FORMAT_IDS = new Set([14, 15, 16, 17, 18, 19, 20, 21, 22, 45, 46, 47]);
+const MILLISECONDS_PER_DAY = 86_400_000;
+
+// Whether a number format code shows a date or time: a d, m, y, h or s outside quoted text,
+// escapes and [colour]/[$-locale] brackets (`[h]:mm` elapsed time counts).
+function isDateFormatCode(formatCode) {
+  const unquotedCode = formatCode.replace(/"[^"]*"|\\.|_.|\*./g, '').replace(/\[(?![hms]+\])[^\]]*\]/gi, '');
+  return /[dmyhs]/i.test(unquotedCode);
+}
+
+// Per cell style index (the `s` of a cell), whether it shows a date, read from xl/styles.xml.
+export function readDateStyleIndexes(stylesXml) {
+  const customFormats = new Map([...stylesXml.matchAll(/<numFmt\b([^>]*)\/?>/g)]
+    .map((formatMatch) => [Number(readXmlAttribute(formatMatch[1], 'numFmtId')), readXmlAttribute(formatMatch[1], 'formatCode') ?? '']));
+  const cellFormatsXml = stylesXml.match(/<cellXfs\b[^>]*>([\s\S]*?)<\/cellXfs>/)?.[1] ?? '';
+  return [...cellFormatsXml.matchAll(/<xf\b([^>]*?)\/?>/g)].map((formatMatch) => {
+    const formatId = Number(readXmlAttribute(formatMatch[1], 'numFmtId') ?? 0);
+    return customFormats.has(formatId) ? isDateFormatCode(customFormats.get(formatId)) : BUILT_IN_DATE_FORMAT_IDS.has(formatId);
+  });
+}
+
+// An Excel date serial as `YYYY-MM-DD`, with `HH:MM` (`:SS` when not zero) when it has a time of day,
+// or only the time for a serial below 1. The 1900 system counts the nonexistent 1900-02-29 (serial 60).
+export function formatExcelDate(serialText, uses1904DateSystem = false) {
+  const serialNumber = Number(serialText);
+  if (!Number.isFinite(serialNumber) || serialNumber < 0) return serialText;
+  const epochMilliseconds = uses1904DateSystem ? Date.UTC(1904, 0, 1) : Date.UTC(1899, 11, serialNumber < 60 ? 31 : 30);
+  const isoText = new Date(epochMilliseconds + Math.round(serialNumber * MILLISECONDS_PER_DAY / 1000) * 1000).toISOString();
+  const datePart = isoText.slice(0, 10);
+  const timePart = isoText.slice(11, 19).replace(/:00$/, '');
+  if (serialNumber < 1 && !uses1904DateSystem) return timePart;
+  return timePart === '00:00' ? datePart : `${datePart} ${timePart}`;
+}
+
+function readSheetRows(sheetXml, sharedStrings, dateStyleIndexes = [], uses1904DateSystem = false) {
   const sheetRows = [];
   for (const rowMatch of sheetXml.matchAll(/<row\b[^>]*?(?:\/>|>([\s\S]*?)<\/row>)/g)) {
     const sheetRow = [];
@@ -162,7 +197,9 @@ function readSheetRows(sheetXml, sharedStrings) {
       const cellText = cellType === 's' ? sharedStrings[Number(rawValue)] ?? ''
         : cellType === 'inlineStr' ? joinTextRuns(cellContent)
           : cellType === 'b' ? (rawValue === '1' ? 'TRUE' : 'FALSE')
-            : rawValue !== undefined ? decodeXmlText(rawValue) : '';
+            : rawValue === undefined ? ''
+              : (cellType === undefined || cellType === 'n') && dateStyleIndexes[Number(readXmlAttribute(cellMatch[1], 's') ?? 0)] ? formatExcelDate(rawValue, uses1904DateSystem)
+                : decodeXmlText(rawValue);
       const columnIndex = columnIndexFromReference(readXmlAttribute(cellMatch[1], 'r')) ?? nextColumnIndex;
       sheetRow[columnIndex] = cellText;
       nextColumnIndex = columnIndex + 1;
@@ -183,12 +220,14 @@ function previewXlsxFile(filePath, mask) {
     .map((relationshipMatch) => [readXmlAttribute(relationshipMatch[1], 'Id'), readXmlAttribute(relationshipMatch[1], 'Target')]));
   const sharedStringsXml = readEntryText('xl/sharedStrings.xml') ?? '';
   const sharedStrings = [...sharedStringsXml.matchAll(/<si\b[^>]*>([\s\S]*?)<\/si>/g)].map((stringItem) => joinTextRuns(stringItem[1]));
+  const dateStyleIndexes = readDateStyleIndexes(readEntryText('xl/styles.xml') ?? '');
+  const uses1904DateSystem = /<workbookPr\b[^>]*\bdate1904="(?:1|true)"/.test(workbookXml);
   const workbookSheets = [...workbookXml.matchAll(/<sheet\b([^>]*)\/?>/g)].map((sheetMatch) => {
     const sheetTarget = sheetTargets.get(readXmlAttribute(sheetMatch[1], 'r:id')) ?? '';
     return { name: readXmlAttribute(sheetMatch[1], 'name'), entryName: sheetTarget.startsWith('/') ? sheetTarget.slice(1) : `xl/${sheetTarget}` };
   });
   const previewedSheets = workbookSheets.slice(0, MAX_PREVIEW_SHEETS)
-    .map((workbookSheet) => previewSheet(workbookSheet.name, readSheetRows(readEntryText(workbookSheet.entryName) ?? '', sharedStrings), mask));
+    .map((workbookSheet) => previewSheet(workbookSheet.name, readSheetRows(readEntryText(workbookSheet.entryName) ?? '', sharedStrings, dateStyleIndexes, uses1904DateSystem), mask));
   return { kind: 'table', sheets: previewedSheets, sheets_total: workbookSheets.length };
 }
 
