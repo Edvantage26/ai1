@@ -5,7 +5,7 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-18T18:28:49Z'
+  at: '2026-11-20T23:57:28Z'
 ---
 
 # Layout
@@ -123,8 +123,8 @@ cannot redirect them. Tests: `test/stable-launcher.test.mjs`.
 `plugin.json` and `marketplace.json` versions move together; releases are git tags. Validate with
 `claude plugin validate .` before tagging.
 
-Release steps: bump the version in `plugin.json`, `marketplace.json`, `package.json`, the README
-status line and the [overview](../overview.md) status; `npm test`, `claude plugin validate .` and the
+Release steps: bump the version in `plugin.json`, `marketplace.json`, `package.json` and the
+[overview](../overview.md) status (the README shows the latest tag through its release badge); `npm test`, `claude plugin validate .` and the
 OKF validator; commit, annotated tag `vX.Y.Z`, push `main` and the tag. Then
 `claude plugin marketplace update ai1` and `claude plugin update ai1@ai1 --scope user` (and
 `--scope project` per repo that installs it), and restart Claude Code: a running session keeps the

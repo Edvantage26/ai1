@@ -32,10 +32,12 @@ test('every hook module has a README entry with a description, and every entry a
   }
 });
 
-test('the README tables are up to date (npm run readme-tables)', () => {
+test('the skills table of README.md and the hooks table of docs/reference.md are up to date (npm run readme-tables)', () => {
   // A Windows checkout may have CRLF line endings; the generated tables have LF.
-  const readmeText = readFileSync(join(REPO_ROOT, 'README.md'), 'utf8').replace(/\r\n/g, '\n');
-  assert.equal(renderReadmeTables(readmeText, REPO_ROOT), readmeText, 'README.md is out of date: run npm run readme-tables');
+  const readDocument = (documentPath) => readFileSync(join(REPO_ROOT, documentPath), 'utf8').replace(/\r\n/g, '\n');
+  for (const { documentPath, currentText, updatedText } of renderReadmeTables(REPO_ROOT, readDocument)) {
+    assert.equal(updatedText, currentText, `${documentPath} is out of date: run npm run readme-tables`);
+  }
 });
 
 test('the summary is the first sentence of the description, without the feature prefix', () => {

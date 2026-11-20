@@ -111,7 +111,7 @@ apart, it is not part of writing the skill.
 - [ ] The skill named in its feature's `description` in `src/core/features.mjs`
 - [ ] Its route: the hook text, the brief line or the hand-off line in the skill before it
 - [ ] The boundary lines in the neighbours found in step 2
-- [ ] The README row of its feature, and the feature's OKF concept (`.ai1/okf/features/<feature>.md`)
+- [ ] Its feature's row in `docs/reference.md` (and the one-line row in the README for a new feature), and the feature's OKF concept (`.ai1/okf/features/<feature>.md`)
 - [ ] `npm test` (the coherence test checks the index and the customization wiring) and
       `claude plugin validate .`
 

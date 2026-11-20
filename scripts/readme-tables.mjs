@@ -1,13 +1,13 @@
 #!/usr/bin/env node
-// Development script: writes the "Skills" and "Hooks" tables of the README from the code, each between
-// its two markers. Skills: every `skills/<folder>/SKILL.md` (what it does: the first sentence of its
+// Development script: writes the "Skills" table of README.md and the "Hooks" table of docs/reference.md
+// from the code, each between its two markers. Skills: every `skills/<folder>/SKILL.md` (what it does: the first sentence of its
 // description). Hooks: every module of src/core/module-index.mjs (id, feature, event). Descriptions of
 // hooks and the origin of both come from src/core/readme-index.mjs.
-// test/readme-tables.test.mjs fails when the README is out of date, so after adding a skill or a hook, or
+// test/readme-tables.test.mjs fails when either file is out of date, so after adding a skill or a hook, or
 // changing a description or an origin, run:
 //
-//   npm run readme-tables            # rewrites the tables in README.md
-//   npm run readme-tables -- --check # exit 1 when README.md is out of date
+//   npm run readme-tables            # rewrites both tables
+//   npm run readme-tables -- --check # exit 1 when a table is out of date
 
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -75,31 +75,39 @@ export function renderHooksTable() {
   return ['| Hook | Feature | Event | What it does | Origin |', '|---|---|---|---|---|', ...tableRows].join('\n');
 }
 
-// The README with the text between a table's markers replaced; throws when the markers are missing.
-export function replaceReadmeTable(readmeText, tableName, tableText) {
+// The text with what lies between a table's markers replaced; throws when the markers are missing.
+export function replaceReadmeTable(documentText, tableName, tableText) {
   const { startMarker, endMarker } = tableMarkers(tableName);
-  const startIndex = readmeText.indexOf(startMarker);
-  const endIndex = readmeText.indexOf(endMarker);
-  if (startIndex === -1 || endIndex < startIndex) throw new Error(`README.md has no ${tableName} table markers`);
-  return `${readmeText.slice(0, startIndex + startMarker.length)}\n${tableText}\n${readmeText.slice(endIndex)}`;
+  const startIndex = documentText.indexOf(startMarker);
+  const endIndex = documentText.indexOf(endMarker);
+  if (startIndex === -1 || endIndex < startIndex) throw new Error(`no ${tableName} table markers`);
+  return `${documentText.slice(0, startIndex + startMarker.length)}\n${tableText}\n${documentText.slice(endIndex)}`;
 }
 
-export function renderReadmeTables(readmeText, repositoryRoot) {
-  return replaceReadmeTable(replaceReadmeTable(readmeText, 'skills', renderSkillsTable(repositoryRoot)), 'hooks', renderHooksTable());
+// Each generated table: the file it lives in (relative to the repo root) and how it is rendered.
+export const README_TABLES = [
+  { tableName: 'skills', documentPath: 'README.md', renderTable: renderSkillsTable },
+  { tableName: 'hooks', documentPath: 'docs/reference.md', renderTable: renderHooksTable },
+];
+
+// [{ documentPath, currentText, updatedText }] for every table.
+export function renderReadmeTables(repositoryRoot, readDocument = (documentPath) => readFileSync(join(repositoryRoot, documentPath), 'utf8')) {
+  return README_TABLES.map(({ tableName, documentPath, renderTable }) => {
+    const currentText = readDocument(documentPath);
+    return { documentPath, currentText, updatedText: replaceReadmeTable(currentText, tableName, renderTable(repositoryRoot)) };
+  });
 }
 
 function runReadmeTables(commandArguments) {
   const repositoryRoot = fileURLToPath(new URL('..', import.meta.url));
-  const readmePath = join(repositoryRoot, 'README.md');
-  const readmeText = readFileSync(readmePath, 'utf8');
-  const updatedReadmeText = renderReadmeTables(readmeText, repositoryRoot);
+  const outdatedDocuments = renderReadmeTables(repositoryRoot).filter(({ currentText, updatedText }) => currentText !== updatedText);
   if (commandArguments.includes('--check')) {
-    if (updatedReadmeText === readmeText) return 0;
-    process.stderr.write('README.md tables are out of date: run npm run readme-tables\n');
+    if (!outdatedDocuments.length) return 0;
+    process.stderr.write(`out of date: ${outdatedDocuments.map(({ documentPath }) => documentPath).join(', ')}; run npm run readme-tables\n`);
     return 1;
   }
-  if (updatedReadmeText !== readmeText) writeFileSync(readmePath, updatedReadmeText);
-  process.stdout.write(updatedReadmeText === readmeText ? 'README.md tables already up to date\n' : 'README.md tables updated\n');
+  for (const { documentPath, updatedText } of outdatedDocuments) writeFileSync(join(repositoryRoot, documentPath), updatedText);
+  process.stdout.write(outdatedDocuments.length ? `updated: ${outdatedDocuments.map(({ documentPath }) => documentPath).join(', ')}\n` : 'tables already up to date\n');
   return 0;
 }
 

@@ -16,10 +16,10 @@ sources:
     title: where each plugin skill and hook comes from, and what each hook does
   - id: readme-tables
     resource: scripts/readme-tables.mjs
-    title: generates the Skills and Hooks tables of the README
+    title: generates the Skills table of the README and the Hooks table of docs/reference.md
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-20T23:36:13Z'
+  at: '2026-11-20T23:57:28Z'
 ---
 
 Built 2026-11-18 at the person's request: a skill for developing ai1, not for the people who use
@@ -62,16 +62,20 @@ and the redundant `user-invocable: true` is gone.
 
 # README tables: skills, hooks and where each comes from
 
-Since 2026-11-21, at the person's request, the README lists every plugin skill and every hook module
-with what it does and its origin. `src/core/readme-index.mjs` holds one entry per `skills/<folder>`
+Since 2026-11-21, at the person's request, the README lists every plugin skill and
+`docs/reference.md` every hook module, with what each does and its origin. The README follows the
+shape of successful plugin READMEs (Compound Engineering, Superpowers, Impeccable): tagline and
+badges, install, try it, why, one line per feature, skills, config, FAQ; every detail lives in
+`docs/reference.md`. `src/core/readme-index.mjs` holds one entry per `skills/<folder>`
 (`SKILL_ORIGIN_INDEX`) and one per module of `src/core/module-index.mjs` (`HOOK_README_INDEX`, with
 the hook's description): `importedFrom` (code or text copied, also in `THIRD-PARTY.md` with its
 license) and `basedOn` (projects whose ideas or method it takes, no code copied); both empty means
-written in ai1. `npm run readme-tables` (`scripts/readme-tables.mjs`) writes both tables between their
-`skills:` and `hooks:` markers of the README: a skill's description is the first sentence of its
+written in ai1. `npm run readme-tables` (`scripts/readme-tables.mjs`) writes the Skills table between
+the `skills:` markers of `README.md` and the Hooks table between the `hooks:` markers of
+`docs/reference.md`: a skill's description is the first sentence of its
 `description` without its feature prefix; a hook's id, feature and event come from the module index.
 `test/readme-tables.test.mjs` fails when a skill or module has no entry or a table is out of date, so a
-new skill or hook, a changed description or a new origin reaches the README with the commit. What is
+new skill or hook, a changed description or a new origin reaches the docs with the commit. What is
 neither (the CLI, customization, local data, planned pieces) stays hand-written under "Other
-components". Origins come from the [prior art](../decisions/prior-art.md) and the feature concepts;
+components" of `docs/reference.md`. Origins come from the [prior art](../decisions/prior-art.md) and the feature concepts;
 the Credits section of the README keeps the general influences and license attributions.

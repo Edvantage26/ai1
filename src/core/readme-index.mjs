@@ -1,8 +1,8 @@
-// What the README says about each skill and each hook module, and where each one comes from.
-// `npm run readme-tables` (scripts/readme-tables.mjs) turns it into the "Skills" and "Hooks" tables of
-// the README; test/readme-tables.test.mjs fails when a skill folder or a module of
-// src/core/module-index.mjs has no entry, or when the README is out of date. So a new skill or hook
-// decides its origin once and the README follows.
+// What the docs say about each skill and each hook module, and where each one comes from.
+// `npm run readme-tables` (scripts/readme-tables.mjs) turns it into the "Skills" table of README.md and
+// the "Hooks" table of docs/reference.md; test/readme-tables.test.mjs fails when a skill folder or a
+// module of src/core/module-index.mjs has no entry, or when a table is out of date. So a new skill or
+// hook decides its origin once and the docs follow.
 // `importedFrom`: code or text copied (also listed in THIRD-PARTY.md with its license). `basedOn`:
 // projects whose ideas or method it takes, with no code copied. Both empty: written in ai1.
 // A skill's description is the first sentence of its SKILL.md `description`; a hook's lives here.
