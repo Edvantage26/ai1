@@ -5,7 +5,7 @@ description: Reuse - after real work the session judges whether it will recur in
 tags: [reuse, skills, hooks, cli, transcripts]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T18:21:34Z'
+  at: '2026-11-20T10:19:22Z'
 sources:
   - id: reuse-history
     resource: src/reuse/reuse-history.mjs
@@ -53,6 +53,9 @@ Built 2026-11-13 (deep plan `reuse`). On by default since v0.36.0 ([all features
   pitfalls; only from work that ended well), container from a table (guard rule or bundle line /
   hook / script / skill / MCP entry / complete an existing piece / merge overlapping ones), build in the
   repo, run it once on the real case. Customizable (project and user customizations) for where pieces go.
+  This repo's own customization (`.ai1/skills/reuse/customization.md`, 2026-11-20): a dev script goes
+  in `scripts/<name>.mjs` with `npm run <name>`, a test and a mention in its feature's concept (first
+  one: `npm run design-scan`, [design](design.md)).
 
 # Decisions (2026-11-13, by the person)
 
