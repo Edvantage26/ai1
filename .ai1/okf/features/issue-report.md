@@ -5,7 +5,7 @@ description: Report a problem with ai1 as an issue on the public Edvantage26/ai1
 tags: [core, issues, feedback, github]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-20T23:17:13Z'
+  at: '2026-11-20T23:23:29Z'
 ---
 
 Module `core`: a skill, a CLI command and the `issue-offer` and `issue-guard` hooks, no entry needed in `.ai1/config.json`,
@@ -88,3 +88,11 @@ private repo, which revealed a client. The cleaning rule was only an instruction
 - The agent never publishes without approval of the exact text, except the fixed-facts auto report
   a person opted into, and the skill only reports ai1's own problems, not the person's code or Claude Code.
 - Hooks suggest the skill only for ai1's own errors, never for misfires (those need judgement).
+
+# Triage in the ai1 repo
+
+The receiving end, in the ai1 repo only: the project skill `triage-issues`
+(`.claude/skills/triage-issues/`, since 2026-11-20, after the person asked for new issues twice)
+lists the open issues, leaves out those already fixed on unpushed `main`, sizes each one and fixes
+it in its own worktree with `Fixes #<n>` (deep ones through a design the person approves first).
+Pushing, which closes them, stays the person's call.
