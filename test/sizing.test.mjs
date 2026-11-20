@@ -397,6 +397,16 @@ test('listPlanSlugsWrittenBy: writes to a plan count, reading it does not', () =
   assert.deepEqual(listPlanSlugsWrittenBy({ name: 'Write', input: { file_path: '/repo/.ai1/work/billing/progress.md' } }), []);
 });
 
+test('listPlanSlugsWrittenBy: a bare plan.md after a cd into its folder counts (issue #5)', () => {
+  const bashTool = (command) => ({ name: 'Bash', input: { command } });
+  assert.deepEqual(listPlanSlugsWrittenBy(bashTool("cd /repo/.ai1/work/billing && sed -i 's/^- \\[ \\] 1\\./- [x] 1./' plan.md")), ['billing']);
+  assert.deepEqual(listPlanSlugsWrittenBy(bashTool(".ai1/work/demo/x; cd .ai1/work/demo && sed -i 's/foo/bar/' ./plan.md")), ['demo']);
+  assert.deepEqual(listPlanSlugsWrittenBy(bashTool("cd '/repo/.ai1/work/billing/' && python3 - <<'PY'\np = 'plan.md'; open(p, 'w').write('x')\nPY")), ['billing']);
+  assert.deepEqual(listPlanSlugsWrittenBy(bashTool('cd /repo/.ai1/work/billing && cat plan.md')), [], 'reading it does not');
+  assert.deepEqual(listPlanSlugsWrittenBy(bashTool("cd /repo/.ai1/work/billing && sed -i 's/a/b/' old-plan.md")), [], 'another file does not');
+  assert.deepEqual(listPlanSlugsWrittenBy(bashTool("cd /repo/src && sed -i 's/a/b/' plan.md")), [], 'a plan.md elsewhere does not');
+});
+
 test('sizing-gate: a session isolated in a worktree writes its plan there; the gate reads it and git ignores it', () => {
   const mainRoot = createSizingRepo();
   const worktreeRoot = join(mainRoot, '.claude', 'worktrees', 'feature');

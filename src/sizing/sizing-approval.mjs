@@ -55,6 +55,7 @@ export default {
       return contextDecision(MODULE_ID, [
         `The person said yes, but the design \`${readyPlan.relativePath}\` is NOT approved: your last turn did not present it (it did not write the plan), so the yes answers something else you asked.`,
         'Do what they said yes to. To ask for approval, write the plan in the turn where you ask (update it with what was discussed, keep `status: ready`) and ask again.',
+        `If you did write it from Bash, it was not recognised: write it with Write/Edit, or name its full path \`${readyPlan.relativePath}\` in the command.`,
       ].join('\n'));
     }
     recordApproval(sharedRoot, environment, readyPlan.relativePath);

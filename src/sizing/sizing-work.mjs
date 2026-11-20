@@ -119,16 +119,26 @@ export function listActivePlans(planRoots, sessionStartMilliseconds, sessionPlan
 }
 
 // The slugs of the plans whose plan.md a transcript tool call may have written: Write/Edit on it,
-// or a shell command naming it that is not read-only (`sed -i`, a redirect, a script).
+// or a shell command naming it that is not read-only (`sed -i`, a redirect, a script). The command
+// may name it in full or as a bare `plan.md` after a `cd` into its folder (issue #5: a plan updated
+// with `cd .ai1/work/<slug> && sed -i ... plan.md` did not count as presented).
+const ESCAPED_WORK_DIRECTORY = WORK_DIRECTORY.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const BARE_PLAN_FILE_PATTERN = /(?:^|[\s'"=])(?:\.\/)?plan\.md(?![\w.-])/;
+
 export function listPlanSlugsWrittenBy(toolUse) {
-  const planPathPattern = new RegExp(`(?:^|[\\s'"=/])${WORK_DIRECTORY.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/([^/\\s'"]+)/plan\\.md`, 'g');
+  const planPathPattern = new RegExp(`(?:^|[\\s'"=/])${ESCAPED_WORK_DIRECTORY}/([^/\\s'"]+)/plan\\.md`, 'g');
   if (PLAN_WRITING_TOOLS.has(toolUse?.name)) {
     return [...String(toolUse.input?.file_path ?? '').matchAll(planPathPattern)].map((planMatch) => planMatch[1]);
   }
   if (toolUse?.name !== 'Bash') return [];
   const commandText = String(toolUse.input?.command ?? '');
   if (!commandText.includes('plan.md') || shellCommandOnlyReads(commandText)) return [];
-  return [...commandText.matchAll(planPathPattern)].map((planMatch) => planMatch[1]);
+  const planSlugs = new Set([...commandText.matchAll(planPathPattern)].map((planMatch) => planMatch[1]));
+  if (BARE_PLAN_FILE_PATTERN.test(commandText)) {
+    const changeIntoPlanFolderPattern = new RegExp(`(?:^|[\\s;&|(])cd\\s+['"]?(?:[^\\s'";&|]*/)?${ESCAPED_WORK_DIRECTORY}/([^/\\s'";&|)]+)/?['"]?(?=$|[\\s;&|)])`, 'g');
+    for (const changeDirectoryMatch of commandText.matchAll(changeIntoPlanFolderPattern)) planSlugs.add(changeDirectoryMatch[1]);
+  }
+  return [...planSlugs];
 }
 
 // This session's plan slugs from its transcript (incremental, state per session), or null when the
