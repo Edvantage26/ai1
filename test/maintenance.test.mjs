@@ -57,8 +57,9 @@ test('maintenance: ai1 maintain off silences a task for good for that person, an
 
 test('maintenance: snooze hides a task until the date, on brings it back, unknown tasks are refused', () => {
   const projectRoot = createDriftingRepo('ana@x.com', {});
-  const snoozeResult = runMaintainCommand(projectRoot, ['snooze', 'claude-md-drift', '3'], new Date('2026-11-18T00:00:00Z'));
-  assert.match(snoozeResult.output, /snoozed until 2026-11-21/);
+  // A date far ahead: the session start below reads the real clock, so the snooze must not have expired.
+  const snoozeResult = runMaintainCommand(projectRoot, ['snooze', 'claude-md-drift', '3'], new Date('2099-11-18T00:00:00Z'));
+  assert.match(snoozeResult.output, /snoozed until 2099-11-21/);
   assert.doesNotMatch(startSession(projectRoot), /CLAUDE\.md drifts from the bundle/);
   runMaintainCommand(projectRoot, ['on', 'claude-md-drift']);
   assert.match(startSession(projectRoot), /CLAUDE\.md drifts from the bundle/);
