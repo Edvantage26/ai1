@@ -5,7 +5,7 @@ description: A worktree per change (any edit to the repo files, created before t
 tags: [worktrees, git, skills, cli, hooks]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-20T23:45:32Z'
+  at: '2026-11-20T23:58:56Z'
 sources:
   - id: worktree-create
     resource: src/worktrees/worktree-create.mjs
@@ -150,7 +150,10 @@ refuses shell commands it cannot prove keep git operations inside the worktree, 
 commands that only name git as text (a heredoc writing `.git/config`, a `sed` program with `|`
 editing `bin/ai1`). Seen seven times in one session on 2026-11-20. The worktree rules in the brief
 and the project skill `/worktree` say the way round it: Edit/Write for files, a script in a file
-outside the repo run with a plain command. Reported upstream to Claude Code.
+outside the repo run with a plain command. Known upstream (anthropics/claude-code#105399 and several
+duplicates, triaged as bugs with no maintainer answer as of 2026-11-20); not commented on, since it
+added nothing new. Part of it is by design: a `sed` option computed with `$(...)` cannot be checked
+without running it. Working with absolute paths without EnterWorktree avoids the check altogether.
 
 # Limits
 
