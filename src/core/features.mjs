@@ -7,7 +7,7 @@ export const FEATURES = [
   {
     id: 'okf',
     title: 'OKF project knowledge',
-    description: 'Loads the knowledge bundle index at session start, points to the concepts related to each message, and asks to keep the bundle up to date after changes. Skills: /ai1:okf-maintain-knowledge, /ai1:okf-validate-bundle, /ai1:okf-visualize-bundle.',
+    description: 'Loads the knowledge bundle index at session start, points to the concepts related to each message, and asks to keep the bundle up to date after changes. Keeps the project context (purpose, scope, requirements, open questions) with `ai1 okf project`. Skills: /ai1:okf-maintain-knowledge, /ai1:okf-interview-project, /ai1:okf-validate-bundle, /ai1:okf-visualize-bundle.',
     enabledByDefault: true,
   },
   {

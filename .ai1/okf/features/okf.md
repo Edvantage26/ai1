@@ -1,11 +1,11 @@
 ---
 type: Component
 title: okf feature
-description: Project knowledge in an OKF bundle - index and bundle health notes at session start, CLAUDE.md drift hint, catch-up after merging a branch without a bundle, related concepts per message and per file read or edited, upkeep reminder at stop, OKF toolkit skills.
+description: Project knowledge in an OKF bundle - index and bundle health notes at session start, project context (purpose, scope, requirements, open questions) with its interview, CLAUDE.md drift hint, catch-up after merging a branch without a bundle, related concepts per message and per file read or edited, upkeep reminder at stop, OKF toolkit skills.
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-17T14:14:02Z'
+  at: '2026-11-21T18:31:32Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -52,6 +52,18 @@ sources:
   - id: okf-tidy-claude-md
     resource: skills/okf-tidy-claude-md/SKILL.md
     title: /ai1:okf-tidy-claude-md skill
+  - id: okf-project
+    resource: src/okf/okf-project.mjs
+    title: Project context - gap map, requirements, open questions
+  - id: okf-project-command
+    resource: src/okf/okf-project-command.mjs
+    title: ai1 okf project
+  - id: okf-project-brief
+    resource: src/okf/okf-project-brief.mjs
+    title: SessionStart project context module
+  - id: okf-interview-project
+    resource: skills/okf-interview-project/SKILL.md
+    title: /ai1:okf-interview-project skill
 ---
 
 # What it does
@@ -310,6 +322,48 @@ sources:
   validation gate. Verified in a real session: an agent wrote a concept without `type`, the hook
   blocked with the error, the agent fixed it.
 
+# Project context: interview, requirements, open questions (since 2026-11-21)
+
+Asked by the person on 2026-11-21: the agent has to understand each project, ask what is not clear and
+write it down; requirements defined at kickoff are updated and consulted as the project advances
+("algo así como la skill de goal"). Prior art in
+[prior art](../decisions/prior-art.md#project-kickoff-clarification-and-living-requirements-2026-11-21)
+and [Claude Code /goal](../decisions/prior-art.md#claude-code-goal-2026-11-21). Part of okf, not a feature
+of its own: it reads and writes only the bundle and reaches the agent through the okf hooks.
+
+- **Where it lives** (ai1 conventions on top of OKF, which demands only `type`):
+  `product.md` (`type: Product`, shared with the [design feature](design.md); an existing Product
+  concept elsewhere is reused) with one `## <heading>` per category; `requirements/R<nnn>-<slug>.md`
+  (`type: Requirement`, `state: active | validated | out-of-scope` because `status` is reserved by OKF
+  §5.4, `priority: must | should`, `check`, `validated_by`, a `# History` quoting the person with dates);
+  `requirements/questions.md` (`type: OpenQuestions`, `## Q<nn>: <question>` open | assumed | answered,
+  with `about: <category>`); `requirements/index.md` generated. Out of scope has one store: requirements
+  in state `out-of-scope`.
+- **Gap map** (`ai1 okf project gaps`, no model): categories purpose, users, scope, constraints, stack,
+  run-test, deploy, integrations-data, decision-makers. Clear when its Product section has text (scope
+  also by any out-of-scope requirement, run-test also by `verify` commands), partial on `TBD`/`TODO` or a
+  pending question about it, missing otherwise.
+- **`ai1 okf project`**: `init` (Product skeleton, index, questions file, links in the root index),
+  `gaps`, `req add|set|list|goal` (goal prints a `/goal` line from the requirement's `check`),
+  `question add|assume|answer|list`, `conflicts <plan>` (out-of-scope requirements whose title words
+  appear in a plan; advisory). Numbering, states, history and the index are written only by it.
+- **okf-project (SessionStart):** silent until the project context is started (a Product concept or a
+  requirement): the session start has no room to spare in the worst case
+  (`test/session-start-budget.test.mjs`). Then: ask before guessing what neither code nor bundle
+  answers; the gaps in one line pointing to the interview; the requirement-change rule; up to 2
+  out-of-scope items, 2 pending questions and 3 active must requirements, each list saying how many it
+  left out.
+- **/ai1:okf-interview-project:** infer from the repo, show a draft, then ask one question at a time
+  (open first, ranked by impact x uncertainty, at most 5 per sitting, each with a recommended answer,
+  multi-select for scope); answers written where they belong at once; the rest stays as open questions.
+  Routes: core-setup-repo offers it when purpose or scope is missing; the session-start gaps line names it.
+- **Plans:** the deep design lists `requirements: [R001, ...]` and runs `conflicts`; `ai1 plan-done`
+  validates the listed ones in the bundle of the checkout it closes (missing or out-of-scope ids are
+  only reported, never a reason not to close).
+- **Not built (ruling):** a periodic review of the requirements; per-project custom categories (a
+  customization of the skill can add questions); numbering across parallel worktrees (two worktrees
+  adding requirements can collide, as later entries can).
+
 # Limits
 
 - Upkeep is triggered by changed files, memories, edits undone in the session or a long investigation. A decision taken only
@@ -327,7 +381,7 @@ sources:
 From the [OKF toolkit](../packs/okf-pack.md): `/ai1:okf-maintain-knowledge`, `/ai1:okf-validate-bundle`, `/ai1:okf-visualize-bundle`, whose
 scripts are the `ai1 okf validate`, `ai1 okf init` (`--no-starter`: index and log only, for a
 producer about to write the real concepts) and `ai1 okf visualize` commands. Written in ai1:
-`/ai1:okf-tidy-claude-md` (see okf-claude-md above). The backfill skill and its two agents were
+`/ai1:okf-tidy-claude-md` (see okf-claude-md above) and `/ai1:okf-interview-project` (see project context above). The backfill skill and its two agents were
 removed on 2026-11-15 (never used; a light history step, now in the skill's `reference/sources.md`, replaces it).
 
 # Coexistence with a standalone OKF setup

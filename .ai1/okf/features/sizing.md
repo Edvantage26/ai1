@@ -5,7 +5,7 @@ description: Each task sized quick, plan or deep - with a plan file for plan and
 tags: [sizing, workflow, hooks, skills, approval]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-20T21:43:12Z'
+  at: '2026-11-21T18:31:32Z'
 sources:
   - id: sizing-work
     resource: src/sizing/sizing-work.mjs
@@ -94,7 +94,9 @@ done while an agreed behaviour has no test - the verify gate alone only knows th
   (main checkout, or this worktree) must be `approved` (a plan task's plan only not finished), no duplicate ids, every scenario's tag found in the current
   checkout (the worktree, where the tests live before merge), then the verify commands green; only
   then `status: done` and a progress line with each scenario's test location. A plan without
-  scenarios closes after a green verify. Without git it fails closed.
+  scenarios closes after a green verify. Without git it fails closed. The requirements listed in
+  `requirements:` of the plan become validated in the bundle (see [okf project context](okf.md#project-context-interview-requirements-open-questions-since-2026-11-21));
+  the deep design lists them and runs `ai1 okf project conflicts`.
 - Tag scan (`src/sizing/sizing-scenarios.mjs`): `git ls-files -co --exclude-standard`, exact
   case-sensitive `[<slug>:S<n>]`, skipping `.ai1/`, `*.md`, binaries and files over 1 MB, so a tag
   quoted in docs or the plan is not coverage. Headings inside code fences do not count.

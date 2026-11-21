@@ -5,7 +5,7 @@ description: Sets up ai1 in a repo - asks the features, writes .ai1/config.json 
 tags: [init, cli, setup]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-18T08:51:46Z'
+  at: '2026-11-21T18:31:32Z'
 sources:
   - id: setup-repo
     resource: src/cli/setup-repo.mjs
@@ -93,7 +93,7 @@ sources:
   each enabled feature gives and how to use it, and offers, one at a time, each feature's own setup:
   the worktree recipe (`/ai1:worktrees-plan-recipe`) when missing, the bundle
   (`/ai1:okf-maintain-knowledge`) when there is none, `/ai1:okf-tidy-claude-md` when there is one and
-  `ai1 claude-md` reports findings, the Product and DesignSystem concepts for design. Then tells the person to commit and restart. It never commits.
+  `ai1 claude-md` reports findings, `/ai1:okf-interview-project` when `ai1 okf project gaps` shows purpose or scope missing, the Product and DesignSystem concepts for design. Then tells the person to commit and restart. It never commits.
 
 # Rolling ai1 out to repos with work in progress (2026-11-10, 11 repos)
 

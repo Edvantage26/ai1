@@ -12,6 +12,9 @@ import { WORK_DIRECTORY } from '../core/config.mjs';
 import { findPlanRoot, listPlanRoots, readPlanSize, readPlanStatus, writePlanStatus } from '../sizing/sizing-work.mjs';
 import { findMainCheckout } from '../core/project-roots.mjs';
 import { checkScenarioCoverage, formatScenarioTag } from '../sizing/sizing-scenarios.mjs';
+import { splitFrontmatter, readFrontmatterField } from '../core/frontmatter.mjs';
+import { resolveBundleDirectory } from '../okf/okf-bundle.mjs';
+import { validatePlanRequirements } from '../okf/okf-project.mjs';
 
 export function readVerifyCommands(repoRoot) {
   const loadedConfig = loadHarnessConfig(repoRoot, KNOWN_MODULE_IDS);
@@ -63,7 +66,8 @@ export function describeScenarioCoverage(mainCheckoutRoot, scanRoot, planSlug, r
 // `ai1 plan-done <slug>`: the one way to close a plan. A deep plan (findPlanRootFor) must be approved,
 // a plan task's plan only unfinished; every scenario of its `# Behaviour` section needs its tag `[<slug>:S<n>]` in the scanned checkout
 // (the worktree, where the tests live before merge); then the verify commands must pass. Only then
-// `status: done` and a progress line. { closed, message }. Throws when the scan cannot run.
+// `status: done` and a progress line, and the requirements it lists become validated. { closed, message }.
+// Throws when the scan cannot run.
 export function closePlan(mainCheckoutRoot, scanRoot, planSlug, verifyCommands, options = {}) {
   const { runCommand = defaultRunCommand, repoFiles, recordedAt = new Date().toISOString() } = options;
   const planDirectory = join(mainCheckoutRoot, WORK_DIRECTORY, planSlug);
@@ -91,5 +95,9 @@ export function closePlan(mainCheckoutRoot, scanRoot, planSlug, verifyCommands, 
     : 'no scenarios';
   appendFileSync(join(planDirectory, 'progress.md'), `- ${recordedAt} plan done - ${coverageText} - verify green: ${verifyCommands.join(', ')}\n`);
   writePlanStatus(planPath, 'done');
-  return { closed: true, message: `plan ${planSlug} done (${coverageText}; verify green)` };
+  // The requirements the plan serves (`requirements:` in its frontmatter) are validated in the bundle of
+  // the checkout being closed (the worktree, merged with the branch); never a reason not to close.
+  const requirementIds = readFrontmatterField(splitFrontmatter(planText).frontmatterText, 'requirements').split(/[\s,]+/).filter(Boolean);
+  const requirementNotes = requirementIds.length && existsSync(resolveBundleDirectory(scanRoot)) ? validatePlanRequirements(resolveBundleDirectory(scanRoot), planSlug, requirementIds) : [];
+  return { closed: true, message: `plan ${planSlug} done (${coverageText}; verify green)${requirementNotes.length ? `; requirements: ${requirementNotes.join('; ')}` : ''}` };
 }

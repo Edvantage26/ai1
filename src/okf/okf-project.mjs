@@ -1,0 +1,407 @@
+// Project context in the knowledge bundle: what the agent must know of any project before working on
+// it, kept as ai1 conventions on top of OKF (the spec only demands `type`):
+// - `product.md` (`type: Product`, shared with the design feature): one `## <heading>` per category.
+// - `requirements/R<nnn>-<slug>.md` (`type: Requirement`): one requirement each, its `state`
+//   (active | validated | out-of-scope; `status` is reserved by OKF §5.4), `priority`, `check` (how to
+//   prove it, usable as a /goal condition) and a `# History` of dated changes quoting the person.
+// - `requirements/questions.md` (`type: OpenQuestions`): `## Q<nn>: <question>` with status open |
+//   assumed | answered.
+// - `requirements/index.md`: generated list of the requirements by state.
+// The gap map (clear / partial / missing per category) is computed here, without a model, and read by
+// the okf-project SessionStart hook and the `ai1 okf project` CLI; every write goes through these
+// functions so numbering, states and history follow one set of rules.
+
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { splitFrontmatter, readFrontmatterField, writeFrontmatterField } from '../core/frontmatter.mjs';
+import { listBundleConcepts } from './okf-bundle.mjs';
+
+export const PRODUCT_FILE = 'product.md';
+export const REQUIREMENTS_DIRECTORY = 'requirements';
+export const QUESTIONS_FILE = 'questions.md';
+const REQUIREMENTS_INDEX_FILE = 'index.md';
+export const REQUIREMENT_STATES = ['active', 'validated', 'out-of-scope'];
+export const REQUIREMENT_PRIORITIES = ['must', 'should'];
+export const QUESTION_STATUSES = ['open', 'assumed', 'answered'];
+const WRITER_ACTOR = 'process:ai1-okf-project';
+const REQUIREMENT_FILE_PATTERN = /^R(\d{3,})-([a-z0-9]+(?:-[a-z0-9]+)*)\.md$/;
+const QUESTION_HEADING_PATTERN = /^## (Q\d{2,}): (.*)$/;
+const PLACEHOLDER_PATTERN = /\b(TBD|TODO)\b|^\?+$/i;
+
+// The categories of the gap map, in the order they are asked and shown. `heading` is the section of
+// the Product concept that answers it.
+export const PROJECT_CATEGORIES = [
+  { id: 'purpose', heading: 'Purpose', label: 'purpose' },
+  { id: 'users', heading: 'Users', label: 'users' },
+  { id: 'scope', heading: 'Scope', label: 'scope (what is out)' },
+  { id: 'constraints', heading: 'Constraints', label: 'constraints' },
+  { id: 'stack', heading: 'Stack', label: 'stack and structure' },
+  { id: 'run-test', heading: 'Run and test', label: 'run and test' },
+  { id: 'deploy', heading: 'Deploy', label: 'deploy' },
+  { id: 'integrations-data', heading: 'Integrations and data', label: 'integrations and data' },
+  { id: 'decision-makers', heading: 'Decision makers', label: 'decision makers' },
+];
+const CATEGORY_IDS = new Set(PROJECT_CATEGORIES.map((projectCategory) => projectCategory.id));
+
+export function todayDate(now = new Date()) {
+  return now.toISOString().slice(0, 10);
+}
+
+function nowTimestamp(now = new Date()) {
+  return `${now.toISOString().slice(0, 19)}Z`;
+}
+
+export function padRequirementNumber(requirementNumber) {
+  return `R${String(requirementNumber).padStart(3, '0')}`;
+}
+
+function padQuestionNumber(questionNumber) {
+  return `Q${String(questionNumber).padStart(2, '0')}`;
+}
+
+// A frontmatter scalar that YAML reads back as the same string.
+function yamlString(text) {
+  return JSON.stringify(String(text).replace(/\s+/g, ' ').trim());
+}
+
+function quoteLine(quoteText) {
+  return quoteText ? `: "${String(quoteText).replace(/\s+/g, ' ').trim()}"` : '';
+}
+
+// --- Product concept ---------------------------------------------------------------------------
+
+// The Product concept: `product.md` when it is one, else the first `type: Product` by path.
+// { relativePath, bodyText, others } or null.
+export function findProductConcept(bundleDirectory, bundleConcepts = listBundleConcepts(bundleDirectory)) {
+  const productConcepts = bundleConcepts.filter((bundleConcept) => bundleConcept.type === 'Product')
+    .sort((firstConcept, secondConcept) => firstConcept.relativePath.localeCompare(secondConcept.relativePath));
+  if (!productConcepts.length) return null;
+  const chosenConcept = productConcepts.find((bundleConcept) => bundleConcept.relativePath === PRODUCT_FILE) || productConcepts[0];
+  return { ...chosenConcept, others: productConcepts.filter((bundleConcept) => bundleConcept !== chosenConcept).map((bundleConcept) => bundleConcept.relativePath) };
+}
+
+// The text under `## <heading>` (any heading level 2, case-insensitive), up to the next level-2 heading.
+export function readSectionText(bodyText, heading) {
+  const lines = String(bodyText || '').split(/\r?\n/);
+  const headingIndex = lines.findIndex((line) => line.trim().toLowerCase() === `## ${heading.toLowerCase()}`);
+  if (headingIndex < 0) return null;
+  const sectionLines = [];
+  for (const line of lines.slice(headingIndex + 1)) {
+    if (/^## /.test(line)) break;
+    sectionLines.push(line);
+  }
+  return sectionLines.join('\n').trim();
+}
+
+const PRODUCT_TEMPLATE = (projectTitle, now) => [
+  '---',
+  'type: Product',
+  `title: ${yamlString(`${projectTitle} - product`)}`,
+  `description: ${yamlString(`What ${projectTitle} is for, who uses it, its scope and constraints, how it runs and ships, and who decides.`)}`,
+  'tags: [product, project-context]',
+  `generated: { by: '${WRITER_ACTOR}', at: '${nowTimestamp(now)}' }`,
+  '---',
+  '',
+  ...PROJECT_CATEGORIES.flatMap((projectCategory) => [`## ${projectCategory.heading}`, '', '']),
+].join('\n').trimEnd() + '\n';
+
+// --- Requirements ------------------------------------------------------------------------------
+
+function requirementsDirectory(bundleDirectory) {
+  return join(bundleDirectory, REQUIREMENTS_DIRECTORY);
+}
+
+// Every requirement file: { id, number, slug, fileName, relativePath, title, state, priority, check,
+// validatedBy, statement }.
+export function listRequirements(bundleDirectory) {
+  const directoryPath = requirementsDirectory(bundleDirectory);
+  if (!existsSync(directoryPath)) return [];
+  const requirements = [];
+  for (const fileName of readdirSync(directoryPath)) {
+    const fileMatch = REQUIREMENT_FILE_PATTERN.exec(fileName);
+    if (!fileMatch) continue;
+    const { frontmatterText, bodyText } = splitFrontmatter(readFileSync(join(directoryPath, fileName), 'utf8'));
+    const readField = (fieldName) => readFrontmatterField(frontmatterText, fieldName);
+    requirements.push({
+      id: padRequirementNumber(Number(fileMatch[1])),
+      number: Number(fileMatch[1]),
+      slug: fileMatch[2],
+      fileName,
+      relativePath: `${REQUIREMENTS_DIRECTORY}/${fileName}`,
+      title: readField('title'),
+      state: readField('state') || 'active',
+      priority: readField('priority') || 'must',
+      check: readField('check'),
+      validatedBy: readField('validated_by').split(/[\s,]+/).filter(Boolean),
+      statement: bodyText.split(/^# History/m)[0].trim(),
+    });
+  }
+  return requirements.sort((firstRequirement, secondRequirement) => firstRequirement.number - secondRequirement.number);
+}
+
+export function findRequirement(requirements, requirementId) {
+  const wantedNumber = Number(String(requirementId || '').replace(/^R/i, ''));
+  return requirements.find((requirement) => requirement.number === wantedNumber) || null;
+}
+
+function slugFromTitle(titleText) {
+  return String(titleText).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').split('-').slice(0, 6).join('-') || 'requirement';
+}
+
+// Adds a dated line at the end of the `# History` section (created when missing).
+function appendHistoryLine(conceptText, historyLine) {
+  const trimmedText = conceptText.trimEnd();
+  if (!/^# History\s*$/m.test(trimmedText)) return `${trimmedText}\n\n# History\n\n${historyLine}\n`;
+  return `${trimmedText}\n${historyLine}\n`;
+}
+
+// Creates `requirements/R<nnn>-<slug>.md` and refreshes the index. Returns { id, relativePath }.
+export function addRequirement(bundleDirectory, { title, statement = '', priority = 'must', state = 'active', check = '', quote = '', reason = '', now = new Date() }) {
+  if (!String(title || '').trim()) throw new Error('a requirement needs --title "<what must hold>"');
+  if (!REQUIREMENT_PRIORITIES.includes(priority)) throw new Error(`priority must be one of ${REQUIREMENT_PRIORITIES.join(', ')}`);
+  if (!REQUIREMENT_STATES.includes(state)) throw new Error(`state must be one of ${REQUIREMENT_STATES.join(', ')}`);
+  if (state === 'out-of-scope' && !String(reason).trim()) throw new Error('an out-of-scope requirement needs --reason "<why it is out>"');
+  const requirements = listRequirements(bundleDirectory);
+  const requirementNumber = Math.max(0, ...requirements.map((requirement) => requirement.number)) + 1;
+  const requirementId = padRequirementNumber(requirementNumber);
+  const fileName = `${requirementId}-${slugFromTitle(title)}.md`;
+  const historyLine = `- ${todayDate(now)} ${state}${reason ? ` (${String(reason).trim()})` : ''}${quoteLine(quote)}`;
+  const conceptText = [
+    '---',
+    'type: Requirement',
+    `title: ${yamlString(`${requirementId} ${title}`)}`,
+    `description: ${yamlString(String(statement || title))}`,
+    `tags: [requirement, ${state}]`,
+    `id: ${requirementId}`,
+    `state: ${state}`,
+    `priority: ${priority}`,
+    ...(check ? [`check: ${yamlString(check)}`] : []),
+    `generated: { by: '${WRITER_ACTOR}', at: '${nowTimestamp(now)}' }`,
+    '---',
+    '',
+    String(statement || title).trim(),
+    '',
+    '# History',
+    '',
+    historyLine,
+    '',
+  ].join('\n');
+  mkdirSync(requirementsDirectory(bundleDirectory), { recursive: true });
+  writeFileSync(join(requirementsDirectory(bundleDirectory), fileName), conceptText);
+  writeRequirementsIndex(bundleDirectory);
+  return { id: requirementId, relativePath: `${REQUIREMENTS_DIRECTORY}/${fileName}` };
+}
+
+// Changes a requirement's state (and its history), keeping what it said before. `plan` adds the plan
+// slug to `validated_by`. Returns { id, relativePath, previousState }.
+export function setRequirementState(bundleDirectory, requirementId, newState, { quote = '', reason = '', plan = '', now = new Date() } = {}) {
+  if (!REQUIREMENT_STATES.includes(newState)) throw new Error(`state must be one of ${REQUIREMENT_STATES.join(', ')}`);
+  if (newState === 'out-of-scope' && !String(reason).trim()) throw new Error('moving a requirement out of scope needs --reason "<why>"');
+  const requirement = findRequirement(listRequirements(bundleDirectory), requirementId);
+  if (!requirement) throw new Error(`no requirement ${requirementId} in ${REQUIREMENTS_DIRECTORY}/`);
+  const filePath = join(bundleDirectory, requirement.relativePath);
+  let conceptText = readFileSync(filePath, 'utf8');
+  conceptText = writeFrontmatterField(conceptText, 'state', newState);
+  conceptText = writeFrontmatterField(conceptText, 'tags', `[requirement, ${newState}]`);
+  if (plan) conceptText = writeFrontmatterField(conceptText, 'validated_by', `[${[...new Set([...requirement.validatedBy, plan])].join(', ')}]`);
+  conceptText = writeFrontmatterField(conceptText, 'generated', `{ by: '${WRITER_ACTOR}', at: '${nowTimestamp(now)}' }`);
+  const detailText = [plan ? `plan ${plan}` : '', String(reason).trim()].filter(Boolean).join('; ');
+  conceptText = appendHistoryLine(conceptText, `- ${todayDate(now)} ${requirement.state} -> ${newState}${detailText ? ` (${detailText})` : ''}${quoteLine(quote)}`);
+  writeFileSync(filePath, conceptText);
+  writeRequirementsIndex(bundleDirectory);
+  return { id: requirement.id, relativePath: requirement.relativePath, previousState: requirement.state };
+}
+
+export function renderRequirementsIndex(requirements, hasQuestions = false) {
+  const lines = ['# Requirements', '', 'Generated by `ai1 okf project`; change requirements with `ai1 okf project req add|set`, not by hand.', ''];
+  for (const requirementState of REQUIREMENT_STATES) {
+    const stateRequirements = requirements.filter((requirement) => requirement.state === requirementState);
+    if (!stateRequirements.length) continue;
+    lines.push(`## ${requirementState}`, '');
+    for (const requirement of stateRequirements) lines.push(`* [${requirement.title || requirement.id}](${requirement.fileName}) - ${requirement.priority}`);
+    lines.push('');
+  }
+  if (hasQuestions) lines.push('* [Open questions](questions.md)', '');
+  return lines.join('\n');
+}
+
+export function writeRequirementsIndex(bundleDirectory) {
+  mkdirSync(requirementsDirectory(bundleDirectory), { recursive: true });
+  const indexPath = join(requirementsDirectory(bundleDirectory), REQUIREMENTS_INDEX_FILE);
+  writeFileSync(indexPath, renderRequirementsIndex(listRequirements(bundleDirectory), existsSync(questionsPath(bundleDirectory))));
+  return `${REQUIREMENTS_DIRECTORY}/${REQUIREMENTS_INDEX_FILE}`;
+}
+
+// The /goal line for a requirement: its title, and its check as the proof.
+export function buildGoalLine(requirement) {
+  const titleText = (requirement.title || requirement.id).replace(/^R\d+\s+/, '');
+  return `/goal ${requirement.id} ${titleText}${requirement.check ? `; done when ${requirement.check}` : ''}`;
+}
+
+// --- Open questions ----------------------------------------------------------------------------
+
+function questionsPath(bundleDirectory) {
+  return join(requirementsDirectory(bundleDirectory), QUESTIONS_FILE);
+}
+
+const QUESTIONS_HEADER = (now) => [
+  '---',
+  'type: OpenQuestions',
+  'title: Open questions',
+  'description: What the agent asked and the person could not answer yet, and the assumptions it works with until they do.',
+  'tags: [project-context, questions]',
+  `generated: { by: '${WRITER_ACTOR}', at: '${nowTimestamp(now)}' }`,
+  '---',
+  '',
+  'Change it with `ai1 okf project question add|assume|answer`, not by hand.',
+  '',
+].join('\n');
+
+// Every question: { id, number, text, status, about, asked, assumption, answer }.
+export function listQuestions(bundleDirectory) {
+  const filePath = questionsPath(bundleDirectory);
+  if (!existsSync(filePath)) return [];
+  const questions = [];
+  let currentQuestion = null;
+  for (const line of splitFrontmatter(readFileSync(filePath, 'utf8')).bodyText.split(/\r?\n/)) {
+    const headingMatch = QUESTION_HEADING_PATTERN.exec(line);
+    if (headingMatch) {
+      currentQuestion = { id: headingMatch[1], number: Number(headingMatch[1].slice(1)), text: headingMatch[2].trim(), status: 'open', about: '', asked: '', assumption: '', answer: '' };
+      questions.push(currentQuestion);
+      continue;
+    }
+    const fieldMatch = /^- (status|about|asked|assumption|answer): (.*)$/.exec(line);
+    if (currentQuestion && fieldMatch) currentQuestion[fieldMatch[1]] = fieldMatch[2].trim();
+  }
+  return questions;
+}
+
+function renderQuestions(questions, now) {
+  return QUESTIONS_HEADER(now) + questions.map((question) => [
+    `## ${question.id}: ${question.text}`,
+    '',
+    `- status: ${question.status}`,
+    ...(question.about ? [`- about: ${question.about}`] : []),
+    `- asked: ${question.asked}`,
+    ...(question.assumption ? [`- assumption: ${question.assumption}`] : []),
+    ...(question.answer ? [`- answer: ${question.answer}`] : []),
+    '',
+  ].join('\n')).join('\n');
+}
+
+function writeQuestions(bundleDirectory, questions, now) {
+  mkdirSync(requirementsDirectory(bundleDirectory), { recursive: true });
+  writeFileSync(questionsPath(bundleDirectory), renderQuestions(questions, now));
+  writeRequirementsIndex(bundleDirectory);
+}
+
+export function addQuestion(bundleDirectory, { text, about = '', now = new Date() }) {
+  const questionText = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!questionText) throw new Error('a question needs its text');
+  if (about && !CATEGORY_IDS.has(about)) throw new Error(`--about must be one of ${[...CATEGORY_IDS].join(', ')}`);
+  const questions = listQuestions(bundleDirectory);
+  const questionId = padQuestionNumber(Math.max(0, ...questions.map((question) => question.number)) + 1);
+  writeQuestions(bundleDirectory, [...questions, { id: questionId, number: 0, text: questionText, status: 'open', about, asked: todayDate(now), assumption: '', answer: '' }], now);
+  return { id: questionId, relativePath: `${REQUIREMENTS_DIRECTORY}/${QUESTIONS_FILE}` };
+}
+
+// `assume`: the agent works on an assumption until the person confirms; `answer`: the question is
+// settled, and `where` names the concept the answer went into.
+export function settleQuestion(bundleDirectory, questionId, { status, text, where = '', now = new Date() }) {
+  if (!['assumed', 'answered'].includes(status)) throw new Error('a question is settled as assumed or answered');
+  const settledText = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!settledText) throw new Error(`${status === 'assumed' ? 'assume' : 'answer'} needs its text`);
+  const questions = listQuestions(bundleDirectory);
+  const question = questions.find((candidateQuestion) => candidateQuestion.id.toLowerCase() === String(questionId).toLowerCase());
+  if (!question) throw new Error(`no question ${questionId} in ${REQUIREMENTS_DIRECTORY}/${QUESTIONS_FILE}`);
+  question.status = status;
+  if (status === 'assumed') question.assumption = `${settledText} (${todayDate(now)})`;
+  else question.answer = `${settledText} (${todayDate(now)}${where ? `, in ${where}` : ''})`;
+  writeQuestions(bundleDirectory, questions, now);
+  return { id: question.id, relativePath: `${REQUIREMENTS_DIRECTORY}/${QUESTIONS_FILE}` };
+}
+
+// --- Gap map -----------------------------------------------------------------------------------
+
+// { started, product, others, categories: [{ id, label, status: clear|partial|missing, why }],
+//   requirements, questions }. `started`: the project has a Product concept or any requirement, so
+// gaps are worth a line at session start.
+export function buildGapMap(bundleDirectory, { verifyCommands = [] } = {}) {
+  const product = existsSync(bundleDirectory) ? findProductConcept(bundleDirectory) : null;
+  const requirements = listRequirements(bundleDirectory);
+  const questions = listQuestions(bundleDirectory);
+  const pendingQuestions = questions.filter((question) => question.status !== 'answered');
+  const categories = PROJECT_CATEGORIES.map((projectCategory) => {
+    const sectionText = product ? readSectionText(product.bodyText, projectCategory.heading) : null;
+    let hasAnswer = Boolean(sectionText);
+    if (projectCategory.id === 'scope' && requirements.some((requirement) => requirement.state === 'out-of-scope')) hasAnswer = true;
+    if (projectCategory.id === 'run-test' && verifyCommands.length) hasAnswer = true;
+    const pendingAbout = pendingQuestions.filter((question) => question.about === projectCategory.id);
+    if (!hasAnswer) return { id: projectCategory.id, label: projectCategory.label, status: 'missing', why: pendingAbout.length ? `${pendingAbout.map((question) => question.id).join(', ')} pending` : 'not written' };
+    if (sectionText && PLACEHOLDER_PATTERN.test(sectionText)) return { id: projectCategory.id, label: projectCategory.label, status: 'partial', why: 'placeholder (TBD/TODO)' };
+    if (pendingAbout.length) return { id: projectCategory.id, label: projectCategory.label, status: 'partial', why: `${pendingAbout.map((question) => question.id).join(', ')} pending` };
+    return { id: projectCategory.id, label: projectCategory.label, status: 'clear', why: '' };
+  });
+  return {
+    started: Boolean(product) || requirements.length > 0,
+    product: product?.relativePath || null,
+    others: product?.others || [],
+    categories,
+    requirements,
+    questions,
+  };
+}
+
+// Creates the Product concept (with one empty section per category), the requirements index and
+// the open questions file when missing, and links them from the bundle's root index. Returns the
+// paths it wrote.
+export function initProjectContext(bundleDirectory, { projectTitle, now = new Date() }) {
+  if (!existsSync(join(bundleDirectory, 'index.md'))) throw new Error('there is no knowledge bundle yet: create it first (/ai1:okf-maintain-knowledge, produce mode)');
+  const writtenPaths = [];
+  if (!findProductConcept(bundleDirectory)) {
+    writeFileSync(join(bundleDirectory, PRODUCT_FILE), PRODUCT_TEMPLATE(projectTitle, now));
+    writtenPaths.push(PRODUCT_FILE);
+  }
+  if (!existsSync(questionsPath(bundleDirectory))) {
+    writeQuestions(bundleDirectory, [], now);
+    writtenPaths.push(`${REQUIREMENTS_DIRECTORY}/${QUESTIONS_FILE}`);
+  }
+  writtenPaths.push(writeRequirementsIndex(bundleDirectory));
+  const rootIndexPath = join(bundleDirectory, 'index.md');
+  const rootIndexText = readFileSync(rootIndexPath, 'utf8');
+  const missingLinks = [
+    [PRODUCT_FILE, `* [Product](${PRODUCT_FILE}) - what the project is for, its users, scope, constraints, how it runs and ships, who decides.`],
+    [`${REQUIREMENTS_DIRECTORY}/`, `* [${REQUIREMENTS_DIRECTORY}/](${REQUIREMENTS_DIRECTORY}/${REQUIREMENTS_INDEX_FILE}) - requirements by state, and the open questions.`],
+  ].filter(([linkTarget]) => !rootIndexText.includes(`](${linkTarget}`));
+  if (missingLinks.length) {
+    writeFileSync(rootIndexPath, `${rootIndexText.trimEnd()}\n${missingLinks.map(([, linkLine]) => linkLine).join('\n')}\n`);
+    writtenPaths.push('index.md');
+  }
+  return writtenPaths;
+}
+
+// Requirements out of scope whose words show up in a plan's text: advisory, never blocking.
+// A requirement matches when at least two of its significant title words (4+ letters) are in the text.
+export function findOutOfScopeConflicts(planText, requirements) {
+  const normalize = (text) => String(text).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const planWords = new Set(normalize(planText).match(/[a-z0-9]{4,}/g) || []);
+  return requirements.filter((requirement) => requirement.state === 'out-of-scope').filter((requirement) => {
+    const titleWords = [...new Set(normalize((requirement.title || '').replace(/^R\d+\s+/, '')).match(/[a-z0-9]{4,}/g) || [])];
+    const sharedWords = titleWords.filter((titleWord) => planWords.has(titleWord));
+    return sharedWords.length >= Math.min(2, titleWords.length);
+  });
+}
+
+// `ai1 plan-done`: the requirements a closed plan lists in `requirements:` become validated by it.
+// Never fails the close: a missing id or one out of scope is only reported. Returns one note per id.
+export function validatePlanRequirements(bundleDirectory, planSlug, requirementIds, { now = new Date() } = {}) {
+  const requirements = listRequirements(bundleDirectory);
+  return requirementIds.map((requirementId) => {
+    const requirement = findRequirement(requirements, requirementId);
+    if (!requirement) return `${requirementId}: no such requirement in ${REQUIREMENTS_DIRECTORY}/, not validated`;
+    if (requirement.state === 'out-of-scope') return `${requirement.id}: out of scope, not validated (tell the person the plan built it)`;
+    setRequirementState(bundleDirectory, requirement.id, 'validated', { plan: planSlug, now });
+    return `${requirement.id}: validated by ${planSlug}`;
+  });
+}

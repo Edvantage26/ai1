@@ -32,6 +32,14 @@ export const SKILL_ORIGIN_INDEX = {
   'later-write': NO_ORIGIN,
   'messages-draft-message': NO_ORIGIN,
   'okf-maintain-knowledge': { importedFrom: [{ ...OKF_SKILLS, what: 'the skill, with the OKF v0.2 spec by Google LLC, Apache 2.0' }], basedOn: [] },
+  'okf-interview-project': {
+    importedFrom: [],
+    basedOn: [
+      { name: 'Spec Kit', url: 'https://github.com/github/spec-kit', what: '`/speckit.clarify`: coverage per category, questions ranked by impact x uncertainty, capped, each with a recommended answer' },
+      { name: 'GSD', url: 'https://github.com/glittercowboy/get-shit-done', what: '`/gsd:new-project`: open questioning and requirements active / validated / out of scope with reason' },
+      { name: 'Kiro', url: 'https://kiro.dev/docs/steering/', what: 'steering files inferred from the codebase' },
+    ],
+  },
   'okf-tidy-claude-md': NO_ORIGIN,
   'okf-validate-bundle': { importedFrom: [{ ...OKF_SKILLS, what: 'the skill; its validator rewritten in Node' }], basedOn: [] },
   'okf-visualize-bundle': { importedFrom: [{ ...OKF_SKILLS, what: 'the skill and its viewer page' }], basedOn: [] },
@@ -71,6 +79,7 @@ export const HOOK_README_INDEX = {
   'okf-claude-md': { description: 'at session start, one line when the repo\'s CLAUDE.md drifts from the bundle (too long, sections that repeat a concept or hold knowledge no concept has, sections holding a literal secret, which are never moved, references that no longer exist), told once per set of findings; `ai1 claude-md` prints the report and `/ai1:okf-tidy-claude-md` proposes a short CLAUDE.md and the concept edits, applied after the person approves', ...NO_ORIGIN },
   'okf-catch-up-start': { description: 'when a branch that had no knowledge bundle was merged into the current branch (in a terminal, on a forge and pulled, or by the agent), says so once and has the agent hand the documentation of its changes to an independent background agent, in its own worktree and commit; the commit\'s `Knowledge-Catch-Up: <merge sha>` trailer closes it in every clone; `ai1 okf catch-up` lists what is pending and prints the brief. Squash merges are not seen', ...NO_ORIGIN },
   'okf-catch-up-prompt': { description: 'the same catch-up check as `okf-catch-up-start`, on the next message after HEAD moves', ...NO_ORIGIN },
+  'okf-project': { description: 'at session start, once the project context is started: the rule to ask before guessing what neither the code nor the bundle answers, its gaps in one line, what is out of scope, open questions and active must requirements (`ai1 okf project`, `/ai1:okf-interview-project`)', ...NO_ORIGIN },
   'okf-recall': { description: 'on every message, points the agent to the OKF concepts related to it', ...NO_ORIGIN },
   'okf-file-context': { description: 'when the agent reads or edits a file, names the concept that describes it (from `resource`, `sources` and code paths in concepts)', ...NO_ORIGIN },
   'danger': { description: 'confirms or refuses `git reset --hard`, force push, `rm -rf`, `--no-verify`, `DROP TABLE`...', ...NO_ORIGIN },
