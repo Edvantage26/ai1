@@ -5,7 +5,7 @@ description: What ai1 is, the four pieces of a harness, and what exists today.
 tags: [overview, harness]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-20T23:18:24Z'
+  at: '2026-11-21T13:16:17Z'
 ---
 
 # What it is
@@ -65,4 +65,5 @@ Next steps in the [roadmap](roadmap.md).
   `later`, `reuse`, `worktree`, `storyboard`, `fork`, `delegate`, `issue`, `claude-md`, `log`, `okf`, `maintain`, `watch`, `contacts`, `keys`, `local`), `/ai1:core-setup-repo` and `/ai1:core-report-issue`.
 - `skills/okf-*/`, `src/okf/okf-validate.mjs`, `okf-init.mjs`, `okf-visualize.mjs`, `vendor/`: OKF toolkit, owned by ai1 (see [OKF toolkit](packs/okf-pack.md)); `skills/okf-tidy-claude-md/` is ai1's own.
 - `schema/ai1.schema.json`, `templates/config.json`: the per-repo contract.
-- `test/`: `npm test` (node:test suite).
+- `test/`: `npm test` (node:test suite), run by `scripts/run-tests.mjs`: each run gets its own temporary folder
+  (`TMPDIR`, `TMP`, `TEMP`), deleted at the end, because the tests do not remove their fixtures; CI uses it too.

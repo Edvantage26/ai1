@@ -9,7 +9,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "test": "node --test test/*.test.mjs",
+    "test": "node scripts/run-tests.mjs",
     "design-scan": "node scripts/design-rules-scan.mjs",
     "readme-tables": "node scripts/readme-tables.mjs"
   }
