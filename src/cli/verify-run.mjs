@@ -98,6 +98,6 @@ export function closePlan(mainCheckoutRoot, scanRoot, planSlug, verifyCommands, 
   // The requirements the plan serves (`requirements:` in its frontmatter) are validated in the bundle of
   // the checkout being closed (the worktree, merged with the branch); never a reason not to close.
   const requirementIds = readFrontmatterField(splitFrontmatter(planText).frontmatterText, 'requirements').split(/[\s,]+/).filter(Boolean);
-  const requirementNotes = requirementIds.length && existsSync(resolveBundleDirectory(scanRoot)) ? validatePlanRequirements(resolveBundleDirectory(scanRoot), planSlug, requirementIds) : [];
+  const requirementNotes = requirementIds.length && existsSync(resolveBundleDirectory(scanRoot)) ? validatePlanRequirements(resolveBundleDirectory(scanRoot), planSlug, requirementIds, { projectRoot: scanRoot, runCommand }) : [];
   return { closed: true, message: `plan ${planSlug} done (${coverageText}; verify green)${requirementNotes.length ? `; requirements: ${requirementNotes.join('; ')}` : ''}` };
 }

@@ -10,7 +10,9 @@ import { createTemporaryProject } from './helpers.mjs';
 import {
   buildGapMap, initProjectContext, addRequirement, setRequirementState, listRequirements, addQuestion,
   settleQuestion, listQuestions, findOutOfScopeConflicts, buildGoalLine, findRequirement,
+  validatePlanRequirements, verifyRequirements, setRequirementCheckCommand,
 } from '../src/okf/okf-project.mjs';
+import { describeProjectContext } from '../src/okf/okf-project-brief.mjs';
 import { validateOkfBundle } from '../src/okf/okf-validate.mjs';
 import { closePlan } from '../src/cli/verify-run.mjs';
 
@@ -174,6 +176,78 @@ test('plan-done validates the requirements its plan lists, and only reports miss
   assert.equal(findRequirement(requirements, 'R002').state, 'out-of-scope');
 });
 
+test('supersede: a new requirement replaces an old one, which stays with superseded_by and its history; superseded is never validated nor listed as in force', () => {
+  const { projectRoot, bundleDirectory } = createBundle();
+  addRequirement(bundleDirectory, { title: 'Sell shoes online', now: FIXED_NOW });
+  const replacement = addRequirement(bundleDirectory, { title: 'Marketplace where shops sell shoes', supersedes: 'R001', quote: 'ya no es una tienda, es un marketplace', now: new Date('2026-12-01T09:00:00Z') });
+  assert.equal(replacement.id, 'R002');
+  const oldRequirement = findRequirement(listRequirements(bundleDirectory), 'R001');
+  assert.equal(oldRequirement.state, 'superseded');
+  assert.equal(oldRequirement.supersededBy, 'R002');
+  const oldText = readFileSync(join(bundleDirectory, oldRequirement.relativePath), 'utf8');
+  assert.match(oldText, /- 2026-12-01 active -> superseded \(by R002\): "ya no es una tienda, es un marketplace"/);
+  assert.match(readFileSync(join(bundleDirectory, replacement.relativePath), 'utf8'), /- 2026-12-01 active \(replaces R001\)/);
+  assert.match(readFileSync(join(bundleDirectory, 'requirements', 'index.md'), 'utf8'), /## superseded\n\n\* \[R001 Sell shoes online\]\(R001-sell-shoes-online\.md\) - superseded by R002/);
+  assert.throws(() => setRequirementState(bundleDirectory, 'R002', 'superseded'), /--by <id>/);
+  assert.throws(() => addRequirement(bundleDirectory, { title: 'X', supersedes: 'R009' }), /no requirement R009/);
+  assert.deepEqual(validatePlanRequirements(bundleDirectory, 'plan-a', ['R001'], { projectRoot }), ['R001: superseded by R002, not validated (list that one instead)']);
+  assert.deepEqual(validateOkfBundle(bundleDirectory).errors, []);
+});
+
+test('check commands: verify reopens a validated requirement whose check fails, leaves passing ones; plan-done validates only when the check passes', () => {
+  const { projectRoot, bundleDirectory } = createBundle();
+  addRequirement(bundleDirectory, { title: 'Pay by card', checkCommand: 'npm test -- payments', now: FIXED_NOW });
+  addRequirement(bundleDirectory, { title: 'Export invoices', now: FIXED_NOW });
+  setRequirementCheckCommand(bundleDirectory, 'R002', 'npm test -- invoices', { now: FIXED_NOW });
+  const ranCommands = [];
+  const passingRun = (checkCommand) => { ranCommands.push(checkCommand); return 0; };
+  const failingPayments = (checkCommand) => (checkCommand.includes('payments') ? 3 : 0);
+  assert.deepEqual(validatePlanRequirements(bundleDirectory, 'checkout', ['R001'], { projectRoot, runCommand: failingPayments }), ['R001: check `npm test -- payments` failed (exit 3), not validated']);
+  assert.deepEqual(validatePlanRequirements(bundleDirectory, 'checkout', ['R001'], { projectRoot, runCommand: passingRun }), ['R001: validated by checkout']);
+  assert.deepEqual(ranCommands, ['npm test -- payments']);
+  const checkResults = verifyRequirements(bundleDirectory, projectRoot, { runCommand: failingPayments, now: new Date('2026-12-02T09:00:00Z') });
+  assert.deepEqual(checkResults.map((checkResult) => [checkResult.id, checkResult.passed, checkResult.reopened]), [['R001', false, true], ['R002', true, false]]);
+  const reopenedRequirement = findRequirement(listRequirements(bundleDirectory), 'R001');
+  assert.equal(reopenedRequirement.state, 'active');
+  assert.match(readFileSync(join(bundleDirectory, reopenedRequirement.relativePath), 'utf8'), /- 2026-12-02 validated -> active \(check failed: `npm test -- payments` exit 3\)/);
+  assert.equal(findRequirement(listRequirements(bundleDirectory), 'R002').state, 'active', 'a passing check never validates by itself');
+  assert.deepEqual(verifyRequirements(bundleDirectory, projectRoot, { requirementId: 'R002', runCommand: passingRun }).map((checkResult) => checkResult.id), ['R002']);
+  assert.deepEqual(validateOkfBundle(bundleDirectory).errors, []);
+});
+
+test('ai1 okf project from the command line: req add --supersedes and --check-command, req command, verify with real commands and its exit code', () => {
+  const { projectRoot, bundleDirectory } = createBundle();
+  const runCli = (...cliArguments) => execFileSync(process.execPath, [AI1_CLI, 'okf', 'project', ...cliArguments], { cwd: projectRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  runCli('req', 'add', '--title', 'Sell shoes online');
+  assert.equal(runCli('req', 'add', '--title', 'Marketplace for shoe shops', '--supersedes', 'R001', '--check-command', 'node -e "process.exit(0)"'), 'R002: created requirements/R002-marketplace-for-shoe-shops.md; R001 superseded by R002');
+  assert.equal(runCli('verify'), 'R002 passes: node -e "process.exit(0)"');
+  setRequirementState(bundleDirectory, 'R002', 'validated', { plan: 'marketplace' });
+  assert.equal(runCli('req', 'command', 'R002', 'node -e "process.exit(4)"'), 'R002: check command set');
+  let failureOutput = '';
+  try {
+    runCli('verify', 'R002');
+  } catch (commandFailure) {
+    failureOutput = String(commandFailure.stdout);
+    assert.equal(commandFailure.status, 1);
+  }
+  assert.match(failureOutput, /R002 FAILS \(exit 4\): node -e "process\.exit\(4\)" - was validated, back to active/);
+  assert.equal(findRequirement(listRequirements(bundleDirectory), 'R002').state, 'active');
+});
+
+test('the requirement rules: what and why vs how, changed only from the person\'s words, in the skill and at session start', () => {
+  const skillText = readFileSync(fileURLToPath(new URL('../skills/okf-interview-project/SKILL.md', import.meta.url)), 'utf8');
+  assert.match(skillText, /\*\*What is a requirement\.\*\* It says what the project must achieve and why/);
+  assert.match(skillText, /Requirements change only\s+from the person's words, never from what the code does/);
+  assert.match(skillText, /--supersedes <id>/);
+  assert.match(skillText, /ai1 okf project verify/);
+  const { bundleDirectory } = createBundle();
+  addRequirement(bundleDirectory, { title: 'Pay by card', now: FIXED_NOW });
+  const contextText = describeProjectContext(buildGapMap(bundleDirectory)).filter((contextPart) => typeof contextPart === 'string').join('\n');
+  assert.match(contextText, /Requirements say what the project must achieve and why .*; how it is built goes in the other concepts/);
+  assert.match(contextText, /never from what the code does: when a message contradicts one .* confirm in one line/);
+  assert.match(contextText, /`req add --supersedes <id>`/);
+});
+
 test('/ai1:okf-interview-project infers and shows a draft first, asks one question at a time with a recommended answer, at most 5, and writes through ai1 okf project [project-requirements:S1]', () => {
   const skillText = readFileSync(fileURLToPath(new URL('../skills/okf-interview-project/SKILL.md', import.meta.url)), 'utf8');
   assert.match(skillText, /^allowed-tools: Bash\("\$\{CLAUDE_PLUGIN_DATA\}\/bin\/ai1" skill-context \*\) Bash\("\$\{CLAUDE_PLUGIN_DATA\}\/bin\/ai1" okf project \*\)$/m);
@@ -210,7 +284,7 @@ test('okf-project at session start: nothing before the project context starts; t
   assert.match(startedText, /Project doubts: when a decision depends on something neither the code nor the bundle answers/);
   assert.match(startedText, /Project context \(`\.ai1\/okf\/product\.md`, `\.ai1\/okf\/requirements\/`\): missing users, constraints, stack and structure, run and test, deploy, integrations and data, decision makers\./);
   assert.match(startedText, /\/ai1:okf-interview-project \(never in the middle of a task\)/);
-  assert.match(startedText, /`ai1 okf project req add\|set` \(never by hand\)/);
+  assert.match(startedText, /record it with their words via `ai1 okf project req add\|set`/);
   assert.match(startedText, /- R001 Login with Google\n- R002 Native mobile app\n- \.\.\. and 1 more: `ai1 okf project req list --state out-of-scope`/);
   assert.match(startedText, /- Q01 Where is it deployed\? \(assumed: Dokploy\)/);
   assert.match(startedText, /Active must requirements:\n- R004 Pay by card/);

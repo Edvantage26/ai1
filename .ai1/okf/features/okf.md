@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index and bundle health notes 
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-21T18:31:32Z'
+  at: '2026-11-21T18:47:43Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -334,8 +334,9 @@ of its own: it reads and writes only the bundle and reaches the agent through th
 - **Where it lives** (ai1 conventions on top of OKF, which demands only `type`):
   `product.md` (`type: Product`, shared with the [design feature](design.md); an existing Product
   concept elsewhere is reused) with one `## <heading>` per category; `requirements/R<nnn>-<slug>.md`
-  (`type: Requirement`, `state: active | validated | out-of-scope` because `status` is reserved by OKF
-  §5.4, `priority: must | should`, `check`, `validated_by`, a `# History` quoting the person with dates);
+  (`type: Requirement`, `state: active | validated | out-of-scope | superseded` because `status` is
+  reserved by OKF §5.4, `priority: must | should`, `check`, optional `check_command`, `validated_by`,
+  `superseded_by`, a `# History` quoting the person with dates);
   `requirements/questions.md` (`type: OpenQuestions`, `## Q<nn>: <question>` open | assumed | answered,
   with `about: <category>`); `requirements/index.md` generated. Out of scope has one store: requirements
   in state `out-of-scope`.
@@ -344,9 +345,18 @@ of its own: it reads and writes only the bundle and reaches the agent through th
   also by any out-of-scope requirement, run-test also by `verify` commands), partial on `TBD`/`TODO` or a
   pending question about it, missing otherwise.
 - **`ai1 okf project`**: `init` (Product skeleton, index, questions file, links in the root index),
-  `gaps`, `req add|set|list|goal` (goal prints a `/goal` line from the requirement's `check`),
+  `gaps`, `req add|set|command|list|goal` (goal prints a `/goal` line from the requirement's `check`;
+  `req add --supersedes <id>` replaces a requirement, which stays as `superseded` by the new one),
+  `verify [<id>]` (runs every active or validated requirement's `check_command`; a validated one that
+  fails goes back to active, a passing active one is never validated by it; exit 1 on any failure),
   `question add|assume|answer|list`, `conflicts <plan>` (out-of-scope requirements whose title words
   appear in a plan; advisory). Numbering, states, history and the index are written only by it.
+- **Requirement vs concept (2026-11-21):** a requirement says what the project must achieve and why
+  (changing it needs the person's decision); how it is built lives in the other concepts. Tens per
+  project, not hundreds. Requirements change only from the person's words, never from what the code
+  does: a message that contradicts one is confirmed in one line, then recorded (a nuance with
+  `req set`, a different requirement with `req add --supersedes`). In the skill and in the session
+  start rule.
 - **okf-project (SessionStart):** silent until the project context is started (a Product concept or a
   requirement): the session start has no room to spare in the worst case
   (`test/session-start-budget.test.mjs`). Then: ask before guessing what neither code nor bundle
@@ -358,9 +368,12 @@ of its own: it reads and writes only the bundle and reaches the agent through th
   multi-select for scope); answers written where they belong at once; the rest stays as open questions.
   Routes: core-setup-repo offers it when purpose or scope is missing; the session-start gaps line names it.
 - **Plans:** the deep design lists `requirements: [R001, ...]` and runs `conflicts`; `ai1 plan-done`
-  validates the listed ones in the bundle of the checkout it closes (missing or out-of-scope ids are
-  only reported, never a reason not to close).
-- **Not built (ruling):** a periodic review of the requirements; per-project custom categories (a
+  validates the listed ones in the bundle of the checkout it closes, each only when its
+  `check_command` (if any) passes (missing, out-of-scope, superseded ids or a failing check are only
+  reported, never a reason not to close).
+- **Not built (ruling):** milestones (v1/v2) and their review; `satisfies:` links from concepts;
+  contradiction detection on messages (only plans, via `conflicts`); a periodic review of the
+  requirements; per-project custom categories (a
   customization of the skill can add questions); numbering across parallel worktrees (two worktrees
   adding requirements can collide, as later entries can).
 

@@ -10,11 +10,11 @@ import { resolveBundleDirectory } from './okf-bundle.mjs';
 import {
   buildGapMap, initProjectContext, addRequirement, setRequirementState, listRequirements, findRequirement,
   addQuestion, settleQuestion, listQuestions, findOutOfScopeConflicts, buildGoalLine, PROJECT_CATEGORIES,
-  REQUIREMENT_STATES,
+  REQUIREMENT_STATES, setRequirementCheckCommand, verifyRequirements,
 } from './okf-project.mjs';
 
-export const OKF_PROJECT_USAGE = 'ai1 okf project init [--title "..."] | gaps [--json] | req add --title "..." [--statement "..."] [--priority must|should] [--state active|out-of-scope] [--check "..."] [--quote "..."] [--reason "..."] | req set <id> <state> [--quote "..."] [--reason "..."] [--plan <slug>] | req list [--state <state>] [--json] | req goal <id> | question add --about <category> "<question>" | question assume <id> "<assumption>" | question answer <id> "<answer>" [--to <concept>] | question list [--json] | conflicts <plan-slug-or-path>';
-const OPTIONS_WITH_VALUE = new Set(['--title', '--statement', '--priority', '--state', '--check', '--quote', '--reason', '--plan', '--about', '--to']);
+export const OKF_PROJECT_USAGE = 'ai1 okf project init [--title "..."] | gaps [--json] | req add --title "..." [--statement "..."] [--priority must|should] [--state active|out-of-scope] [--check "..."] [--check-command "..."] [--supersedes <id>] [--quote "..."] [--reason "..."] | req set <id> <state> [--by <id>] [--quote "..."] [--reason "..."] [--plan <slug>] | req command <id> "<command>" | req list [--state <state>] [--json] | req goal <id> | verify [<id>] [--json] | question add --about <category> "<question>" | question assume <id> "<assumption>" | question answer <id> "<answer>" [--to <concept>] | question list [--json] | conflicts <plan-slug-or-path>';
+const OPTIONS_WITH_VALUE = new Set(['--title', '--statement', '--priority', '--state', '--check', '--check-command', '--supersedes', '--by', '--quote', '--reason', '--plan', '--about', '--to']);
 
 function parseArguments(commandArguments) {
   const positionalArguments = [];
@@ -85,15 +85,20 @@ export function runOkfProjectCommand(workingDirectory, commandArguments, writeOu
       if (actionName === 'add') {
         const { id, relativePath } = addRequirement(bundleDirectory, {
           title: options.title, statement: options.statement, priority: options.priority || 'must', state: options.state || 'active',
-          check: options.check, quote: options.quote, reason: options.reason,
+          check: options.check, checkCommand: options['check-command'], supersedes: options.supersedes, quote: options.quote, reason: options.reason,
         });
-        writeOutput(`${id}: created ${relativePath}`);
+        writeOutput(`${id}: created ${relativePath}${options.supersedes ? `; ${findRequirement(listRequirements(bundleDirectory), options.supersedes).id} superseded by ${id}` : ''}`);
         return 0;
       }
       if (actionName === 'set') {
-        if (!firstArgument || !secondArgument) throw new Error('usage: ai1 okf project req set <id> <state> [--quote "..."] [--reason "..."] [--plan <slug>]');
-        const { id, previousState } = setRequirementState(bundleDirectory, firstArgument, secondArgument, { quote: options.quote, reason: options.reason, plan: options.plan });
+        if (!firstArgument || !secondArgument) throw new Error('usage: ai1 okf project req set <id> <state> [--by <id>] [--quote "..."] [--reason "..."] [--plan <slug>]');
+        const { id, previousState } = setRequirementState(bundleDirectory, firstArgument, secondArgument, { quote: options.quote, reason: options.reason, plan: options.plan, by: options.by });
         writeOutput(`${id}: ${previousState} -> ${secondArgument}`);
+        return 0;
+      }
+      if (actionName === 'command') {
+        const { id } = setRequirementCheckCommand(bundleDirectory, firstArgument, positionalArguments.slice(3).join(' '));
+        writeOutput(`${id}: check command set`);
         return 0;
       }
       if (actionName === 'list') {
@@ -108,6 +113,15 @@ export function runOkfProjectCommand(workingDirectory, commandArguments, writeOu
         writeOutput(buildGoalLine(requirement));
         return 0;
       }
+    }
+    if (subcommandName === 'verify') {
+      const checkResults = verifyRequirements(bundleDirectory, projectRoot, { requirementId: actionName || '' });
+      if (options.json) printJson(checkResults);
+      else {
+        writeOutput(checkResults.map((checkResult) => `${checkResult.id} ${checkResult.passed ? 'passes' : `FAILS (exit ${checkResult.exitCode})`}: ${checkResult.command}${checkResult.reopened ? ' - was validated, back to active' : ''}`).join('\n')
+          || 'no active or validated requirement has a check command (ai1 okf project req command <id> "<command>")');
+      }
+      return checkResults.some((checkResult) => !checkResult.passed) ? 1 : 0;
     }
     if (subcommandName === 'question') {
       if (actionName === 'add') {

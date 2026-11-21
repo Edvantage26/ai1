@@ -20,7 +20,7 @@ const MAX_QUESTIONS = 2;
 const MAX_ACTIVE_REQUIREMENTS = 3;
 
 export const DOUBT_RULE = 'Project doubts: when a decision depends on something neither the code nor the bundle answers (who it is for, scope, constraints, how it ships, who decides), ask the person before guessing, one question with your recommended answer, and write the answer where it belongs; what they cannot answer now goes to `ai1 okf project question add|assume`.';
-const REQUIREMENT_CHANGE_RULE = 'When the person adds, changes or drops a requirement ("ahora el cliente quiere...", "eso ya no"), record it with their words: `ai1 okf project req add|set` (never by hand). A deep design lists the requirements it serves in `requirements:` of its plan.';
+const REQUIREMENT_CHANGE_RULE = 'Requirements say what the project must achieve and why (changing one needs the person\'s decision); how it is built goes in the other concepts. They change only from the person\'s words, never from what the code does: when a message contradicts one ("ahora el cliente quiere...", "eso ya no"), confirm in one line and record it with their words via `ai1 okf project req add|set` (a replacement: `req add --supersedes <id>`). A deep design lists the requirements it serves in `requirements:` of its plan.';
 
 const plainTitle = (requirement) => shortenListTitle((requirement.title || requirement.id).replace(/^R\d+\s+/, ''));
 

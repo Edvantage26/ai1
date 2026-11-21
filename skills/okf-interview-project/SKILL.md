@@ -26,6 +26,12 @@ Where it lives (all in the bundle, `.ai1/okf/`):
 
 `ai1` below is `"${CLAUDE_PLUGIN_DATA}/bin/ai1"`.
 
+**What is a requirement.** It says what the project must achieve and why, in words the client would
+sign ("a customer can pay by card"); changing it needs the person's decision. How it is built
+("Stripe Checkout with a webhook") goes in the other concepts of the bundle, updated as the code
+changes. A project has tens of requirements, not hundreds: when one reads like implementation, it is a
+concept. Requirements change only from the person's words, never from what the code does.
+
 ## 1. See what is missing
 
 Run `ai1 okf project gaps`. With no Product concept yet, run `ai1 okf project init` first (it creates
@@ -59,7 +65,12 @@ understood; correct anything wrong") before the first question. Never ask what t
 - Requirements: `ai1 okf project req add --title "<what must hold>" [--statement "..."] [--priority
   must|should] [--check "<how to prove it>"] --quote "<the person's words>"`; out of scope with
   `--state out-of-scope --reason "<why>"`. A check that a test or a command can show makes the
-  requirement usable as a `/goal` (`ai1 okf project req goal <id>`).
+  requirement usable as a `/goal` (`ai1 okf project req goal <id>`); when a command proves it, add
+  `--check-command "<command>"` (or later `req command <id> "<command>"`): `ai1 okf project verify` runs
+  them and sends a validated requirement whose check fails back to active, and `ai1 plan-done`
+  validates one only when it passes.
+- A requirement that changes: a nuance is `req set` with the person's words; a different requirement
+  replaces it with `req add ... --supersedes <id>` (the old one stays, superseded by the new one).
 - Not known now ("lo hablo con el cliente"): `ai1 okf project question add --about <category>
   "<question>"`; when you must go on anyway, `ai1 okf project question assume <id> "<assumption>"` and
   say you are working on it.
@@ -76,6 +87,8 @@ missing or open, and the requirements created. Validate the bundle (/ai1:okf-val
 - Infer first, show the draft, then ask: never a form, never a question the repo already answers.
 - At most 5 questions per sitting, one at a time, each with a recommended answer.
 - The person's words are quoted as they said them; nothing they did not say is written as theirs.
+- A requirement says what and why; how it is built is never a requirement. Requirements change only
+  from the person's words, never from what the code does.
 - Requirement and question files are changed only through `ai1 okf project`, never by hand.
 - Never run in the middle of another task: offered at its routes, done when the person says yes.
 

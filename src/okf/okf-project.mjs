@@ -2,8 +2,10 @@
 // it, kept as ai1 conventions on top of OKF (the spec only demands `type`):
 // - `product.md` (`type: Product`, shared with the design feature): one `## <heading>` per category.
 // - `requirements/R<nnn>-<slug>.md` (`type: Requirement`): one requirement each, its `state`
-//   (active | validated | out-of-scope; `status` is reserved by OKF §5.4), `priority`, `check` (how to
-//   prove it, usable as a /goal condition) and a `# History` of dated changes quoting the person.
+//   (active | validated | out-of-scope | superseded; `status` is reserved by OKF §5.4), `priority`,
+//   `check` (how to prove it, usable as a /goal condition), an optional `check_command` that proves it
+//   (run by `ai1 okf project verify` and `ai1 plan-done`), `superseded_by` and a `# History` of dated
+//   changes quoting the person.
 // - `requirements/questions.md` (`type: OpenQuestions`): `## Q<nn>: <question>` with status open |
 //   assumed | answered.
 // - `requirements/index.md`: generated list of the requirements by state.
@@ -11,6 +13,7 @@
 // the okf-project SessionStart hook and the `ai1 okf project` CLI; every write goes through these
 // functions so numbering, states and history follow one set of rules.
 
+import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { splitFrontmatter, readFrontmatterField, writeFrontmatterField } from '../core/frontmatter.mjs';
@@ -20,7 +23,10 @@ export const PRODUCT_FILE = 'product.md';
 export const REQUIREMENTS_DIRECTORY = 'requirements';
 export const QUESTIONS_FILE = 'questions.md';
 const REQUIREMENTS_INDEX_FILE = 'index.md';
-export const REQUIREMENT_STATES = ['active', 'validated', 'out-of-scope'];
+export const REQUIREMENT_STATES = ['active', 'validated', 'out-of-scope', 'superseded'];
+// The ones the project must do, whose check command is worth running.
+const CHECKED_STATES = new Set(['active', 'validated']);
+const CHECK_COMMAND_TIMEOUT_MILLISECONDS = 10 * 60 * 1000;
 export const REQUIREMENT_PRIORITIES = ['must', 'should'];
 export const QUESTION_STATUSES = ['open', 'assumed', 'answered'];
 const WRITER_ACTOR = 'process:ai1-okf-project';
@@ -62,6 +68,20 @@ function padQuestionNumber(questionNumber) {
 // A frontmatter scalar that YAML reads back as the same string.
 function yamlString(text) {
   return JSON.stringify(String(text).replace(/\s+/g, ' ').trim());
+}
+
+// A frontmatter scalar as written by yamlString: a double-quoted value is read back with its escapes
+// (a check command with quotes must run as written); anything else as readFrontmatterField reads it.
+function readYamlScalar(frontmatterText, fieldName) {
+  const fieldMatch = new RegExp(`^${fieldName}:[ \\t]*(".*")[ \\t]*$`, 'm').exec(frontmatterText || '');
+  if (fieldMatch) {
+    try {
+      return JSON.parse(fieldMatch[1]);
+    } catch {
+      // Not JSON-compatible YAML: fall back to the plain read below.
+    }
+  }
+  return readFrontmatterField(frontmatterText, fieldName);
 }
 
 function quoteLine(quoteText) {
@@ -112,7 +132,7 @@ function requirementsDirectory(bundleDirectory) {
 }
 
 // Every requirement file: { id, number, slug, fileName, relativePath, title, state, priority, check,
-// validatedBy, statement }.
+// checkCommand, validatedBy, supersededBy, statement }.
 export function listRequirements(bundleDirectory) {
   const directoryPath = requirementsDirectory(bundleDirectory);
   if (!existsSync(directoryPath)) return [];
@@ -121,7 +141,7 @@ export function listRequirements(bundleDirectory) {
     const fileMatch = REQUIREMENT_FILE_PATTERN.exec(fileName);
     if (!fileMatch) continue;
     const { frontmatterText, bodyText } = splitFrontmatter(readFileSync(join(directoryPath, fileName), 'utf8'));
-    const readField = (fieldName) => readFrontmatterField(frontmatterText, fieldName);
+    const readField = (fieldName) => readYamlScalar(frontmatterText, fieldName);
     requirements.push({
       id: padRequirementNumber(Number(fileMatch[1])),
       number: Number(fileMatch[1]),
@@ -132,6 +152,8 @@ export function listRequirements(bundleDirectory) {
       state: readField('state') || 'active',
       priority: readField('priority') || 'must',
       check: readField('check'),
+      checkCommand: readField('check_command'),
+      supersededBy: readField('superseded_by'),
       validatedBy: readField('validated_by').split(/[\s,]+/).filter(Boolean),
       statement: bodyText.split(/^# History/m)[0].trim(),
     });
@@ -157,16 +179,21 @@ function appendHistoryLine(conceptText, historyLine) {
 }
 
 // Creates `requirements/R<nnn>-<slug>.md` and refreshes the index. Returns { id, relativePath }.
-export function addRequirement(bundleDirectory, { title, statement = '', priority = 'must', state = 'active', check = '', quote = '', reason = '', now = new Date() }) {
+// `supersedes`: the new requirement replaces that one, which becomes superseded by it.
+export function addRequirement(bundleDirectory, { title, statement = '', priority = 'must', state = 'active', check = '', checkCommand = '', supersedes = '', quote = '', reason = '', now = new Date() }) {
   if (!String(title || '').trim()) throw new Error('a requirement needs --title "<what must hold>"');
   if (!REQUIREMENT_PRIORITIES.includes(priority)) throw new Error(`priority must be one of ${REQUIREMENT_PRIORITIES.join(', ')}`);
   if (!REQUIREMENT_STATES.includes(state)) throw new Error(`state must be one of ${REQUIREMENT_STATES.join(', ')}`);
   if (state === 'out-of-scope' && !String(reason).trim()) throw new Error('an out-of-scope requirement needs --reason "<why it is out>"');
+  if (state === 'superseded') throw new Error('a new requirement cannot start superseded; add the new one with --supersedes <id>');
   const requirements = listRequirements(bundleDirectory);
+  const supersededRequirement = supersedes ? findRequirement(requirements, supersedes) : null;
+  if (supersedes && !supersededRequirement) throw new Error(`no requirement ${supersedes} to supersede`);
   const requirementNumber = Math.max(0, ...requirements.map((requirement) => requirement.number)) + 1;
   const requirementId = padRequirementNumber(requirementNumber);
   const fileName = `${requirementId}-${slugFromTitle(title)}.md`;
-  const historyLine = `- ${todayDate(now)} ${state}${reason ? ` (${String(reason).trim()})` : ''}${quoteLine(quote)}`;
+  const historyDetail = [supersededRequirement ? `replaces ${supersededRequirement.id}` : '', String(reason).trim()].filter(Boolean).join('; ');
+  const historyLine = `- ${todayDate(now)} ${state}${historyDetail ? ` (${historyDetail})` : ''}${quoteLine(quote)}`;
   const conceptText = [
     '---',
     'type: Requirement',
@@ -177,6 +204,7 @@ export function addRequirement(bundleDirectory, { title, statement = '', priorit
     `state: ${state}`,
     `priority: ${priority}`,
     ...(check ? [`check: ${yamlString(check)}`] : []),
+    ...(checkCommand ? [`check_command: ${yamlString(checkCommand)}`] : []),
     `generated: { by: '${WRITER_ACTOR}', at: '${nowTimestamp(now)}' }`,
     '---',
     '',
@@ -189,24 +217,29 @@ export function addRequirement(bundleDirectory, { title, statement = '', priorit
   ].join('\n');
   mkdirSync(requirementsDirectory(bundleDirectory), { recursive: true });
   writeFileSync(join(requirementsDirectory(bundleDirectory), fileName), conceptText);
+  if (supersededRequirement) setRequirementState(bundleDirectory, supersededRequirement.id, 'superseded', { by: requirementId, quote, reason, now });
   writeRequirementsIndex(bundleDirectory);
   return { id: requirementId, relativePath: `${REQUIREMENTS_DIRECTORY}/${fileName}` };
 }
 
 // Changes a requirement's state (and its history), keeping what it said before. `plan` adds the plan
-// slug to `validated_by`. Returns { id, relativePath, previousState }.
-export function setRequirementState(bundleDirectory, requirementId, newState, { quote = '', reason = '', plan = '', now = new Date() } = {}) {
+// slug to `validated_by`; `by` names the requirement that supersedes it. Returns { id, relativePath, previousState }.
+export function setRequirementState(bundleDirectory, requirementId, newState, { quote = '', reason = '', plan = '', by = '', now = new Date() } = {}) {
   if (!REQUIREMENT_STATES.includes(newState)) throw new Error(`state must be one of ${REQUIREMENT_STATES.join(', ')}`);
   if (newState === 'out-of-scope' && !String(reason).trim()) throw new Error('moving a requirement out of scope needs --reason "<why>"');
-  const requirement = findRequirement(listRequirements(bundleDirectory), requirementId);
+  const requirements = listRequirements(bundleDirectory);
+  const requirement = findRequirement(requirements, requirementId);
   if (!requirement) throw new Error(`no requirement ${requirementId} in ${REQUIREMENTS_DIRECTORY}/`);
+  const replacingRequirement = by ? findRequirement(requirements, by) : null;
+  if (newState === 'superseded' && (!replacingRequirement || replacingRequirement.id === requirement.id)) throw new Error('superseded needs --by <id> naming the requirement that replaces it (add it first, or use req add --supersedes)');
   const filePath = join(bundleDirectory, requirement.relativePath);
   let conceptText = readFileSync(filePath, 'utf8');
   conceptText = writeFrontmatterField(conceptText, 'state', newState);
   conceptText = writeFrontmatterField(conceptText, 'tags', `[requirement, ${newState}]`);
+  if (newState === 'superseded') conceptText = writeFrontmatterField(conceptText, 'superseded_by', replacingRequirement.id);
   if (plan) conceptText = writeFrontmatterField(conceptText, 'validated_by', `[${[...new Set([...requirement.validatedBy, plan])].join(', ')}]`);
   conceptText = writeFrontmatterField(conceptText, 'generated', `{ by: '${WRITER_ACTOR}', at: '${nowTimestamp(now)}' }`);
-  const detailText = [plan ? `plan ${plan}` : '', String(reason).trim()].filter(Boolean).join('; ');
+  const detailText = [plan ? `plan ${plan}` : '', newState === 'superseded' ? `by ${replacingRequirement.id}` : '', String(reason).trim()].filter(Boolean).join('; ');
   conceptText = appendHistoryLine(conceptText, `- ${todayDate(now)} ${requirement.state} -> ${newState}${detailText ? ` (${detailText})` : ''}${quoteLine(quote)}`);
   writeFileSync(filePath, conceptText);
   writeRequirementsIndex(bundleDirectory);
@@ -219,7 +252,7 @@ export function renderRequirementsIndex(requirements, hasQuestions = false) {
     const stateRequirements = requirements.filter((requirement) => requirement.state === requirementState);
     if (!stateRequirements.length) continue;
     lines.push(`## ${requirementState}`, '');
-    for (const requirement of stateRequirements) lines.push(`* [${requirement.title || requirement.id}](${requirement.fileName}) - ${requirement.priority}`);
+    for (const requirement of stateRequirements) lines.push(`* [${requirement.title || requirement.id}](${requirement.fileName}) - ${requirement.supersededBy ? `superseded by ${requirement.supersededBy}` : requirement.priority}`);
     lines.push('');
   }
   if (hasQuestions) lines.push('* [Open questions](questions.md)', '');
@@ -393,14 +426,55 @@ export function findOutOfScopeConflicts(planText, requirements) {
   });
 }
 
-// `ai1 plan-done`: the requirements a closed plan lists in `requirements:` become validated by it.
-// Never fails the close: a missing id or one out of scope is only reported. Returns one note per id.
-export function validatePlanRequirements(bundleDirectory, planSlug, requirementIds, { now = new Date() } = {}) {
+// The command that proves a requirement, run from the project root; returns its exit code.
+function defaultRunCheckCommand(checkCommand, projectRoot) {
+  const commandResult = spawnSync(checkCommand, { cwd: projectRoot, shell: true, stdio: 'inherit', timeout: CHECK_COMMAND_TIMEOUT_MILLISECONDS });
+  return commandResult.status ?? 1;
+}
+
+// Sets or replaces the command that proves a requirement. Returns { id }.
+export function setRequirementCheckCommand(bundleDirectory, requirementId, checkCommand, { now = new Date() } = {}) {
+  const requirement = findRequirement(listRequirements(bundleDirectory), requirementId);
+  if (!requirement) throw new Error(`no requirement ${requirementId} in ${REQUIREMENTS_DIRECTORY}/`);
+  if (!String(checkCommand || '').trim()) throw new Error('req command needs the command that proves the requirement');
+  const filePath = join(bundleDirectory, requirement.relativePath);
+  let conceptText = writeFrontmatterField(readFileSync(filePath, 'utf8'), 'check_command', yamlString(checkCommand));
+  conceptText = writeFrontmatterField(conceptText, 'generated', `{ by: '${WRITER_ACTOR}', at: '${nowTimestamp(now)}' }`);
+  writeFileSync(filePath, appendHistoryLine(conceptText, `- ${todayDate(now)} check command: \`${String(checkCommand).trim()}\``));
+  return { id: requirement.id };
+}
+
+// `ai1 okf project verify`: runs the check command of every active or validated requirement that has
+// one. A validated requirement whose check fails goes back to active (it regressed); an active one that
+// passes stays active (only a plan or the person validates). [{ id, command, passed, exitCode, reopened }].
+export function verifyRequirements(bundleDirectory, projectRoot, { requirementId = '', runCommand = defaultRunCheckCommand, now = new Date() } = {}) {
+  const wantedRequirement = requirementId ? findRequirement(listRequirements(bundleDirectory), requirementId) : null;
+  if (requirementId && !wantedRequirement) throw new Error(`no requirement ${requirementId} in ${REQUIREMENTS_DIRECTORY}/`);
+  const checkedRequirements = listRequirements(bundleDirectory)
+    .filter((requirement) => CHECKED_STATES.has(requirement.state) && requirement.checkCommand)
+    .filter((requirement) => !wantedRequirement || requirement.id === wantedRequirement.id);
+  return checkedRequirements.map((requirement) => {
+    const exitCode = runCommand(requirement.checkCommand, projectRoot);
+    const reopened = exitCode !== 0 && requirement.state === 'validated';
+    if (reopened) setRequirementState(bundleDirectory, requirement.id, 'active', { reason: `check failed: \`${requirement.checkCommand}\` exit ${exitCode}`, now });
+    return { id: requirement.id, command: requirement.checkCommand, passed: exitCode === 0, exitCode, reopened };
+  });
+}
+
+// `ai1 plan-done`: the requirements a closed plan lists in `requirements:` become validated by it,
+// when their check command (if any) passes. Never fails the close: a missing id, one no longer in
+// force or a failing check is only reported. Returns one note per id.
+export function validatePlanRequirements(bundleDirectory, planSlug, requirementIds, { projectRoot = '', runCommand = defaultRunCheckCommand, now = new Date() } = {}) {
   const requirements = listRequirements(bundleDirectory);
   return requirementIds.map((requirementId) => {
     const requirement = findRequirement(requirements, requirementId);
     if (!requirement) return `${requirementId}: no such requirement in ${REQUIREMENTS_DIRECTORY}/, not validated`;
     if (requirement.state === 'out-of-scope') return `${requirement.id}: out of scope, not validated (tell the person the plan built it)`;
+    if (requirement.state === 'superseded') return `${requirement.id}: superseded by ${requirement.supersededBy || 'another requirement'}, not validated (list that one instead)`;
+    if (requirement.checkCommand && projectRoot) {
+      const exitCode = runCommand(requirement.checkCommand, projectRoot);
+      if (exitCode !== 0) return `${requirement.id}: check \`${requirement.checkCommand}\` failed (exit ${exitCode}), not validated`;
+    }
     setRequirementState(bundleDirectory, requirement.id, 'validated', { plan: planSlug, now });
     return `${requirement.id}: validated by ${planSlug}`;
   });
