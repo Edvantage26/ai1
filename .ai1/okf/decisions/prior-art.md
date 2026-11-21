@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-20T07:47:23Z'
+  at: '2026-11-21T17:44:20Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -514,3 +514,20 @@ noise in existing projects.
   survive) and per-occurrence waivers with a reason, instead of repo-wide `ignore_rules`.
 - **How to check its behaviour**: `node skills/hallmark/scripts/sloplint.mjs <file> --json --tier floor`
   on a clone; the gate list and tiers are in `references/gates.md` (sloplint's `TIERS` map mirrors it).
+
+# Claude Code /goal (2026-11-21)
+
+Reviewed while designing project-level requirements ([docs](https://code.claude.com/docs/en/goal),
+needs v2.1.139+). A built-in command, not a skill: `/goal <condition>` (up to 4,000 characters, one per
+session) is a session-scoped prompt-based Stop hook. After every turn the small fast model judges the
+condition met, not yet met (its reason steers the next turn) or impossible, **from the transcript only**:
+it runs no tools and reads no files, so a condition must name the check that proves it ("`npm test`
+exits 0"). Restored on resume, removed by `/clear`; `/goal` alone shows condition, turns, time and last
+reason. The agent cannot start it; the person types it. Community clone
+[jthack/claude-goal](https://github.com/jthack/claude-goal) keeps state in SQLite under `~/.claude`
+with pause/resume and a completion audit.
+
+Taken as ideas: write a goal as a verifiable condition with its check; completion judged by someone
+other than the worker (ai1's verify gate for deterministic checks). Not reimplemented: ai1 hooks make
+no network calls, so ai1 runs no evaluator model of its own; a feature that needs one hands the
+condition to `/goal`.
