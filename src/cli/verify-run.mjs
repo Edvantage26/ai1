@@ -14,7 +14,7 @@ import { findMainCheckout } from '../core/project-roots.mjs';
 import { checkScenarioCoverage, formatScenarioTag } from '../sizing/sizing-scenarios.mjs';
 import { splitFrontmatter, readFrontmatterField } from '../core/frontmatter.mjs';
 import { resolveBundleDirectory } from '../okf/okf-bundle.mjs';
-import { validatePlanRequirements } from '../okf/okf-project.mjs';
+import { validatePlanRequirements, isProjectContextEnabled } from '../okf/okf-project.mjs';
 
 export function readVerifyCommands(repoRoot) {
   const loadedConfig = loadHarnessConfig(repoRoot, KNOWN_MODULE_IDS);
@@ -98,6 +98,7 @@ export function closePlan(mainCheckoutRoot, scanRoot, planSlug, verifyCommands, 
   // The requirements the plan serves (`requirements:` in its frontmatter) are validated in the bundle of
   // the checkout being closed (the worktree, merged with the branch); never a reason not to close.
   const requirementIds = readFrontmatterField(splitFrontmatter(planText).frontmatterText, 'requirements').split(/[\s,]+/).filter(Boolean);
-  const requirementNotes = requirementIds.length && existsSync(resolveBundleDirectory(scanRoot)) ? validatePlanRequirements(resolveBundleDirectory(scanRoot), planSlug, requirementIds, { projectRoot: scanRoot, runCommand }) : [];
+  const projectConfig = loadHarnessConfig(scanRoot, KNOWN_MODULE_IDS);
+  const requirementNotes = requirementIds.length && projectConfig.status === 'ok' && isProjectContextEnabled(projectConfig.config) && existsSync(resolveBundleDirectory(scanRoot)) ? validatePlanRequirements(resolveBundleDirectory(scanRoot), planSlug, requirementIds, { projectRoot: scanRoot, runCommand }) : [];
   return { closed: true, message: `plan ${planSlug} done (${coverageText}; verify green)${requirementNotes.length ? `; requirements: ${requirementNotes.join('; ')}` : ''}` };
 }

@@ -13,8 +13,11 @@ allowed-tools: Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context *) Bash("${CLA
 # Interview the person about the project
 
 Goal: the agent understands the project before working on it, and what only the person knows is
-asked once and kept in the knowledge bundle, not lost in a chat. Two modes: **kickoff** (first time,
-or most categories missing) and **resume** (a few gaps or open questions left).
+asked once and kept in the knowledge bundle, not lost in a chat. Three modes: **kickoff** (first time,
+or most categories missing), **resume** (a few gaps or open questions left) and **review** (a milestone
+closed, or the session start offers it: go to "Review" below).
+If `ai1 okf project gaps` says requirements are off in this repo, do not offer this skill; run it only
+when the person asks.
 
 Where it lives (all in the bundle, `.ai1/okf/`):
 
@@ -76,11 +79,31 @@ understood; correct anything wrong") before the first question. Never ask what t
   say you are working on it.
 - An answer to an open question: `ai1 okf project question answer <id> "<answer>" --to <concept>`,
   after writing it into that concept.
+- Milestones: when the person groups what comes first and what later ("esto para la primera versión"),
+  `req add --milestone v1` or `req milestone <id> v1`. Write requirements in the person's language:
+  the hints that catch a change in a message match words, not translations.
+- Code that serves a requirement: the concept that describes it gets `satisfies: [R004]` in its
+  frontmatter (when you write or update that concept), so editing that code asks to run R004's check.
 
 ## 5. Close
 
 Run `ai1 okf project gaps` again and tell the person in a few lines: what was recorded, what is still
 missing or open, and the requirements created. Validate the bundle (/ai1:okf-validate-bundle .ai1/okf).
+
+## Review
+
+When a milestone closes or the session start offers it (enough plans closed or requirements changed
+since the last review):
+
+1. `ai1 okf project review` (or `--milestone v1`) and `ai1 okf project verify`: what holds, what is still
+   to build, what was left out and why, what was replaced, what has no command to prove it, and which
+   checks fail now.
+2. Ask the person only what the review raises, one question at a time, each with your recommendation:
+   does each out-of-scope reason still hold; is the purpose in `product.md` still right; should a
+   requirement in force without a command get one. At most 5, as in the interview.
+3. Record every answer as in step 4 (their words, `req set`, `--supersedes`, a changed purpose in
+   `product.md`; a changed purpose is also a dated line in the bundle's `log.md`).
+4. `ai1 okf project review --done`, then tell the person in a few lines what changed.
 
 ## Fixed rules
 

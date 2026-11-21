@@ -5,7 +5,7 @@ description: Sets up ai1 in a repo - asks the features, writes .ai1/config.json 
 tags: [init, cli, setup]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-21T18:31:32Z'
+  at: '2026-11-21T19:47:41Z'
 sources:
   - id: setup-repo
     resource: src/cli/setup-repo.mjs
@@ -26,7 +26,8 @@ sources:
 
 - **CLI `ai1`** (`bin/`, on the Bash PATH while the plugin is enabled):
   - `ai1 status [--json]`: repo root, harness present, trunk, whether `.ai1/okf/` has a bundle, features.
-  - `ai1 init [--disable design,storyboard | --disable none] [--verify "<cmd>" ...] [--disable-plugins a@x,b@y] [--deny-credentials] [--role maintainer|developer] [--json]`:
+  - `ai1 init [--disable design,storyboard | --disable none] [--verify "<cmd>" ...] [--disable-plugins a@x,b@y] [--disable-modules okf-project] [--deny-credentials] [--role maintainer|developer] [--json]`
+    (`--disable-modules`: single modules written as `false` under `modules`, kept with the ones already there; unknown ids refused; used when the person wants okf without requirements):
     every feature is on except the ones in `--disable` (exact list, written as `false`); `--disable none`
     switches all on; without it the repo's opt-outs are kept. `--features a,b` (older form: unlisted =
     off) still works and cannot be combined with `--disable`. Writes config `version: 2`

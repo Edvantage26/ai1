@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index and bundle health notes 
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-21T18:47:43Z'
+  at: '2026-11-21T19:47:41Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -357,8 +357,9 @@ of its own: it reads and writes only the bundle and reaches the agent through th
   does: a message that contradicts one is confirmed in one line, then recorded (a nuance with
   `req set`, a different requirement with `req add --supersedes`). In the skill and in the session
   start rule.
-- **okf-project (SessionStart):** silent until the project context is started (a Product concept or a
-  requirement): the session start has no room to spare in the worst case
+- **okf-project (SessionStart):** silent until the project context is started (a requirement, or a
+  Product concept marked `project_context: true` by `ai1 okf project init`; the design feature's
+  Product concept alone does not start it): the session start has no room to spare in the worst case
   (`test/session-start-budget.test.mjs`). Then: ask before guessing what neither code nor bundle
   answers; the gaps in one line pointing to the interview; the requirement-change rule; up to 2
   out-of-scope items, 2 pending questions and 3 active must requirements, each list saying how many it
@@ -371,9 +372,27 @@ of its own: it reads and writes only the bundle and reaches the agent through th
   validates the listed ones in the bundle of the checkout it closes, each only when its
   `check_command` (if any) passes (missing, out-of-scope, superseded ids or a failing check are only
   reported, never a reason not to close).
-- **Not built (ruling):** milestones (v1/v2) and their review; `satisfies:` links from concepts;
-  contradiction detection on messages (only plans, via `conflicts`); a periodic review of the
-  requirements; per-project custom categories (a
+- **Requirements over time (2026-11-21, plan `requirements-lifecycle`):**
+  - *Switch:* `"modules": { "okf-project": false }` turns off everything about requirements in a repo
+    (session-start lines, the prompt and edit hints below, the review task, plan-done notes, the setup
+    offer); okf keeps working and `ai1 okf project` still runs by hand, saying the module is off. A no
+    to the setup offer writes it with `ai1 init --disable-modules okf-project`.
+  - *Milestones and review:* `milestone: <name>` (`req add --milestone`, `req milestone <id> <name>`);
+    `ai1 okf project review [--milestone]` lists per milestone validated, still to build, out of scope
+    with the reason of its last history line, superseded, and in force without a check command;
+    `review --done` stamps one `requirements_reviewed` date on the Product concept. The judgement is the
+    skill's review mode.
+  - *satisfies:* a concept's `satisfies: [R004]`; okf-file-context, on an edit of a file that concept
+    describes, asks once per requirement and session to run `ai1 okf project verify R004` (only for
+    requirements in force with a check command); `req list` shows the satisfying concepts.
+  - *Messages:* okf-recall scores every Requirement concept on its own: at least two title keywords (all
+    when fewer) shared with the message. In force plus a change cue (es/en word list in
+    `src/okf/okf-recall.mjs`) adds "may change R003: confirm in one line"; out of scope, matched at all,
+    adds "R001 is out of scope: tell the person". Words, no translation: a requirement matches messages
+    in its own language, so the interview writes them in the person's language.
+  - *Periodic review:* maintenance task `requirements-review` (see [maintenance](maintenance.md)).
+- **Not built (ruling):** per-milestone review dates; satisfies checked at Stop (it is only a hint on
+  edit); per-project custom categories (a
   customization of the skill can add questions); numbering across parallel worktrees (two worktrees
   adding requirements can collide, as later entries can).
 

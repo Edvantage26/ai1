@@ -11,6 +11,8 @@ import { isFeatureEnabled } from '../core/features.mjs';
 import { isPersonMaintainer, readPersonProfile, writePersonProfile } from '../core/person-project.mjs';
 import { listLaterEntries, OPEN_LATER_STATUSES, padEntryNumber } from '../later/later-documents.mjs';
 import { isRoutineMuted } from '../routines/routine-store.mjs';
+import { isProjectContextEnabled, measureChangesSinceReview, REVIEW_THRESHOLDS } from '../okf/okf-project.mjs';
+import { resolveBundleDirectory } from '../okf/okf-bundle.mjs';
 
 export const SESSIONS_BETWEEN_NOTICES = 3;
 export const DEFAULT_SNOOZE_DAYS = 7;
@@ -36,6 +38,19 @@ export const MAINTENANCE_TASKS = [
       const staleEntries = listStaleLaterEntries(projectRoot, now);
       if (!staleEntries.length) return null;
       return `${staleEntries.length} later entr${staleEntries.length === 1 ? 'y' : 'ies'} open and untouched for over ${STALE_LATER_DAYS} days (${staleEntries.slice(0, 3).map((laterEntry) => padEntryNumber(laterEntry.fileNumber)).join(', ')}${staleEntries.length > 3 ? ', ...' : ''}): review whether to accept, reject or update them`;
+    },
+  },
+  {
+    id: 'requirements-review',
+    kind: 'periodic',
+    feature: 'okf',
+    everyDays: 7,
+    title: `Project requirements to review (${REVIEW_THRESHOLDS.closedPlans}+ plans closed, ${REVIEW_THRESHOLDS.requirementChanges}+ requirement changes or ${REVIEW_THRESHOLDS.days} days since the last review)`,
+    check({ projectRoot, sharedRoot, config, now }) {
+      if (!isProjectContextEnabled(config)) return null;
+      const changesSinceReview = measureChangesSinceReview(resolveBundleDirectory(projectRoot), sharedRoot || projectRoot, { now });
+      if (!changesSinceReview?.due) return null;
+      return `Requirements: ${changesSinceReview.closedPlans} plan(s) closed, ${changesSinceReview.requirementChanges} requirement change(s) and ${changesSinceReview.days} day(s) since the last review (${changesSinceReview.since}): offer a review with /ai1:okf-interview-project (review mode)`;
     },
   },
 ];

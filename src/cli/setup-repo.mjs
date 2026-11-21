@@ -125,7 +125,7 @@ export function describeRepo(repoRoot, { userSettingsPath = DEFAULT_USER_SETTING
 // disabledFeatureIds: the features switched off in this repo, exactly (every other one is on);
 // undefined keeps the opt-outs the config already has. enabledFeatureIds (legacy, `--features`): the
 // features on, every other one off; not combinable with disabledFeatureIds.
-export function setupRepo(repoRoot, { disabledFeatureIds, enabledFeatureIds, verifyCommands, disabledPluginIds = [], denyCredentials = false, reportErrors, role, userSettingsPath = DEFAULT_USER_SETTINGS_PATH }) {
+export function setupRepo(repoRoot, { disabledFeatureIds, enabledFeatureIds, verifyCommands, disabledPluginIds = [], disabledModuleIds = [], denyCredentials = false, reportErrors, role, userSettingsPath = DEFAULT_USER_SETTINGS_PATH }) {
   if (role !== undefined && !PERSON_ROLES.includes(role)) throw new Error(`--role must be ${PERSON_ROLES.join(' or ')}`);
   const personEmail = role === 'maintainer' ? readGitUserEmail(repoRoot) : null;
   if (role === 'maintainer' && !personEmail) throw new Error('--role maintainer needs your git email: set it with git config user.email');
@@ -133,6 +133,8 @@ export function setupRepo(repoRoot, { disabledFeatureIds, enabledFeatureIds, ver
   if (disabledPluginIds.includes(AI1_PLUGIN_ID)) throw new Error(`${AI1_PLUGIN_ID} cannot be disabled by ai1 init`);
   const malformedPluginIds = disabledPluginIds.filter((pluginId) => !/^[^@\s]+@[^@\s]+$/.test(pluginId));
   if (malformedPluginIds.length) throw new Error(`not plugin ids (name@marketplace): ${malformedPluginIds.join(', ')}`);
+  const unknownModuleIds = disabledModuleIds.filter((moduleId) => !KNOWN_MODULE_IDS.includes(moduleId));
+  if (unknownModuleIds.length) throw new Error(`unknown modules: ${unknownModuleIds.join(', ')}`);
   if (enabledFeatureIds !== undefined && disabledFeatureIds !== undefined) throw new Error('use --disable (the features to switch off) or the older --features (the features to switch on), not both');
   const namedFeatureIds = [...(enabledFeatureIds ?? []), ...(disabledFeatureIds ?? [])];
   const retiredFeatureId = ['rfc', 'proposals'].find((featureId) => namedFeatureIds.includes(featureId));
@@ -166,6 +168,8 @@ export function setupRepo(repoRoot, { disabledFeatureIds, enabledFeatureIds, ver
     trunk: existingAi1Config.trunk || detectTrunkBranch(repoRoot),
     verify: verifyCommands ?? existingAi1Config.verify ?? [],
   };
+  // A single module switched off in this repo (e.g. okf-project: okf without requirements), kept with the others.
+  if (disabledModuleIds.length) ai1Config.modules = { ...existingAi1Config.modules, ...Object.fromEntries(disabledModuleIds.map((moduleId) => [moduleId, false])) };
   // A maintainer is added to the committed list (creating it makes everyone not in it a developer).
   const existingMaintainers = Array.isArray(existingAi1Config.maintainers) ? existingAi1Config.maintainers : [];
   const addedMaintainer = personEmail && !existingMaintainers.some((maintainerEmail) => normalizeEmail(maintainerEmail) === personEmail) ? personEmail : null;

@@ -128,9 +128,12 @@ that applies, one at a time, in this order, and do it only after a yes (the pers
   the repo clearly needs more (ports per worktree, services, big data folders to share); otherwise
   the agent completes the project recipe when `ai1 worktree` reports a gap.
 - `okf` and there is no bundle yet: create one with `/ai1:okf-maintain-knowledge` (produce mode).
-- `okf` and `ai1 okf project gaps` shows purpose or scope missing: offer in one line to interview
-  the person about the project with `/ai1:okf-interview-project` (what it is for, who uses it, what is
-  out of scope, how it runs and ships), so later sessions know it without asking again.
+- `okf` and `ai1 okf project gaps` shows purpose or scope missing (and does not say the module is
+  off): offer in one line to interview the person about the project with `/ai1:okf-interview-project`
+  (what it is for, who uses it, what is out of scope, how it runs and ships), so later sessions know it
+  without asking again, or to keep okf without requirements here. When they want no requirements, run
+  `ai1 init --disable-modules okf-project` (with the same feature choices): nothing about requirements
+  runs on its own afterwards, and the offer does not come back.
 - `okf` and there is a bundle: run `ai1 claude-md`. If it reports findings, offer
   `/ai1:okf-tidy-claude-md`; when the migration listed CLAUDE.md among the files with old paths,
   make it one offer (the skill fixes those paths too).

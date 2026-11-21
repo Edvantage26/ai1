@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // ai1 CLI. On the Bash PATH while the plugin is enabled.
 //   ai1 status [--json]                         what this repo runs, and the available features
-//   ai1 init [--disable design,storyboard | --disable none] [--verify "npm test" ...] [--disable-plugins a@x,b@y] [--deny-credentials] [--report-errors ask|auto|off] [--role maintainer|developer] [--json]
+//   ai1 init [--disable design,storyboard | --disable none] [--verify "npm test" ...] [--disable-plugins a@x,b@y] [--disable-modules okf-project] [--deny-credentials] [--report-errors ask|auto|off] [--role maintainer|developer] [--json]
 //   ai1 verify                                  run the repo's verify commands, stop at the first failure
 //   ai1 step-done <slug> "<step>"               ai1 verify, then log the step in .ai1/work/<slug>/progress.md
 //   ai1 plan-done <slug>                        close a plan: every behaviour scenario has its tagged test, then ai1 verify
@@ -121,6 +121,7 @@ try {
       enabledFeatureIds: featureList === undefined ? undefined : splitList(featureList),
       verifyCommands: verifyCommands.length ? verifyCommands : undefined,
       disabledPluginIds: splitList(readOption('--disable-plugins')),
+      disabledModuleIds: splitList(readOption('--disable-modules')),
       denyCredentials: commandArguments.includes('--deny-credentials'),
       reportErrors: readOption('--report-errors'),
       role: readOption('--role'),
@@ -228,7 +229,7 @@ try {
     console.log(cliResult.output);
     process.exitCode = cliResult.exitCode;
   } else {
-    console.log(`usage: ai1 status [--json] | ai1 init [--disable <feature,...> | --disable none] [--verify "<command>" ...] [--disable-plugins a@x,b@y] [--deny-credentials] [--report-errors ask|auto|off] [--role maintainer|developer] [--json] | ai1 delegate --cwd <repo> --brief <file> | ai1 verify | ai1 step-done <slug> "<step>" | ai1 plan-done <slug> | ai1 claude-md [--json] | ai1 log [--session <id>] [--since <hours>] [--all] [--json] | ${LATER_USAGE}`);
+    console.log(`usage: ai1 status [--json] | ai1 init [--disable <feature,...> | --disable none] [--verify "<command>" ...] [--disable-plugins a@x,b@y] [--disable-modules <module,...>] [--deny-credentials] [--report-errors ask|auto|off] [--role maintainer|developer] [--json] | ai1 delegate --cwd <repo> --brief <file> | ai1 verify | ai1 step-done <slug> "<step>" | ai1 plan-done <slug> | ai1 claude-md [--json] | ai1 log [--session <id>] [--since <hours>] [--all] [--json] | ${LATER_USAGE}`);
     console.log(WORKTREE_USAGE);
     console.log(FORK_USAGE);
     console.log(ISSUE_USAGE);

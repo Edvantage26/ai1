@@ -7,8 +7,12 @@
 // A file of another repository (not a submodule) that keeps its own bundle gets one line per repository
 // and session: its bundle, and, when it is not in `related` of .ai1/config.json, the offer to relate it
 // (see okf-related.mjs). Decided by structured config, never by text in the index.
+// On an edit, a concept that declares `satisfies: [R004]` also gets one line per requirement and
+// session asking to run its check (`ai1 okf project verify R004`), unless okf-project is off.
 
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
+import { splitFrontmatter, readFrontmatterField } from '../core/frontmatter.mjs';
+import { listRequirements, findRequirement, isProjectContextEnabled } from './okf-project.mjs';
 import { join } from 'node:path';
 import { allowDecision, contextDecision } from '../core/hook-io.mjs';
 import { projectRelativePath } from '../core/project-paths.mjs';
@@ -41,6 +45,26 @@ export function buildFileContextLine(relativePath, conceptMatch, { isEdit, wasPo
   const conceptReference = `\`${conceptMatch.repoPath}\` (${conceptMatch.title})`;
   if (!isEdit) return `ai1/okf: \`${relativePath}\` is described by ${conceptReference}. Read it before changing this code; if your change affects it, update it.`;
   return `ai1/okf: you changed \`${relativePath}\`, described by ${conceptReference}. ${wasPointedBefore ? 'Update it' : 'Read it and update it'} if the change affects what it says.`;
+}
+
+// The requirements in force, with a check command, that the concepts of an edited file declare they
+// serve (`satisfies: [R004]` in their frontmatter). Only read on edits, and only the matched concepts.
+export function findSatisfiedRequirements(projectRoot, bundleDirectory, conceptMatches) {
+  const satisfiedIds = new Set();
+  for (const conceptMatch of conceptMatches) {
+    const conceptPath = join(projectRoot, conceptMatch.repoPath);
+    if (!existsSync(conceptPath)) continue;
+    const { frontmatterText } = splitFrontmatter(readFileSync(conceptPath, 'utf8'));
+    for (const requirementId of readFrontmatterField(frontmatterText, 'satisfies').split(/[\s,]+/).filter(Boolean)) satisfiedIds.add(requirementId);
+  }
+  if (!satisfiedIds.size) return [];
+  const requirements = listRequirements(bundleDirectory);
+  return [...satisfiedIds].map((requirementId) => findRequirement(requirements, requirementId))
+    .filter((requirement) => requirement && ['active', 'validated'].includes(requirement.state) && requirement.checkCommand);
+}
+
+export function buildSatisfiesLine(relativePath, requirement) {
+  return `ai1/okf: \`${relativePath}\` is part of what ${requirement.id} (${requirement.title.replace(/^R\d+\s+/, '')}) needs: run \`ai1 okf project verify ${requirement.id}\` before finishing.`;
 }
 
 // The line for a file of another repository with its own bundle, or null (same repo, submodule, no
@@ -109,6 +133,14 @@ export default {
         newKeys.push(editKey, readKey);
       }
       contextLines.push(buildFileContextLine(relativePath, conceptMatch, { isEdit, wasPointedBefore }));
+    }
+    if (isEdit && conceptMatches.length && isProjectContextEnabled(config)) {
+      for (const satisfiedRequirement of findSatisfiedRequirements(projectRoot, bundleDirectory, conceptMatches)) {
+        const satisfiesKey = `satisfies:${satisfiedRequirement.id}`;
+        if (seenKeys.has(satisfiesKey) || newKeys.includes(satisfiesKey)) continue;
+        newKeys.push(satisfiesKey);
+        contextLines.push(buildSatisfiesLine(relativePath, satisfiedRequirement));
+      }
     }
     if (!contextLines.length) return allowDecision();
     writeStateText(statePath, [...new Set([...seenKeys, ...newKeys])].join('\n'));

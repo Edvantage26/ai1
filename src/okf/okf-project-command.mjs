@@ -10,11 +10,12 @@ import { resolveBundleDirectory } from './okf-bundle.mjs';
 import {
   buildGapMap, initProjectContext, addRequirement, setRequirementState, listRequirements, findRequirement,
   addQuestion, settleQuestion, listQuestions, findOutOfScopeConflicts, buildGoalLine, PROJECT_CATEGORIES,
-  REQUIREMENT_STATES, setRequirementCheckCommand, verifyRequirements,
+  REQUIREMENT_STATES, setRequirementCheckCommand, verifyRequirements, isProjectContextEnabled, PROJECT_CONTEXT_MODULE_ID,
+  setRequirementMilestone, buildRequirementsReview, stampRequirementsReview, mapSatisfyingConcepts,
 } from './okf-project.mjs';
 
-export const OKF_PROJECT_USAGE = 'ai1 okf project init [--title "..."] | gaps [--json] | req add --title "..." [--statement "..."] [--priority must|should] [--state active|out-of-scope] [--check "..."] [--check-command "..."] [--supersedes <id>] [--quote "..."] [--reason "..."] | req set <id> <state> [--by <id>] [--quote "..."] [--reason "..."] [--plan <slug>] | req command <id> "<command>" | req list [--state <state>] [--json] | req goal <id> | verify [<id>] [--json] | question add --about <category> "<question>" | question assume <id> "<assumption>" | question answer <id> "<answer>" [--to <concept>] | question list [--json] | conflicts <plan-slug-or-path>';
-const OPTIONS_WITH_VALUE = new Set(['--title', '--statement', '--priority', '--state', '--check', '--check-command', '--supersedes', '--by', '--quote', '--reason', '--plan', '--about', '--to']);
+export const OKF_PROJECT_USAGE = 'ai1 okf project init [--title "..."] | gaps [--json] | req add --title "..." [--statement "..."] [--priority must|should] [--state active|out-of-scope] [--check "..."] [--check-command "..."] [--supersedes <id>] [--milestone <name>] [--quote "..."] [--reason "..."] | req milestone <id> <name> | review [--milestone <name>] [--json] [--done] | req set <id> <state> [--by <id>] [--quote "..."] [--reason "..."] [--plan <slug>] | req command <id> "<command>" | req list [--state <state>] [--json] | req goal <id> | verify [<id>] [--json] | question add --about <category> "<question>" | question assume <id> "<assumption>" | question answer <id> "<answer>" [--to <concept>] | question list [--json] | conflicts <plan-slug-or-path>';
+const OPTIONS_WITH_VALUE = new Set(['--title', '--statement', '--priority', '--state', '--check', '--check-command', '--supersedes', '--milestone', '--by', '--quote', '--reason', '--plan', '--about', '--to']);
 
 function parseArguments(commandArguments) {
   const positionalArguments = [];
@@ -36,6 +37,32 @@ function parseArguments(commandArguments) {
 function readVerifyCommands(projectRoot) {
   const loadedConfig = loadHarnessConfig(projectRoot);
   return loadedConfig.status === 'ok' ? loadedConfig.config.verify || [] : [];
+}
+
+// The commands still run by hand when the repo switched requirements off; they say so once.
+function describeModuleOff(projectRoot) {
+  const loadedConfig = loadHarnessConfig(projectRoot);
+  if (loadedConfig.status !== 'ok' || isProjectContextEnabled(loadedConfig.config)) return null;
+  return `note: requirements are off in this repo (\`modules.${PROJECT_CONTEXT_MODULE_ID}: false\` in .ai1/config.json): nothing about them runs on its own; do not offer the interview.`;
+}
+
+const plainRequirementTitle = (requirement) => (requirement.title || requirement.id).replace(/^R\d+\s+/, '');
+
+// The review as the agent reads it: per milestone what holds, what is still to build, what was left
+// out and why (to re-check), what was replaced, and what has no command to prove it.
+export function formatRequirementsReview(requirementsReview) {
+  const lines = [`Requirements review (last: ${requirementsReview.lastReviewed || 'never'})`];
+  if (!requirementsReview.milestones.length) return `${lines[0]}\nno requirements`;
+  const listLine = (requirement) => `    ${requirement.id} ${plainRequirementTitle(requirement)}`;
+  for (const milestoneReview of requirementsReview.milestones) {
+    lines.push(`${milestoneReview.name}: ${milestoneReview.validated.length} validated, ${milestoneReview.active.length} active, ${milestoneReview.outOfScope.length} out of scope, ${milestoneReview.superseded.length} superseded`);
+    if (milestoneReview.active.length) lines.push('  still to build:', ...milestoneReview.active.map(listLine));
+    if (milestoneReview.outOfScope.length) lines.push('  out of scope (does the reason still hold?):', ...milestoneReview.outOfScope.map((requirement) => `${listLine(requirement)}${requirement.reason ? ` - ${requirement.reason}` : ''}`));
+    if (milestoneReview.superseded.length) lines.push('  superseded:', ...milestoneReview.superseded.map((requirement) => `${listLine(requirement)} -> ${requirement.supersededBy}`));
+    if (milestoneReview.withoutCheckCommand.length) lines.push('  in force without a check command:', ...milestoneReview.withoutCheckCommand.map(listLine));
+  }
+  lines.push('After going through it with the person: ai1 okf project review --done');
+  return lines.join('\n');
 }
 
 export function formatGapMap(gapMap) {
@@ -77,15 +104,16 @@ export function runOkfProjectCommand(workingDirectory, commandArguments, writeOu
     }
     if (subcommandName === 'gaps') {
       const gapMap = buildGapMap(bundleDirectory, { verifyCommands: readVerifyCommands(projectRoot) });
-      if (options.json) printJson(gapMap);
-      else writeOutput(formatGapMap(gapMap));
+      const moduleOffNote = describeModuleOff(projectRoot);
+      if (options.json) printJson({ ...gapMap, enabled: !moduleOffNote });
+      else writeOutput([moduleOffNote, formatGapMap(gapMap)].filter(Boolean).join('\n'));
       return 0;
     }
     if (subcommandName === 'req') {
       if (actionName === 'add') {
         const { id, relativePath } = addRequirement(bundleDirectory, {
           title: options.title, statement: options.statement, priority: options.priority || 'must', state: options.state || 'active',
-          check: options.check, checkCommand: options['check-command'], supersedes: options.supersedes, quote: options.quote, reason: options.reason,
+          check: options.check, checkCommand: options['check-command'], supersedes: options.supersedes, milestone: options.milestone, quote: options.quote, reason: options.reason,
         });
         writeOutput(`${id}: created ${relativePath}${options.supersedes ? `; ${findRequirement(listRequirements(bundleDirectory), options.supersedes).id} superseded by ${id}` : ''}`);
         return 0;
@@ -96,15 +124,22 @@ export function runOkfProjectCommand(workingDirectory, commandArguments, writeOu
         writeOutput(`${id}: ${previousState} -> ${secondArgument}`);
         return 0;
       }
+      if (actionName === 'milestone') {
+        const { id, previousMilestone } = setRequirementMilestone(bundleDirectory, firstArgument, positionalArguments.slice(3).join(' '));
+        writeOutput(`${id}: milestone ${previousMilestone || 'none'} -> ${positionalArguments.slice(3).join(' ')}`);
+        return 0;
+      }
       if (actionName === 'command') {
         const { id } = setRequirementCheckCommand(bundleDirectory, firstArgument, positionalArguments.slice(3).join(' '));
         writeOutput(`${id}: check command set`);
         return 0;
       }
       if (actionName === 'list') {
-        const requirements = listRequirements(bundleDirectory).filter((requirement) => !options.state || requirement.state === options.state);
+        const satisfyingConcepts = mapSatisfyingConcepts(bundleDirectory);
+        const requirements = listRequirements(bundleDirectory).filter((requirement) => !options.state || requirement.state === options.state)
+          .map((requirement) => ({ ...requirement, satisfiedBy: satisfyingConcepts[requirement.id] || [] }));
         if (options.json) printJson(requirements);
-        else writeOutput(requirements.map((requirement) => `${requirement.id} [${requirement.state}, ${requirement.priority}] ${(requirement.title || '').replace(/^R\d+\s+/, '')}`).join('\n') || 'no requirements');
+        else writeOutput(requirements.map((requirement) => `${requirement.id} [${requirement.state}, ${requirement.priority}] ${(requirement.title || '').replace(/^R\d+\s+/, '')}${requirement.satisfiedBy.length ? ` <- ${requirement.satisfiedBy.join(', ')}` : ''}`).join('\n') || 'no requirements');
         return 0;
       }
       if (actionName === 'goal') {
@@ -113,6 +148,16 @@ export function runOkfProjectCommand(workingDirectory, commandArguments, writeOu
         writeOutput(buildGoalLine(requirement));
         return 0;
       }
+    }
+    if (subcommandName === 'review') {
+      if (options.done) {
+        writeOutput(`review recorded on ${stampRequirementsReview(bundleDirectory)} (requirements_reviewed)`);
+        return 0;
+      }
+      const requirementsReview = buildRequirementsReview(bundleDirectory, { milestone: options.milestone || '' });
+      if (options.json) printJson(requirementsReview);
+      else writeOutput(formatRequirementsReview(requirementsReview));
+      return 0;
     }
     if (subcommandName === 'verify') {
       const checkResults = verifyRequirements(bundleDirectory, projectRoot, { requirementId: actionName || '' });

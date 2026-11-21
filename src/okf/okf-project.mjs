@@ -14,10 +14,19 @@
 // functions so numbering, states and history follow one set of rules.
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { splitFrontmatter, readFrontmatterField, writeFrontmatterField } from '../core/frontmatter.mjs';
 import { listBundleConcepts } from './okf-bundle.mjs';
+import { isModuleEnabled } from '../core/config.mjs';
+
+// The one switch of everything about requirements in a repo: `"modules": { "okf-project": false }`
+// turns off the session-start lines, the prompt and edit hints, the review task, the setup offer and
+// plan-done's requirement notes; okf itself keeps working, and `ai1 okf project` still runs by hand.
+export const PROJECT_CONTEXT_MODULE_ID = 'okf-project';
+export function isProjectContextEnabled(config) {
+  return Boolean(config) && isModuleEnabled({ id: PROJECT_CONTEXT_MODULE_ID, feature: 'okf' }, config);
+}
 
 export const PRODUCT_FILE = 'product.md';
 export const REQUIREMENTS_DIRECTORY = 'requirements';
@@ -119,6 +128,7 @@ const PRODUCT_TEMPLATE = (projectTitle, now) => [
   `title: ${yamlString(`${projectTitle} - product`)}`,
   `description: ${yamlString(`What ${projectTitle} is for, who uses it, its scope and constraints, how it runs and ships, and who decides.`)}`,
   'tags: [product, project-context]',
+  'project_context: true',
   `generated: { by: '${WRITER_ACTOR}', at: '${nowTimestamp(now)}' }`,
   '---',
   '',
@@ -154,8 +164,10 @@ export function listRequirements(bundleDirectory) {
       check: readField('check'),
       checkCommand: readField('check_command'),
       supersededBy: readField('superseded_by'),
+      milestone: readField('milestone'),
       validatedBy: readField('validated_by').split(/[\s,]+/).filter(Boolean),
       statement: bodyText.split(/^# History/m)[0].trim(),
+      historyLines: (bodyText.split(/^# History[^\n]*$/m)[1] || '').split(/\r?\n/).filter((line) => /^- \d{4}-\d{2}-\d{2} /.test(line)),
     });
   }
   return requirements.sort((firstRequirement, secondRequirement) => firstRequirement.number - secondRequirement.number);
@@ -180,7 +192,7 @@ function appendHistoryLine(conceptText, historyLine) {
 
 // Creates `requirements/R<nnn>-<slug>.md` and refreshes the index. Returns { id, relativePath }.
 // `supersedes`: the new requirement replaces that one, which becomes superseded by it.
-export function addRequirement(bundleDirectory, { title, statement = '', priority = 'must', state = 'active', check = '', checkCommand = '', supersedes = '', quote = '', reason = '', now = new Date() }) {
+export function addRequirement(bundleDirectory, { title, statement = '', priority = 'must', state = 'active', check = '', checkCommand = '', supersedes = '', milestone = '', quote = '', reason = '', now = new Date() }) {
   if (!String(title || '').trim()) throw new Error('a requirement needs --title "<what must hold>"');
   if (!REQUIREMENT_PRIORITIES.includes(priority)) throw new Error(`priority must be one of ${REQUIREMENT_PRIORITIES.join(', ')}`);
   if (!REQUIREMENT_STATES.includes(state)) throw new Error(`state must be one of ${REQUIREMENT_STATES.join(', ')}`);
@@ -203,6 +215,7 @@ export function addRequirement(bundleDirectory, { title, statement = '', priorit
     `id: ${requirementId}`,
     `state: ${state}`,
     `priority: ${priority}`,
+    ...(String(milestone).trim() ? [`milestone: ${yamlString(String(milestone).trim())}`] : []),
     ...(check ? [`check: ${yamlString(check)}`] : []),
     ...(checkCommand ? [`check_command: ${yamlString(checkCommand)}`] : []),
     `generated: { by: '${WRITER_ACTOR}', at: '${nowTimestamp(now)}' }`,
@@ -270,6 +283,107 @@ export function writeRequirementsIndex(bundleDirectory) {
 export function buildGoalLine(requirement) {
   const titleText = (requirement.title || requirement.id).replace(/^R\d+\s+/, '');
   return `/goal ${requirement.id} ${titleText}${requirement.check ? `; done when ${requirement.check}` : ''}`;
+}
+
+// Which concepts declare they serve each requirement (`satisfies: [R004]`): { R004: ['payments.md'] }.
+export function mapSatisfyingConcepts(bundleDirectory) {
+  const satisfyingConcepts = {};
+  for (const bundleConcept of listBundleConcepts(bundleDirectory)) {
+    for (const requirementId of readFrontmatterField(bundleConcept.frontmatterText, 'satisfies').split(/[\s,]+/).filter(Boolean)) {
+      const normalizedId = padRequirementNumber(Number(requirementId.replace(/^R/i, '')));
+      satisfyingConcepts[normalizedId] = [...(satisfyingConcepts[normalizedId] || []), bundleConcept.relativePath.split('\\').join('/')];
+    }
+  }
+  return satisfyingConcepts;
+}
+
+// --- Milestones and review ---------------------------------------------------------------------
+
+// Puts a requirement in a milestone (free text: v1, v2, "launch"...). Returns { id, previousMilestone }.
+export function setRequirementMilestone(bundleDirectory, requirementId, milestone, { now = new Date() } = {}) {
+  const milestoneName = String(milestone || '').trim();
+  if (!milestoneName) throw new Error('req milestone needs the milestone name, e.g. v1');
+  const requirement = findRequirement(listRequirements(bundleDirectory), requirementId);
+  if (!requirement) throw new Error(`no requirement ${requirementId} in ${REQUIREMENTS_DIRECTORY}/`);
+  const filePath = join(bundleDirectory, requirement.relativePath);
+  let conceptText = writeFrontmatterField(readFileSync(filePath, 'utf8'), 'milestone', yamlString(milestoneName));
+  conceptText = writeFrontmatterField(conceptText, 'generated', `{ by: '${WRITER_ACTOR}', at: '${nowTimestamp(now)}' }`);
+  writeFileSync(filePath, appendHistoryLine(conceptText, `- ${todayDate(now)} milestone: ${requirement.milestone || 'none'} -> ${milestoneName}`));
+  writeRequirementsIndex(bundleDirectory);
+  return { id: requirement.id, previousMilestone: requirement.milestone };
+}
+
+// The reason a requirement was put out of scope: the parenthesis of its last history line into that state.
+function readOutOfScopeReason(requirement) {
+  const outLine = [...requirement.historyLines].reverse().find((historyLine) => /(^- \d{4}-\d{2}-\d{2} out-of-scope|-> out-of-scope)/.test(historyLine));
+  const reasonMatch = /out-of-scope \(([^)]*)\)/.exec(outLine || '');
+  return reasonMatch ? reasonMatch[1] : '';
+}
+
+const NO_MILESTONE = '(no milestone)';
+
+// What a review of the requirements looks at, per milestone (in order of first appearance, requirements
+// without one last): { lastReviewed, milestones: [{ name, validated, active, outOfScope: [{ ..., reason }],
+// superseded, withoutCheckCommand }] }. Read-only; the judgement is the interview skill's review mode.
+export function buildRequirementsReview(bundleDirectory, { milestone = '' } = {}) {
+  const requirements = listRequirements(bundleDirectory).filter((requirement) => !milestone || requirement.milestone === milestone);
+  const milestoneNames = [...new Set(requirements.map((requirement) => requirement.milestone || NO_MILESTONE))]
+    .sort((firstName, secondName) => (firstName === NO_MILESTONE) - (secondName === NO_MILESTONE));
+  const product = existsSync(bundleDirectory) ? findProductConcept(bundleDirectory) : null;
+  return {
+    lastReviewed: readFrontmatterField(product?.frontmatterText, 'requirements_reviewed'),
+    milestones: milestoneNames.map((milestoneName) => {
+      const milestoneRequirements = requirements.filter((requirement) => (requirement.milestone || NO_MILESTONE) === milestoneName);
+      const inState = (requirementState) => milestoneRequirements.filter((requirement) => requirement.state === requirementState);
+      return {
+        name: milestoneName,
+        validated: inState('validated'),
+        active: inState('active'),
+        outOfScope: inState('out-of-scope').map((requirement) => ({ ...requirement, reason: readOutOfScopeReason(requirement) })),
+        superseded: inState('superseded'),
+        withoutCheckCommand: milestoneRequirements.filter((requirement) => CHECKED_STATES.has(requirement.state) && !requirement.checkCommand),
+      };
+    }),
+  };
+}
+
+// `review --done`: one date for the whole project on the Product concept (`requirements_reviewed`),
+// the start of the periodic review's count. Returns the Product concept's path.
+export function stampRequirementsReview(bundleDirectory, { now = new Date() } = {}) {
+  const product = existsSync(bundleDirectory) ? findProductConcept(bundleDirectory) : null;
+  if (!product) throw new Error('no Product concept to stamp the review on: run ai1 okf project init first');
+  const productPath = join(bundleDirectory, product.relativePath);
+  writeFileSync(productPath, writeFrontmatterField(readFileSync(productPath, 'utf8'), 'requirements_reviewed', todayDate(now)));
+  return product.relativePath.split('\\').join('/');
+}
+
+const DAY_MILLISECONDS = 24 * 60 * 60 * 1000;
+export const REVIEW_THRESHOLDS = { closedPlans: 5, requirementChanges: 3, days: 90 };
+
+// How much changed since the last review, for the requirements-review maintenance task: null when the
+// project context has not started. `since`: `requirements_reviewed`, else the earliest history date.
+// Changes: history lines after that day, creation lines (without `->`) left out, so a project whose
+// requirements were all just added counts none. Plans: `status: done` in `<workRoot>/.ai1/work/`,
+// modified after that day. { since, closedPlans, requirementChanges, days, due }.
+export function measureChangesSinceReview(bundleDirectory, workRoot, { now = new Date() } = {}) {
+  const gapMap = buildGapMap(bundleDirectory);
+  if (!gapMap.started) return null;
+  const historyDates = gapMap.requirements.flatMap((requirement) => requirement.historyLines.map((historyLine) => ({ date: historyLine.slice(2, 12), isChange: historyLine.includes('->') })));
+  const reviewedDate = buildRequirementsReview(bundleDirectory).lastReviewed;
+  const since = /^\d{4}-\d{2}-\d{2}$/.test(reviewedDate) ? reviewedDate : historyDates.map((historyDate) => historyDate.date).sort()[0];
+  if (!since) return null;
+  const sinceEndMilliseconds = Date.parse(`${since}T00:00:00Z`) + DAY_MILLISECONDS;
+  const requirementChanges = historyDates.filter((historyDate) => historyDate.isChange && historyDate.date > since).length;
+  const workDirectory = join(workRoot, '.ai1', 'work');
+  const closedPlans = existsSync(workDirectory) ? readdirSync(workDirectory).filter((planSlug) => {
+    const planPath = join(workDirectory, planSlug, 'plan.md');
+    if (!existsSync(planPath)) return false;
+    const planText = readFileSync(planPath, 'utf8');
+    return readFrontmatterField(splitFrontmatter(planText).frontmatterText, 'status') === 'done' && statSync(planPath).mtimeMs >= sinceEndMilliseconds;
+  }).length : 0;
+  const days = Math.floor((now.getTime() - Date.parse(`${since}T00:00:00Z`)) / DAY_MILLISECONDS);
+  const due = closedPlans >= REVIEW_THRESHOLDS.closedPlans || requirementChanges >= REVIEW_THRESHOLDS.requirementChanges || days >= REVIEW_THRESHOLDS.days;
+  return { since, closedPlans, requirementChanges, days, due };
 }
 
 // --- Open questions ----------------------------------------------------------------------------
@@ -357,9 +471,16 @@ export function settleQuestion(bundleDirectory, questionId, { status, text, wher
 
 // --- Gap map -----------------------------------------------------------------------------------
 
+// The Product concept was made the project context (`project_context: true`, written by init), not
+// only the user profiles and tone of the design feature.
+function isProjectContextProduct(product) {
+  return readFrontmatterField(product?.frontmatterText, 'project_context') === 'true';
+}
+
 // { started, product, others, categories: [{ id, label, status: clear|partial|missing, why }],
-//   requirements, questions }. `started`: the project has a Product concept or any requirement, so
-// gaps are worth a line at session start.
+//   requirements, questions }. `started`: the project has a requirement or a Product concept marked
+// `project_context: true`, so gaps are worth a line at session start; a Product concept of the
+// design feature alone does not start it.
 export function buildGapMap(bundleDirectory, { verifyCommands = [] } = {}) {
   const product = existsSync(bundleDirectory) ? findProductConcept(bundleDirectory) : null;
   const requirements = listRequirements(bundleDirectory);
@@ -377,7 +498,7 @@ export function buildGapMap(bundleDirectory, { verifyCommands = [] } = {}) {
     return { id: projectCategory.id, label: projectCategory.label, status: 'clear', why: '' };
   });
   return {
-    started: Boolean(product) || requirements.length > 0,
+    started: isProjectContextProduct(product) || requirements.length > 0,
     product: product?.relativePath || null,
     others: product?.others || [],
     categories,
@@ -392,9 +513,14 @@ export function buildGapMap(bundleDirectory, { verifyCommands = [] } = {}) {
 export function initProjectContext(bundleDirectory, { projectTitle, now = new Date() }) {
   if (!existsSync(join(bundleDirectory, 'index.md'))) throw new Error('there is no knowledge bundle yet: create it first (/ai1:okf-maintain-knowledge, produce mode)');
   const writtenPaths = [];
-  if (!findProductConcept(bundleDirectory)) {
+  const existingProduct = findProductConcept(bundleDirectory);
+  if (!existingProduct) {
     writeFileSync(join(bundleDirectory, PRODUCT_FILE), PRODUCT_TEMPLATE(projectTitle, now));
     writtenPaths.push(PRODUCT_FILE);
+  } else if (!isProjectContextProduct(existingProduct)) {
+    const productPath = join(bundleDirectory, existingProduct.relativePath);
+    writeFileSync(productPath, writeFrontmatterField(readFileSync(productPath, 'utf8'), 'project_context', 'true'));
+    writtenPaths.push(existingProduct.relativePath.split('\\').join('/'));
   }
   if (!existsSync(questionsPath(bundleDirectory))) {
     writeQuestions(bundleDirectory, [], now);

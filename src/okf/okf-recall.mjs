@@ -3,10 +3,14 @@
 // depend on the agent remembering an index it saw at session start. Keyword matching, no LLM:
 // title and tags weigh most, then description and path, then the body (where the domain words the
 // person actually uses tend to live). Words that appear in most concepts are ignored in the body.
+// Requirements (src/okf/okf-project.mjs) get their own pass: a message that may change one in force,
+// or that names one out of scope, adds one line each (unless okf-project is off).
 
 import { allowDecision, contextDecision } from '../core/hook-io.mjs';
 import { resolveBundleDirectory, readBundleIndex, listBundleConcepts } from './okf-bundle.mjs';
 import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
+import { readFrontmatterField } from '../core/frontmatter.mjs';
+import { isProjectContextEnabled } from './okf-project.mjs';
 
 const MODULE_ID = 'okf-recall';
 const MAX_SUGGESTED_CONCEPTS = 5;
@@ -55,10 +59,6 @@ export function buildKeywordCatalog(documents) {
   }));
 }
 
-export function buildConceptCatalog(bundleDirectory) {
-  return buildKeywordCatalog(listBundleConcepts(bundleDirectory));
-}
-
 export function rankConceptsForPrompt(promptText, conceptCatalog) {
   const promptKeywords = normalizeKeywords(promptText);
   if (promptKeywords.length < MIN_PROMPT_KEYWORDS) return [];
@@ -90,6 +90,37 @@ export function rankConceptsForPrompt(promptText, conceptCatalog) {
     .slice(0, MAX_SUGGESTED_CONCEPTS);
 }
 
+// Words that say a requirement is being changed, Spanish and English, matched on the message without
+// accents. Short on purpose: a false positive costs one line and a confirmation, never a write.
+const CHANGE_CUE_PATTERN = /\b(ya no|al final|en vez de|en lugar de|cambia\w*|quita\w*|no quiere\w*|ahora quiere\w*|tambien quiere\w*|sustitu\w*|elimina\w*|no longer|instead|drop|remove|now wants?|replace\w*|change\w*)\b/;
+const IN_FORCE_STATES = new Set(['active', 'validated']);
+
+const plainText = (text) => String(text || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+// The requirements (type: Requirement concepts) a message names: at least two of the title's keywords,
+// or all of them when the title has fewer. A requirement in force named with a change cue: confirm
+// before recording it; an out-of-scope one named at all: tell the person before building it.
+export function describeRequirementsInPrompt(promptText, bundleConcepts) {
+  const promptKeywords = new Set(normalizeKeywords(promptText));
+  const hasChangeCue = CHANGE_CUE_PATTERN.test(plainText(promptText));
+  const requirementLines = [];
+  for (const bundleConcept of bundleConcepts) {
+    if (bundleConcept.type !== 'Requirement') continue;
+    const requirementId = readFrontmatterField(bundleConcept.frontmatterText, 'id');
+    const requirementState = readFrontmatterField(bundleConcept.frontmatterText, 'state') || 'active';
+    const titleText = String(bundleConcept.title || '').replace(/^R\d+\s+/, '');
+    const titleKeywords = normalizeKeywords(titleText);
+    const sharedKeywords = titleKeywords.filter((titleKeyword) => promptKeywords.has(titleKeyword));
+    if (!titleKeywords.length || sharedKeywords.length < Math.min(2, titleKeywords.length)) continue;
+    if (requirementState === 'out-of-scope') {
+      requirementLines.push(`ai1/okf: ${requirementId} (${titleText}) is out of scope: tell the person before building it; if they now want it, record that with their words (\`ai1 okf project req set ${requirementId} active\`).`);
+    } else if (IN_FORCE_STATES.has(requirementState) && hasChangeCue) {
+      requirementLines.push(`ai1/okf: this message may change ${requirementId} (${titleText}): confirm with the person in one line, then record it with their words (\`ai1 okf project req set\`, or \`req add --supersedes ${requirementId}\` for a different requirement).`);
+    }
+  }
+  return requirementLines;
+}
+
 export function buildRecallText(bundleRelativePath, rankedConcepts) {
   return [
     `OKF concepts related to this request (read the relevant ones in \`${bundleRelativePath}/\` before answering or changing code; they hold decisions and context the code does not):`,
@@ -108,8 +139,13 @@ export default {
     const bundleRelativePath = KNOWLEDGE_BUNDLE_PATH;
     const bundleDirectory = resolveBundleDirectory(projectRoot);
     if (readBundleIndex(bundleDirectory) === null) return allowDecision();
-    const rankedConcepts = rankConceptsForPrompt(promptText, buildConceptCatalog(bundleDirectory));
-    if (!rankedConcepts.length) return allowDecision();
-    return contextDecision(MODULE_ID, buildRecallText(bundleRelativePath, rankedConcepts));
+    const bundleConcepts = listBundleConcepts(bundleDirectory);
+    const rankedConcepts = rankConceptsForPrompt(promptText, buildKeywordCatalog(bundleConcepts));
+    const requirementLines = isProjectContextEnabled(config) ? describeRequirementsInPrompt(promptText, bundleConcepts) : [];
+    if (!rankedConcepts.length && !requirementLines.length) return allowDecision();
+    return contextDecision(MODULE_ID, [
+      ...(rankedConcepts.length ? [buildRecallText(bundleRelativePath, rankedConcepts)] : []),
+      ...requirementLines,
+    ].join('\n'));
   },
 };

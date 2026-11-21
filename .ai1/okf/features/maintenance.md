@@ -5,7 +5,7 @@ description: Maintenance tasks only for the people who maintain ai1 in a repo (m
 tags: [maintenance, maintainers, hooks, cli]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-19T09:34:32Z'
+  at: '2026-11-21T19:47:41Z'
 sources:
   - id: tasks
     resource: src/maintenance/maintenance-tasks.mjs
@@ -35,6 +35,7 @@ feature off, the task off):
 | `claude-md-drift` | condition | `okf-claude-md` ([okf](okf.md)), its own fingerprint dedupe |
 | `bundle-health` | condition | `okf-index`'s bundle health notes |
 | `later-backlog` | periodic, every 7 days | a built-in [routine](routines.md), told by `routine-notice`: later entries open and untouched for over 60 days |
+| `requirements-review` | periodic, every 7 days | told by `routine-notice` (feature okf, not when `okf-project` is off): since the last requirements review (`requirements_reviewed` on the Product concept, else the earliest requirement history date), 5+ plans closed, 3+ requirement changes (creation lines not counted) or 90 days; offers the review mode of `/ai1:okf-interview-project` ([okf](okf.md)) |
 
 - **Condition** tasks keep their module and dedupe; `shouldShowMaintenanceTask` only decides who sees
   them. With the `maintenance` feature off they reach everyone, as before.
