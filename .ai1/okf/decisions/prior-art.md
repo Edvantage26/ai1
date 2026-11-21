@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-21T17:44:20Z'
+  at: '2026-11-21T18:07:33Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -531,3 +531,22 @@ Taken as ideas: write a goal as a verifiable condition with its check; completio
 other than the worker (ai1's verify gate for deterministic checks). Not reimplemented: ai1 hooks make
 no network calls, so ai1 runs no evaluator model of its own; a feature that needs one hands the
 condition to `/goal`.
+
+# Project kickoff, clarification and living requirements (2026-11-21)
+
+Reviewed while designing how the agent comes to understand a project, asks what it lacks and keeps it
+written. From docs and templates, no code taken.
+
+| Project | What it does | Idea worth taking |
+|---|---|---|
+| [Spec Kit `/speckit.clarify`](https://github.com/github/spec-kit/blob/main/templates/commands/clarify.md) | Scans a spec against 10 categories marked Clear / Partial / Missing; ranks gaps by impact x uncertainty; max 5 questions, one at a time, each with a recommended option; writes `- Q: → A:` under a dated `## Clarifications` session and applies the answer to its section, replacing contradictions; ends with a coverage table | Coverage status per category, impact x uncertainty, a cap per sitting, a recommended answer, dated Q/A applied where it belongs |
+| [GSD `/gsd:new-project`](https://www.mintlify.com/gsd-build/get-shit-done/workflow/new-project) | Open question first, then follow-ups (challenge vagueness, make concrete, surface assumptions, find edges, reveal motivation) with a background checklist instead of a form; gate "ready to write?"; requirements Validated / Active (hypotheses until shipped) / Out of Scope with reason, ids `CATEGORY-NN`, moved between groups at each phase close | Conversation over form; requirement status Active / Validated / Out of scope with reason; brownfield infers Validated from the code |
+| [Kiro steering](https://kiro.dev/docs/steering/) | `product.md`, `tech.md`, `structure.md`, generated from the codebase, always loaded | Infer from the repo first, ask only what is left |
+| [Cline Memory Bank](https://docs.cline.bot/features/memory-bank) | projectbrief -> product/tech context -> activeContext -> progress | Stable brief kept apart from volatile state (ai1's plans already hold the volatile part) |
+| [Agent OS `/plan-product`](https://buildermethods.com/agent-os/v2/plan-product) | mission, roadmap, tech stack; reuses a global tech-stack standard | The person's defaults across projects, so the stack is not asked every time |
+| [BMAD analyst brief](https://docs.bmad-method.org/explanation/analysis-phase/) | Section drafts for review, elicitation methods (5 Whys, Jobs-to-be-Done, pre-mortem), explicit assumptions | Draft first for the person to correct; assumptions written as such |
+| Community "interview me" skills | `AskUserQuestion` rounds (up to 4 options plus Other, multi-select) writing a spec at the end | Multi-select to scope in and out quickly |
+
+Common trap, as in [Community view](#community-view-2026-11-08): long forms and documents nobody
+rereads. Cheap parts worth taking: a deterministic coverage map, few ranked questions, answers dated
+and applied where they belong, status changes at plan close.

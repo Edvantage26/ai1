@@ -52,6 +52,13 @@ read the line before trusting it.
 - **Outside ai1**: Claude Code built-ins (`/code-review`, `/simplify`, `/init`) and plugins listed
   in `src/core/plugin-overlaps.mjs`. Never ship a second copy of something a common plugin does;
   point to it when installed (as the design feature does with frontend-design).
+- **On the internet**: search the web on your own, without asking first, for skills, plugins,
+  commands and tools that do something similar (Claude Code docs and built-ins, skills.sh,
+  claudepluginhub, GitHub, spec and agent kits). Read their docs or templates, not only the search
+  summary. Per project: what it does and the idea worth taking; take ideas, not code. Tell the person
+  in a short table with the links, and write it as a dated section of
+  [prior art](../../../.ai1/okf/decisions/prior-art.md) in the same change that adds the skill, with its
+  provenance (step 5).
 
 ## 3. Give it a route (proactivity)
 
@@ -150,7 +157,7 @@ accepted change goes through this repo's rules (worktree, tests, the OKF concept
 
 ## Fixed rules
 
-- No new skill without its route written down and its neighbours mapped.
+- No new skill without its route written down, its neighbours mapped and similar projects searched on the web.
 - A plugin skill never grants itself unrestricted tools.
 - Offers are one line, once, after the work, and act only on a yes.
 - What only the maintainers need stays a project skill, never in `skills/`.

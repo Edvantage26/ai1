@@ -19,7 +19,7 @@ sources:
     title: generates the Skills table of the README and the Hooks table of docs/reference.md
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-20T23:57:28Z'
+  at: '2026-11-21T18:07:33Z'
 ---
 
 Built 2026-11-18 at the person's request: a skill for developing ai1, not for the people who use
@@ -38,7 +38,9 @@ foreign-repo, issue-offer), with hand-offs between skills, or on demand by desig
 
 - **New**: (1) skill or not - hook, `ai1` subcommand, brief line or project skill first
   ([principles](../decisions/principles.md)); (2) the fit map and the neighbours: colliding
-  triggers, overlap, hand-offs, other plugins; (3) a route, with one way to offer (one line after the
+  triggers, overlap, hand-offs, other plugins, and a web search for similar skills, plugins and tools
+  done on its own, without asking (since 2026-11-21, at the person's request), whose ideas land in
+  [prior art](../decisions/prior-art.md); (3) a route, with one way to offer (one line after the
   work, once, act on a yes); (4) name, description (~80 words, strict YAML), body, Fixed rules; (5)
   the wiring checklist ([skill customization](../architecture/skill-customization.md), features,
   README, concept); (6) a real try with `claude --plugin-dir`.
