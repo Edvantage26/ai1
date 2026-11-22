@@ -5,7 +5,7 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-22T10:12:33Z'
+  at: '2026-11-22T12:53:25Z'
 ---
 
 # Layout
@@ -153,6 +153,10 @@ worktree tests that commit and rebase failed (now a CI step sets one), and a tes
 `import.meta.dirname`, which needs Node 20.11 while the matrix runs Node 18 (use
 `fileURLToPath(new URL(..., import.meta.url))`). The `test-windows` job runs only the cross-platform
 test files ([principles](../decisions/principles.md)).
+Seen again on 2026-11-22 (v0.61.0): `test-windows` had been red since v0.57 because the sealed test
+fixture was checked out with CRLF (no `.gitattributes`); `test/fixtures/person-seal/* -text` fixed it.
+A byte-exact fixture goes in `.gitattributes` when it is added. Check every release's CI: four releases
+went out red unnoticed.
 
 To check a release end to end, run a fresh session on a throwaway clone with its remote removed
 (`git clone` into `/tmp`, `git remote remove origin`): a Paseo agent in the mode to test, with a task
