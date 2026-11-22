@@ -5,7 +5,7 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-22T10:00:39Z'
+  at: '2026-11-22T10:12:33Z'
 ---
 
 # Layout
@@ -77,7 +77,8 @@ and `.ai1/rfc/` of ai1 before v0.18.0 or `.ai1/proposals/` before v0.25.0 (renam
 - Per project (offered to whoever clones): commit `extraKnownMarketplaces` (github source
   `Edvantage26/ai1`) and `enabledPlugins: {"ai1@ai1": true}` in the project's `.claude/settings.json`.
 - One install per machine is enough: a user-scope install serves every repo whose committed settings
-  enable the plugin; a project-scope install next to it is a second copy that can fall behind.
+  enable the plugin. A project-scope entry next to it is not what runs (see below); without a user
+  install, the project-scope copy is the one that runs and it does fall behind.
 - Updates are not automatic for a third-party marketplace: `autoUpdate: true` under
   `extraKnownMarketplaces.ai1` works only in **user** settings (Claude Code ignores it in project or local
   settings and copies it to `known_marketplaces.json` at session start); otherwise `claude plugin update`.
@@ -90,13 +91,14 @@ and `.ai1/rfc/` of ai1 before v0.18.0 or `.ai1/proposals/` before v0.25.0 (renam
   the committed settings: back up `~/.claude/plugins/installed_plugins.json`, drop the `ai1@ai1` entries
   with `scope: project`, check `claude plugin list`; old folders under
   `~/.claude/plugins/cache/ai1/ai1/<version>/` can go once no session runs from them (a running session
-  keeps executing the hooks of the version it started with). The entry comes back at the next session
-  start, but on the current version.
-- It keeps coming back: on 2026-11-22, eight days after that cleanup, the same machine held 22 project
-  entries (0.38.0 to 0.58.0), several of them for worktrees under `.claude/worktrees/` (each worktree
-  session registers its own path, and the entry outlives the worktree). Check with `claude plugin
-  list` (ai1 should show only `Scope: user`); the same cleanup applies to any other plugin whose
-  marketplace was removed or archived (its entry and its `cache/<marketplace>/` folder).
+  keeps executing the hooks of the version it started w- With a user install, those pinned project entries are **inert**: tested 2026-11-22 with a repo whose
+  project entry pointed at 0.46.0, a `claude -p --debug` session ran the hooks from the user install
+  (0.58.0) and the entry stayed at 0.46.0. They only clutter `claude plugin list` and keep old cache
+  folders referenced; cleaning them is optional housekeeping, not a fix. They keep appearing (22 on
+  one machine on 2026-11-22, many for worktrees under `.claude/worktrees/` that no longer exist), so a
+  check that nags about them was considered and dropped: it would warn every developer about
+  something that does not change what runs.
+ketplace was removed or archived (its entry and its `cache/<marketplace>/` folder).
 
 # The stable ai1 launcher
 
