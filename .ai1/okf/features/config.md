@@ -22,7 +22,7 @@ sources:
     title: /ai1:core-setup-config
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-22T15:42:50Z'
+  at: '2026-11-22T15:47:19Z'
 ---
 
 Built 2026-11-22 from the plan `ai1-config`, asked by the person ("que la configuración global se
@@ -107,3 +107,20 @@ its stack line), `machine <name>`, `off`, `on`.
 skipped on Windows: symlinks need rights there), `test/config-hooks.test.mjs`; on the Windows CI job.
 `scripts/run-tests.mjs` points `HOME`/`USERPROFILE` at a folder of the run (git keeps the real global
 config through `GIT_CONFIG_GLOBAL`), so the hooks under test never touch the person's real config.
+
+# The first real adopt (2026-11-22)
+
+A config repo of about 100 files wired by an install script, on Linux. What it showed:
+- **Check after adopting:** `ai1 config status` with every file `in-sync`; then `ai1 config sync` once
+  (pull, commit, push) to see the whole loop against the remote.
+- **An install script does more than link.** This one also created a local settings file from a template,
+  set the repo's hooks path, checked a secret was present outside the repo and added a shell alias. Those
+  steps went to a `bootstrap.sh` kept in the repo (unmapped, run once on a new machine); `adopt` lists the
+  script as left in the repo but cannot know it is still needed: read it before deleting it.
+- **Other services may point inside the old repo.** A local container bind-mounted a skill folder by its
+  path in the old layout; the running container kept working (the mount follows the moved folder) but would
+  fail on restart. Look for the old path in services and container mounts before adopting, and point them
+  at the copy in `~/.claude/...`, which no longer moves.
+- **Sessions already open** keep the hooks they started with: their changes to the config are taken in by
+  the next `ai1 config sync` or a later session's end.
+

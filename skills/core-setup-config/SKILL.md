@@ -22,7 +22,9 @@ Look before asking: `ai1 config status` (is there a repo already?), whether `~/.
 wired by an install script), and `gh auth status` (can a private repo be created?). Then offer, with your
 recommendation:
 
-- **Adopt** an existing config repo wired with symlinks: `ai1 config adopt <folder> [--auto-push]`. It is
+- **Adopt** an existing config repo wired with symlinks: first read its install script (it may do more than
+  link: keep those steps as a bootstrap script) and look for services or containers that use paths inside
+  the folder (point them at the copies in `~/.claude/...`). Then `ai1 config adopt <folder> [--auto-push]`. It is
   reordered to the layout in its own commit, moved to `~/.config/ai1/config-repo/` (the old path becomes a
   link to it), and the symlinks become copies. Files it does not map stay in the repo, listed.
 - **Clone** on a new machine: `ai1 config clone <owner/repo or git url>`. Anything different already in
