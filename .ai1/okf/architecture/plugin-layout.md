@@ -5,7 +5,7 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-20T23:57:28Z'
+  at: '2026-11-22T10:00:39Z'
 ---
 
 # Layout
@@ -92,6 +92,11 @@ and `.ai1/rfc/` of ai1 before v0.18.0 or `.ai1/proposals/` before v0.25.0 (renam
   `~/.claude/plugins/cache/ai1/ai1/<version>/` can go once no session runs from them (a running session
   keeps executing the hooks of the version it started with). The entry comes back at the next session
   start, but on the current version.
+- It keeps coming back: on 2026-11-22, eight days after that cleanup, the same machine held 22 project
+  entries (0.38.0 to 0.58.0), several of them for worktrees under `.claude/worktrees/` (each worktree
+  session registers its own path, and the entry outlives the worktree). Check with `claude plugin
+  list` (ai1 should show only `Scope: user`); the same cleanup applies to any other plugin whose
+  marketplace was removed or archived (its entry and its `cache/<marketplace>/` folder).
 
 # The stable ai1 launcher
 
