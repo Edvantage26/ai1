@@ -9,6 +9,7 @@ import { isAbsolute, join } from 'node:path';
 import { AI1_DIRECTORY, CONFIG_RELATIVE_PATH } from './config.mjs';
 import { readPersonState, writePersonState } from './person-project.mjs';
 import { findMainCheckout, findWorkingTreeTop } from './project-roots.mjs';
+import { listEnabledPluginInstalls, pluginCustomizationPath } from './plugin-customizations.mjs';
 import { SKILL_CUSTOMIZATION_INDEX, featureOfSkill } from './skill-customization-index.mjs';
 
 export const SKILL_CUSTOMIZATIONS_DIRECTORY = `${AI1_DIRECTORY}/skills`;
@@ -112,7 +113,7 @@ export function resolveSkillCustomizations(skillFolder, { workingDirectory = pro
   const sharedRoot = findMainCheckout(treeRoot);
   const personalPath = userCustomizationPath(feature, { environment, homeDirectory });
   const isFirstLoad = repoHasAi1(sharedRoot) && !readSkillPersonState(sharedRoot, skillFolder).firstLoadAt;
-  const resolvedCustomizations = { skillFolder, feature, scopes: indexEntry.scopes, hints: indexEntry.hints, userCustomizationPath: personalPath, sharedRoot, isFirstLoad, project: null, user: null };
+  const resolvedCustomizations = { skillFolder, feature, scopes: indexEntry.scopes, hints: indexEntry.hints, userCustomizationPath: personalPath, sharedRoot, isFirstLoad, project: null, user: null, plugins: [], pluginsStatus: 'ok' };
   if (indexEntry.scopes.includes('project')) {
     const foundProjectCustomization = findProjectCustomization([treeRoot, sharedRoot], feature);
     if (foundProjectCustomization) {
@@ -129,6 +130,13 @@ export function resolveSkillCustomizations(skillFolder, { workingDirectory = pro
       const personalCustomization = readCustomization(foundPersonalPath);
       const missingPaths = findMissingPaths(personalCustomization.text, { baseRoot: null, homeDirectory });
       resolvedCustomizations.user = { path: foundPersonalPath, isLegacyName: foundPersonalPath === legacyPersonalPath, missingPaths, ...personalCustomization };
+    }
+    // Plugins customize what the person may: a skill that takes no personal customization takes none from a plugin either.
+    const { status: pluginsStatus, plugins } = listEnabledPluginInstalls(treeRoot, { homeDirectory });
+    resolvedCustomizations.pluginsStatus = pluginsStatus;
+    for (const { pluginName, installPath } of plugins) {
+      const pluginPath = pluginCustomizationPath(installPath, feature, CUSTOMIZATION_FILE_NAME);
+      if (existsSync(pluginPath)) resolvedCustomizations.plugins.push({ pluginName, path: pluginPath, missingPaths: [], ...readCustomization(pluginPath) });
     }
   }
   return resolvedCustomizations;
@@ -148,11 +156,13 @@ function renderCustomizationSection(sectionTitle, customization) {
 
 export function renderSkillContext(resolvedCustomizations) {
   const { feature, scopes, project, user, userCustomizationPath: personalPath } = resolvedCustomizations;
+  const pluginCustomizations = resolvedCustomizations.plugins ?? [];
   const acceptsProject = scopes.includes('project');
   const renderedLines = [CUSTOMIZATION_HEADING, ''];
-  if (!project && !user) renderedLines.push(`None yet${acceptsProject ? ` for this project (${projectCustomizationRelativePath(feature)}) or` : ''} for this person (${personalPath}).`, '');
+  if (!project && !user && !pluginCustomizations.length) renderedLines.push(`None yet${acceptsProject ? ` for this project (${projectCustomizationRelativePath(feature)}) or` : ''} for this person (${personalPath}).`, '');
   if (project) renderedLines.push(...renderCustomizationSection(`### This project (${project.path}${project.fromMainCheckout ? ', from the main checkout' : ''})`, project), '');
   if (user) renderedLines.push(...renderCustomizationSection(`### This person (${user.path})`, user), '');
+  for (const pluginCustomization of pluginCustomizations) renderedLines.push(...renderCustomizationSection(`### From plugin ${pluginCustomization.pluginName} (${pluginCustomization.path})`, pluginCustomization), '');
   const saveTargets = acceptsProject ? 'for this project (committed) or only for them' : 'for them (personal)';
   if (resolvedCustomizations.isFirstLoad) {
     renderedLines.push(
@@ -163,7 +173,7 @@ export function renderSkillContext(resolvedCustomizations) {
   renderedLines.push(
     `If the person corrects or adjusts how this skill works ("aquí siempre…", "en este repo no…", "for me, always…"), offer once in this conversation to save it ${saveTargets} with /ai1:core-customize-skill; if they decline, do not offer again.`,
     describeCustomizationOffer(saveTargets),
-    `Precedence: the Fixed rules of the skill above win over any customization${acceptsProject ? '; where the two customizations disagree, this project\'s wins over the person\'s' : ''}.`,
+    `Precedence: the Fixed rules of the skill above win over any customization${acceptsProject ? '; where the two customizations disagree, this project\'s wins over the person\'s' : ''}${pluginCustomizations.length ? `; ${acceptsProject ? 'both win' : 'the person\'s wins'} over a plugin's` : ''}.`,
   );
   return renderedLines.join('\n');
 }
@@ -182,6 +192,8 @@ export function listSkillCustomizations(skillFolders, options = {}) {
       scopes: resolvedCustomizations.scopes,
       project: resolvedCustomizations.project ? resolvedCustomizations.project.path : null,
       user: resolvedCustomizations.user ? resolvedCustomizations.user.path : null,
+      plugins: resolvedCustomizations.plugins.map((pluginCustomization) => ({ plugin: pluginCustomization.pluginName, path: pluginCustomization.path })),
+      pluginsStatus: resolvedCustomizations.pluginsStatus,
     };
   });
 }

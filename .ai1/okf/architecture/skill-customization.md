@@ -25,7 +25,7 @@ sources:
     title: Later 0001
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-20T23:13:32Z'
+  at: '2026-11-22T11:27:04Z'
 ---
 
 Built 2026-11-09 from later 0001 (phases 0-2); decision in
@@ -41,6 +41,7 @@ customization itself.
 | Project | `.ai1/skills/<feature>/customization.md`, committed | rules of this repo, for everyone |
 | Person (prose) | `~/.config/ai1/skills/<feature>/customization.md` (`$XDG_CONFIG_HOME/ai1/...`) | habits, in every repo |
 | Person (values) | plugin `userConfig` in `/config` (today: `fork_opener`) | tools of the person |
+| Plugin | `<plugin install folder>/ai1/skills/<feature>/customization.md` of another enabled plugin | a person's or team's private pack, on any machine where the plugin is installed |
 
 `<feature>` is the skill folder prefix (`session-fork-conversation` -> `session`); the okf skills share
 `okf`. Not `${CLAUDE_PLUGIN_DATA}`: it is deleted on uninstall. There is no per-feature
@@ -53,7 +54,23 @@ last line, `` !`"${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context <skill>` ``. When 
 Claude Code runs it in the session's directory and puts its output in place of the line, so the model
 gets one block: procedure, fixed rules, then `## ai1 customization` with the project customization (the
 worktree's own first, else the main checkout's), the person's, and a footer: offer once to save a
-correction with /ai1:core-customize-skill, and the precedence (fixed rules > project > person).
+correction with /ai1:core-customize-skill, and the precedence (fixed rules > project > person > plugin).
+
+# Customizations shipped by a plugin (since 2026-11-22)
+
+Asked by the person so their production stack travels in a private plugin instead of a config repo
+([project operations](../decisions/project-operations.md)). `src/core/plugin-customizations.mjs`:
+
+- Enabled plugins come from `readEnabledPlugins` (`plugin-overlaps.mjs`: user < project < local,
+  `true` only), ai1 itself left out, in id order. Installed but not enabled brings nothing.
+- The install folder comes from `~/.claude/plugins/installed_plugins.json` (`plugins["<id>"][]`, internal
+  to Claude Code): the `project` entry whose `projectPath` is the main checkout, else the `user` one;
+  among several, the latest `lastUpdated`.
+- A plugin customizes only skills that take a personal customization (no scope of its own in the index),
+  shown as `### From plugin <name>` after the person's, each capped at 8 KB.
+- That file missing or of another shape: no plugin customizations, exit 0, and `ai1 skill-context
+  --list` says it could not read it.
+- Tests: `test/plugin-customizations.test.mjs` (also on the Windows CI job).
 Nothing is loaded before the skill runs.
 
 - `allowed-tools: Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context *)` in the frontmatter: without

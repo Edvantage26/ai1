@@ -18,6 +18,7 @@ function describeSkillCustomization(skillCustomization) {
   const foundCustomizations = [
     skillCustomization.project && `project ${skillCustomization.project}`,
     skillCustomization.user && `yours ${skillCustomization.user}`,
+    ...(skillCustomization.plugins || []).map((pluginCustomization) => `plugin ${pluginCustomization.plugin} ${pluginCustomization.path}`),
   ].filter(Boolean);
   return `${skillCustomization.skill}: customizable [${skillCustomization.scopes.join(', ')}] as "${skillCustomization.feature}"; ${foundCustomizations.length ? foundCustomizations.join('; ') : 'no customization yet'}`;
 }
@@ -58,7 +59,9 @@ export function runSkillContextCommand(commandArguments, { workingDirectory = pr
     if (commandArguments.includes('--list')) {
       const skillFolders = readdirSync(skillsDirectory, { withFileTypes: true }).filter((directoryEntry) => directoryEntry.isDirectory()).map((directoryEntry) => directoryEntry.name).sort();
       const skillCustomizations = listSkillCustomizations(skillFolders, customizationOptions);
-      writeOutput(commandArguments.includes('--json') ? JSON.stringify(skillCustomizations, null, 2) : skillCustomizations.map(describeSkillCustomization).join('\n'));
+      const pluginsUnreadable = skillCustomizations.some((skillCustomization) => skillCustomization.pluginsStatus === 'unreadable');
+      const unreadableNote = pluginsUnreadable ? ['note: could not read ~/.claude/plugins/installed_plugins.json, so customizations shipped by other plugins are not applied'] : [];
+      writeOutput(commandArguments.includes('--json') ? JSON.stringify(skillCustomizations, null, 2) : [...skillCustomizations.map(describeSkillCustomization), ...unreadableNote].join('\n'));
       return 0;
     }
     if (commandArguments[0] === 'quiet') return runQuietCommand(commandArguments.slice(1), customizationOptions, writeOutput);

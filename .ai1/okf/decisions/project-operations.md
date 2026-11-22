@@ -6,7 +6,7 @@ tags: [decision, okf, project-context, operations, public-repo]
 status: stable
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-22T10:45:14Z'
+  at: '2026-11-22T11:27:04Z'
 ---
 
 # Decision
@@ -26,7 +26,11 @@ pasandolo a plugin"). Two layers, approved that day ("capa generica ok"):
   ("Si adelante" to the recommendation): skills made of markdown and scripts cost the same context as
   global skills or as a plugin, so the plugin waits until the skills are shared with someone or used on
   another machine. What shrinks the always-loaded instructions is moving their text into skill bodies,
-  keeping only one-line rules that must hold everywhere. Same line as
+  keeping only one-line rules that must hold everywhere. Later that day the person chose the private
+  plugin after all, to stop depending on a config repo ("no quiero depender de ese repositorio de
+  configuración"): it carries the skills, a production checklist, a hook with the rules, and its own
+  customization of ai1's skills, which ai1 now reads from any enabled plugin
+  ([skill customization](../architecture/skill-customization.md#customizations-shipped-by-a-plugin-since-2026-11-22)). Same line as
   [host tooling stays out of the plugin](host-tooling-out-of-plugin.md).
 
 # Why

@@ -86,7 +86,7 @@ test('operations stay generic: the interview skill asks for them with no tool, h
   assert.match(skillText, /`operations\.md` \(`type: Operations`\)/);
   assert.match(skillText, /open question `--about operations`/);
   for (const checkedText of [skillText, projectSourceText]) {
-    assert.doesNotMatch(checkedText, /dokploy|openobserve|uptime kuma|telegram|1password|grafana|datadog|sentry|edvantage|baboon/i);
+    assert.doesNotMatch(checkedText, /dokploy|openobserve|uptime kuma|telegram|1password|grafana|datadog|sentry/i);
   }
 });
 

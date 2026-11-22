@@ -37,4 +37,4 @@ jobs:
         with:
           node-version: 22
       - name: Cross-platform tests
-        run: node scripts/run-tests.mjs test/person-project.test.mjs test/maintenance.test.mjs test/watches.test.mjs test/messages.test.mjs test/person-seal.test.mjs test/ssh-keys.test.mjs test/published-keys.test.mjs test/issue-privacy.test.mjs test/issue-guard.test.mjs
+        run: node scripts/run-tests.mjs test/person-project.test.mjs test/maintenance.test.mjs test/watches.test.mjs test/messages.test.mjs test/person-seal.test.mjs test/ssh-keys.test.mjs test/published-keys.test.mjs test/issue-privacy.test.mjs test/issue-guard.test.mjs test/plugin-customizations.test.mjs

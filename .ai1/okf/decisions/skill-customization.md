@@ -9,10 +9,12 @@ sources:
     title: Customizable ai1 skills - project and user overlays
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-19T10:22:45Z'
+  at: '2026-11-22T11:27:04Z'
 ---
 
-Decided by the person on 2026-11-09; built the same day. How it works:
+Decided by the person on 2026-11-09; built the same day. A third source, customizations shipped by
+another enabled plugin (below the person's), was added on 2026-11-22 for private packs
+([project operations](project-operations.md)). How it works:
 [skill customization](../architecture/skill-customization.md).
 
 # Decision

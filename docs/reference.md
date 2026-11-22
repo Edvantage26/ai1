@@ -111,14 +111,16 @@ once whether to stop for a plan (`modules.sizing-escalate.max_files` / `max_line
 ## Customize a skill
 
 ai1's skills come from the plugin, so you do not edit them; you add to them. When a skill loads it
-prints its customization at the end, from two places:
+prints its customization at the end, from these places:
 
 - **this project**: `.ai1/skills/<feature>/customization.md`, committed, for everyone on the repo
   (`<feature>` is the skill's prefix: `.ai1/skills/later/customization.md` for `/ai1:later-write`);
 - **you**: `~/.config/ai1/skills/<feature>/customization.md` in every repo, and plugin options in `/config`
   (today **Fork opener**: where `/ai1:session-fork-conversation` opens new conversations - `auto`,
   `vscode`, `desktop`, `terminal`). Any other tool (an agent manager...) opens forks through your own
-  command, which the fork skill helps you set up once and saves as your customization.
+  command, which the fork skill helps you set up once and saves as your customization;
+- **another plugin you enabled**: `ai1/skills/<feature>/customization.md` inside it, below yours, so a
+  private plugin with your stack brings its rules to ai1's skills on any machine where it is installed.
 
 A customization is a few markdown bullets. It adds to the skill but never overrides its **Fixed rules**;
 where the two disagree, the project's wins over yours. When you correct how a skill works, the agent
