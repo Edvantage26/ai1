@@ -13,6 +13,7 @@ import { contextList, shortenListTitle } from '../core/context-list.mjs';
 import { KNOWLEDGE_BUNDLE_PATH } from '../core/config.mjs';
 import { resolveBundleDirectory } from './okf-bundle.mjs';
 import { buildGapMap, REQUIREMENTS_DIRECTORY } from './okf-project.mjs';
+import { buildStackCatalog } from './okf-stack.mjs';
 
 const MODULE_ID = 'okf-project';
 const MAX_OUT_OF_SCOPE = 2;
@@ -55,11 +56,12 @@ export default {
   event: 'SessionStart',
   feature: 'okf',
   description: 'Once the project context is started, has the agent ask before guessing what the bundle does not answer, and lists the project gaps, what is out of scope, open questions and active requirements.',
-  run({ hookInput, config, projectRoot }) {
+  run({ hookInput, config, projectRoot, environment, homeDirectory }) {
     if (hookInput.source === 'resume') return allowDecision();
     const bundleDirectory = resolveBundleDirectory(projectRoot);
     if (!existsSync(join(bundleDirectory, 'index.md'))) return allowDecision();
-    const gapMap = buildGapMap(bundleDirectory, { verifyCommands: config?.verify || [] });
+    const stackCatalogPieceCount = buildStackCatalog(projectRoot, { environment: environment || process.env, ...(homeDirectory ? { homeDirectory } : {}) }).pieces.length;
+    const gapMap = buildGapMap(bundleDirectory, { verifyCommands: config?.verify || [], stackCatalogPieceCount });
     if (!gapMap.started) return allowDecision();
     return contextDecision(MODULE_ID, [DOUBT_RULE, ...describeProjectContext(gapMap)]);
   },

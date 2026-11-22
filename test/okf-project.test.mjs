@@ -37,7 +37,8 @@ test('gap map: a bundle without project context is not started and every categor
   const { bundleDirectory } = createBundle();
   const gapMap = buildGapMap(bundleDirectory);
   assert.equal(gapMap.started, false);
-  assert.ok(gapMap.categories.every((projectCategory) => projectCategory.status === 'missing'));
+  assert.ok(gapMap.categories.filter((projectCategory) => projectCategory.id !== 'stack-pieces').every((projectCategory) => projectCategory.status === 'missing'));
+  assert.equal(gapMap.categories.find((projectCategory) => projectCategory.id === 'stack-pieces').status, 'clear', 'no stack to choose from: nothing missing');
 });
 
 test('gap map: clear, partial and missing from the Product sections, out-of-scope requirements, verify commands and open questions [project-requirements:S2]', () => {
@@ -287,7 +288,7 @@ test('the requirement rules: what and why vs how, changed only from the person\'
 
 test('/ai1:okf-interview-project infers and shows a draft first, asks one question at a time with a recommended answer, at most 5, and writes through ai1 okf project [project-requirements:S1]', () => {
   const skillText = readFileSync(fileURLToPath(new URL('../skills/okf-interview-project/SKILL.md', import.meta.url)), 'utf8');
-  assert.match(skillText, /^allowed-tools: Bash\("\$\{CLAUDE_PLUGIN_DATA\}\/bin\/ai1" skill-context \*\) Bash\("\$\{CLAUDE_PLUGIN_DATA\}\/bin\/ai1" okf project \*\)$/m);
+  assert.match(skillText, /^allowed-tools: Bash\("\$\{CLAUDE_PLUGIN_DATA\}\/bin\/ai1" skill-context \*\) Bash\("\$\{CLAUDE_PLUGIN_DATA\}\/bin\/ai1" okf project \*\) Bash\("\$\{CLAUDE_PLUGIN_DATA\}\/bin\/ai1" okf stack \*\)$/m);
   assert.match(skillText, /"inicializa el proyecto"/);
   assert.match(skillText, /## 2\. Infer before asking[\s\S]*as a \*\*draft\*\*, then show the person/);
   assert.match(skillText, /Kickoff starts open: "¿Qué es este proyecto y para quién\?"/);

@@ -7,7 +7,7 @@ description: >-
   proyecto", "define los requisitos", "qué te falta saber del proyecto", "interview me about this
   project", "define the requirements", or accepts the offer of /ai1:core-setup-repo or the
   session-start line naming project gaps.
-allowed-tools: Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context *) Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" okf project *)
+allowed-tools: Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context *) Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" okf project *) Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" okf stack *)
 ---
 
 # Interview the person about the project
@@ -27,6 +27,7 @@ Where it lives (all in the bundle, `.ai1/okf/`):
 | How it runs in production: deploy, environments, logs, database, access, monitoring, alerts | `operations.md` (`type: Operations`), one `## <heading>` each | you, editing the concept |
 | Requirements, including what is out of scope | `requirements/R<nnn>-<slug>.md` (`type: Requirement`) | `ai1 okf project req add\|set` only |
 | Questions the person cannot answer now, and assumptions | `requirements/questions.md` | `ai1 okf project question add\|assume\|answer` only |
+| The pieces the project uses (hosting, data, logs, monitoring, auth...): integrated, pending or none | `stack.md` (`type: Stack`) | `ai1 okf stack adopt\|add\|set` only |
 | The developer's technical vision: architecture, libraries and services to reuse, how it integrates, what to avoid | `decisions/<slug>.md` (`type: Decision`, tag `technical-vision`, proposed / accepted / replaced) | `ai1 okf project decision add\|set` only |
 
 `ai1` below is `"${CLAUDE_PLUGIN_DATA}/bin/ai1"`.
@@ -103,6 +104,16 @@ the repo or those documents answer.
   options, and offer two or three with your recommendation and why ("para pagos: Stripe Checkout o
   Redsys; recomiendo Stripe porque..."). Ask about the developer's own picture only where it differs
   from their defaults.
+- Stack pieces: run `ai1 okf stack catalog` (the person's stack and the plugins' they enabled).
+  - With pieces: in the technical-vision block, offer the ones this project's `stack.md` does not have
+    yet (`ai1 okf stack list`), as a multi-select (`AskUserQuestion`), one question per `area`, at most 4
+    each, pre-selecting those whose `applies` fits what you know of the project and saying why. A piece
+    that clearly does not apply is not shown: record it as `none` with the reason. Chosen pieces:
+    `ai1 okf stack adopt <id>...` (pending); the rest: `ai1 okf stack add --scope project --id <id>
+    --title "..." --state none --note "<why>"`. A choice between alternatives also gets its decision
+    (`decision add`), named in the piece's note.
+  - Without pieces: ask the technical vision as above; create no `stack.md`. When the person keeps
+    naming the same pieces, offer /ai1:okf-define-stack once.
 - Stop when the person says enough ("vale", "ya está", "stop"), when the cap is reached, or when a
   wrong guess would no longer matter.
 

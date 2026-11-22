@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-11-22
+* **Creation**: [stack decision](decisions/stack.md); `ai1 okf stack`, `/ai1:okf-define-stack` and the `stack-pieces` gap category in [okf feature](features/okf.md).
 * **Creation**: [project operations decision](decisions/project-operations.md); the `Operations` concept and gap category in [okf feature](features/okf.md).
 
 ## 2026-11-18

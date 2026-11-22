@@ -7,6 +7,7 @@ import { basename, isAbsolute, join } from 'node:path';
 import { findRepoRoot } from '../cli/setup-repo.mjs';
 import { loadHarnessConfig, WORK_DIRECTORY } from '../core/config.mjs';
 import { resolveBundleDirectory } from './okf-bundle.mjs';
+import { buildStackCatalog } from './okf-stack.mjs';
 import {
   buildGapMap, initProjectContext, addRequirement, setRequirementState, listRequirements, findRequirement,
   addQuestion, settleQuestion, listQuestions, findOutOfScopeConflicts, buildGoalLine, PROJECT_CATEGORIES,
@@ -118,7 +119,7 @@ export function runOkfProjectCommand(workingDirectory, commandArguments, writeOu
       return 0;
     }
     if (subcommandName === 'gaps') {
-      const gapMap = buildGapMap(bundleDirectory, { verifyCommands: readVerifyCommands(projectRoot) });
+      const gapMap = buildGapMap(bundleDirectory, { verifyCommands: readVerifyCommands(projectRoot), stackCatalogPieceCount: buildStackCatalog(projectRoot).pieces.length });
       const moduleOffNote = describeModuleOff(projectRoot);
       if (options.json) printJson({ ...gapMap, enabled: !moduleOffNote });
       else writeOutput([moduleOffNote, formatGapMap(gapMap, checkSatisfiesLinks(bundleDirectory, gapMap.requirements))].filter(Boolean).join('\n'));

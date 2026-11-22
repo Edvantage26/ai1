@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index and bundle health notes 
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-22T10:30:04Z'
+  at: '2026-11-22T12:41:07Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -341,7 +341,7 @@ of its own: it reads and writes only the bundle and reaches the agent through th
   with `about: <category>`); `requirements/index.md` generated. Out of scope has one store: requirements
   in state `out-of-scope`.
 - **Gap map** (`ai1 okf project gaps`, no model): categories purpose, users, scope, constraints, stack,
-  technical-vision, run-test, deploy, operations, integrations-data, decision-makers. Clear when its Product section has text (scope
+  technical-vision, run-test, deploy, operations, stack-pieces, integrations-data, decision-makers. Clear when its Product section has text (scope
   also by any out-of-scope requirement, run-test also by `verify` commands), partial on `TBD`/`TODO` or a
   pending question about it, missing otherwise.
 - **Operations (2026-11-22)**: `operations.md` (`type: Operations`, an existing one elsewhere is
@@ -354,6 +354,22 @@ of its own: it reads and writes only the bundle and reaches the agent through th
   can reach it read-only and leaves what the project lacks (monitoring, alerts, backups) as open
   questions with a recommendation; how to query the person's own tools comes from their customization
   or their own plugin, never from ai1 ([decision](../decisions/project-operations.md)).
+- **Stack (2026-11-22)**: the pieces a person always uses, each with `area`, `applies`, `setup`,
+  `check` (`## <id>: <title>` and one `- field: value` line each, the bullets right under the heading).
+  Three sources: the person (`~/.config/ai1/stack.md`, `$XDG_CONFIG_HOME` respected), every enabled
+  plugin (`ai1/stack.md` inside it, found as in [plugin customizations](../architecture/skill-customization.md#customizations-shipped-by-a-plugin-since-2026-11-22)),
+  and the project (`stack.md`, `type: Stack`, linked from `index.md`, each piece with `state:
+  integrated | pending | none` and a `note`). The catalog is person + plugins, one per id (the person's
+  wins, then plugins by id; `catalog` names the hidden one). Written only by `ai1 okf stack catalog|list|
+  add --scope user|project|adopt|set` (`src/okf/okf-stack.mjs`): only the touched piece's lines change;
+  `none` needs `--note`; `set` of a piece not in the project fails; `adopt` skips one already there.
+  Gap category `stack-pieces` (apart from `stack`, the language and structure): missing with a catalog
+  and no project stack, partial naming pending pieces, clear otherwise; it does not start the project
+  context by itself. /ai1:okf-define-stack writes the person's or a project's pieces;
+  the interview offers the catalog pieces a project lacks as a multi-select by area (at most 4 per
+  question, pre-selected by `applies`), adopts the chosen and records the rest as `none`; without a
+  catalog it asks as before. `integrated` only after the piece's `check` passed. Tests:
+  `test/okf-stack.test.mjs`. Decision: [stack](../decisions/stack.md).
 - **`ai1 okf project`**: `init` (Product skeleton, index, questions file, links in the root index),
   `gaps`, `req add|set|command|list|goal` (goal prints a `/goal` line from the requirement's `check`;
   `req add --supersedes <id>` replaces a requirement, which stays as `superseded` by the new one),

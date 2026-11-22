@@ -22,6 +22,7 @@ import { join } from 'node:path';
 import { splitFrontmatter, readFrontmatterField, writeFrontmatterField } from '../core/frontmatter.mjs';
 import { listBundleConcepts } from './okf-bundle.mjs';
 import { isModuleEnabled } from '../core/config.mjs';
+import { describeStackPiecesGap, listProjectStackPieces } from './okf-stack.mjs';
 
 // The one switch of everything about requirements in a repo: `"modules": { "okf-project": false }`
 // turns off the session-start lines, the prompt and edit hints, the review task, the setup offer and
@@ -58,6 +59,7 @@ export const PROJECT_CATEGORIES = [
   { id: 'run-test', heading: 'Run and test', label: 'run and test' },
   { id: 'deploy', heading: 'Deploy', label: 'deploy' },
   { id: 'operations', heading: 'Operations', label: 'operations', conceptType: 'Operations' },
+  { id: 'stack-pieces', heading: 'Stack pieces', label: 'stack pieces', conceptType: 'Stack' },
   { id: 'integrations-data', heading: 'Integrations and data', label: 'integrations and data' },
   { id: 'decision-makers', heading: 'Decision makers', label: 'decision makers' },
 ];
@@ -563,7 +565,7 @@ function isProjectContextProduct(product) {
 //   requirements, questions }. `started`: the project has a requirement or a Product concept marked
 // `project_context: true`, so gaps are worth a line at session start; a Product concept of the
 // design feature alone does not start it.
-export function buildGapMap(bundleDirectory, { verifyCommands = [] } = {}) {
+export function buildGapMap(bundleDirectory, { verifyCommands = [], stackCatalogPieceCount = 0 } = {}) {
   const product = existsSync(bundleDirectory) ? findProductConcept(bundleDirectory) : null;
   const requirements = listRequirements(bundleDirectory);
   const technicalDecisions = listTechnicalDecisions(bundleDirectory);
@@ -576,6 +578,7 @@ export function buildGapMap(bundleDirectory, { verifyCommands = [] } = {}) {
     const pendingAbout = pendingQuestions.filter((question) => question.about === projectCategory.id);
     if (projectCategory.id === 'deploy' && operationsConcept && hasSectionContent(readSectionText(operationsConcept.bodyText, 'Deploy'))) hasAnswer = true;
     if (projectCategory.id === 'operations' && operationsConcept) return describeOperationsCategory(projectCategory, operationsConcept, pendingAbout);
+    if (projectCategory.id === 'stack-pieces') return { id: projectCategory.id, label: projectCategory.label, ...describeStackPiecesGap(listProjectStackPieces(bundleDirectory), stackCatalogPieceCount) };
     if (projectCategory.id === 'scope' && requirements.some((requirement) => requirement.state === 'out-of-scope')) hasAnswer = true;
     if (projectCategory.id === 'technical-vision' && technicalDecisions.some((technicalDecision) => technicalDecision.decisionState !== 'replaced')) hasAnswer = true;
     if (projectCategory.id === 'run-test' && verifyCommands.length) hasAnswer = true;
