@@ -120,11 +120,11 @@ test('questions: open, assumed and answered, each with its date and where the an
   const { bundleDirectory } = createBundle();
   addQuestion(bundleDirectory, { text: 'Where is it deployed?', about: 'deploy', now: FIXED_NOW });
   addQuestion(bundleDirectory, { text: 'Who approves releases?', about: 'decision-makers', now: FIXED_NOW });
-  settleQuestion(bundleDirectory, 'Q01', { status: 'assumed', text: 'Dokploy like the other projects', now: FIXED_NOW });
+  settleQuestion(bundleDirectory, 'Q01', { status: 'assumed', text: 'containers on a VPS, like the other projects', now: FIXED_NOW });
   settleQuestion(bundleDirectory, 'q02', { status: 'answered', text: 'the client', where: 'product.md', now: FIXED_NOW });
   const questions = listQuestions(bundleDirectory);
   assert.deepEqual(questions.map((question) => [question.id, question.status, question.about]), [['Q01', 'assumed', 'deploy'], ['Q02', 'answered', 'decision-makers']]);
-  assert.equal(questions[0].assumption, 'Dokploy like the other projects (2026-11-21)');
+  assert.equal(questions[0].assumption, 'containers on a VPS, like the other projects (2026-11-21)');
   assert.equal(questions[1].answer, 'the client (2026-11-21, in product.md)');
   assert.throws(() => addQuestion(bundleDirectory, { text: 'x?', about: 'nonsense' }), /--about/);
 });
@@ -147,7 +147,7 @@ test('ai1 okf project: init, req add/set/list/goal, question add/assume/list, ga
   assert.equal(runCli('req', 'list'), 'R001 [out-of-scope, must] Login with Google');
   assert.equal(runCli('req', 'goal', 'R001'), '/goal R001 Login with Google');
   assert.equal(runCli('question', 'add', '--about', 'deploy', 'Where is it deployed?'), 'Q01: open');
-  assert.equal(runCli('question', 'assume', 'Q01', 'Dokploy', 'like', 'the', 'rest'), 'Q01: assumed');
+  assert.equal(runCli('question', 'assume', 'Q01', 'containers', 'like', 'the', 'rest'), 'Q01: assumed');
   assert.equal(runCli('question', 'list'), 'Q01 [assumed, deploy] Where is it deployed?');
   const gapsText = runCli('gaps');
   assert.match(gapsText, /✓ scope \(what is out\): clear/);
@@ -156,7 +156,7 @@ test('ai1 okf project: init, req add/set/list/goal, question add/assume/list, ga
   writeFileSync(join(projectRoot, '.ai1', 'work', 'google-auth', 'plan.md'), '# Goal\nAdd a login with Google.\n');
   assert.match(runCli('conflicts', 'google-auth'), /R001 Login with Google/);
   assert.equal(JSON.parse(runCli('gaps', '--json')).started, true);
-  assert.ok(readFileSync(join(bundleDirectory, 'requirements', 'questions.md'), 'utf8').includes('- assumption: Dokploy like the rest'));
+  assert.ok(readFileSync(join(bundleDirectory, 'requirements', 'questions.md'), 'utf8').includes('- assumption: containers like the rest'));
   assert.throws(() => runCli('req', 'set', 'R001', 'out-of-scope'), /--reason/);
 });
 
@@ -271,7 +271,7 @@ test('/ai1:okf-interview-project reads the project documents outside the repo be
   assert.match(inferStep, /tell the person which documents you read and ask once whether there\s+are more to read first/);
   assert.match(inferStep, /offer once to save it with \/ai1:core-customize-skill/);
   assert.match(inferStep, /Never ask what\s+the repo or those documents answer/);
-  assert.doesNotMatch(skillText, /GoogleDrive|Google Drive/, 'no host-specific tool in the public plugin');
+  assert.doesNotMatch(skillText, /~\/[A-Za-z]/, 'no personal paths in the public plugin');
 });
 
 test('okf-project at session start: nothing before the project context starts; then the doubt rule, gaps, out of scope, open questions and must requirements once started, capped; silent on resume [project-requirements:S2] [project-requirements:S5]', () => {
@@ -292,14 +292,14 @@ test('okf-project at session start: nothing before the project context starts; t
   addRequirement(bundleDirectory, { title: 'Pay by card', now: FIXED_NOW });
   addRequirement(bundleDirectory, { title: 'Nice to have dark mode', priority: 'should', now: FIXED_NOW });
   addQuestion(bundleDirectory, { text: 'Where is it deployed?', about: 'deploy', now: FIXED_NOW });
-  settleQuestion(bundleDirectory, 'Q01', { status: 'assumed', text: 'Dokploy', now: FIXED_NOW });
+  settleQuestion(bundleDirectory, 'Q01', { status: 'assumed', text: 'containers', now: FIXED_NOW });
   const startedText = readSessionStart();
   assert.match(startedText, /Project doubts: when a decision depends on something neither the code nor the bundle answers/);
   assert.match(startedText, /Project context \(`\.ai1\/okf\/product\.md`, `\.ai1\/okf\/requirements\/`\): missing users, constraints, stack and structure, technical vision, run and test, deploy, integrations and data, decision makers\./);
   assert.match(startedText, /\/ai1:okf-interview-project \(never in the middle of a task\)/);
   assert.match(startedText, /record it with their words via `ai1 okf project req add\|set`/);
   assert.match(startedText, /- R001 Login with Google\n- R002 Native mobile app\n- \.\.\. and 1 more: `ai1 okf project req list --state out-of-scope`/);
-  assert.match(startedText, /- Q01 Where is it deployed\? \(assumed: Dokploy\)/);
+  assert.match(startedText, /- Q01 Where is it deployed\? \(assumed: containers\)/);
   assert.match(startedText, /Active must requirements:\n- R004 Pay by card/);
   assert.doesNotMatch(startedText, /dark mode/);
   assert.doesNotMatch(readSessionStart('resume'), /Project doubts/);
