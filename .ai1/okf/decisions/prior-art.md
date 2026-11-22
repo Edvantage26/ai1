@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-21T18:07:33Z'
+  at: '2026-11-22T10:43:30Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -550,3 +550,28 @@ written. From docs and templates, no code taken.
 Common trap, as in [Community view](#community-view-2026-11-08): long forms and documents nobody
 rereads. Cheap parts worth taking: a deterministic coverage map, few ranked questions, answers dated
 and applied where they belong, status changes at plan close.
+
+# Adversarial plan critics (2026-11-22)
+
+Searched when the person asked whether plan and deep tasks should get a nitpicking agent that audits
+the idea. Not decided; the deep [builder check](/features/sizing.md) today only finds ambiguity
+(where a builder would have to guess), not a wrong premise.
+
+- Community skills (READMEs only, none publish measured results): a fresh read-only reviewer told to
+  assume the plan is flawed and find the strongest objection (wrong premise, failure modes, a simpler
+  way), kept apart from code review ([adversarial-design-review](https://www.claudepluginhub.com/skills/gocodealone-superpowers/adversarial-design-review),
+  [freema, cursor-plugin-cc](https://dev.to/freema/most-code-review-catches-bugs-i-shipped-one-that-argues-with-the-design-1h0h));
+  several critics with different lenses (feasibility, scope, security; KISS/YAGNI)
+  ([review-plan](https://www.skillsdirectory.com/skills/adamayoung-review-plan), [plan-reviewer](https://www.skills.sh/mblode/agent-skills/plan-reviewer));
+  against anchoring, reviewers first get only the goal, requirements and existing system, then the
+  proposal ([EpicenterHQ adversarial-review](https://tessl.io/registry/skills/github/EpicenterHQ/epicenter/adversarial-review),
+  which then runs an open-ended multi-reviewer consensus with no round cap).
+- When: review the plan when re-running the work is costly, the code when it is cheap
+  ([gjiang, 2026-04](https://gjiang-economics.github.io/how-i-use-ai/dispatches/reviewing-claude-code/)).
+- Against debate: agents drop correct answers for a confident peer's wrong one
+  ([Peacemaker or Troublemaker](https://arxiv.org/pdf/2509.23055)); a 2026 preprint with 7-8B models
+  finds unguided debate no better and 2.1-3.4x costlier than isolated self-correction
+  ([arXiv 2605.00914](https://arxiv.org/html/2605.00914)). Math and QA benchmarks, not plans.
+- Together with Superpowers (Haiku reviewers 0/10, review loops churn unless scoped and capped): if
+  taken, one fresh critic with the main model, one round, a few objections each with a concrete
+  failure or simpler alternative, triaged by the main agent - not a debate.
