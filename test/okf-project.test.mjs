@@ -282,7 +282,7 @@ test('okf-project at session start: nothing before the project context starts; t
   settleQuestion(bundleDirectory, 'Q01', { status: 'assumed', text: 'Dokploy', now: FIXED_NOW });
   const startedText = readSessionStart();
   assert.match(startedText, /Project doubts: when a decision depends on something neither the code nor the bundle answers/);
-  assert.match(startedText, /Project context \(`\.ai1\/okf\/product\.md`, `\.ai1\/okf\/requirements\/`\): missing users, constraints, stack and structure, run and test, deploy, integrations and data, decision makers\./);
+  assert.match(startedText, /Project context \(`\.ai1\/okf\/product\.md`, `\.ai1\/okf\/requirements\/`\): missing users, constraints, stack and structure, technical vision, run and test, deploy, integrations and data, decision makers\./);
   assert.match(startedText, /\/ai1:okf-interview-project \(never in the middle of a task\)/);
   assert.match(startedText, /record it with their words via `ai1 okf project req add\|set`/);
   assert.match(startedText, /- R001 Login with Google\n- R002 Native mobile app\n- \.\.\. and 1 more: `ai1 okf project req list --state out-of-scope`/);

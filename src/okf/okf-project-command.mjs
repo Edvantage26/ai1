@@ -12,10 +12,11 @@ import {
   addQuestion, settleQuestion, listQuestions, findOutOfScopeConflicts, buildGoalLine, PROJECT_CATEGORIES,
   REQUIREMENT_STATES, setRequirementCheckCommand, verifyRequirements, isProjectContextEnabled, PROJECT_CONTEXT_MODULE_ID,
   setRequirementMilestone, buildRequirementsReview, stampRequirementsReview, mapSatisfyingConcepts,
+  findAvoidedTermsInPlan, listTechnicalDecisions, addTechnicalDecision, setTechnicalDecisionState,
 } from './okf-project.mjs';
 
-export const OKF_PROJECT_USAGE = 'ai1 okf project init [--title "..."] | gaps [--json] | req add --title "..." [--statement "..."] [--priority must|should] [--state active|out-of-scope] [--check "..."] [--check-command "..."] [--supersedes <id>] [--milestone <name>] [--quote "..."] [--reason "..."] | req milestone <id> <name> | review [--milestone <name>] [--json] [--done] | req set <id> <state> [--by <id>] [--quote "..."] [--reason "..."] [--plan <slug>] | req command <id> "<command>" | req list [--state <state>] [--json] | req goal <id> | verify [<id>] [--json] | question add --about <category> "<question>" | question assume <id> "<assumption>" | question answer <id> "<answer>" [--to <concept>] | question list [--json] | conflicts <plan-slug-or-path>';
-const OPTIONS_WITH_VALUE = new Set(['--title', '--statement', '--priority', '--state', '--check', '--check-command', '--supersedes', '--milestone', '--by', '--quote', '--reason', '--plan', '--about', '--to']);
+export const OKF_PROJECT_USAGE = 'ai1 okf project init [--title "..."] | gaps [--json] | req add --title "..." [--statement "..."] [--priority must|should] [--state active|out-of-scope] [--check "..."] [--check-command "..."] [--supersedes <id>] [--milestone <name>] [--quote "..."] [--from <who>] [--reason "..."] | req milestone <id> <name> | review [--milestone <name>] [--json] [--done] | req set <id> <state> [--by <id>] [--quote "..."] [--reason "..."] [--plan <slug>] | req command <id> "<command>" | req list [--state <state>] [--json] | req goal <id> | verify [<id>] [--json] | decision add --title "..." [--decision "..."] [--why "..."] [--alternatives "a; b"] [--avoid "x; y"] [--from <who>] [--state proposed|accepted] [--quote "..."] | decision set <slug> <proposed|accepted|replaced> [--by <slug>] | decision list [--json] | question add --about <category> "<question>" | question assume <id> "<assumption>" | question answer <id> "<answer>" [--to <concept>] | question list [--json] | conflicts <plan-slug-or-path>';
+const OPTIONS_WITH_VALUE = new Set(['--title', '--statement', '--priority', '--state', '--check', '--check-command', '--supersedes', '--milestone', '--by', '--quote', '--from', '--reason', '--plan', '--about', '--to', '--decision', '--why', '--alternatives', '--avoid']);
 
 function parseArguments(commandArguments) {
   const positionalArguments = [];
@@ -113,14 +114,14 @@ export function runOkfProjectCommand(workingDirectory, commandArguments, writeOu
       if (actionName === 'add') {
         const { id, relativePath } = addRequirement(bundleDirectory, {
           title: options.title, statement: options.statement, priority: options.priority || 'must', state: options.state || 'active',
-          check: options.check, checkCommand: options['check-command'], supersedes: options.supersedes, milestone: options.milestone, quote: options.quote, reason: options.reason,
+          check: options.check, checkCommand: options['check-command'], supersedes: options.supersedes, milestone: options.milestone, quote: options.quote, from: options.from, reason: options.reason,
         });
         writeOutput(`${id}: created ${relativePath}${options.supersedes ? `; ${findRequirement(listRequirements(bundleDirectory), options.supersedes).id} superseded by ${id}` : ''}`);
         return 0;
       }
       if (actionName === 'set') {
         if (!firstArgument || !secondArgument) throw new Error('usage: ai1 okf project req set <id> <state> [--by <id>] [--quote "..."] [--reason "..."] [--plan <slug>]');
-        const { id, previousState } = setRequirementState(bundleDirectory, firstArgument, secondArgument, { quote: options.quote, reason: options.reason, plan: options.plan, by: options.by });
+        const { id, previousState } = setRequirementState(bundleDirectory, firstArgument, secondArgument, { quote: options.quote, from: options.from, reason: options.reason, plan: options.plan, by: options.by });
         writeOutput(`${id}: ${previousState} -> ${secondArgument}`);
         return 0;
       }
@@ -189,11 +190,37 @@ export function runOkfProjectCommand(workingDirectory, commandArguments, writeOu
     }
     if (subcommandName === 'conflicts') {
       if (!actionName) throw new Error('usage: ai1 okf project conflicts <plan-slug-or-path>');
-      const conflictingRequirements = findOutOfScopeConflicts(readPlanText(projectRoot, actionName), listRequirements(bundleDirectory));
-      writeOutput(conflictingRequirements.length
-        ? ['The plan may touch what is out of scope (advisory; tell the person before approval):', ...conflictingRequirements.map((requirement) => `- ${requirement.title} (${requirement.relativePath})`)].join('\n')
-        : 'no out-of-scope requirement named in the plan');
+      const planText = readPlanText(projectRoot, actionName);
+      const conflictingRequirements = findOutOfScopeConflicts(planText, listRequirements(bundleDirectory));
+      const avoidedTerms = findAvoidedTermsInPlan(planText, listTechnicalDecisions(bundleDirectory));
+      const conflictLines = [
+        ...(conflictingRequirements.length ? ['The plan may touch what is out of scope (advisory; tell the person before approval):', ...conflictingRequirements.map((requirement) => `- ${requirement.title} (${requirement.relativePath})`)] : []),
+        ...(avoidedTerms.length ? ['The plan names what the technical vision says to avoid (advisory; tell the person before approval):', ...avoidedTerms.map((avoidedTerm) => `- ${avoidedTerm.term}: ${avoidedTerm.decision.title} (${avoidedTerm.decision.relativePath}, ${avoidedTerm.decision.decisionState})`)] : []),
+      ];
+      writeOutput(conflictLines.length ? conflictLines.join('\n') : 'no out-of-scope requirement nor avoided technology named in the plan');
       return 0;
+    }
+    if (subcommandName === 'decision') {
+      if (actionName === 'add') {
+        const { slug, relativePath } = addTechnicalDecision(bundleDirectory, {
+          title: options.title, decision: options.decision, why: options.why, alternatives: options.alternatives, avoid: options.avoid,
+          from: options.from, state: options.state || 'proposed', quote: options.quote,
+        });
+        writeOutput(`${slug}: created ${relativePath}`);
+        return 0;
+      }
+      if (actionName === 'set') {
+        if (!firstArgument || !secondArgument) throw new Error('usage: ai1 okf project decision set <slug> <proposed|accepted|replaced> [--by <slug>] [--quote "..."] [--from <who>] [--reason "..."]');
+        const { slug, previousState } = setTechnicalDecisionState(bundleDirectory, firstArgument, secondArgument, { quote: options.quote, from: options.from, reason: options.reason, by: options.by });
+        writeOutput(`${slug}: ${previousState} -> ${secondArgument}`);
+        return 0;
+      }
+      if (actionName === 'list') {
+        const technicalDecisions = listTechnicalDecisions(bundleDirectory);
+        if (options.json) printJson(technicalDecisions);
+        else writeOutput(technicalDecisions.map((technicalDecision) => `${technicalDecision.slug} [${technicalDecision.decisionState}${technicalDecision.from ? `, from ${technicalDecision.from}` : ''}] ${technicalDecision.title}${technicalDecision.avoid.length ? ` (avoid: ${technicalDecision.avoid.join(', ')})` : ''}`).join('\n') || 'no technical decisions');
+        return 0;
+      }
     }
   } catch (commandFailure) {
     writeError(`ai1 okf project: ${commandFailure.message}`);

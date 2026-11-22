@@ -31,7 +31,8 @@ instead of reopening them, and add `later: <number>` to the plan frontmatter.
 If the bundle keeps project requirements (`ai1 okf project req list`), list the ones the task serves
 as `requirements: [R001, ...]` in the plan frontmatter (`ai1 plan-done` validates them), and run
 `ai1 okf project conflicts <slug>` once the design is written: name any out-of-scope requirement it
-touches in the summary you ask approval on.
+touches, or anything the technical vision says to avoid (`ai1 okf project decision list`), in the
+summary you ask approval on.
 
 ## 3. Ask what only the person knows
 

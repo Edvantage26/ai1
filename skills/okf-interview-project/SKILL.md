@@ -26,6 +26,7 @@ Where it lives (all in the bundle, `.ai1/okf/`):
 | Purpose, users, constraints, stack, run and test, deploy, integrations and data, decision makers | `product.md` (`type: Product`), one `## <heading>` each | you, editing the concept |
 | Requirements, including what is out of scope | `requirements/R<nnn>-<slug>.md` (`type: Requirement`) | `ai1 okf project req add\|set` only |
 | Questions the person cannot answer now, and assumptions | `requirements/questions.md` | `ai1 okf project question add\|assume\|answer` only |
+| The developer's technical vision: architecture, libraries and services to reuse, how it integrates, what to avoid | `decisions/<slug>.md` (`type: Decision`, tag `technical-vision`, proposed / accepted / replaced) | `ai1 okf project decision add\|set` only |
 
 `ai1` below is `"${CLAUDE_PLUGIN_DATA}/bin/ai1"`.
 
@@ -34,6 +35,16 @@ sign ("a customer can pay by card"); changing it needs the person's decision. Ho
 ("Stripe Checkout with a webhook") goes in the other concepts of the bundle, updated as the code
 changes. A project has tens of requirements, not hundreds: when one reads like implementation, it is a
 concept. Requirements change only from the person's words, never from what the code does.
+
+**Who answers decides where it goes.** The interview has two blocks, and each answer records who
+said it (`--from client`, `--from developer`, or a name):
+- *Product* (the client or whoever owns the product): purpose, users, scope, constraints, who decides.
+  What they impose stays even if the developer would choose otherwise: a requirement or a Product
+  constraint ("it must talk to their SAP", "their servers, in the EU").
+- *Technical vision* (the developer): how they picture it built, which existing libraries or services
+  to reuse, how it integrates with what exists, what to avoid, and the non-functional targets
+  (performance, security, cost). These are decisions, not requirements: the developer changes them
+  without asking anyone, so they never trigger a requirement change.
 
 ## 1. See what is missing
 
@@ -58,11 +69,23 @@ understood; correct anything wrong") before the first question. Never ask what t
 - Every question carries your recommended answer and why, so the person can just say yes.
 - Scope: offer the candidate features as a multi-select (`AskUserQuestion`) and record each as
   active (must or should) or out of scope with its reason.
+- Technical vision: propose, do not only ask. For each piece the project needs (auth, payments,
+  storage, queues, UI kit...), look first at what the repo and the person's other projects already
+  use and at the person's defaults (their customization), then search the web for the current
+  options, and offer two or three with your recommendation and why ("para pagos: Stripe Checkout o
+  Redsys; recomiendo Stripe porque..."). Ask about the developer's own picture only where it differs
+  from their defaults.
 - Stop when the person says enough ("vale", "ya está", "stop"), when the cap is reached, or when a
   wrong guess would no longer matter.
 
 ## 4. Write every answer where it belongs, at once
 
+- Technical vision: `ai1 okf project decision add --title "<what it decides>" --decision "<the choice>"
+  --why "..." --alternatives "a; b" [--avoid "x; y"] --from developer [--state accepted] --quote
+  "<their words>"`; one decision per piece (architecture, payments, auth...). `--avoid` names what the
+  plans must not bring in (`ai1 okf project conflicts` reports it). A change of mind: `decision set
+  <slug> replaced --by <new slug>`.
+- Add `--from <who>` to every `req add|set` too, so a client's word is told apart from a developer's.
 - Product facts: edit the section of `product.md`, replacing what the answer contradicts instead of
   adding beside it; refresh its `generated`.
 - Requirements: `ai1 okf project req add --title "<what must hold>" [--statement "..."] [--priority

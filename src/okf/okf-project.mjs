@@ -51,6 +51,7 @@ export const PROJECT_CATEGORIES = [
   { id: 'scope', heading: 'Scope', label: 'scope (what is out)' },
   { id: 'constraints', heading: 'Constraints', label: 'constraints' },
   { id: 'stack', heading: 'Stack', label: 'stack and structure' },
+  { id: 'technical-vision', heading: 'Technical vision', label: 'technical vision' },
   { id: 'run-test', heading: 'Run and test', label: 'run and test' },
   { id: 'deploy', heading: 'Deploy', label: 'deploy' },
   { id: 'integrations-data', heading: 'Integrations and data', label: 'integrations and data' },
@@ -93,8 +94,11 @@ function readYamlScalar(frontmatterText, fieldName) {
   return readFrontmatterField(frontmatterText, fieldName);
 }
 
-function quoteLine(quoteText) {
-  return quoteText ? `: "${String(quoteText).replace(/\s+/g, ' ').trim()}"` : '';
+// The person's words in a history line, and who said them (`--from client`, `--from developer`): a
+// client's word makes a requirement, a developer's preference a technical decision.
+function quoteLine(quoteText, fromText = '') {
+  const fromPart = String(fromText || '').trim() ? ` (${String(fromText).trim()})` : '';
+  return quoteText ? `: "${String(quoteText).replace(/\s+/g, ' ').trim()}"${fromPart}` : fromPart;
 }
 
 // --- Product concept ---------------------------------------------------------------------------
@@ -192,7 +196,7 @@ function appendHistoryLine(conceptText, historyLine) {
 
 // Creates `requirements/R<nnn>-<slug>.md` and refreshes the index. Returns { id, relativePath }.
 // `supersedes`: the new requirement replaces that one, which becomes superseded by it.
-export function addRequirement(bundleDirectory, { title, statement = '', priority = 'must', state = 'active', check = '', checkCommand = '', supersedes = '', milestone = '', quote = '', reason = '', now = new Date() }) {
+export function addRequirement(bundleDirectory, { title, statement = '', priority = 'must', state = 'active', check = '', checkCommand = '', supersedes = '', milestone = '', quote = '', from = '', reason = '', now = new Date() }) {
   if (!String(title || '').trim()) throw new Error('a requirement needs --title "<what must hold>"');
   if (!REQUIREMENT_PRIORITIES.includes(priority)) throw new Error(`priority must be one of ${REQUIREMENT_PRIORITIES.join(', ')}`);
   if (!REQUIREMENT_STATES.includes(state)) throw new Error(`state must be one of ${REQUIREMENT_STATES.join(', ')}`);
@@ -205,7 +209,7 @@ export function addRequirement(bundleDirectory, { title, statement = '', priorit
   const requirementId = padRequirementNumber(requirementNumber);
   const fileName = `${requirementId}-${slugFromTitle(title)}.md`;
   const historyDetail = [supersededRequirement ? `replaces ${supersededRequirement.id}` : '', String(reason).trim()].filter(Boolean).join('; ');
-  const historyLine = `- ${todayDate(now)} ${state}${historyDetail ? ` (${historyDetail})` : ''}${quoteLine(quote)}`;
+  const historyLine = `- ${todayDate(now)} ${state}${historyDetail ? ` (${historyDetail})` : ''}${quoteLine(quote, from)}`;
   const conceptText = [
     '---',
     'type: Requirement',
@@ -230,14 +234,14 @@ export function addRequirement(bundleDirectory, { title, statement = '', priorit
   ].join('\n');
   mkdirSync(requirementsDirectory(bundleDirectory), { recursive: true });
   writeFileSync(join(requirementsDirectory(bundleDirectory), fileName), conceptText);
-  if (supersededRequirement) setRequirementState(bundleDirectory, supersededRequirement.id, 'superseded', { by: requirementId, quote, reason, now });
+  if (supersededRequirement) setRequirementState(bundleDirectory, supersededRequirement.id, 'superseded', { by: requirementId, quote, from, reason, now });
   writeRequirementsIndex(bundleDirectory);
   return { id: requirementId, relativePath: `${REQUIREMENTS_DIRECTORY}/${fileName}` };
 }
 
 // Changes a requirement's state (and its history), keeping what it said before. `plan` adds the plan
 // slug to `validated_by`; `by` names the requirement that supersedes it. Returns { id, relativePath, previousState }.
-export function setRequirementState(bundleDirectory, requirementId, newState, { quote = '', reason = '', plan = '', by = '', now = new Date() } = {}) {
+export function setRequirementState(bundleDirectory, requirementId, newState, { quote = '', from = '', reason = '', plan = '', by = '', now = new Date() } = {}) {
   if (!REQUIREMENT_STATES.includes(newState)) throw new Error(`state must be one of ${REQUIREMENT_STATES.join(', ')}`);
   if (newState === 'out-of-scope' && !String(reason).trim()) throw new Error('moving a requirement out of scope needs --reason "<why>"');
   const requirements = listRequirements(bundleDirectory);
@@ -253,19 +257,24 @@ export function setRequirementState(bundleDirectory, requirementId, newState, { 
   if (plan) conceptText = writeFrontmatterField(conceptText, 'validated_by', `[${[...new Set([...requirement.validatedBy, plan])].join(', ')}]`);
   conceptText = writeFrontmatterField(conceptText, 'generated', `{ by: '${WRITER_ACTOR}', at: '${nowTimestamp(now)}' }`);
   const detailText = [plan ? `plan ${plan}` : '', newState === 'superseded' ? `by ${replacingRequirement.id}` : '', String(reason).trim()].filter(Boolean).join('; ');
-  conceptText = appendHistoryLine(conceptText, `- ${todayDate(now)} ${requirement.state} -> ${newState}${detailText ? ` (${detailText})` : ''}${quoteLine(quote)}`);
+  conceptText = appendHistoryLine(conceptText, `- ${todayDate(now)} ${requirement.state} -> ${newState}${detailText ? ` (${detailText})` : ''}${quoteLine(quote, from)}`);
   writeFileSync(filePath, conceptText);
   writeRequirementsIndex(bundleDirectory);
   return { id: requirement.id, relativePath: requirement.relativePath, previousState: requirement.state };
 }
 
-export function renderRequirementsIndex(requirements, hasQuestions = false) {
+export function renderRequirementsIndex(requirements, hasQuestions = false, technicalDecisions = []) {
   const lines = ['# Requirements', '', 'Generated by `ai1 okf project`; change requirements with `ai1 okf project req add|set`, not by hand.', ''];
   for (const requirementState of REQUIREMENT_STATES) {
     const stateRequirements = requirements.filter((requirement) => requirement.state === requirementState);
     if (!stateRequirements.length) continue;
     lines.push(`## ${requirementState}`, '');
     for (const requirement of stateRequirements) lines.push(`* [${requirement.title || requirement.id}](${requirement.fileName}) - ${requirement.supersededBy ? `superseded by ${requirement.supersededBy}` : requirement.priority}`);
+    lines.push('');
+  }
+  if (technicalDecisions.length) {
+    lines.push('## Technical vision', '');
+    for (const technicalDecision of technicalDecisions) lines.push(`* [${technicalDecision.title}](../${technicalDecision.relativePath}) - ${technicalDecision.decisionState}${technicalDecision.from ? `, from ${technicalDecision.from}` : ''}`);
     lines.push('');
   }
   if (hasQuestions) lines.push('* [Open questions](questions.md)', '');
@@ -275,7 +284,7 @@ export function renderRequirementsIndex(requirements, hasQuestions = false) {
 export function writeRequirementsIndex(bundleDirectory) {
   mkdirSync(requirementsDirectory(bundleDirectory), { recursive: true });
   const indexPath = join(requirementsDirectory(bundleDirectory), REQUIREMENTS_INDEX_FILE);
-  writeFileSync(indexPath, renderRequirementsIndex(listRequirements(bundleDirectory), existsSync(questionsPath(bundleDirectory))));
+  writeFileSync(indexPath, renderRequirementsIndex(listRequirements(bundleDirectory), existsSync(questionsPath(bundleDirectory)), listTechnicalDecisions(bundleDirectory)));
   return `${REQUIREMENTS_DIRECTORY}/${REQUIREMENTS_INDEX_FILE}`;
 }
 
@@ -484,12 +493,14 @@ function isProjectContextProduct(product) {
 export function buildGapMap(bundleDirectory, { verifyCommands = [] } = {}) {
   const product = existsSync(bundleDirectory) ? findProductConcept(bundleDirectory) : null;
   const requirements = listRequirements(bundleDirectory);
+  const technicalDecisions = listTechnicalDecisions(bundleDirectory);
   const questions = listQuestions(bundleDirectory);
   const pendingQuestions = questions.filter((question) => question.status !== 'answered');
   const categories = PROJECT_CATEGORIES.map((projectCategory) => {
     const sectionText = product ? readSectionText(product.bodyText, projectCategory.heading) : null;
     let hasAnswer = Boolean(sectionText);
     if (projectCategory.id === 'scope' && requirements.some((requirement) => requirement.state === 'out-of-scope')) hasAnswer = true;
+    if (projectCategory.id === 'technical-vision' && technicalDecisions.some((technicalDecision) => technicalDecision.decisionState !== 'replaced')) hasAnswer = true;
     if (projectCategory.id === 'run-test' && verifyCommands.length) hasAnswer = true;
     const pendingAbout = pendingQuestions.filter((question) => question.about === projectCategory.id);
     if (!hasAnswer) return { id: projectCategory.id, label: projectCategory.label, status: 'missing', why: pendingAbout.length ? `${pendingAbout.map((question) => question.id).join(', ')} pending` : 'not written' };
@@ -538,6 +549,16 @@ export function initProjectContext(bundleDirectory, { projectTitle, now = new Da
     writtenPaths.push('index.md');
   }
   return writtenPaths;
+}
+
+// What a technical decision in force says to avoid (`avoid:`), named in a plan's text: advisory.
+// [{ decision, term }], a term matched as whole words, case and accents ignored.
+export function findAvoidedTermsInPlan(planText, technicalDecisions) {
+  const normalize = (text) => String(text).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const normalizedPlan = ` ${normalize(planText).replace(/[^a-z0-9]+/g, ' ')} `;
+  return technicalDecisions.filter((technicalDecision) => technicalDecision.decisionState !== 'replaced').flatMap((technicalDecision) => technicalDecision.avoid
+    .filter((avoidedTerm) => normalize(avoidedTerm).replace(/[^a-z0-9]+/g, ' ').trim() && normalizedPlan.includes(` ${normalize(avoidedTerm).replace(/[^a-z0-9]+/g, ' ').trim()} `))
+    .map((avoidedTerm) => ({ decision: technicalDecision, term: avoidedTerm })));
 }
 
 // Requirements out of scope whose words show up in a plan's text: advisory, never blocking.
@@ -604,4 +625,105 @@ export function validatePlanRequirements(bundleDirectory, planSlug, requirementI
     setRequirementState(bundleDirectory, requirement.id, 'validated', { plan: planSlug, now });
     return `${requirement.id}: validated by ${planSlug}`;
   });
+}
+
+// --- Technical vision --------------------------------------------------------------------------
+// The developer's picture of how the project is built (architecture, libraries and services to reuse,
+// how it integrates, what to avoid): not requirements (changing it needs no client decision) but
+// decisions, `decisions/<slug>.md` with `type: Decision` and the tag `technical-vision`, in state
+// proposed | accepted | replaced. A constraint the client imposes ("their SAP", "their Postgres") is a
+// requirement or a Product constraint instead.
+
+export const DECISIONS_DIRECTORY = 'decisions';
+export const TECHNICAL_DECISION_STATES = ['proposed', 'accepted', 'replaced'];
+const TECHNICAL_VISION_TAG = 'technical-vision';
+
+// A frontmatter list as written by addTechnicalDecision (a JSON array is a YAML flow list).
+function readYamlList(frontmatterText, fieldName) {
+  const fieldMatch = new RegExp(`^${fieldName}:[ \\t]*(\\[.*\\])[ \\t]*$`, 'm').exec(frontmatterText || '');
+  if (!fieldMatch) return [];
+  try {
+    const parsedList = JSON.parse(fieldMatch[1]);
+    return Array.isArray(parsedList) ? parsedList.map(String) : [];
+  } catch {
+    return fieldMatch[1].replace(/^\[|\]$/g, '').split(',').map((listItem) => listItem.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean);
+  }
+}
+
+// Every technical-vision decision: { slug, relativePath, title, decisionState, from, avoid }.
+export function listTechnicalDecisions(bundleDirectory) {
+  const decisionsDirectory = join(bundleDirectory, DECISIONS_DIRECTORY);
+  if (!existsSync(decisionsDirectory)) return [];
+  const technicalDecisions = [];
+  for (const fileName of readdirSync(decisionsDirectory).filter((candidateName) => candidateName.endsWith('.md') && candidateName !== 'index.md').sort()) {
+    const { frontmatterText } = splitFrontmatter(readFileSync(join(decisionsDirectory, fileName), 'utf8'));
+    if (!readFrontmatterField(frontmatterText, 'tags').split(/[\s,]+/).includes(TECHNICAL_VISION_TAG)) continue;
+    technicalDecisions.push({
+      slug: fileName.replace(/\.md$/, ''),
+      relativePath: `${DECISIONS_DIRECTORY}/${fileName}`,
+      title: readYamlScalar(frontmatterText, 'title'),
+      decisionState: readFrontmatterField(frontmatterText, 'decision_state') || 'proposed',
+      from: readYamlScalar(frontmatterText, 'decided_from'),
+      avoid: readYamlList(frontmatterText, 'avoid'),
+    });
+  }
+  return technicalDecisions;
+}
+
+const splitItems = (listText) => (Array.isArray(listText) ? listText : String(listText || '').split(';')).map((listItem) => String(listItem).trim()).filter(Boolean);
+
+// Creates `decisions/<slug>.md`. Returns { slug, relativePath }.
+export function addTechnicalDecision(bundleDirectory, { title, decision = '', why = '', alternatives = '', avoid = '', from = '', state = 'proposed', quote = '', now = new Date() }) {
+  if (!String(title || '').trim()) throw new Error('a technical decision needs --title "<what it decides>"');
+  if (!['proposed', 'accepted'].includes(state)) throw new Error('a new technical decision is proposed or accepted');
+  const slug = slugFromTitle(title);
+  const relativePath = `${DECISIONS_DIRECTORY}/${slug}.md`;
+  if (existsSync(join(bundleDirectory, relativePath))) throw new Error(`${relativePath} already exists: change it with decision set, or pick another title`);
+  const alternativeItems = splitItems(alternatives);
+  const avoidItems = splitItems(avoid);
+  const conceptText = [
+    '---',
+    'type: Decision',
+    `title: ${yamlString(title)}`,
+    `description: ${yamlString(String(decision || title))}`,
+    `tags: [decision, ${TECHNICAL_VISION_TAG}, ${state}]`,
+    `decision_state: ${state}`,
+    ...(String(from).trim() ? [`decided_from: ${yamlString(from)}`] : []),
+    ...(avoidItems.length ? [`avoid: ${JSON.stringify(avoidItems)}`] : []),
+    `generated: { by: '${WRITER_ACTOR}', at: '${nowTimestamp(now)}' }`,
+    '---',
+    '',
+    String(decision || title).trim(),
+    '',
+    ...(String(why).trim() ? ['# Why', '', String(why).trim(), ''] : []),
+    ...(alternativeItems.length ? ['# Alternatives considered', '', ...alternativeItems.map((alternativeItem) => `- ${alternativeItem}`), ''] : []),
+    ...(avoidItems.length ? ['# Avoid', '', ...avoidItems.map((avoidItem) => `- ${avoidItem}`), ''] : []),
+    '# History',
+    '',
+    `- ${todayDate(now)} ${state}${quoteLine(quote, from)}`,
+    '',
+  ].join('\n');
+  mkdirSync(join(bundleDirectory, DECISIONS_DIRECTORY), { recursive: true });
+  writeFileSync(join(bundleDirectory, relativePath), conceptText);
+  writeRequirementsIndex(bundleDirectory);
+  return { slug, relativePath };
+}
+
+// Moves a technical decision to accepted or replaced (`by`: the decision that replaces it). Returns
+// { slug, previousState }.
+export function setTechnicalDecisionState(bundleDirectory, decisionSlug, newState, { quote = '', from = '', reason = '', by = '', now = new Date() } = {}) {
+  if (!TECHNICAL_DECISION_STATES.includes(newState)) throw new Error(`state must be one of ${TECHNICAL_DECISION_STATES.join(', ')}`);
+  const technicalDecisions = listTechnicalDecisions(bundleDirectory);
+  const technicalDecision = technicalDecisions.find((candidateDecision) => candidateDecision.slug === decisionSlug);
+  if (!technicalDecision) throw new Error(`no technical decision ${decisionSlug} in ${DECISIONS_DIRECTORY}/ (ai1 okf project decision list)`);
+  if (by && !technicalDecisions.some((candidateDecision) => candidateDecision.slug === by)) throw new Error(`no technical decision ${by} to be replaced by`);
+  const filePath = join(bundleDirectory, technicalDecision.relativePath);
+  let conceptText = writeFrontmatterField(readFileSync(filePath, 'utf8'), 'decision_state', newState);
+  conceptText = writeFrontmatterField(conceptText, 'tags', `[decision, ${TECHNICAL_VISION_TAG}, ${newState}]`);
+  if (by) conceptText = writeFrontmatterField(conceptText, 'replaced_by', by);
+  conceptText = writeFrontmatterField(conceptText, 'generated', `{ by: '${WRITER_ACTOR}', at: '${nowTimestamp(now)}' }`);
+  const detailText = [by ? `by ${by}` : '', String(reason).trim()].filter(Boolean).join('; ');
+  writeFileSync(filePath, appendHistoryLine(conceptText, `- ${todayDate(now)} ${technicalDecision.decisionState} -> ${newState}${detailText ? ` (${detailText})` : ''}${quoteLine(quote, from)}`));
+  writeRequirementsIndex(bundleDirectory);
+  return { slug: technicalDecision.slug, previousState: technicalDecision.decisionState };
 }

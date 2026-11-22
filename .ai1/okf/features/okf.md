@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index and bundle health notes 
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-21T19:47:41Z'
+  at: '2026-11-22T07:06:25Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -391,6 +391,22 @@ of its own: it reads and writes only the bundle and reaches the agent through th
     adds "R001 is out of scope: tell the person". Words, no translation: a requirement matches messages
     in its own language, so the interview writes them in the person's language.
   - *Periodic review:* maintenance task `requirements-review` (see [maintenance](maintenance.md)).
+- **Technical vision (2026-11-22):** asked by the person ("¿tendría sentido preguntarme a mí como
+  desarrollador? cómo me imagino esta aplicación montada, con qué librerías ya existentes, cómo
+  integrarla"). Who says it decides where it goes: what the client imposes (their SAP, their servers)
+  is a requirement or a Product constraint; the developer's picture (architecture, libraries and
+  services to reuse, integration, what to avoid, non-functional targets) is a decision, not a
+  requirement, so changing it never asks for a requirement change. Decisions live in
+  `decisions/<slug>.md` (`type: Decision`, tag `technical-vision`, `decision_state: proposed | accepted
+  | replaced`, `decided_from`, `avoid: [...]`, `replaced_by`; body with why, alternatives considered,
+  avoid and a dated history), written only by `ai1 okf project decision add|set|list`, listed in
+  `requirements/index.md`. Gap category `technical-vision`: clear with a decision not replaced or a
+  `## Technical vision` section. `conflicts` also reports a plan naming an `avoid` term (whole words,
+  decisions not replaced). `--from <who>` on requirement and decision history tells a client's word
+  from a developer's. The interview has two blocks (product, technical vision) and for the vision it
+  proposes options (repo, the person's other projects and defaults, a web search) with a
+  recommendation instead of only asking; the person's usual stack and what they avoid are customization
+  hints of the skill.
 - **Not built (ruling):** per-milestone review dates; satisfies checked at Stop (it is only a hint on
   edit); per-project custom categories (a
   customization of the skill can add questions); numbering across parallel worktrees (two worktrees
