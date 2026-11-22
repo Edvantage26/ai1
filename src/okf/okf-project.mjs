@@ -9,6 +9,9 @@
 // - `requirements/questions.md` (`type: OpenQuestions`): `## Q<nn>: <question>` with status open |
 //   assumed | answered.
 // - `requirements/index.md`: generated list of the requirements by state.
+// - `operations.md` (`type: Operations`): how the project runs in production, one `## <heading>` per
+//   topic (deploy, environments, logs, database, access, monitoring, alerts), naming where each secret
+//   lives, never its value.
 // The gap map (clear / partial / missing per category) is computed here, without a model, and read by
 // the okf-project SessionStart hook and the `ai1 okf project` CLI; every write goes through these
 // functions so numbering, states and history follow one set of rules.
@@ -54,6 +57,7 @@ export const PROJECT_CATEGORIES = [
   { id: 'technical-vision', heading: 'Technical vision', label: 'technical vision' },
   { id: 'run-test', heading: 'Run and test', label: 'run and test' },
   { id: 'deploy', heading: 'Deploy', label: 'deploy' },
+  { id: 'operations', heading: 'Operations', label: 'operations', conceptType: 'Operations' },
   { id: 'integrations-data', heading: 'Integrations and data', label: 'integrations and data' },
   { id: 'decision-makers', heading: 'Decision makers', label: 'decision makers' },
 ];
@@ -136,7 +140,57 @@ const PRODUCT_TEMPLATE = (projectTitle, now) => [
   `generated: { by: '${WRITER_ACTOR}', at: '${nowTimestamp(now)}' }`,
   '---',
   '',
-  ...PROJECT_CATEGORIES.flatMap((projectCategory) => [`## ${projectCategory.heading}`, '', '']),
+  ...PROJECT_CATEGORIES.filter((projectCategory) => !projectCategory.conceptType).flatMap((projectCategory) => [`## ${projectCategory.heading}`, '', '']),
+].join('\n').trimEnd() + '\n';
+
+// --- Operations concept ------------------------------------------------------------------------
+
+export const OPERATIONS_FILE = 'operations.md';
+// The topics of the Operations concept, in order, with the hint the template leaves under each.
+export const OPERATIONS_SECTIONS = [
+  { heading: 'Deploy', hint: 'How a change reaches production (pipeline, platform, command) and how to roll back.' },
+  { heading: 'Environments', hint: 'Each environment, its URL and where it runs (host, platform, project).' },
+  { heading: 'Logs', hint: 'How to read production logs and errors (command, dashboard, stream).' },
+  { heading: 'Database', hint: 'How to reach each database (tunnel, port, client) and where its backups go.' },
+  { heading: 'Access', hint: 'How to get into the servers or containers (SSH alias, console) and who can.' },
+  { heading: 'Monitoring', hint: 'What is watched (uptime, jobs, backups) and where.' },
+  { heading: 'Alerts', hint: 'Where alerts go (channel) and who acts on them.' },
+];
+
+// A section with something written in it: the template's hint comments do not count.
+function hasSectionContent(sectionText) {
+  return Boolean(String(sectionText || '').replace(/<!--[\s\S]*?-->/g, '').trim());
+}
+
+// The Operations concept: `operations.md` when it is one, else the first `type: Operations` by path.
+export function findOperationsConcept(bundleDirectory, bundleConcepts = listBundleConcepts(bundleDirectory)) {
+  const operationsConcepts = bundleConcepts.filter((bundleConcept) => bundleConcept.type === 'Operations')
+    .sort((firstConcept, secondConcept) => firstConcept.relativePath.localeCompare(secondConcept.relativePath));
+  return operationsConcepts.find((bundleConcept) => bundleConcept.relativePath === OPERATIONS_FILE) || operationsConcepts[0] || null;
+}
+
+// Which topics of the Operations concept are written, empty, or only a placeholder.
+function describeOperationsSections(operationsConcept) {
+  const sectionTexts = OPERATIONS_SECTIONS.map((operationsSection) => ({ heading: operationsSection.heading, text: readSectionText(operationsConcept.bodyText, operationsSection.heading) }));
+  return {
+    empty: sectionTexts.filter((sectionText) => !hasSectionContent(sectionText.text)).map((sectionText) => sectionText.heading),
+    placeholder: sectionTexts.filter((sectionText) => hasSectionContent(sectionText.text) && PLACEHOLDER_PATTERN.test(sectionText.text.replace(/<!--[\s\S]*?-->/g, ''))).map((sectionText) => sectionText.heading),
+  };
+}
+
+const OPERATIONS_TEMPLATE = (projectTitle, now) => [
+  '---',
+  'type: Operations',
+  `title: ${yamlString(`${projectTitle} - operations`)}`,
+  `description: ${yamlString(`How ${projectTitle} is deployed and run in production: environments, logs, databases, access, monitoring and alerts.`)}`,
+  'tags: [operations, project-context]',
+  `generated: { by: '${WRITER_ACTOR}', at: '${nowTimestamp(now)}' }`,
+  '---',
+  '',
+  'The exact command or place for each topic. Secrets: name where each one lives (secret manager item,',
+  'platform environment), never its value. Write "none" when the project has no such thing.',
+  '',
+  ...OPERATIONS_SECTIONS.flatMap((operationsSection) => [`## ${operationsSection.heading}`, '', `<!-- ${operationsSection.hint} -->`, '']),
 ].join('\n').trimEnd() + '\n';
 
 // --- Requirements ------------------------------------------------------------------------------
@@ -515,13 +569,16 @@ export function buildGapMap(bundleDirectory, { verifyCommands = [] } = {}) {
   const technicalDecisions = listTechnicalDecisions(bundleDirectory);
   const questions = listQuestions(bundleDirectory);
   const pendingQuestions = questions.filter((question) => question.status !== 'answered');
+  const operationsConcept = existsSync(bundleDirectory) ? findOperationsConcept(bundleDirectory) : null;
   const categories = PROJECT_CATEGORIES.map((projectCategory) => {
     const sectionText = product ? readSectionText(product.bodyText, projectCategory.heading) : null;
     let hasAnswer = Boolean(sectionText);
+    const pendingAbout = pendingQuestions.filter((question) => question.about === projectCategory.id);
+    if (projectCategory.id === 'deploy' && operationsConcept && hasSectionContent(readSectionText(operationsConcept.bodyText, 'Deploy'))) hasAnswer = true;
+    if (projectCategory.id === 'operations' && operationsConcept) return describeOperationsCategory(projectCategory, operationsConcept, pendingAbout);
     if (projectCategory.id === 'scope' && requirements.some((requirement) => requirement.state === 'out-of-scope')) hasAnswer = true;
     if (projectCategory.id === 'technical-vision' && technicalDecisions.some((technicalDecision) => technicalDecision.decisionState !== 'replaced')) hasAnswer = true;
     if (projectCategory.id === 'run-test' && verifyCommands.length) hasAnswer = true;
-    const pendingAbout = pendingQuestions.filter((question) => question.about === projectCategory.id);
     if (!hasAnswer) return { id: projectCategory.id, label: projectCategory.label, status: 'missing', why: pendingAbout.length ? `${pendingAbout.map((question) => question.id).join(', ')} pending` : 'not written' };
     if (sectionText && PLACEHOLDER_PATTERN.test(sectionText)) return { id: projectCategory.id, label: projectCategory.label, status: 'partial', why: 'placeholder (TBD/TODO)' };
     if (pendingAbout.length) return { id: projectCategory.id, label: projectCategory.label, status: 'partial', why: `${pendingAbout.map((question) => question.id).join(', ')} pending` };
@@ -537,8 +594,19 @@ export function buildGapMap(bundleDirectory, { verifyCommands = [] } = {}) {
   };
 }
 
-// Creates the Product concept (with one empty section per category), the requirements index and
-// the open questions file when missing, and links them from the bundle's root index. Returns the
+// The operations category from the Operations concept: clear when every topic is written, partial
+// naming the empty ones, missing when none is.
+function describeOperationsCategory(projectCategory, operationsConcept, pendingAbout) {
+  const { empty, placeholder } = describeOperationsSections(operationsConcept);
+  const categoryOf = (status, why) => ({ id: projectCategory.id, label: projectCategory.label, status, why });
+  const pendingText = pendingAbout.length ? `${pendingAbout.map((question) => question.id).join(', ')} pending` : '';
+  if (empty.length === OPERATIONS_SECTIONS.length) return categoryOf('missing', pendingText || `${operationsConcept.relativePath.split('\\').join('/')} is empty`);
+  const whyParts = [empty.length ? `empty: ${empty.join(', ')}` : '', placeholder.length ? `placeholder: ${placeholder.join(', ')}` : '', pendingText].filter(Boolean);
+  return whyParts.length ? categoryOf('partial', whyParts.join('; ')) : categoryOf('clear', '');
+}
+
+// Creates the Product concept (with one empty section per category), the Operations concept (one
+// empty section per topic), the requirements index and the open questions file when missing, and links them from the bundle's root index. Returns the
 // paths it wrote.
 export function initProjectContext(bundleDirectory, { projectTitle, now = new Date() }) {
   if (!existsSync(join(bundleDirectory, 'index.md'))) throw new Error('there is no knowledge bundle yet: create it first (/ai1:okf-maintain-knowledge, produce mode)');
@@ -552,6 +620,10 @@ export function initProjectContext(bundleDirectory, { projectTitle, now = new Da
     writeFileSync(productPath, writeFrontmatterField(readFileSync(productPath, 'utf8'), 'project_context', 'true'));
     writtenPaths.push(existingProduct.relativePath.split('\\').join('/'));
   }
+  if (!findOperationsConcept(bundleDirectory)) {
+    writeFileSync(join(bundleDirectory, OPERATIONS_FILE), OPERATIONS_TEMPLATE(projectTitle, now));
+    writtenPaths.push(OPERATIONS_FILE);
+  }
   if (!existsSync(questionsPath(bundleDirectory))) {
     writeQuestions(bundleDirectory, [], now);
     writtenPaths.push(`${REQUIREMENTS_DIRECTORY}/${QUESTIONS_FILE}`);
@@ -561,6 +633,7 @@ export function initProjectContext(bundleDirectory, { projectTitle, now = new Da
   const rootIndexText = readFileSync(rootIndexPath, 'utf8');
   const missingLinks = [
     [PRODUCT_FILE, `* [Product](${PRODUCT_FILE}) - what the project is for, its users, scope, constraints, how it runs and ships, who decides.`],
+    [OPERATIONS_FILE, `* [Operations](${OPERATIONS_FILE}) - how it is deployed and run in production: environments, logs, databases, access, monitoring, alerts.`],
     [`${REQUIREMENTS_DIRECTORY}/`, `* [${REQUIREMENTS_DIRECTORY}/](${REQUIREMENTS_DIRECTORY}/${REQUIREMENTS_INDEX_FILE}) - requirements by state, and the open questions.`],
   ].filter(([linkTarget]) => !rootIndexText.includes(`](${linkTarget}`));
   if (missingLinks.length) {

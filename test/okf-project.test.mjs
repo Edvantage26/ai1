@@ -59,12 +59,49 @@ test('gap map: clear, partial and missing from the Product sections, out-of-scop
   assert.equal(statusById.stack, 'missing');
 });
 
-test('init: writes Product, requirements index and questions, links them from the root index, and the bundle stays conformant', () => {
+test('gap map: operations is missing until the Operations concept has text, partial naming the empty topics, clear when all are written; its Deploy answers deploy [project-operations:S1] [project-operations:S2]', () => {
+  const { bundleDirectory } = createBundle();
+  initProjectContext(bundleDirectory, { projectTitle: 'Shop', now: FIXED_NOW });
+  const categoryById = () => Object.fromEntries(buildGapMap(bundleDirectory).categories.map((projectCategory) => [projectCategory.id, projectCategory]));
+  assert.equal(categoryById().operations.status, 'missing');
+  assert.equal(categoryById().deploy.status, 'missing');
+  const operationsPath = join(bundleDirectory, 'operations.md');
+  const fillOperationsSection = (heading, sectionText) => writeFileSync(operationsPath, readFileSync(operationsPath, 'utf8').replace(`## ${heading}\n`, `## ${heading}\n\n${sectionText}\n`));
+  fillOperationsSection('Deploy', 'Push to main; the platform builds and deploys.');
+  fillOperationsSection('Logs', 'TODO');
+  assert.deepEqual([categoryById().operations.status, categoryById().operations.why], ['partial', 'empty: Environments, Database, Access, Monitoring, Alerts; placeholder: Logs']);
+  assert.equal(categoryById().deploy.status, 'clear');
+  for (const heading of ['Environments', 'Database', 'Access', 'Monitoring', 'Alerts']) fillOperationsSection(heading, 'none');
+  fillOperationsSection('Logs', '`app logs --follow`');
+  writeFileSync(operationsPath, readFileSync(operationsPath, 'utf8').replace('TODO', ''));
+  assert.equal(categoryById().operations.status, 'clear');
+  addQuestion(bundleDirectory, { text: 'Where do alerts go?', about: 'operations', now: FIXED_NOW });
+  assert.deepEqual([categoryById().operations.status, categoryById().operations.why], ['partial', 'Q01 pending']);
+  assert.deepEqual(validateOkfBundle(bundleDirectory).errors ?? [], []);
+});
+
+test('operations stay generic: the interview skill asks for them with no tool, host or vendor of anyone in particular; what the project lacks becomes an open question about operations [project-operations:S4] [project-operations:S5]', () => {
+  const skillText = readFileSync(fileURLToPath(new URL('../skills/okf-interview-project/SKILL.md', import.meta.url)), 'utf8');
+  const projectSourceText = readFileSync(fileURLToPath(new URL('../src/okf/okf-project.mjs', import.meta.url)), 'utf8');
+  assert.match(skillText, /`operations\.md` \(`type: Operations`\)/);
+  assert.match(skillText, /open question `--about operations`/);
+  for (const checkedText of [skillText, projectSourceText]) {
+    assert.doesNotMatch(checkedText, /dokploy|openobserve|uptime kuma|telegram|1password|grafana|datadog|sentry|edvantage|baboon/i);
+  }
+});
+
+test('init: writes Product, Operations, requirements index and questions, links them from the root index, and the bundle stays conformant [project-operations:S2]', () => {
   const { bundleDirectory } = createBundle();
   const writtenPaths = initProjectContext(bundleDirectory, { projectTitle: 'Shop', now: FIXED_NOW });
-  assert.deepEqual(writtenPaths.sort(), ['index.md', 'product.md', 'requirements/index.md', 'requirements/questions.md']);
+  assert.deepEqual(writtenPaths.sort(), ['index.md', 'operations.md', 'product.md', 'requirements/index.md', 'requirements/questions.md']);
   const rootIndexText = readFileSync(join(bundleDirectory, 'index.md'), 'utf8');
   assert.match(rootIndexText, /\]\(product\.md\)/);
+  assert.match(rootIndexText, /\[Operations\]\(operations\.md\)/);
+  const operationsText = readFileSync(join(bundleDirectory, 'operations.md'), 'utf8');
+  assert.match(operationsText, /^type: Operations$/m);
+  assert.deepEqual([...operationsText.matchAll(/^## (.+)$/gm)].map((headingMatch) => headingMatch[1]), ['Deploy', 'Environments', 'Logs', 'Database', 'Access', 'Monitoring', 'Alerts']);
+  assert.match(operationsText, /never its value/);
+  assert.doesNotMatch(readFileSync(join(bundleDirectory, 'product.md'), 'utf8'), /^## Operations$/m);
   assert.match(rootIndexText, /\]\(requirements\/index\.md\)/);
   assert.deepEqual(initProjectContext(bundleDirectory, { projectTitle: 'Shop', now: FIXED_NOW }), ['requirements/index.md']);
   addRequirement(bundleDirectory, { title: 'Pay by card', check: 'a test payment succeeds in the sandbox', now: FIXED_NOW });
@@ -295,7 +332,7 @@ test('okf-project at session start: nothing before the project context starts; t
   settleQuestion(bundleDirectory, 'Q01', { status: 'assumed', text: 'containers', now: FIXED_NOW });
   const startedText = readSessionStart();
   assert.match(startedText, /Project doubts: when a decision depends on something neither the code nor the bundle answers/);
-  assert.match(startedText, /Project context \(`\.ai1\/okf\/product\.md`, `\.ai1\/okf\/requirements\/`\): missing users, constraints, stack and structure, technical vision, run and test, deploy, integrations and data, decision makers\./);
+  assert.match(startedText, /Project context \(`\.ai1\/okf\/product\.md`, `\.ai1\/okf\/requirements\/`\): missing users, constraints, stack and structure, technical vision, run and test, deploy, operations, integrations and data, decision makers\./);
   assert.match(startedText, /\/ai1:okf-interview-project \(never in the middle of a task\)/);
   assert.match(startedText, /record it with their words via `ai1 okf project req add\|set`/);
   assert.match(startedText, /- R001 Login with Google\n- R002 Native mobile app\n- \.\.\. and 1 more: `ai1 okf project req list --state out-of-scope`/);

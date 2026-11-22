@@ -24,6 +24,7 @@ Where it lives (all in the bundle, `.ai1/okf/`):
 | What | Where | Written by |
 |---|---|---|
 | Purpose, users, constraints, stack, run and test, deploy, integrations and data, decision makers | `product.md` (`type: Product`), one `## <heading>` each | you, editing the concept |
+| How it runs in production: deploy, environments, logs, database, access, monitoring, alerts | `operations.md` (`type: Operations`), one `## <heading>` each | you, editing the concept |
 | Requirements, including what is out of scope | `requirements/R<nnn>-<slug>.md` (`type: Requirement`) | `ai1 okf project req add\|set` only |
 | Questions the person cannot answer now, and assumptions | `requirements/questions.md` | `ai1 okf project question add\|assume\|answer` only |
 | The developer's technical vision: architecture, libraries and services to reuse, how it integrates, what to avoid | `decisions/<slug>.md` (`type: Decision`, tag `technical-vision`, proposed / accepted / replaced) | `ai1 okf project decision add\|set` only |
@@ -49,7 +50,8 @@ said it (`--from client`, `--from developer`, or a name):
 ## 1. See what is missing
 
 Run `ai1 okf project gaps`. With no Product concept yet, run `ai1 okf project init` first (it creates
-`product.md`, the requirements index and the questions file, and links them from the bundle index).
+`product.md`, `operations.md`, the requirements index and the questions file, and links them from the
+bundle index; run it again in a repo started before `operations.md` existed and it adds only that).
 Each category reads clear, partial or missing.
 
 ## 2. Infer before asking
@@ -57,6 +59,15 @@ Each category reads clear, partial or missing.
 Read the repo and the bundle for every partial or missing category: README, manifests (stack),
 `.ai1/config.json` verify commands (run and test), CI and deploy files, env examples (integrations),
 existing concepts. In resume mode, also what this session already learned.
+
+For operations, look also at what production really has, when you can reach it read-only: the
+deploy platform, the log and monitoring tools, the alert channels (the customization below may name
+the person's own tools and how to query them). Each section of `operations.md` gets the exact command
+or place (how to read the logs, open a tunnel to the database, get into the server), and secrets only
+as where they live (a secret manager item, the platform's environment), never their value. Existing
+runbooks or operations concepts are linked from it, not copied. A topic the project lacks (no
+monitoring, no alerts, no backup of its data) is an open question `--about operations`, with your
+recommendation to set it up.
 
 Then the project's documents **outside the repo**: many projects keep the brief, the quote or
 contract, the client's spreadsheets and specs, and meeting notes in a project folder elsewhere.

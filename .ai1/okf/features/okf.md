@@ -1,11 +1,11 @@
 ---
 type: Component
 title: okf feature
-description: Project knowledge in an OKF bundle - index and bundle health notes at session start, project context (purpose, scope, requirements, open questions) with its interview, CLAUDE.md drift hint, catch-up after merging a branch without a bundle, related concepts per message and per file read or edited, upkeep reminder at stop, OKF toolkit skills.
+description: Project knowledge in an OKF bundle - index and bundle health notes at session start, project context (purpose, scope, requirements, open questions, how it runs in production) with its interview, CLAUDE.md drift hint, catch-up after merging a branch without a bundle, related concepts per message and per file read or edited, upkeep reminder at stop, OKF toolkit skills.
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-22T09:32:59Z'
+  at: '2026-11-22T10:30:04Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -341,9 +341,19 @@ of its own: it reads and writes only the bundle and reaches the agent through th
   with `about: <category>`); `requirements/index.md` generated. Out of scope has one store: requirements
   in state `out-of-scope`.
 - **Gap map** (`ai1 okf project gaps`, no model): categories purpose, users, scope, constraints, stack,
-  run-test, deploy, integrations-data, decision-makers. Clear when its Product section has text (scope
+  technical-vision, run-test, deploy, operations, integrations-data, decision-makers. Clear when its Product section has text (scope
   also by any out-of-scope requirement, run-test also by `verify` commands), partial on `TBD`/`TODO` or a
   pending question about it, missing otherwise.
+- **Operations (2026-11-22)**: `operations.md` (`type: Operations`, an existing one elsewhere is
+  reused), written by `init` (idempotent: run again, it adds only what is missing), one `## <heading>`
+  per topic - Deploy, Environments, Logs, Database, Access, Monitoring, Alerts - each left with an HTML
+  comment hint, the exact command or place, secrets only as where they live. The `operations` category
+  is missing while every topic is empty, partial naming the empty or placeholder ones (or a pending
+  question `about: operations`), clear when all have text ("none" counts); its Deploy also answers
+  `deploy`, and a `## Deploy` in product.md still does. The interview infers it from production when it
+  can reach it read-only and leaves what the project lacks (monitoring, alerts, backups) as open
+  questions with a recommendation; how to query the person's own tools comes from their customization
+  or their own plugin, never from ai1 ([decision](../decisions/project-operations.md)).
 - **`ai1 okf project`**: `init` (Product skeleton, index, questions file, links in the root index),
   `gaps`, `req add|set|command|list|goal` (goal prints a `/goal` line from the requirement's `check`;
   `req add --supersedes <id>` replaces a requirement, which stays as `superseded` by the new one),
