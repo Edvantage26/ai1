@@ -7,4 +7,4 @@
 * [Harness guards](harness-guards.md) - config-guard, test-guard, repo rules, credential deny rules and the decision log (later 0002-0006).
 * [The person within a project](person-in-project.md) - local by default in `.ai1/local/`, team facts committed (maintainers, watches, contacts), sealed sync on request with `node:crypto` only (2026-11-18).
 * [Host tooling stays out of the plugin](host-tooling-out-of-plugin.md) - generic options (`--open-command`, `--claude-command`) plus the person's customization; no agent-manager code in ai1.
-* [Project operations](project-operations.md) - an Operations concept per project and its gap category in ai1; the person's infrastructure in their own private plugin (2026-11-22).
+* [Project operations](project-operations.md) - an Operations concept per project and its gap category in ai1; the person's infrastructure in their own skills, a plugin only to share them (2026-11-22).
