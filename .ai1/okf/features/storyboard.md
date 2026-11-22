@@ -5,7 +5,7 @@ description: Storyboard of the user flow after a visual change - numbered steps 
 tags: [storyboard, ui, screenshots, pdf, worktrees]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-20T23:27:05Z'
+  at: '2026-11-22T15:35:26Z'
 sources:
   - id: storyboard
     resource: src/storyboard/storyboard-steps.mjs
@@ -127,6 +127,15 @@ ai1 never drives the browser: the agent captures with its own tool and hands the
   root of the session's repo, exactly the residue `clean` removes (7 deleted on `worktree finish`).
   The plugin Playwright MCP failed there (no `/opt/google/chrome`). The highlight label sits above the
   element and can cover its neighbours: acceptable, the frame is what matters.
+- `@playwright/mcp` (checked on 0.0.86, 2026-11-22) uses the `chrome` channel by default, hence the
+  `/opt/google/chrome` failure on machines without Google Chrome. `--browser chromium` plus
+  `playwright-mcp install-browser chromium` (each MCP version wants its own Chromium build) fixes it,
+  and `--headless` is needed on a machine with no display. `--caps devtools` adds on-demand video
+  (`browser_start_video` / `browser_stop_video`, plus chapters). With no `filename` the `.webm` goes to
+  `--output-dir`; with a `filename` it is saved relative to the MCP's working directory, like the
+  screenshots. Recording every page through `contextOptions.recordVideo` grew a 4 GB file from a page
+  left open. Check it by talking to the MCP over stdio with JSON-RPC (`initialize`, `tools/list`,
+  then `tools/call` navigate, start video, stop video) and looking at the `.webm`.
 - Validate the look by building a demo storyboard from two headless screenshots
   (`chrome --headless --no-sandbox --window-size=1440,900 --screenshot=...`), screenshotting
   `index.html` and reading the PDF page by page. The slides view opens on step 1 (a `#step-n` hash
