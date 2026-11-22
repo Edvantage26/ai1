@@ -306,6 +306,24 @@ export function mapSatisfyingConcepts(bundleDirectory) {
   return satisfyingConcepts;
 }
 
+// How well the bundle links code to requirements, as a report only (nothing nags or blocks): validated
+// requirements no concept says it satisfies (built, but where and how is not written), and `satisfies`
+// links to requirements that do not exist, are out of scope or were superseded (stale links, or code
+// that is no longer wanted). { validatedWithoutConcept: [requirement], staleLinks: [{ concept, id, reason }] }.
+export function checkSatisfiesLinks(bundleDirectory, requirements = listRequirements(bundleDirectory)) {
+  const satisfyingConcepts = mapSatisfyingConcepts(bundleDirectory);
+  const staleLinks = [];
+  for (const [requirementId, conceptPaths] of Object.entries(satisfyingConcepts)) {
+    const requirement = findRequirement(requirements, requirementId);
+    const reason = !requirement ? 'no such requirement' : ['out-of-scope', 'superseded'].includes(requirement.state) ? requirement.state : '';
+    if (reason) staleLinks.push(...conceptPaths.map((conceptPath) => ({ concept: conceptPath, id: requirementId, reason })));
+  }
+  return {
+    validatedWithoutConcept: requirements.filter((requirement) => requirement.state === 'validated' && !satisfyingConcepts[requirement.id]),
+    staleLinks,
+  };
+}
+
 // --- Milestones and review ---------------------------------------------------------------------
 
 // Puts a requirement in a milestone (free text: v1, v2, "launch"...). Returns { id, previousMilestone }.
@@ -341,6 +359,7 @@ export function buildRequirementsReview(bundleDirectory, { milestone = '' } = {}
   const product = existsSync(bundleDirectory) ? findProductConcept(bundleDirectory) : null;
   return {
     lastReviewed: readFrontmatterField(product?.frontmatterText, 'requirements_reviewed'),
+    links: checkSatisfiesLinks(bundleDirectory),
     milestones: milestoneNames.map((milestoneName) => {
       const milestoneRequirements = requirements.filter((requirement) => (requirement.milestone || NO_MILESTONE) === milestoneName);
       const inState = (requirementState) => milestoneRequirements.filter((requirement) => requirement.state === requirementState);

@@ -14,7 +14,7 @@ import { closePlan } from '../src/cli/verify-run.mjs';
 import { createTemporaryProject } from './helpers.mjs';
 import {
   buildGapMap, initProjectContext, addRequirement, listRequirements, findRequirement, isProjectContextEnabled,
-  setRequirementMilestone, setRequirementState, buildRequirementsReview, mapSatisfyingConcepts, stampRequirementsReview,
+  setRequirementMilestone, setRequirementState, buildRequirementsReview, mapSatisfyingConcepts, stampRequirementsReview, checkSatisfiesLinks,
 } from '../src/okf/okf-project.mjs';
 import { findMaintenanceTask, updateTaskSetting, shouldShowMaintenanceTask } from '../src/maintenance/maintenance-tasks.mjs';
 
@@ -155,6 +155,28 @@ test('requirements-review: offered once enough changed since the last review (pl
   assert.match(runCheck(new Date('2027-03-01T10:00:00Z')) || '', /day\(s\) since the last review \(2026-11-26\)/);
   updateTaskSetting(projectRoot, 'requirements-review', { mode: 'off' });
   assert.equal(shouldShowMaintenanceTask('requirements-review', { config: { features: { okf: true, maintenance: true } }, sharedRoot: projectRoot, projectRoot }), false);
+});
+
+test('satisfies coverage: review and gaps report validated requirements no concept satisfies and links to missing, out-of-scope or superseded requirements; nothing when all is fine', () => {
+  const { projectRoot, bundleDirectory } = createBundle();
+  initProjectContext(bundleDirectory, { projectTitle: 'Shop', now: FIXED_NOW });
+  addRequirement(bundleDirectory, { title: 'Pay by card', now: FIXED_NOW });
+  addRequirement(bundleDirectory, { title: 'Ship orders', now: FIXED_NOW });
+  addRequirement(bundleDirectory, { title: 'Native app', state: 'out-of-scope', reason: 'web first', now: FIXED_NOW });
+  setRequirementState(bundleDirectory, 'R001', 'validated', { plan: 'checkout', now: FIXED_NOW });
+  setRequirementState(bundleDirectory, 'R002', 'validated', { plan: 'shipping', now: FIXED_NOW });
+  writeFileSync(join(bundleDirectory, 'payments.md'), '---\ntype: Component\ntitle: Payments\nsatisfies: [R001]\n---\nStripe.\n');
+  writeFileSync(join(bundleDirectory, 'mobile.md'), '---\ntype: Component\ntitle: Mobile shell\nsatisfies: [R003, R009]\n---\nOld.\n');
+  const satisfiesLinks = checkSatisfiesLinks(bundleDirectory);
+  assert.deepEqual(satisfiesLinks.validatedWithoutConcept.map((requirement) => requirement.id), ['R002']);
+  assert.deepEqual(satisfiesLinks.staleLinks, [{ concept: 'mobile.md', id: 'R003', reason: 'out-of-scope' }, { concept: 'mobile.md', id: 'R009', reason: 'no such requirement' }]);
+  const runCli = (...cliArguments) => execFileSync(process.execPath, [AI1_CLI, 'okf', 'project', ...cliArguments], { cwd: projectRoot, encoding: 'utf8' }).trim();
+  for (const reportText of [runCli('review'), runCli('gaps')]) {
+    assert.match(reportText, /Validated, but no concept says it satisfies them \(built; where and how is not written\):\n    R002 Ship orders/);
+    assert.match(reportText, /Stale satisfies links \(fix the link, or ask whether that code is still wanted\):\n    mobile\.md -> R003 \(out-of-scope\)\n    mobile\.md -> R009 \(no such requirement\)/);
+  }
+  writeFileSync(join(bundleDirectory, 'mobile.md'), '---\ntype: Component\ntitle: Shipping\nsatisfies: [R002]\n---\nCarriers.\n');
+  assert.doesNotMatch(runCli('gaps'), /Validated, but no concept|Stale satisfies links/);
 });
 
 test('review per milestone: validated, still to build, out of scope with its reason, superseded, in force without a check command; --done stamps the Product concept [requirements-lifecycle:S1]', () => {

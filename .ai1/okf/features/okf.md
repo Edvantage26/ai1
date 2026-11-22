@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index and bundle health notes 
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-22T07:06:25Z'
+  at: '2026-11-22T09:24:56Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -385,6 +385,11 @@ of its own: it reads and writes only the bundle and reaches the agent through th
   - *satisfies:* a concept's `satisfies: [R004]`; okf-file-context, on an edit of a file that concept
     describes, asks once per requirement and session to run `ai1 okf project verify R004` (only for
     requirements in force with a check command); `req list` shows the satisfying concepts.
+    `review` and `gaps` report the coverage (`checkSatisfiesLinks`, report only): validated
+    requirements no concept satisfies, and links to requirements missing, out of scope or superseded.
+    Ruling (2026-11-22): links stay selective (only concepts that build what a requirement asks) and
+    nothing asks to add them yet; a `plan-done` suggestion and a line in /ai1:okf-maintain-knowledge
+    wait for real use, decided by what this report shows in a real project.
   - *Messages:* okf-recall scores every Requirement concept on its own: at least two title keywords (all
     when fewer) shared with the message. In force plus a change cue (es/en word list in
     `src/okf/okf-recall.mjs`) adds "may change R003: confirm in one line"; out of scope, matched at all,

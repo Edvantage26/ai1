@@ -12,7 +12,7 @@ import {
   addQuestion, settleQuestion, listQuestions, findOutOfScopeConflicts, buildGoalLine, PROJECT_CATEGORIES,
   REQUIREMENT_STATES, setRequirementCheckCommand, verifyRequirements, isProjectContextEnabled, PROJECT_CONTEXT_MODULE_ID,
   setRequirementMilestone, buildRequirementsReview, stampRequirementsReview, mapSatisfyingConcepts,
-  findAvoidedTermsInPlan, listTechnicalDecisions, addTechnicalDecision, setTechnicalDecisionState,
+  findAvoidedTermsInPlan, listTechnicalDecisions, addTechnicalDecision, setTechnicalDecisionState, checkSatisfiesLinks,
 } from './okf-project.mjs';
 
 export const OKF_PROJECT_USAGE = 'ai1 okf project init [--title "..."] | gaps [--json] | req add --title "..." [--statement "..."] [--priority must|should] [--state active|out-of-scope] [--check "..."] [--check-command "..."] [--supersedes <id>] [--milestone <name>] [--quote "..."] [--from <who>] [--reason "..."] | req milestone <id> <name> | review [--milestone <name>] [--json] [--done] | req set <id> <state> [--by <id>] [--quote "..."] [--reason "..."] [--plan <slug>] | req command <id> "<command>" | req list [--state <state>] [--json] | req goal <id> | verify [<id>] [--json] | decision add --title "..." [--decision "..."] [--why "..."] [--alternatives "a; b"] [--avoid "x; y"] [--from <who>] [--state proposed|accepted] [--quote "..."] | decision set <slug> <proposed|accepted|replaced> [--by <slug>] | decision list [--json] | question add --about <category> "<question>" | question assume <id> "<assumption>" | question answer <id> "<answer>" [--to <concept>] | question list [--json] | conflicts <plan-slug-or-path>';
@@ -62,11 +62,24 @@ export function formatRequirementsReview(requirementsReview) {
     if (milestoneReview.superseded.length) lines.push('  superseded:', ...milestoneReview.superseded.map((requirement) => `${listLine(requirement)} -> ${requirement.supersededBy}`));
     if (milestoneReview.withoutCheckCommand.length) lines.push('  in force without a check command:', ...milestoneReview.withoutCheckCommand.map(listLine));
   }
+  lines.push(...formatSatisfiesLinks(requirementsReview.links));
   lines.push('After going through it with the person: ai1 okf project review --done');
   return lines.join('\n');
 }
 
-export function formatGapMap(gapMap) {
+// The link report (checkSatisfiesLinks): nothing when every link is fine.
+function formatSatisfiesLinks(satisfiesLinks) {
+  const lines = [];
+  if (satisfiesLinks.validatedWithoutConcept.length) {
+    lines.push('Validated, but no concept says it satisfies them (built; where and how is not written):', ...satisfiesLinks.validatedWithoutConcept.map((requirement) => `    ${requirement.id} ${plainRequirementTitle(requirement)}`));
+  }
+  if (satisfiesLinks.staleLinks.length) {
+    lines.push('Stale satisfies links (fix the link, or ask whether that code is still wanted):', ...satisfiesLinks.staleLinks.map((staleLink) => `    ${staleLink.concept} -> ${staleLink.id} (${staleLink.reason})`));
+  }
+  return lines;
+}
+
+export function formatGapMap(gapMap, satisfiesLinks = null) {
   const statusMarks = { clear: '✓', partial: '~', missing: '✗' };
   const lines = [
     `Project context: ${gapMap.product ? `Product concept ${gapMap.product}` : 'no Product concept yet (ai1 okf project init)'}`,
@@ -76,6 +89,7 @@ export function formatGapMap(gapMap) {
   const countByState = Object.fromEntries(REQUIREMENT_STATES.map((requirementState) => [requirementState, gapMap.requirements.filter((requirement) => requirement.state === requirementState).length]));
   lines.push(`Requirements: ${REQUIREMENT_STATES.map((requirementState) => `${countByState[requirementState]} ${requirementState}`).join(', ')}`);
   lines.push(`Open questions: ${gapMap.questions.filter((question) => question.status === 'open').length} open, ${gapMap.questions.filter((question) => question.status === 'assumed').length} assumed`);
+  if (satisfiesLinks) lines.push(...formatSatisfiesLinks(satisfiesLinks));
   return lines.join('\n');
 }
 
@@ -107,7 +121,7 @@ export function runOkfProjectCommand(workingDirectory, commandArguments, writeOu
       const gapMap = buildGapMap(bundleDirectory, { verifyCommands: readVerifyCommands(projectRoot) });
       const moduleOffNote = describeModuleOff(projectRoot);
       if (options.json) printJson({ ...gapMap, enabled: !moduleOffNote });
-      else writeOutput([moduleOffNote, formatGapMap(gapMap)].filter(Boolean).join('\n'));
+      else writeOutput([moduleOffNote, formatGapMap(gapMap, checkSatisfiesLinks(bundleDirectory, gapMap.requirements))].filter(Boolean).join('\n'));
       return 0;
     }
     if (subcommandName === 'req') {
