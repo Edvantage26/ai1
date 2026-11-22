@@ -368,7 +368,7 @@ test('sizing-approval: a yes to another question after the design was presented 
   assert.match(readFileSync(planPath, 'utf8'), /status: approved/);
 });
 
-test('readLastAgentTurnEvents: the turn after the last prompt, skipping meta and tool results', async () => {
+test('readLastAgentTurnEvents: the turn after the last prompt, skipping meta, tool results and background task reports', async () => {
   const { readLastAgentTurnEvents } = await import('../src/core/transcript-scan.mjs');
   const transcriptPath = join(mkdtempSync(join(tmpdir(), 'ai1-turn-')), 't.jsonl');
   const transcriptLines = [
@@ -378,13 +378,14 @@ test('readLastAgentTurnEvents: the turn after the last prompt, skipping meta and
     { type: 'assistant', message: { content: [{ type: 'tool_use', id: 'new', name: 'Read', input: {} }] } },
     { type: 'user', message: { content: [{ type: 'tool_result', tool_use_id: 'new', content: 'x' }] } },
     { type: 'user', isMeta: true, message: { content: [{ type: 'text', text: 'skill body' }] } },
+    { type: 'user', message: { content: '<task-notification>\n<status>completed</status>\n</task-notification>' } },
     { type: 'assistant', message: { content: [{ type: 'text', text: 'shall I?' }] } },
   ];
   writeFileSync(transcriptPath, `${transcriptLines.map((line) => JSON.stringify(line)).join('\n')}\n`);
-  const turnIds = (events) => events.flatMap((event) => event.message.content).map((block) => block.id ?? block.tool_use_id ?? block.text);
-  assert.deepEqual(turnIds(readLastAgentTurnEvents(transcriptPath)), ['new', 'new', 'skill body', 'shall I?']);
+  const turnIds = (events) => events.flatMap((event) => [event.message.content].flat()).map((block) => block.id ?? block.tool_use_id ?? block.text ?? 'notification');
+  assert.deepEqual(turnIds(readLastAgentTurnEvents(transcriptPath)), ['new', 'new', 'skill body', 'notification', 'shall I?'], 'a background task report does not cut the turn');
   writeFileSync(transcriptPath, `${JSON.stringify({ type: 'user', message: { content: 'yes' } })}\n`, { flag: 'a' });
-  assert.deepEqual(turnIds(readLastAgentTurnEvents(transcriptPath)), ['new', 'new', 'skill body', 'shall I?'], 'the prompt being submitted is skipped');
+  assert.deepEqual(turnIds(readLastAgentTurnEvents(transcriptPath)), ['new', 'new', 'skill body', 'notification', 'shall I?'], 'the prompt being submitted is skipped');
   assert.equal(readLastAgentTurnEvents(join(tmpdir(), 'missing-transcript.jsonl')), null);
 });
 

@@ -7,6 +7,7 @@ import { closeSync, existsSync, openSync, readSync, statSync } from 'node:fs';
 
 export const TOOL_USE_MARKER = '"type":"tool_use"';
 export const TOOL_RESULT_MARKER = '"type":"tool_result"';
+export const TASK_NOTIFICATION_MARKER = '<task-notification>';
 // Copies of the API request Claude Code also writes to the transcript: the same tool calls again,
 // without a timestamp. Counting them would see every call twice.
 const REQUEST_COPY_EVENT_TYPES = new Set(['api-request-blob']);
@@ -49,11 +50,13 @@ export function eventContentBlocks(transcriptEvent, blockType) {
 }
 
 // A prompt the person typed: a user event that is not a tool result and not text injected by
-// Claude Code (skill bodies, reminders: `isMeta`).
+// Claude Code (skill bodies, reminders: `isMeta`; the report of a background task, which resumes the
+// agent's turn without the person: seen on 2026-11-22, it cut the turn that presented a plan, so the
+// person's yes to it did not approve it).
 export function isPersonPromptEvent(transcriptEvent) {
   if (transcriptEvent?.type !== 'user' || transcriptEvent.isMeta) return false;
   const messageContent = transcriptEvent.message?.content;
-  if (typeof messageContent === 'string') return true;
+  if (typeof messageContent === 'string') return !messageContent.trimStart().startsWith(TASK_NOTIFICATION_MARKER);
   return Array.isArray(messageContent)
     && messageContent.some((contentBlock) => contentBlock?.type === 'text')
     && !messageContent.some((contentBlock) => contentBlock?.type === 'tool_result');

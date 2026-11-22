@@ -4,10 +4,9 @@
 // transcripts on 2026-11-15). Stop hooks that ask the agent to wrap up (okf-upkeep, reuse-check) wait
 // while any is pending: the session has stopped only to wait for their reports.
 
-import { TOOL_RESULT_MARKER, eventContentBlocks } from './transcript-scan.mjs';
+import { TASK_NOTIFICATION_MARKER, TOOL_RESULT_MARKER, eventContentBlocks } from './transcript-scan.mjs';
 
 const BACKGROUND_LAUNCH_TEXT = 'Async agent launched successfully';
-export const TASK_NOTIFICATION_MARKER = '<task-notification>';
 const TASK_NOTIFICATION_PATTERN = /<task-notification>[\s\S]*?<tool-use-id>([^<]+)<\/tool-use-id>[\s\S]*?<status>([^<]+)<\/status>/g;
 const FINISHED_TASK_STATUSES = new Set(['completed', 'failed', 'killed', 'cancelled', 'error', 'stopped']);
 // The transcript lines a caller must read for this (pass them to readNewTranscriptEvents).
