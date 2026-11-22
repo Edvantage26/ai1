@@ -5,7 +5,7 @@ description: Each task sized quick, plan or deep - with a plan file for plan and
 tags: [sizing, workflow, hooks, skills, approval]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-22T10:38:42Z'
+  at: '2026-11-22T11:16:44Z'
 sources:
   - id: sizing-work
     resource: src/sizing/sizing-work.mjs
@@ -76,7 +76,7 @@ gate is a hook block; plans live in a local ignored folder.
   file on every one would be the ceremony the prior-art review warns against.
 - **deep**: `/ai1:sizing-design-before-code` skill - look before asking, one question at a time, design in
   `.ai1/work/<slug>/plan.md` (the request word for word with later corrections, goal, constraints, approaches with the choice, steps with checks,
-  risks, rulings), one builder-check subagent, approval, then step by step; a task that builds an accepted [later](later.md) entry carries `later: <number>` in the plan frontmatter; each step closed with `ai1 step-done`, which logs it in `progress.md` only when
+  risks, rulings), one builder-and-critic subagent (below), approval, then step by step; a task that builds an accepted [later](later.md) entry carries `later: <number>` in the plan frontmatter; each step closed with `ai1 step-done`, which logs it in `progress.md` only when
   the [verify](verify.md) commands pass; the plan closed with `ai1 plan-done` (below).
 - **Looking outside (since 2026-11-22):** in a deep design, when the problem can be written as a search query
   without naming the project, the deep skill has one subagent find how other developers solved it
@@ -93,6 +93,18 @@ gate is a hook block; plans live in a local ignored folder.
   every plan task would be the ceremony the [prior-art review](/decisions/prior-art.md) warns
   against, and without the filter the offer would be noise. Same practice as
   `ai1-skill-design`'s web search for similar tools ([skill design](skill-design.md)).
+- **Builder and critic check (deep only, since 2026-11-22):** the one fresh subagent of step 5, on the
+  main model, first reads only Request, Goal and Constraints and sketches its own way (against
+  anchoring), then reads the plan and returns the questions where it would have to guess (the builder
+  check, since 2026-11-08) and at most 3 objections assuming the design has a flaw - a wrong premise,
+  an unhandled failure or a simpler way - each with its concrete case; no style or taste. The main
+  agent sorts each objection into accepted, rejected (a `Ruling:` with why) or the person's, and the
+  approval summary lists them. One round, no debate. Asked by the person, who wanted an agent that
+  "le busque las cosquillas" to the idea. Why this shape, from the
+  [critics review](/decisions/prior-art.md#adversarial-plan-critics-2026-11-22): debating agents give
+  in to a confident peer and cost 2-3x, cheap reviewers missed planted defects, re-review loops
+  churn. Not in plan tasks: redoing one is cheap and nobody waits on it; a plan with a doubtful
+  premise is a deep task, and the person can always ask for a critique.
 
 # Behaviour scenarios (since 2026-11-09)
 

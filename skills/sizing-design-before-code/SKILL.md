@@ -94,18 +94,26 @@ The test that covers a scenario carries the tag `[<slug>:S<n>]` in its name or a
 e.g. `test('locks the account after 4 failures [login-lock:S1]', ...)`. Name in each step which
 scenarios it covers.
 
-## 5. Builder check
+## 5. Builder and critic check
 
-Dispatch one fresh subagent with only the plan path and this brief: "You are a capable engineer
-who must build this from the document alone and cannot talk to its author. List, most important
-first, only the questions where you would have to guess and a wrong guess would matter; or say
-nothing important is missing." Sort its questions into: already answered (make the plan say it),
-minor (your ruling, recorded), and the person's (ask them, in one message).
+Dispatch one fresh subagent, on the same model as you (never a cheaper one), with only the plan
+path and this brief: "You are a capable engineer who must build this from the document alone and
+cannot talk to its author. First read only Request, Goal and Constraints, and write in two lines
+how you would solve it. Then read the whole plan and return two lists, most important first:
+(1) only the questions where you would have to guess and a wrong guess would matter; (2) at most
+3 objections to the design, assuming it has a flaw: a wrong premise, a failure it does not handle,
+or a simpler way that meets the goal - each with the concrete case where it goes wrong or what the
+simpler way drops. No style or taste. Say 'nothing important' for a list that has nothing."
+
+Sort its questions into: already answered (make the plan say it), minor (your ruling, recorded),
+and the person's (ask them, in one message). Sort each objection into: accepted (change the plan),
+rejected (`Ruling: rejected <objection> - <why>` in the plan), or the person's (in the same
+message). One round only: do not send the revised plan back to the critic and do not debate it.
 
 ## 6. Ask for approval
 
 Set `status: ready` and show the person a short summary: goal, behaviour scenarios, chosen approach, steps, risks,
-and the rulings you made. Ask them to approve or to say what to change. A plain yes from them
+the critic's objections with what you did with each, and the rulings you made. Ask them to approve or to say what to change. A plain yes from them
 ("aprobado", "adelante", "ok", "go ahead") is recorded by the `sizing-approval` hook and opens code
 edits, but only right after a turn of yours that wrote the plan: ask in the same turn you set it
 ready or update it. If they ask for changes or question the design, update the plan, keep

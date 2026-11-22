@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-22T10:43:30Z'
+  at: '2026-11-22T11:16:44Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -554,8 +554,9 @@ and applied where they belong, status changes at plan close.
 # Adversarial plan critics (2026-11-22)
 
 Searched when the person asked whether plan and deep tasks should get a nitpicking agent that audits
-the idea. Not decided; the deep [builder check](/features/sizing.md) today only finds ambiguity
-(where a builder would have to guess), not a wrong premise.
+the idea. The deep builder check only found ambiguity (where a builder would have to guess), not a
+wrong premise. Taken the same day, deep only, as the critic half of the
+[builder and critic check](/features/sizing.md) (last bullet below); plan tasks get none.
 
 - Community skills (READMEs only, none publish measured results): a fresh read-only reviewer told to
   assume the plan is flawed and find the strongest objection (wrong premise, failure modes, a simpler
@@ -572,6 +573,6 @@ the idea. Not decided; the deep [builder check](/features/sizing.md) today only 
   ([Peacemaker or Troublemaker](https://arxiv.org/pdf/2509.23055)); a 2026 preprint with 7-8B models
   finds unguided debate no better and 2.1-3.4x costlier than isolated self-correction
   ([arXiv 2605.00914](https://arxiv.org/html/2605.00914)). Math and QA benchmarks, not plans.
-- Together with Superpowers (Haiku reviewers 0/10, review loops churn unless scoped and capped): if
-  taken, one fresh critic with the main model, one round, a few objections each with a concrete
+- Together with Superpowers (Haiku reviewers 0/10, review loops churn unless scoped and capped):
+  one fresh critic with the main model, one round, a few objections each with a concrete
   failure or simpler alternative, triaged by the main agent - not a debate.

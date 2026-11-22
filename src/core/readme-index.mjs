@@ -49,7 +49,11 @@ export const SKILL_ORIGIN_INDEX = {
   'session-fork-conversation': NO_ORIGIN,
   'sizing-design-before-code': {
     importedFrom: [],
-    basedOn: [{ ...GENTLE_AI, what: 'ODD: sizing by risk, the plan starting with the request word for word' }],
+    basedOn: [
+      { ...GENTLE_AI, what: 'ODD: sizing by risk, the plan starting with the request word for word' },
+      { ...SUPERPOWERS, what: 'a fresh reviewer with the main model (cheap reviewers missed planted defects), one capped round' },
+      { name: 'EpicenterHQ adversarial-review', url: 'https://github.com/EpicenterHQ/epicenter', what: 'the critic reads the goal and constraints before the proposal, against anchoring' },
+    ],
   },
   'storyboard-record-flow': NO_ORIGIN,
   'verify-debug-systematically': {
