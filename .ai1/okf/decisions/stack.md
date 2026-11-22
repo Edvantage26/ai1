@@ -6,7 +6,7 @@ tags: [decision, okf, project-context, stack]
 status: stable
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-22T12:41:07Z'
+  at: '2026-11-22T13:54:24Z'
 ---
 
 # Decision
@@ -27,6 +27,16 @@ keeps the pieces it chose with their state. How it is built: [okf feature](../fe
   piece is operated stays in `operations.md`.
 - A plugin source lets a person's private pack carry their stack to any machine, like its
   customizations ([project operations](project-operations.md)).
+
+# Seen in the first real audit (2026-11-22)
+
+- A piece's `check` must be verifiable with the tools at hand (an owner Kuma's API does not return was not).
+- `applies` must say the exceptions people really have (a dev database, a domain older than the
+  convention, a worker app instead of scheduled jobs), or a piece stays pending for the wrong reason.
+- The `check` should catch the rule, not only the effect: "logs arrive" passed for a hand-made client
+  that the person's rule forbids; the check now also asks for the shared package.
+- `ai1 okf project init` also creates the Product concept and starts the project context: an audit that
+  only needs `operations.md` must not run it (left the repo with interview gaps at every session start).
 
 # Not done
 

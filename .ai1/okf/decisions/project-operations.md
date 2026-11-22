@@ -6,7 +6,7 @@ tags: [decision, okf, project-context, operations, public-repo]
 status: stable
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-22T11:27:04Z'
+  at: '2026-11-22T13:54:24Z'
 ---
 
 # Decision
@@ -30,7 +30,11 @@ pasandolo a plugin"). Two layers, approved that day ("capa generica ok"):
   plugin after all, to stop depending on a config repo ("no quiero depender de ese repositorio de
   configuración"): it carries the skills, a production checklist, a hook with the rules, and its own
   customization of ai1's skills, which ai1 now reads from any enabled plugin
-  ([skill customization](../architecture/skill-customization.md#customizations-shipped-by-a-plugin-since-2026-11-22)). Same line as
+  ([skill customization](../architecture/skill-customization.md#customizations-shipped-by-a-plugin-since-2026-11-22)).
+  After a pilot audit, the same day, the person went back to no plugin ("la b me gusta más"): their
+  stack is ai1's user stack (`~/.config/ai1/stack.md`, see [stack](stack.md)) and the skills stay in
+  their own config, which they accept to carry to each machine. Plugin customizations and plugin
+  stacks stay in ai1 for whoever wants a shareable pack. Same line as
   [host tooling stays out of the plugin](host-tooling-out-of-plugin.md).
 
 # Why
