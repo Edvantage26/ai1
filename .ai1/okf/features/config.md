@@ -22,7 +22,7 @@ sources:
     title: /ai1:core-setup-config
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-22T15:37:14Z'
+  at: '2026-11-22T15:42:50Z'
 ---
 
 Built 2026-11-22 from the plan `ai1-config`, asked by the person ("que la configuración global se
@@ -93,7 +93,9 @@ from the target; a key changed on both sides is a conflict on its own.
 the symlinks into it under `~`, `~/.claude`, `~/.claude/scripts`, `~/.config/ai1` and `~/.local/bin`,
 moves each file to its tree with `git mv` in one commit, renames `overlay.md` to `customization.md`, keeps
 only the person's settings keys in the repo, moves the repo to `config-repo/` leaving a link at the old path,
-turns the symlinks into copies, recreates links elsewhere, lists what it left in the repo unmapped),
+turns the symlinks into copies - a linked folder copied whole, so what ai1 does not manage inside it stays,
+and other tools' folders (`claude/skills/synced`, `.trash`) leave the repo into `.gitignore` -, recreates
+links elsewhere, lists what it left in the repo unmapped),
 `status [--json]`, `sync` (commit local changes, `pull --rebase` - aborted and reported when it stops -,
 apply, capture, commit, push when `autoPush`), `commit [-m] [--include <repo path>]`, `push`,
 `new-skill <name>` (the technology template: When it applies, Integrate, Audit, Operate, When done, and

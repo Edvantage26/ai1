@@ -30,7 +30,9 @@ const TREE_NAMES = ['claude', 'home', 'ai1'];
 export const CAPTURED_FOLDERS = ['claude/skills', 'claude/scripts', 'ai1/skills'];
 export const CAPTURED_FILES = ['claude/CLAUDE.md', 'ai1/stack.md'];
 // Never managed, whatever the options say.
-const ALWAYS_EXCLUDED = ['claude/skills/synced', 'claude/skills/.trash', '__pycache__', 'node_modules', '.DS_Store'];
+// Folders of other tools inside the managed ones (claude.ai's synced skills, Claude Code's trash).
+export const FOREIGN_FOLDERS = ['claude/skills/synced', 'claude/skills/.trash'];
+const ALWAYS_EXCLUDED = [...FOREIGN_FOLDERS, '__pycache__', 'node_modules', '.DS_Store'];
 const ALWAYS_EXCLUDED_SUFFIXES = ['.pyc', '.bak'];
 
 export function configDirectory({ environment = process.env, homeDirectory = homedir() } = {}) {

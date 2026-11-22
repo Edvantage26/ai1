@@ -10,12 +10,12 @@
 //   new-skill <name>        a skill for one technology from the template, in ~/.claude/skills/<name>/
 //   machine <name> | off | on
 
-import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, readlinkSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { appendFileSync, cpSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, readlinkSync, realpathSync, renameSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { runGit, tryGit } from '../core/git.mjs';
 import {
-  CONFIG_OPTIONS_FILE, DEFAULT_SETTINGS_KEYS, configDirectory, configRepoDirectory, expandHome, hasConfigRepo, machineName,
+  CONFIG_OPTIONS_FILE, DEFAULT_SETTINGS_KEYS, FOREIGN_FOLDERS, configDirectory, configRepoDirectory, expandHome, hasConfigRepo, machineName,
   planConfigSync, readConfigOptions, readConfigState, writeConfigState,
 } from './config-repo.mjs';
 import { planSettingsSync, settingsTargetPath } from './config-settings.mjs';
@@ -137,6 +137,8 @@ export function adoptConfigRepo(sourceDirectory, pathOptions, { autoPush = false
     if (treePath) moves.push({ from: symlink.targetInSource, to: treePath.replace(/\/overlay\.md$/, '/customization.md'), symlink });
     else links.push(symlink);
   }
+  // A linked folder is copied whole at the end, so what ai1 does not manage inside it (synced skills) stays.
+  const linkedFolders = moves.filter((move) => statSync(move.symlink.linkPath).isDirectory());
   // A link elsewhere (e.g. ~/.local/bin) keeps pointing at its file, wherever that file moves.
   const newPathOf = (oldPath) => {
     const move = moves.find((candidateMove) => oldPath === candidateMove.from || oldPath.startsWith(`${candidateMove.from}/`));
@@ -158,6 +160,12 @@ export function adoptConfigRepo(sourceDirectory, pathOptions, { autoPush = false
   const options = { ...DEFAULT_OPTIONS(autoPush), links: links.map((symlink) => ({ repo: newPathOf(symlink.targetInSource), target: `~/${toRepoPath(relative(homeDirectory, symlink.linkPath))}` })) };
   writeOptionsFile(sourceDirectory, options);
   writeByteExactAttributes(sourceDirectory);
+  // Other tools' folders (claude.ai's synced skills) leave the repo but stay on disk, ignored.
+  for (const foreignFolder of FOREIGN_FOLDERS) {
+    if (!tryGit(sourceDirectory, ['ls-files', '--', foreignFolder])) continue;
+    runGit(sourceDirectory, ['rm', '-r', '-q', '--cached', '--', foreignFolder]);
+    appendFileSync(join(sourceDirectory, '.gitignore'), `\n${foreignFolder}/\n`);
+  }
   runGit(sourceDirectory, ['add', '--all']);
   runGit(sourceDirectory, ['commit', '--quiet', '-m', 'config: adopt ai1 config layout (claude/, home/, ai1/)']);
   // The symlinks become copies: remove them, move the repo, keep the old path as a link, then install.
@@ -165,6 +173,7 @@ export function adoptConfigRepo(sourceDirectory, pathOptions, { autoPush = false
   mkdirSync(dirname(repoDirectory), { recursive: true });
   renameSync(sourceDirectory, repoDirectory);
   symlinkSync(repoDirectory, sourceDirectory, process.platform === 'win32' ? 'junction' : 'dir');
+  for (const linkedFolder of linkedFolders) cpSync(join(repoDirectory, ...linkedFolder.to.split('/')), linkedFolder.symlink.linkPath, { recursive: true });
   const outcome = withConfigLock(pathOptions, () => applyFromRepo(pathOptions));
   if (fullSettingsText) writeFileSync(settingsTargetPath(pathOptions), fullSettingsText);
   const linkNotes = createLinks(repoDirectory, options.links, pathOptions);

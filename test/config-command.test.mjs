@@ -84,6 +84,7 @@ test('adopt: a config repo wired with symlinks is reordered to the layout, moved
   writeFile(join(oldRepo, 'CLAUDE.md'), '# Home\n');
   writeFile(join(oldRepo, 'skills-lock.json'), '{}\n');
   writeFile(join(oldRepo, 'install.sh'), '#!/bin/sh\n');
+  writeFile(join(oldRepo, '.claude', 'skills', 'synced', 'from-claude-ai', 'SKILL.md'), 'synced by claude.ai\n');
   git(oldRepo, 'init', '--quiet', '-b', 'main');
   git(oldRepo, 'add', '--all');
   git(oldRepo, 'commit', '--quiet', '-m', 'old layout');
@@ -101,8 +102,8 @@ test('adopt: a config repo wired with symlinks is reordered to the layout, moved
   const adopted = runConfig(pathOptions, 'adopt', oldRepo, '--auto-push');
   assert.equal(adopted.exitCode, 0, adopted.error);
   const repoDirectory = configRepoDirectory(pathOptions);
-  assert.deepEqual(git(repoDirectory, 'ls-files').split('\n').sort(), ['.gitattributes', 'ai1-config.json', 'ai1/skills/okf/customization.md', 'claude/CLAUDE.md', 'claude/settings.json', 'claude/skills/accounts/scripts/accounts.sh', 'home/CLAUDE.md', 'home/skills-lock.json', 'install.sh']);
-  assert.match(adopted.output, /left in the repo as they are \(not synced\): \.gitattributes, install\.sh/);
+  assert.deepEqual(git(repoDirectory, 'ls-files').split('\n').sort(), ['.gitattributes', '.gitignore', 'ai1-config.json', 'ai1/skills/okf/customization.md', 'claude/CLAUDE.md', 'claude/settings.json', 'claude/skills/accounts/scripts/accounts.sh', 'home/CLAUDE.md', 'home/skills-lock.json', 'install.sh']);
+  assert.match(adopted.output, /left in the repo as they are \(not synced\): \.gitattributes, \.gitignore, install\.sh/);
   assert.deepEqual(JSON.parse(readFileSync(join(repoDirectory, 'claude', 'settings.json'), 'utf8')), { env: { A: '1' }, enabledPlugins: { 'x@y': true } });
   const options = JSON.parse(readFileSync(join(repoDirectory, 'ai1-config.json'), 'utf8'));
   assert.equal(options.autoPush, true);
@@ -111,6 +112,8 @@ test('adopt: a config repo wired with symlinks is reordered to the layout, moved
     assert.ok(!lstatSync(join(homeDirectory, copiedPath)).isSymbolicLink(), `${copiedPath} is a copy now`);
   }
   assert.ok(lstatSync(join(homeDirectory, '.claude', 'skills')).isDirectory());
+  assert.equal(readFileSync(join(homeDirectory, '.claude', 'skills', 'synced', 'from-claude-ai', 'SKILL.md'), 'utf8'), 'synced by claude.ai\n', 'a linked folder keeps what ai1 does not manage');
+  assert.match(readFileSync(join(repoDirectory, '.gitignore'), 'utf8'), /^claude\/skills\/synced\/$/m);
   assert.equal(readFileSync(join(homeDirectory, '.config', 'ai1', 'skills', 'okf', 'customization.md'), 'utf8'), '- my okf rule\n');
   assert.deepEqual(JSON.parse(readFileSync(join(homeDirectory, '.claude', 'settings.json'), 'utf8')).internalThing, true, 'Claude Code\'s keys stay in the target');
   assert.ok(lstatSync(join(homeDirectory, '.local', 'bin', 'accounts')).isSymbolicLink());
