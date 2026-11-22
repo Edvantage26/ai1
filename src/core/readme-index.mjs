@@ -32,7 +32,6 @@ export const SKILL_ORIGIN_INDEX = {
   'later-write': NO_ORIGIN,
   'messages-draft-message': NO_ORIGIN,
   'okf-maintain-knowledge': { importedFrom: [{ ...OKF_SKILLS, what: 'the skill, with the OKF v0.2 spec by Google LLC, Apache 2.0' }], basedOn: [] },
-  'okf-define-stack': NO_ORIGIN,
   'okf-interview-project': {
     importedFrom: [],
     basedOn: [

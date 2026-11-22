@@ -6,7 +6,7 @@ tags: [decision, okf, project-context, stack]
 status: stable
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-22T13:54:24Z'
+  at: '2026-11-22T14:30:25Z'
 ---
 
 # Decision
@@ -37,6 +37,14 @@ keeps the pieces it chose with their state. How it is built: [okf feature](../fe
   that the person's rule forbids; the check now also asks for the shared package.
 - `ai1 okf project init` also creates the Product concept and starts the project context: an audit that
   only needs `operations.md` must not run it (left the repo with interview gaps at every session start).
+
+# Removed: the define-stack skill (2026-11-22)
+
+`/ai1:okf-define-stack` shipped in v0.61.0 and was removed the same day, asked by the person ("si deja de
+ser importante quizás mejor borrar"): once each technology has its own skill holding how it is set up,
+checked and operated, the person's stack is a handful of lines pointing to those skills, and a skill's
+description costs context in every session. What stays is what the project gains: `ai1 okf stack`, the
+project's `stack.md` with its states, the offer in the interview and the pending pieces at session start.
 
 # Not done
 

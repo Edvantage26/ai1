@@ -1,5 +1,5 @@
 // `ai1 okf stack ...`: the stack (src/okf/okf-stack.mjs) from the command line, called by
-// /ai1:okf-define-stack, /ai1:okf-interview-project and by hand. Every write to a stack file goes here.
+// /ai1:okf-interview-project and by hand. Every write to a stack file goes here.
 
 import { findRepoRoot } from '../cli/setup-repo.mjs';
 import { resolveBundleDirectory } from './okf-bundle.mjs';
@@ -44,7 +44,7 @@ export function runOkfStackCommand(workingDirectory, commandArguments, { environ
     if (subcommandName === 'catalog') {
       const catalog = buildStackCatalog(projectRoot, homeOptions);
       if (options.json) printJson(catalog);
-      else if (!catalog.pieces.length) writeOutput(`no stack yet: add pieces with ai1 okf stack add --scope user (${userStackPath(homeOptions)}) or /ai1:okf-define-stack`);
+      else if (!catalog.pieces.length) writeOutput(`no stack yet: add pieces with ai1 okf stack add --scope user (${userStackPath(homeOptions)})`);
       else writeOutput([...catalog.pieces.map(describePiece), ...catalog.shadowed.map((shadowedPiece) => `note: ${shadowedPiece.id} from ${shadowedPiece.source} is hidden by the one from ${shadowedPiece.by}`)].join('\n'));
       return 0;
     }

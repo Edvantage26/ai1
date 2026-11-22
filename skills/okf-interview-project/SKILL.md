@@ -112,8 +112,13 @@ the repo or those documents answer.
     `ai1 okf stack adopt <id>...` (pending); the rest: `ai1 okf stack add --scope project --id <id>
     --title "..." --state none --note "<why>"`. A choice between alternatives also gets its decision
     (`decision add`), named in the piece's note.
-  - Without pieces: ask the technical vision as above; create no `stack.md`. When the person keeps
-    naming the same pieces, offer /ai1:okf-define-stack once.
+  - Without pieces: ask the technical vision as above; create no `stack.md`.
+  - The person's own stack: when they name the same pieces project after project ("siempre uso X"),
+    offer once to add them to it, each written in full and shown first: `ai1 okf stack add --scope user
+    --id <slug> --title "..." --area "..." --applies "..." --setup "..." --check "..."` (the `setup` can
+    name a skill that holds how it goes into code; the `check`, how it is verified).
+  - A piece becomes `integrated` only after its `check` passed (`ai1 okf stack set <id> integrated
+    --note "<how, date>"`); a piece set up but not checked stays pending.
 - Stop when the person says enough ("vale", "ya está", "stop"), when the cap is reached, or when a
   wrong guess would no longer matter.
 

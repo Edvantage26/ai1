@@ -118,13 +118,11 @@ test('stack pieces gap: missing with a catalog and no project stack, partial nam
   assert.deepEqual(describeStackPiecesGap([{ id: 'a', state: 'integrated' }, { id: 'b', state: 'none' }], 3), { status: 'clear', why: '' });
 });
 
-test('/ai1:okf-define-stack writes the person\'s stack or the project\'s only through ai1 okf stack, piece by piece, integrated only after its check [stack:S4]', () => {
-  const skillText = readFileSync(new URL('../skills/okf-define-stack/SKILL.md', import.meta.url), 'utf8');
-  assert.match(skillText, /ai1 okf stack add --scope user --id <id>/);
-  assert.match(skillText, /ai1 okf stack adopt <id>\.\.\./);
-  assert.match(skillText, /Infer before asking: what their repos already use/);
-  assert.match(skillText, /`integrated` only after its check passed; `none` always with its reason/);
-  assert.match(skillText, /never versions, files or secrets/);
+test('the interview adds to the person\'s stack only through ai1 okf stack, each piece shown first, and integrated only after its check (no skill of its own since 2026-11-22) [stack:S4]', () => {
+  const skillText = readFileSync(new URL('../skills/okf-interview-project/SKILL.md', import.meta.url), 'utf8');
+  assert.match(skillText, /offer once to add them to it, each written in full and shown first: `ai1 okf stack add --scope user/);
+  assert.match(skillText, /A piece becomes `integrated` only after its `check` passed/);
+  assert.doesNotMatch(skillText, /okf-define-stack/);
   assert.doesNotMatch(skillText, /dokploy|openobserve|uptime kuma|telegram|1password|edvantage/i);
 });
 

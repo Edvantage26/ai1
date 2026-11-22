@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index and bundle health notes 
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-22T12:41:07Z'
+  at: '2026-11-22T14:30:25Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -365,7 +365,9 @@ of its own: it reads and writes only the bundle and reaches the agent through th
   `none` needs `--note`; `set` of a piece not in the project fails; `adopt` skips one already there.
   Gap category `stack-pieces` (apart from `stack`, the language and structure): missing with a catalog
   and no project stack, partial naming pending pieces, clear otherwise; it does not start the project
-  context by itself. /ai1:okf-define-stack writes the person's or a project's pieces;
+  context by itself. The person's stack is written with `ai1 okf stack add --scope user` (the
+  interview offers it when they keep naming the same pieces; `/ai1:okf-define-stack` was removed the same
+  day: a list of a few lines did not earn a skill loaded in every session);
   the interview offers the catalog pieces a project lacks as a multi-select by area (at most 4 per
   question, pre-selected by `applies`), adopts the chosen and records the rest as `none`; without a
   catalog it asks as before. `integrated` only after the piece's `check` passed. Tests:
