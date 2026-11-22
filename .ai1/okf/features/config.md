@@ -22,7 +22,7 @@ sources:
     title: /ai1:core-setup-config
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-22T15:08:07Z'
+  at: '2026-11-22T15:37:14Z'
 ---
 
 Built 2026-11-22 from the plan `ai1-config`, asked by the person ("que la configuración global se
@@ -60,6 +60,9 @@ machine); `capture-new` (a new file in `claude/skills`, `claude/scripts`, `ai1/s
 only when unchanged); `conflict` (both changed, or the repo dropped a file the person changed): nothing
 touched, named. Never managed: `claude/skills/synced`, `.trash`, `__pycache__`, `node_modules`, `*.pyc`,
 `*.bak`, plus `exclude`. A target that is a symlink into the repo counts as in sync (an install script).
+The repo is byte-exact: `init` and `adopt` write `.gitattributes` with `* -text` and `clone` runs with
+`core.autocrlf=false`; without it a Windows clone turned LF into CRLF and every copy differed from the
+other machines' (caught by the Windows CI job on v0.62.0).
 
 `settings.json` goes key by key (`config-settings.mjs`): a key in `machines/<host>/claude/settings.json`
 replaces the common one whole; keys that are not the person's are never read into the repo nor removed

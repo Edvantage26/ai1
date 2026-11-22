@@ -38,6 +38,15 @@ function writeOptionsFile(repoDirectory, options) {
   writeFileSync(join(repoDirectory, CONFIG_OPTIONS_FILE), `${JSON.stringify(options, null, 2)}\n`);
 }
 
+// The config files must arrive byte for byte on every machine: no line-ending conversion on a Windows
+// checkout (a CRLF copy would differ from the original and from its fingerprint everywhere else).
+const BYTE_EXACT_ATTRIBUTES = '* -text\n';
+function writeByteExactAttributes(repoDirectory) {
+  const attributesPath = join(repoDirectory, '.gitattributes');
+  const currentText = existsSync(attributesPath) ? readFileSync(attributesPath, 'utf8') : '';
+  if (!/^\* -text$/m.test(currentText)) writeFileSync(attributesPath, `${BYTE_EXACT_ATTRIBUTES}${currentText}`);
+}
+
 const DEFAULT_OPTIONS = (autoPush) => ({ autoPush, settingsKeys: DEFAULT_SETTINGS_KEYS, exclude: [], files: [], links: [] });
 
 function describeConflicts(outcome) {
@@ -57,6 +66,7 @@ function initConfigRepo(pathOptions, { remote, autoPush = false }) {
   runGit(repoDirectory, ['init', '--quiet', '-b', 'main']);
   writeOptionsFile(repoDirectory, DEFAULT_OPTIONS(autoPush));
   writeFileSync(join(repoDirectory, '.gitignore'), '*.bak\n*.local.json\n.env\n');
+  writeByteExactAttributes(repoDirectory);
   writeFileSync(join(repoDirectory, 'README.md'), '# My Claude Code config\n\nKept by ai1 (`ai1 config`): `claude/` -> ~/.claude, `home/` -> ~, `ai1/` -> ~/.config/ai1, `machines/<host>/` for one machine only.\n');
   if (remote) runGit(repoDirectory, ['remote', 'add', 'origin', remote]);
   const outcome = withConfigLock(pathOptions, () => captureAndCommit(pathOptions, { message: 'config: first capture' }));
@@ -67,7 +77,7 @@ function cloneConfigRepo(pathOptions, remote) {
   const repoDirectory = configRepoDirectory(pathOptions);
   if (existsSync(repoDirectory)) throw new Error(`${repoDirectory} already exists`);
   mkdirSync(dirname(repoDirectory), { recursive: true });
-  runGit(dirname(repoDirectory), ['clone', '--quiet', remote, repoDirectory]);
+  runGit(dirname(repoDirectory), ['clone', '--quiet', '-c', 'core.autocrlf=false', remote, repoDirectory]);
   const outcome = withConfigLock(pathOptions, () => applyFromRepo(pathOptions));
   writeConfigState({ ...readConfigState(pathOptions), lastSyncAt: new Date().toISOString() }, pathOptions);
   return { repoDirectory, outcome };
@@ -147,6 +157,7 @@ export function adoptConfigRepo(sourceDirectory, pathOptions, { autoPush = false
   }
   const options = { ...DEFAULT_OPTIONS(autoPush), links: links.map((symlink) => ({ repo: newPathOf(symlink.targetInSource), target: `~/${toRepoPath(relative(homeDirectory, symlink.linkPath))}` })) };
   writeOptionsFile(sourceDirectory, options);
+  writeByteExactAttributes(sourceDirectory);
   runGit(sourceDirectory, ['add', '--all']);
   runGit(sourceDirectory, ['commit', '--quiet', '-m', 'config: adopt ai1 config layout (claude/, home/, ai1/)']);
   // The symlinks become copies: remove them, move the repo, keep the old path as a link, then install.

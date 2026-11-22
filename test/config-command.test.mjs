@@ -39,7 +39,8 @@ test('init captures what is already in ~/.claude, clone puts it on a second mach
   writeFile(join(firstMachine.homeDirectory, '.claude', 'history.jsonl'), 'not mine');
   assert.equal(runConfig(firstMachine.pathOptions, 'init', '--remote', remoteDirectory).exitCode, 0);
   const firstRepo = configRepoDirectory(firstMachine.pathOptions);
-  assert.deepEqual(git(firstRepo, 'ls-files').split('\n').sort(), ['.gitignore', 'README.md', 'ai1-config.json', 'claude/CLAUDE.md', 'claude/settings.json', 'claude/skills/deploy-tool/SKILL.md']);
+  assert.deepEqual(git(firstRepo, 'ls-files').split('\n').sort(), ['.gitattributes', '.gitignore', 'README.md', 'ai1-config.json', 'claude/CLAUDE.md', 'claude/settings.json', 'claude/skills/deploy-tool/SKILL.md']);
+  assert.equal(readFileSync(join(firstRepo, '.gitattributes'), 'utf8'), '* -text\n', 'byte-exact on every OS');
   assert.deepEqual(JSON.parse(readFileSync(join(firstRepo, 'claude', 'settings.json'), 'utf8')), { env: { FLAG: '1' } });
   assert.equal(runConfig(firstMachine.pathOptions, 'push').exitCode, 0);
 
@@ -100,8 +101,8 @@ test('adopt: a config repo wired with symlinks is reordered to the layout, moved
   const adopted = runConfig(pathOptions, 'adopt', oldRepo, '--auto-push');
   assert.equal(adopted.exitCode, 0, adopted.error);
   const repoDirectory = configRepoDirectory(pathOptions);
-  assert.deepEqual(git(repoDirectory, 'ls-files').split('\n').sort(), ['ai1-config.json', 'ai1/skills/okf/customization.md', 'claude/CLAUDE.md', 'claude/settings.json', 'claude/skills/accounts/scripts/accounts.sh', 'home/CLAUDE.md', 'home/skills-lock.json', 'install.sh']);
-  assert.match(adopted.output, /left in the repo as they are \(not synced\): install\.sh/);
+  assert.deepEqual(git(repoDirectory, 'ls-files').split('\n').sort(), ['.gitattributes', 'ai1-config.json', 'ai1/skills/okf/customization.md', 'claude/CLAUDE.md', 'claude/settings.json', 'claude/skills/accounts/scripts/accounts.sh', 'home/CLAUDE.md', 'home/skills-lock.json', 'install.sh']);
+  assert.match(adopted.output, /left in the repo as they are \(not synced\): \.gitattributes, install\.sh/);
   assert.deepEqual(JSON.parse(readFileSync(join(repoDirectory, 'claude', 'settings.json'), 'utf8')), { env: { A: '1' }, enabledPlugins: { 'x@y': true } });
   const options = JSON.parse(readFileSync(join(repoDirectory, 'ai1-config.json'), 'utf8'));
   assert.equal(options.autoPush, true);
