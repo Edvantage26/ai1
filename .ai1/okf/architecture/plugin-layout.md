@@ -5,7 +5,7 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-22T12:53:25Z'
+  at: '2026-11-22T20:57:50Z'
 ---
 
 # Layout
@@ -51,6 +51,15 @@ leaves a person's `off` alone. A repo without ai1 set up still lists every skill
 session): a settings field, values `on`, `name-only` (listed without description),
 `user-invocable-only` (hidden from the model, `/name` kept), `off` (hidden from both); matched against
 the skill's full name (`ai1:later-write`) and its aliases.
+
+Why the listing matters (Claude Code docs, read 2026-11-22): the skill listing has a budget of 1% of the
+model's context window (`skillListingBudgetFraction`, or `SLASH_COMMAND_TOOL_CHAR_BUDGET` in characters);
+when it overflows, every name stays but descriptions are dropped **starting with the least-invoked skills**,
+and each description plus `when_to_use` is capped at 1,536 characters (`skillListingMaxDescChars`). So a
+rarely used skill is the first to become unfindable; `/doctor` estimates the listing's cost and
+`/skill-doctor` shows each skill's cost and use. Every skill ai1 ships competes for that budget with the
+person's own and the ones synced from claude.ai: hiding skills of features a repo turned off, and keeping
+descriptions short with the use case first, is what keeps ai1's own skills findable.
 
 # What ai1 writes in a repo
 
