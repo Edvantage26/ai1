@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-22T11:16:44Z'
+  at: '2026-11-22T14:42:18Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -576,3 +576,23 @@ wrong premise. Taken the same day, deep only, as the critic half of the
 - Together with Superpowers (Haiku reviewers 0/10, review loops churn unless scoped and capped):
   one fresh critic with the main model, one round, a few objections each with a concrete
   failure or simpler alternative, triaged by the main agent - not a debate.
+
+# Syncing a person's Claude Code config across machines (2026-11-22)
+
+Reviewed for a possible `ai1 config` (a design in progress, not built): the person's CLAUDE.md, settings,
+skills and ai1 customizations in a private git repo.
+
+- Per-person tools, each built by hand: dotclaude (push/pull/status; merges JSON files, last write wins
+  for the rest; excludes credentials and caches; backups before a pull), claude-kitsync (`~/.claude` itself
+  as a git repo, background pull before launching, named remotes for work and personal), claude-dotfiles
+  and Brian Lovin's claude-config (repo + install script with symlinks and backups), clsync, and guides
+  (Nick Ang: symlinks break when Claude Code recreates `~/.claude` mid-session; doug.is: machine-specific
+  settings in a separate file the shared CLAUDE.md imports).
+- chezmoi, the general dotfiles manager: copies by default, symlinks opt-in (on Windows they need
+  Developer Mode or SeCreateSymbolicLinkPrivilege), templates for per-machine differences.
+- For teams, the established pattern is a plugin marketplace (Anthropic docs, Thoughtworks Radar), not
+  dotfiles.
+- Taken as ideas: managed copies rather than symlinks, `settings.json` by keys, machine-specific files
+  apart. Not seen anywhere: committing from the session itself and knowing where each piece belongs;
+  that is what ai1 would add. Not taken: a dependency on chezmoi, templates.
+
