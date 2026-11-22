@@ -10,6 +10,18 @@
       ],
       "reason": "the person prefers not to encapsulate concept renames as a skill",
       "date": "2026-11-14"
+    },
+    {
+      "slug": "stale-plugin-entries",
+      "keywords": [
+        "plugin",
+        "entries",
+        "project",
+        "scope",
+        "cleanup"
+      ],
+      "reason": "Inert next to a user install (tested 2026-11-22); one-off housekeeping after a plugin transition",
+      "date": "2026-11-22"
     }
   ]
 }
