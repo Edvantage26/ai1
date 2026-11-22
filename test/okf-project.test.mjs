@@ -261,6 +261,19 @@ test('/ai1:okf-interview-project infers and shows a draft first, asks one questi
   assert.match(skillText, /changed only through `ai1 okf project`, never by hand/);
 });
 
+test('/ai1:okf-interview-project reads the project documents outside the repo before asking: from its customization, links and related repos; cites them; asks once for more and offers to save a new folder (issue #11)', () => {
+  const skillText = readFileSync(fileURLToPath(new URL('../skills/okf-interview-project/SKILL.md', import.meta.url)), 'utf8');
+  const inferStep = skillText.slice(skillText.indexOf('## 2. Infer before asking'), skillText.indexOf('## 3. Ask'));
+  assert.match(inferStep, /the project's documents \*\*outside the repo\*\*/);
+  assert.match(inferStep, /the folders the customization below names/);
+  assert.match(inferStep, /links in\s+the README, CLAUDE\.md or the bundle to documents outside the repo/);
+  assert.match(inferStep, /--from\s+"<document name>"/);
+  assert.match(inferStep, /tell the person which documents you read and ask once whether there\s+are more to read first/);
+  assert.match(inferStep, /offer once to save it with \/ai1:core-customize-skill/);
+  assert.match(inferStep, /Never ask what\s+the repo or those documents answer/);
+  assert.doesNotMatch(skillText, /GoogleDrive|Google Drive/, 'no host-specific tool in the public plugin');
+});
+
 test('okf-project at session start: nothing before the project context starts; then the doubt rule, gaps, out of scope, open questions and must requirements once started, capped; silent on resume [project-requirements:S2] [project-requirements:S5]', () => {
   const { projectRoot, bundleDirectory } = createBundle();
   const hookOptions = {

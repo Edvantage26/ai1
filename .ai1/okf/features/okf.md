@@ -5,7 +5,7 @@ description: Project knowledge in an OKF bundle - index and bundle health notes 
 tags: [okf, knowledge, hooks, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-22T09:24:56Z'
+  at: '2026-11-22T09:32:59Z'
 sources:
   - id: okf-index
     resource: src/okf/okf-index.mjs
@@ -368,6 +368,14 @@ of its own: it reads and writes only the bundle and reaches the agent through th
   (open first, ranked by impact x uncertainty, at most 5 per sitting, each with a recommended answer,
   multi-select for scope); answers written where they belong at once; the rest stays as open questions.
   Routes: core-setup-repo offers it when purpose or scope is missing; the session-start gaps line names it.
+  Since issue #11 (2026-11-22) the inference also reads the project's documents outside the repo
+  (brief, quote, client spreadsheets, specs, notes): folders named in the skill's customization (the
+  project's, or the person's default per project), links in README, CLAUDE.md or the bundle, and
+  `related` repositories; it cites them with `--from "<document>"`, says which it read and asks once for
+  more before the first question, and offers to save a new folder with /ai1:core-customize-skill.
+  Ruled out: guessing synced-drive folders (host-specific, see
+  [host tooling](../decisions/host-tooling-out-of-plugin.md)), a `docs_paths` config field (the
+  customization already holds it) and a gaps line for it (gaps reads only the bundle).
 - **Plans:** the deep design lists `requirements: [R001, ...]` and runs `conflicts`; `ai1 plan-done`
   validates the listed ones in the bundle of the checkout it closes, each only when its
   `check_command` (if any) passes (missing, out-of-scope, superseded ids or a failing check are only

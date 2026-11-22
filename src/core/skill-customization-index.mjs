@@ -15,7 +15,7 @@ export const SKILL_CUSTOMIZATION_INDEX = {
   'later-write': { customizable: true, scopes: PROJECT_AND_USER, hints: 'who decides entries here and by when, the language and slug style of entries, sections this project always wants' },
   'sizing-design-before-code': { customizable: true, scopes: PROJECT_AND_USER, hints: 'what a design here always needs (a migration plan, a rollback, who approves), the usual risk areas of this project' },
   'okf-maintain-knowledge': { customizable: true, scopes: PROJECT_AND_USER, hints: 'which assets this project documents and which not, its concept types and folders, the language of concepts' },
-  'okf-interview-project': { customizable: true, scopes: PROJECT_AND_USER, hints: 'the stack, libraries, hosting and tools this person always uses and what they always avoid (so the technical vision starts from them, not from a question), categories or questions this project adds' },
+  'okf-interview-project': { customizable: true, scopes: PROJECT_AND_USER, hints: 'where the project documents live outside the repo (or the person\'s default folder per project, with the project name in it), the stack, libraries, hosting and tools this person always uses and what they always avoid, categories or questions this project adds' },
   'okf-tidy-claude-md': { customizable: true, scopes: PROJECT_AND_USER, hints: 'what this repo keeps in CLAUDE.md on purpose, what must never move into the bundle' },
   'okf-visualize-bundle': { customizable: true, scopes: PROJECT_AND_USER, hints: 'where the graph should be opened or published for this person' },
   'verify-debug-systematically': { customizable: true, scopes: PROJECT_AND_USER, hints: 'how bugs are reproduced here (the single-test command, fixtures, seed data), the logs to read first' },

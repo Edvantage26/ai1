@@ -56,9 +56,26 @@ Each category reads clear, partial or missing.
 
 Read the repo and the bundle for every partial or missing category: README, manifests (stack),
 `.ai1/config.json` verify commands (run and test), CI and deploy files, env examples (integrations),
-existing concepts. In resume mode, also what this session already learned. Write what you found into
-the Product sections as a **draft**, then show the person a short summary of it ("this is what I
-understood; correct anything wrong") before the first question. Never ask what the repo answers.
+existing concepts. In resume mode, also what this session already learned.
+
+Then the project's documents **outside the repo**: many projects keep the brief, the quote or
+contract, the client's spreadsheets and specs, and meeting notes in a project folder elsewhere.
+- Where to look: the folders the customization below names (a project's own, or the person's
+  default with the project name in it, e.g. a docs folder per project on a synced drive); links in
+  the README, CLAUDE.md or the bundle to documents outside the repo; the knowledge of `related`
+  repositories in `.ai1/config.json`.
+- List what is there and read the relevant ones (briefs, quotes, contracts, client spreadsheets,
+  specs, notes); skip what is clearly unrelated.
+- Cite the document as the source of each fact or requirement you take from it (`--from
+  "<document name>"`, its words in `--quote`).
+- Before the first question, tell the person which documents you read and ask once whether there
+  are more to read first (other folders, links, attachments). When they point to a folder no
+  customization names, offer once to save it with /ai1:core-customize-skill (for this project, or
+  as their default for every project), so the next interview reads it on its own.
+
+Write what you found into the Product sections as a **draft**, then show the person a short summary
+of it ("this is what I understood; correct anything wrong") before the first question. Never ask what
+the repo or those documents answer.
 
 ## 3. Ask, one question at a time
 
@@ -130,7 +147,8 @@ since the last review):
 
 ## Fixed rules
 
-- Infer first, show the draft, then ask: never a form, never a question the repo already answers.
+- Infer first, show the draft, then ask: never a form, never a question the repo or the project's
+  documents already answer.
 - At most 5 questions per sitting, one at a time, each with a recommended answer.
 - The person's words are quoted as they said them; nothing they did not say is written as theirs.
 - A requirement says what and why; how it is built is never a requirement. Requirements change only
