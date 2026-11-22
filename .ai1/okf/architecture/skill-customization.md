@@ -25,7 +25,7 @@ sources:
     title: Later 0001
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-22T11:27:04Z'
+  at: '2026-11-22T11:37:31Z'
 ---
 
 Built 2026-11-09 from later 0001 (phases 0-2); decision in
@@ -71,6 +71,13 @@ Asked by the person so their production stack travels in a private plugin instea
 - That file missing or of another shape: no plugin customizations, exit 0, and `ai1 skill-context
   --list` says it could not read it.
 - Tests: `test/plugin-customizations.test.mjs` (also on the Windows CI job).
+- Checked live on 2026-11-22 with a private plugin installed at user scope (`claude plugin marketplace
+  add <owner>/<repo>` + `claude plugin install <name>@<name> --scope user`): `node bin/ai1 skill-context
+  okf-interview-project` from the repo printed its `### From plugin <name>` section. The installed ai1
+  only shows it after a release. Seen on the way: `claude plugin marketplace add` does not set
+  `autoUpdate` for the new marketplace (set it in `extraKnownMarketplaces.<name>` by hand), and
+  `${CLAUDE_PLUGIN_ROOT}` is expanded in a plugin's SKILL.md body, so a pack's skills can name their own
+  scripts without home paths (a `reference.md` read with Read is not expanded).
 Nothing is loaded before the skill runs.
 
 - `allowed-tools: Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context *)` in the frontmatter: without
