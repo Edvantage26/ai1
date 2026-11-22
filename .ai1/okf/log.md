@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-11-22
+* **Creation**: [ai1 config](features/config.md) and its [decision](decisions/config-repo.md): the person's Claude Code config in a repo ai1 keeps.
 * **Creation**: [stack decision](decisions/stack.md); `ai1 okf stack`, `/ai1:okf-define-stack` and the `stack-pieces` gap category in [okf feature](features/okf.md).
 * **Creation**: [project operations decision](decisions/project-operations.md); the `Operations` concept and gap category in [okf feature](features/okf.md).
 

@@ -22,6 +22,7 @@
 //   ai1 okf file-map <file>... [--json]          which concepts ai1 names for each file (from the project root)
 //   ai1 okf catch-up [--json] [--brief <sha>]    merges of branches without a bundle not yet documented, and the brief to catch one up
 //   ai1 okf project init|gaps|req|question|conflicts  the project context: purpose, scope, requirements, open questions (src/okf/okf-project-command.mjs)
+//   ai1 config init|clone|adopt|status|sync|commit|push|new-skill|machine|off|on  the person's config repo (src/config/config-command.mjs)
 //   ai1 okf visualize <bundle-dir> [-o viz.html] [...]  the bundle as an interactive HTML graph
 // Run from anywhere inside the repo; files are written at the repo root.
 
@@ -41,6 +42,7 @@ import { readPasswordFor } from '../src/cli/secret-input.mjs';
 import { runReuseCommand, REUSE_USAGE } from '../src/cli/reuse-command.mjs';
 import { runStoryboardCommand, STORYBOARD_USAGE } from '../src/cli/storyboard-command.mjs';
 import { runOkfCommand, OKF_USAGE } from '../src/cli/okf-command.mjs';
+import { runConfigCommand, CONFIG_USAGE } from '../src/config/config-command.mjs';
 import { runForkCommand, FORK_USAGE } from '../src/cli/fork-command.mjs';
 import { runDelegateCommand } from '../src/cli/delegate-command.mjs';
 import { runIssueCommand, ISSUE_USAGE } from '../src/cli/issue-command.mjs';
@@ -193,6 +195,8 @@ try {
     process.exitCode = runStoryboardCommand(repoRoot, commandArguments, { readOption });
   } else if (commandName === 'okf') {
     process.exitCode = runOkfCommand(commandArguments);
+  } else if (commandName === 'config') {
+    process.exitCode = runConfigCommand(commandArguments);
   } else if (commandName === 'routine') {
     const cliResult = runRoutineCommandLine(repoRoot, commandArguments);
     console.log(cliResult.output);
@@ -242,6 +246,7 @@ try {
     console.log(STORYBOARD_USAGE);
     console.log(REUSE_USAGE);
     console.log(OKF_USAGE);
+    console.log(CONFIG_USAGE);
     process.exitCode = commandName ? 1 : 0;
   }
 } catch (commandError) {

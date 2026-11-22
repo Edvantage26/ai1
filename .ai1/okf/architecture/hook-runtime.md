@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-20T23:57:28Z'
+  at: '2026-11-22T15:08:07Z'
 ---
 
 # Flow
@@ -31,6 +31,11 @@ generated:
    - Missing, but a call edits a repository with ai1: only the modules that repository decides
      (`decidedByTarget`, today `foreign-repo`) run, with no config; nothing else (see
      [delegate](../features/delegate.md)).
+   - Missing or not: the **person-scoped** modules (`personScoped`: `config-sync-start`,
+     `config-sync-stop`, `config-skill-hint`) run in any folder, next to the "inactive here" line, because
+     the person's own config decides them, not the repo ([ai1 config](../features/config.md)). A message to
+     the person (`notice`) from these paths is kept even when nothing else is said (it was dropped before
+     2026-11-22).
    - **Other repositories.** A `cwd` in another repository keeps the launch root: only the launch
      `.ai1/config.json` is read. Edits of another repository with ai1 are refused and delegated to a
      session started there ([delegate](../features/delegate.md)). Submodules are part of the launch
@@ -40,7 +45,7 @@ generated:
      inheritance (no `extends`): rules shared by several repos are copied into each.
 3. It decides with the metadata of every module (`MODULE_INDEX`): the enabled ones (feature, per-repo
    module switches) are `enabledModules`; of those, plus the `decidedByTarget` ones (they check the
-   edited repository's own config), the ones for the event and tool that were loaded run. `src/core/dispatcher.mjs` (`runHookEvent`) does the same with every module loaded
+   edited repository's own config) and the `personScoped` ones, the ones for the event and tool that were loaded run. `src/core/dispatcher.mjs` (`runHookEvent`) does the same with every module loaded
    (`src/core/registry.mjs`), for tests and in-process callers.
 4. `src/core/hook-io.mjs` combines decisions (deny/block > ask > context > allow) and prints the
    JSON each event expects (PreToolUse `permissionDecision`, Stop `decision: block`,

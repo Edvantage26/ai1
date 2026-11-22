@@ -20,3 +20,4 @@
 * [retro](retro.md) - `ai1-retro`, a project skill of the ai1 repo only: every repo's hook log on this machine, read for errors, false positives and cost.
 * [issue report](issue-report.md#triage-in-the-ai1-repo) - `triage-issues`, a project skill of the ai1 repo only: the open issues listed, sized and fixed one worktree each with `Fixes #N` (deep ones designed first).
 * [skill design](skill-design.md) - `ai1-skill-design`, a project skill of the ai1 repo only: a new plugin skill that fits its neighbours and has a route by which it is offered, and a review of how the skills fit (`fit-map.mjs`).
+* [ai1 config](config.md) - the person's Claude Code config (global CLAUDE.md, user skills, settings keys, ai1 customizations, stack) in a private repo ai1 copies into place on any OS and commits at every session end; `ai1 config`, `/ai1:core-setup-config`.

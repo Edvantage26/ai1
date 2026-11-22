@@ -35,8 +35,11 @@ export function dispatchHookEvent(eventName, hookInput, { environment = process.
     // Inactive without a contract: one line at session start so the agent can mention it, and only the
     // modules the edited repository decides (foreign-repo), which have no launch config to read.
     if (eventName !== 'SessionStart') return runTargetDecidedModules(eventName, hookInput, { projectRoot, sharedRoot, environment, homeDirectory, moduleDefinitions, runnableModules, reportInternalError });
-    if (hasLegacyLayout(sharedRoot)) return buildHookOutput(eventName, contextDecision('setup', `ai1 plugin is installed but inactive here: no ${CONFIG_RELATIVE_PATH}, but the repo has the old layout (.claude/jig.json, .okf/, docs/rfc/ or .jig/work/). Tell the person that /ai1:core-setup-repo moves it to .ai1/.`));
-    return buildHookOutput(eventName, contextDecision('setup', `ai1 plugin is installed but inactive here: no ${CONFIG_RELATIVE_PATH}. To set it up, the person can run /ai1:core-setup-repo.`));
+    const setupDecision = hasLegacyLayout(sharedRoot)
+      ? contextDecision('setup', `ai1 plugin is installed but inactive here: no ${CONFIG_RELATIVE_PATH}, but the repo has the old layout (.claude/jig.json, .okf/, docs/rfc/ or .jig/work/). Tell the person that /ai1:core-setup-repo moves it to .ai1/.`)
+      : contextDecision('setup', `ai1 plugin is installed but inactive here: no ${CONFIG_RELATIVE_PATH}. To set it up, the person can run /ai1:core-setup-repo.`);
+    const personDecisions = runPersonScopedModules(eventName, hookInput, { projectRoot, sharedRoot, environment, homeDirectory, moduleDefinitions, runnableModules, reportInternalError });
+    return buildHookOutput(eventName, combineAndLogTrims([setupDecision, ...personDecisions], eventName, hookInput, { sharedRoot, environment }));
   }
   if (loadedConfig.status === 'invalid') {
     reportInternalError(`invalid ${loadedConfig.configPath}: ${loadedConfig.errors.join('; ')}`);
@@ -47,7 +50,7 @@ export function dispatchHookEvent(eventName, hookInput, { environment = process.
   const { config } = loadedConfig;
   const enabledModules = moduleDefinitions.filter((moduleDefinition) => isModuleEnabled(moduleDefinition, config));
   const runnableById = new Map(runnableModules.map((runnableModule) => [runnableModule.id, runnableModule]));
-  const dispatchedModules = [...enabledModules, ...moduleDefinitions.filter((moduleDefinition) => moduleDefinition.decidedByTarget && !enabledModules.includes(moduleDefinition))];
+  const dispatchedModules = [...enabledModules, ...moduleDefinitions.filter((moduleDefinition) => (moduleDefinition.decidedByTarget || moduleDefinition.personScoped) && !enabledModules.includes(moduleDefinition))];
   const eventModules = modulesForEvent(eventName, hookInput.tool_name, dispatchedModules)
     .map((moduleDefinition) => runnableById.get(moduleDefinition.id))
     .filter(Boolean);
@@ -134,13 +137,23 @@ function runModules(eventModules, eventName, hookInput, { config, projectRoot, s
 // Where the launch directory has no ai1: only the modules the edited repository decides, with no config.
 function runTargetDecidedModules(eventName, hookInput, { projectRoot, sharedRoot, environment, homeDirectory, moduleDefinitions, runnableModules, reportInternalError }) {
   const runnableById = new Map(runnableModules.map((runnableModule) => [runnableModule.id, runnableModule]));
-  const eventModules = modulesForEvent(eventName, hookInput.tool_name, moduleDefinitions.filter((moduleDefinition) => moduleDefinition.decidedByTarget))
+  const eventModules = modulesForEvent(eventName, hookInput.tool_name, moduleDefinitions.filter((moduleDefinition) => moduleDefinition.decidedByTarget || moduleDefinition.personScoped))
     .map((moduleDefinition) => runnableById.get(moduleDefinition.id))
     .filter(Boolean);
   if (!eventModules.length) return null;
   const { moduleDecisions } = runModules(eventModules, eventName, hookInput, { config: null, projectRoot, sharedRoot, environment, homeDirectory, enabledModules: [], reportInternalError });
   const combinedDecision = combineAndLogTrims(moduleDecisions, eventName, hookInput, { sharedRoot, environment });
-  return combinedDecision.kind === 'allow' ? null : buildHookOutput(eventName, combinedDecision);
+  return combinedDecision.kind === 'allow' && !combinedDecision.notice ? null : buildHookOutput(eventName, combinedDecision);
+}
+
+// The person-scoped modules of an event in a folder without ai1: their decisions (none when nothing runs).
+function runPersonScopedModules(eventName, hookInput, { projectRoot, sharedRoot, environment, homeDirectory, moduleDefinitions, runnableModules, reportInternalError }) {
+  const runnableById = new Map(runnableModules.map((runnableModule) => [runnableModule.id, runnableModule]));
+  const eventModules = modulesForEvent(eventName, hookInput.tool_name, moduleDefinitions.filter((moduleDefinition) => moduleDefinition.personScoped))
+    .map((moduleDefinition) => runnableById.get(moduleDefinition.id))
+    .filter(Boolean);
+  if (!eventModules.length) return [];
+  return runModules(eventModules, eventName, hookInput, { config: null, projectRoot, sharedRoot, environment, homeDirectory, enabledModules: [], reportInternalError }).moduleDecisions;
 }
 
 function defaultErrorReporter(errorMessage) {

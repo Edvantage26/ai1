@@ -85,6 +85,10 @@ Every feature is on unless your repo switches it off (`"features": { "storyboard
 | `messages` | **Messages to the project's contacts**, with who they are and your tone with each one. |
 | `maintenance` | **Upkeep for maintainers only**: knowledge bundle health, stale entries, CLAUDE.md drift. |
 
+And outside any repo: **your own Claude Code config on every machine.** Your global CLAUDE.md, user skills,
+settings and ai1 customizations kept in a private repo that ai1 commits at the end of each session and copies
+into place on any OS (`/ai1:core-setup-config`, `ai1 config`).
+
 Every feature in detail, with its commands and options: [docs/reference.md](docs/reference.md#features).
 
 ## Skills
@@ -99,6 +103,7 @@ project (licenses in [THIRD-PARTY.md](THIRD-PARTY.md)) or based on another proje
 |---|---|---|---|
 | `/ai1:core-customize-skill` | `core` | Customize how an ai1 skill works for this project or only for the person. | Written in ai1 |
 | `/ai1:core-report-issue` | `core` | Report a problem with ai1 itself (a hook that blocks or misfires, a skill or `ai1` command that fails, a missing feature) as an issue on the public Edvantage26/ai1 repository. | Written in ai1 |
+| `/ai1:core-setup-config` | `core` | Set up the person's config repo, so their Claude Code config (global CLAUDE.md, settings, user skills, ai1 customizations and stack) is kept in a private git repo that ai1 syncs on every machine and commits by itself. | Based on [chezmoi](https://www.chezmoi.io/) (copies by default, symlinks only on request), [dotclaude](https://github.com/daniel7an/dotclaude) (settings merged by keys, credentials and caches left out), [doug.is](https://www.doug.is/writing/about/development/syncing-claude-code-across-multiple-machines) (what belongs to one machine kept apart) |
 | `/ai1:core-setup-repo` | `core` | Set up ai1 in the current repository, or switch ai1 features off or back on. | Written in ai1 |
 | `/ai1:danger-write-rule` | `danger` | Turn a project rule into a guard rule that asks about or refuses a command or edit breaking it. | Written in ai1 |
 | `/ai1:design-gather-brand` | `design` | Gather a client's brand (colours, logo, typefaces, images) before designing its UI: from this repo, the person's other projects with that client, the client's website, then the person; record it under `## Brand` of the design-system context so every design uses it. | Written in ai1 |

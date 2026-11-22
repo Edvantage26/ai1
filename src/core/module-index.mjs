@@ -3,7 +3,8 @@
 // all of them); the dispatcher decides with this metadata, which is all `enabledModules` needs.
 // `feature` is an id from src/core/features.mjs. `toolNames` (PreToolUse/PostToolUse) limits the
 // module to those tools (a name ending in `*` matches by prefix: `mcp__*`). `decidedByTarget`: the repository a call edits decides whether the module
-// applies (its own features), so it runs whatever the launch repo enables. `modulePath` is relative to this file; the module's default export repeats
+// applies (its own features), so it runs whatever the launch repo enables. `personScoped`: the person's own setup decides (their
+// config repo), so it runs in any folder, with or without ai1 set up there. `modulePath` is relative to this file; the module's default export repeats
 // id, event, feature and toolNames (test/dispatcher.test.mjs checks they agree).
 // Adding a module means one line here and its entry in the schema; hooks/hooks.json does not change.
 
@@ -14,6 +15,9 @@ export const MODULE_INDEX = [
   { id: 'customization-check', event: 'Stop', feature: 'core', modulePath: './customization-check.mjs' },
   { id: 'local-sync-start', event: 'SessionStart', feature: 'core', modulePath: './local-sync-start.mjs' },
   { id: 'local-sync-stop', event: 'Stop', feature: 'core', modulePath: './local-sync-stop.mjs' },
+  { id: 'config-sync-start', event: 'SessionStart', feature: 'core', personScoped: true, modulePath: '../config/config-sync-start.mjs' },
+  { id: 'config-sync-stop', event: 'Stop', feature: 'core', personScoped: true, modulePath: '../config/config-sync-stop.mjs' },
+  { id: 'config-skill-hint', event: 'PostToolUse', feature: 'core', personScoped: true, toolNames: ['Write'], modulePath: '../config/config-skill-hint.mjs' },
   { id: 'okf-index', event: 'SessionStart', feature: 'okf', modulePath: '../okf/okf-index.mjs' },
   { id: 'okf-claude-md', event: 'SessionStart', feature: 'okf', modulePath: '../okf/okf-claude-md.mjs' },
   { id: 'okf-catch-up-start', event: 'SessionStart', feature: 'okf', modulePath: '../okf/okf-catch-up-start.mjs' },

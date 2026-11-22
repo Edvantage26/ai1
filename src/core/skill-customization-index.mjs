@@ -27,6 +27,7 @@ export const SKILL_CUSTOMIZATION_INDEX = {
   'watches-follow-release': { customizable: true, scopes: PROJECT_AND_USER, hints: 'how production is checked here (a health URL, a log or metrics command, the platform CLI), how long releases are followed' },
   'messages-draft-message': { customizable: true, scopes: PROJECT_AND_USER, hints: 'the tool that sends messages for this person, their signature, default language and tone' },
   'routines-set-routine': { customizable: true, scopes: PROJECT_AND_USER, hints: 'how this person prefers due routines offered (here or launched), their usual periods' },
+  'core-setup-config': { customizable: true, scopes: ['user'], hints: 'where this person keeps their config repo (owner, name), whether they push automatically, files that belong to one machine only' },
   'core-setup-repo': { customizable: true, scopes: ['user'], hints: 'features this person always turns off or on, how they answer the overlapping-plugins and error-report questions' },
   'core-report-issue': { customizable: false, reason: 'its privacy guarantee for a public issue lives only in the skill text' },
   'okf-validate-bundle': { customizable: false, reason: 'a deterministic checker; a customization could only change how its errors are read' },

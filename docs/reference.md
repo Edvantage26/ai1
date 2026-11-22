@@ -135,6 +135,26 @@ customized and what you have. Not customizable, with the reason in the list: the
 others or are deterministic (`core-report-issue`, `okf-validate-bundle`, `danger-write-rule`,
 `core-customize-skill`).
 
+## Your config, on every machine
+
+Your own Claude Code config - the global `~/.claude/CLAUDE.md`, your user skills and scripts, your keys of
+`~/.claude/settings.json`, your customizations of ai1's skills and your stack - can live in a private git
+repo that ai1 keeps for you, set up once with `/ai1:core-setup-config` (or `ai1 config init | clone <repo> |
+adopt <folder>`). From then on, in any folder:
+
+- at the end of each session ai1 commits what changed in it (a file with a line that looks like a secret is
+  held back and named; `ai1 config commit --include <path>` after checking);
+- at the start it copies into place what arrived, names a file changed on both sides, and about once a day
+  asks the agent for `ai1 config sync` (pull, apply, commit, and push when `autoPush` is on in the repo's
+  `ai1-config.json`);
+- creating a user skill says where it goes and offers the technology template (`ai1 config new-skill <name>`).
+
+The repo has `claude/` (-> `~/.claude`), `home/` (-> `~`), `ai1/` (-> `~/.config/ai1`) and
+`machines/<host>/` for what belongs to one machine. Files are copied, not linked, so it works the same on
+Linux, macOS and Windows; anything different already in place is kept as `.bak`. Claude Code's own state,
+credentials and `*.local.json` never go in. `ai1 config status` shows what is in sync; `ai1 config off`
+stops it. Detail: [.ai1/okf/features/config.md](../.ai1/okf/features/config.md).
+
 ## Hooks
 
 Every hook module, the feature that turns it on, the event it runs on, what it does and where it comes
@@ -149,6 +169,9 @@ from (same meaning as in the [Skills table of the README](../README.md#skills)).
 | `customization-check` | `core` | Stop | after an ai1 skill you can customize ran (3+ tool calls after it loaded, by the agent or typed by you), the agent judges silently whether a customization rule would have made it go better and only then proposes it in one line; once per skill and session, `ai1 skill-context quiet <skill>` to stop it | Written in ai1 |
 | `local-sync-start` | `core` | SessionStart | at session start, unseals your data in `.ai1/local/` when a newer sealed copy arrived, telling a conflict without overwriting (`ai1 local sync on\|off\|status`) | Written in ai1 |
 | `local-sync-stop` | `core` | Stop | at the end of a turn, seals your data in `.ai1/local/` again when it changed | Written in ai1 |
+| `config-sync-start` | `core` | SessionStart | in any folder, once you have a config repo (`ai1 config`): copies into ~/.claude and ~/.config/ai1 what changed in it, names conflicts, and asks for `ai1 config sync` when it is over 12 hours old; no network | Written in ai1 |
+| `config-sync-stop` | `core` | Stop | in any folder: commits into your config repo what the session changed in your Claude Code config (skills, CLAUDE.md, settings keys, ai1 customizations, stack); a file with a secret-like line is held back and named | Written in ai1 |
+| `config-skill-hint` | `core` | PostToolUse | once per session, when a user-level skill is created and you have a config repo: where it goes and the shape of a technology skill (`ai1 config new-skill`) | Written in ai1 |
 | `okf-index` | `okf` | SessionStart | loads the knowledge bundle index and its maintenance rules | Written in ai1 |
 | `okf-claude-md` | `okf` | SessionStart | at session start, one line when the repo's CLAUDE.md drifts from the bundle (too long, sections that repeat a concept or hold knowledge no concept has, sections holding a literal secret, which are never moved, references that no longer exist), told once per set of findings; `ai1 claude-md` prints the report and `/ai1:okf-tidy-claude-md` proposes a short CLAUDE.md and the concept edits, applied after the person approves | Written in ai1 |
 | `okf-catch-up-start` | `okf` | SessionStart | when a branch that had no knowledge bundle was merged into the current branch (in a terminal, on a forge and pulled, or by the agent), says so once and has the agent hand the documentation of its changes to an independent background agent, in its own worktree and commit; the commit's `Knowledge-Catch-Up: <merge sha>` trailer closes it in every clone; `ai1 okf catch-up` lists what is pending and prints the brief. Squash merges are not seen | Written in ai1 |

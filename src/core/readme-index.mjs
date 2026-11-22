@@ -22,6 +22,14 @@ const NO_ORIGIN = { importedFrom: [], basedOn: [] };
 export const SKILL_ORIGIN_INDEX = {
   'core-customize-skill': NO_ORIGIN,
   'core-report-issue': NO_ORIGIN,
+  'core-setup-config': {
+    importedFrom: [],
+    basedOn: [
+      { name: 'chezmoi', url: 'https://www.chezmoi.io/', what: 'copies by default, symlinks only on request' },
+      { name: 'dotclaude', url: 'https://github.com/daniel7an/dotclaude', what: 'settings merged by keys, credentials and caches left out' },
+      { name: 'doug.is', url: 'https://www.doug.is/writing/about/development/syncing-claude-code-across-multiple-machines', what: 'what belongs to one machine kept apart' },
+    ],
+  },
   'core-setup-repo': NO_ORIGIN,
   'danger-write-rule': NO_ORIGIN,
   'design-gather-brand': NO_ORIGIN,
@@ -77,6 +85,9 @@ export const HOOK_README_INDEX = {
   'issue-offer': { description: 'when ai1 itself fails in a repo (a module throws, the hook crashes), the agent offers once to report it with `/ai1:core-report-issue`; nothing is filed without your yes to the text, unless you chose automatic reports (`ai1 init --report-errors auto`: only versions and the error\'s module and plugin file:line are sent)', ...NO_ORIGIN },
   'issue-guard': { description: 'refuses `gh issue|pr create|comment|edit` aimed at the ai1 repo, and `ai1 issue url`, while the title or body holds private data (your repo names, home paths, user name, emails, IPs, hostnames, tokens, the project\'s contacts and clients), listing each with its placeholder; also when the body cannot be read (`--body "$(...)"`, stdin). `modules.issue-guard: false` silences it', ...NO_ORIGIN },
   'customization-check': { description: 'after an ai1 skill you can customize ran (3+ tool calls after it loaded, by the agent or typed by you), the agent judges silently whether a customization rule would have made it go better and only then proposes it in one line; once per skill and session, `ai1 skill-context quiet <skill>` to stop it', ...NO_ORIGIN },
+  'config-sync-start': { description: 'in any folder, once you have a config repo (`ai1 config`): copies into ~/.claude and ~/.config/ai1 what changed in it, names conflicts, and asks for `ai1 config sync` when it is over 12 hours old; no network', ...NO_ORIGIN },
+  'config-sync-stop': { description: 'in any folder: commits into your config repo what the session changed in your Claude Code config (skills, CLAUDE.md, settings keys, ai1 customizations, stack); a file with a secret-like line is held back and named', ...NO_ORIGIN },
+  'config-skill-hint': { description: 'once per session, when a user-level skill is created and you have a config repo: where it goes and the shape of a technology skill (`ai1 config new-skill`)', ...NO_ORIGIN },
   'local-sync-start': { description: 'at session start, unseals your data in `.ai1/local/` when a newer sealed copy arrived, telling a conflict without overwriting (`ai1 local sync on|off|status`)', ...NO_ORIGIN },
   'local-sync-stop': { description: 'at the end of a turn, seals your data in `.ai1/local/` again when it changed', ...NO_ORIGIN },
   'okf-index': { description: 'loads the knowledge bundle index and its maintenance rules', ...NO_ORIGIN },

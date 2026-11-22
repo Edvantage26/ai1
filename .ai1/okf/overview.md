@@ -67,3 +67,4 @@ Next steps in the [roadmap](roadmap.md).
 - `schema/ai1.schema.json`, `templates/config.json`: the per-repo contract.
 - `test/`: `npm test` (node:test suite), run by `scripts/run-tests.mjs`: each run gets its own temporary folder
   (`TMPDIR`, `TMP`, `TEMP`), deleted at the end, because the tests do not remove their fixtures; CI uses it too.
+  `HOME`/`USERPROFILE` point inside it as well, so hooks acting on the person's own config never touch the real one.
