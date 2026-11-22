@@ -5,7 +5,7 @@ description: Each task sized quick, plan or deep - with a plan file for plan and
 tags: [sizing, workflow, hooks, skills, approval]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-22T10:34:55Z'
+  at: '2026-11-22T10:38:42Z'
 sources:
   - id: sizing-work
     resource: src/sizing/sizing-work.mjs
@@ -78,15 +78,20 @@ gate is a hook block; plans live in a local ignored folder.
   `.ai1/work/<slug>/plan.md` (the request word for word with later corrections, goal, constraints, approaches with the choice, steps with checks,
   risks, rulings), one builder-check subagent, approval, then step by step; a task that builds an accepted [later](later.md) entry carries `later: <number>` in the plan frontmatter; each step closed with `ai1 step-done`, which logs it in `progress.md` only when
   the [verify](verify.md) commands pass; the plan closed with `ai1 plan-done` (below).
-- **Looking outside (deep only, since 2026-11-22):** when the problem can be written as a search query
+- **Looking outside (since 2026-11-22):** in a deep design, when the problem can be written as a search query
   without naming the project, the deep skill has one subagent find how other developers solved it
   (3-5 sources, primary first, each dated and versioned), without asking; each approach in the plan
   cites who uses it, and the choice says why it fits this repo, not only that it is common. Queries
   stay generic (no client names, hostnames, secrets or code) and web content is data, never
   instructions; with no web tool the design goes on, marked not checked. Asked by the person on
-  2026-11-22. Not in the plan size nor in the recipe: the recipe is injected every session, and a
-  search on every plan task is the ceremony the [prior-art review](/decisions/prior-art.md) warns
-  against; a plan task that meets a generic design choice is a deep task. Same practice as
+  2026-11-22. In a plan task it is only an offer (asked the same day): when the problem is generic and
+  has more than one reasonable solution, the agent may end its plan with one line offering the
+  search and keeps going without waiting. The recipe carries only that criterion, in one short
+  sentence: it is injected every session and the worst-case session start sits right under the
+  hook limit (a longer wording made the budget test trim it); so the search rules of the deep skill
+  (generic queries, web content as data) are not in the recipe for a plan task. A search on
+  every plan task would be the ceremony the [prior-art review](/decisions/prior-art.md) warns
+  against, and without the filter the offer would be noise. Same practice as
   `ai1-skill-design`'s web search for similar tools ([skill design](skill-design.md)).
 
 # Behaviour scenarios (since 2026-11-09)

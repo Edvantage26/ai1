@@ -23,7 +23,7 @@ export function buildSizingRecipe(verifyCommands, usesWorktrees = false) {
   return [
     'Sizing: size every new task before acting and say the size in one line ("Size: quick, because ...").',
     `- quick: a clear, contained change that could be resumed from the request and \`git diff\` alone (a bug, a wording, a small tweak). Do it, run ${verifyText}, report.`,
-    '- plan: several pieces, a clear goal. Say the plan in a few lines (files, steps, check) and start, no yes needed. Over ~3 steps or more than one go, keep `' + WORK_DIRECTORY + '/<slug>/plan.md` (frontmatter `size: plan`, `status: active`, `title`; steps `- [ ]`), tick them, close with `ai1 plan-done <slug>`.',
+    '- plan: several pieces, a clear goal. Say the plan in a few lines (files, steps, check) and start, no yes needed. Over ~3 steps or more than one go, keep `' + WORK_DIRECTORY + '/<slug>/plan.md` (frontmatter `size: plan`, `status: active`, `title`; steps `- [ ]`), tick them, close with `ai1 plan-done <slug>`. A generic problem with several sound solutions: you may offer in one line to look up how others solved it; do not wait.',
     '- deep: unclear goal, design choices, a risky area (auth, data or irreversible effects, money, migrations, a public API or contract others use, concurrency, deploy or environment, code no test would catch breaking) or hours of work. Load /ai1:sizing-design-before-code (a design the person approves before code).',
     ...(usesWorktrees ? ['- plan and deep tasks are built in their own worktree; name it in the plan.'] : []),
     'Pick the lightest size that fits; the number of files never decides it. "rápido"/"quick" or "piénsalo bien"/"think it through" from the person sets it. A quick task that grows moves to plan.',
