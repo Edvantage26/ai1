@@ -5,7 +5,7 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-23T07:34:22Z'
+  at: '2026-11-23T07:59:10Z'
 ---
 
 # Layout
@@ -54,6 +54,16 @@ description (e.g. `ai1:later-write` ~320 tokens). The mechanism was built from t
 never tried in a session; it has saved no context since v0.34. `skillOverrides` works only for personal
 and project skills; a plugin is enabled or disabled whole. Whether to drop `skill-visibility` or find
 another way is open. How to check: `/skill-doctor` (or `claude -p "/skill-doctor"`) in the repo.
+
+What does work, checked the same day with `claude -p "/skill-doctor"` in a scratch repo (Claude Code
+2.1.319): `"enabledPlugins": { "<plugin>": false }` in the repo's `.claude/settings.json` or
+`.claude/settings.local.json` removes that plugin's skills from the listing (a user-scope plugin is
+switched off per repo; `ai1@ai1: false` removed all ~30 ai1 skills). So per-repo visibility is possible
+per **plugin**, not per skill. Ways open for ai1, none chosen: split the skills of optional features into
+plugins of the same marketplace that a repo switches off (the hooks stay in the core plugin); skills
+whose use is tied to files (design, storyboard) with a `paths` frontmatter, which loads them only around
+matching files (documented, not tried); fewer or shorter skill descriptions. Upstream requests to make
+`skillOverrides` reach plugin skills: anthropics/claude-code issues 14920, 81047, 88302, 98220.
 
 `skillOverrides` (read in the Claude Code 2.1.319 source on 2026-11-13; for plugin skills it has no
 effect, see above): a settings field, values `on`, `name-only` (listed without description),
