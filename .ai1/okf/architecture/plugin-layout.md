@@ -5,7 +5,7 @@ description: ai1 is a Claude Code plugin and its own marketplace in the same rep
 tags: [plugin, marketplace, distribution]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-22T20:57:50Z'
+  at: '2026-11-23T07:34:22Z'
 ---
 
 # Layout
@@ -47,8 +47,16 @@ or of no feature (`session-*`) are always listed. `ai1 init` writes it from the 
 two no longer match. ai1 touches only `ai1:` keys, removes only its own `user-invocable-only` and
 leaves a person's `off` alone. A repo without ai1 set up still lists every skill.
 
-`skillOverrides` (read in the Claude Code 2.1.319 source on 2026-11-13, not tried in a live
-session): a settings field, values `on`, `name-only` (listed without description),
+**It does not work (checked 2026-11-23).** Claude Code's docs say "Plugin skills are not affected by
+`skillOverrides`", and a live check agrees: in a repo whose `.claude/settings.json` sets four `ai1:` skills
+to `user-invocable-only`, `claude -p "/skill-doctor"` run there still lists them with their full
+description (e.g. `ai1:later-write` ~320 tokens). The mechanism was built from the source read above and
+never tried in a session; it has saved no context since v0.34. `skillOverrides` works only for personal
+and project skills; a plugin is enabled or disabled whole. Whether to drop `skill-visibility` or find
+another way is open. How to check: `/skill-doctor` (or `claude -p "/skill-doctor"`) in the repo.
+
+`skillOverrides` (read in the Claude Code 2.1.319 source on 2026-11-13; for plugin skills it has no
+effect, see above): a settings field, values `on`, `name-only` (listed without description),
 `user-invocable-only` (hidden from the model, `/name` kept), `off` (hidden from both); matched against
 the skill's full name (`ai1:later-write`) and its aliases.
 
