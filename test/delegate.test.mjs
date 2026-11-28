@@ -207,6 +207,12 @@ test('a run without a JSON result or a status line is failed, with what is known
   assert.equal(interpretRun(claudeJson({ is_error: true, result: 'auth failed' })).status, 'failed');
 });
 
+test('a long report keeps its first sentence; only a very long one is cut, and says so', () => {
+  const designReport = `The contract's field breaks the engine's rule.\n${'detail '.repeat(800)}\nAI1-DELEGATE: done`;
+  assert.match(interpretRun(claudeJson({ result: designReport })).summary, /^The contract's field breaks/);
+  assert.match(interpretRun(claudeJson({ result: `${'x'.repeat(20000)}\nAI1-DELEGATE: done` })).summary, /^\[\.\.\.\] x/);
+});
+
 test('ai1 delegate allow records the person\'s words for this session [foreign-repo-delegation:S1]', () => {
   const { launchRoot, targetRoot, environment } = createWorkspace();
   let printedText = '';

@@ -25,6 +25,13 @@ import { canonicalPlanPath, hashContractSection } from '../sizing/joint-plans.mj
 const DEFAULT_TIMEOUT_MINUTES = 60;
 const STATUS_LINE_PATTERN = /^\s*AI1-DELEGATE:\s*(done|needs-input)\s*(?::\s*(.*))?$/gim;
 const MAX_TAIL_CHARACTERS = 600;
+// The delegated session's report is its whole last message; a design report runs to several thousand
+// characters (seen 2026-11-28: 2000 cut its first sentence). Longer than this, the start is marked cut.
+const MAX_SUMMARY_CHARACTERS = 12000;
+
+export function trimSummary(summaryText) {
+  return summaryText.length > MAX_SUMMARY_CHARACTERS ? `[...] ${summaryText.slice(-MAX_SUMMARY_CHARACTERS)}` : summaryText;
+}
 
 export const DELEGATE_PROTOCOL = [
   '## How to finish (ai1 delegate)',
@@ -127,7 +134,7 @@ export function interpretRun(commandResult) {
   const question = status === 'blocked' && !statusLine?.question
     ? `a guard of the repository refused or asked to confirm: ${denied.map((deniedCall) => `\`${deniedCall.subject}\``).join(', ')}`
     : statusLine?.question || null;
-  const summary = resultText.replace(STATUS_LINE_PATTERN, '').trim().slice(-2000) || (status === 'failed' ? `claude exited ${commandResult.status} (${runJson.subtype || 'no subtype'})` : '');
+  const summary = trimSummary(resultText.replace(STATUS_LINE_PATTERN, '').trim()) || (status === 'failed' ? `claude exited ${commandResult.status} (${runJson.subtype || 'no subtype'})` : '');
   return { status, question, summary, denied, exitCode: commandResult.status, sessionId: runJson.session_id || null, costUsd: runJson.total_cost_usd ?? null };
 }
 
@@ -217,6 +224,7 @@ export function startDelegation({ targetDirectory, briefPath, taskText, jointPla
   const finishProtocol = jointPlanPath ? buildDesignProtocol({ jointPlanPath, repoRoot }) : DELEGATE_PROTOCOL;
   const effectivePermissionMode = permissionMode || readRememberedPermissionMode(callerSessionId, environment) || null;
   const sessionId = randomUUID();
+  const startedAt = new Date().toISOString();
   const startSnapshot = snapshotRepository(repoRoot, runCommand);
   const commandResult = runClaude({
     repoRoot,
@@ -227,7 +235,7 @@ export function startDelegation({ targetDirectory, briefPath, taskText, jointPla
     runCommand,
     timeoutMinutes,
   });
-  const baseRecord = { session_id: sessionId, repo: repoRoot, brief_path: briefPath || null, ...(jointPlanPath ? { design_for: canonicalPlanPath(jointPlanPath) } : {}), permission_mode: effectivePermissionMode, claude_command: claudeCommand || null, start_snapshot: startSnapshot, started_at: new Date().toISOString() };
+  const baseRecord = { session_id: sessionId, repo: repoRoot, brief_path: briefPath || null, ...(jointPlanPath ? { design_for: canonicalPlanPath(jointPlanPath) } : {}), permission_mode: effectivePermissionMode, claude_command: claudeCommand || null, start_snapshot: startSnapshot, started_at: startedAt };
   return finishRun({ baseRecord, commandResult, runCommand, environment });
 }
 
