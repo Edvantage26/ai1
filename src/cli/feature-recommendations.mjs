@@ -157,6 +157,7 @@ export function recommendFeatures(repoRoot, { hasKnowledgeBundle }) {
       watches: { recommended: true, reason: 'offers to follow what goes to production and says only what changed; silent until someone subscribes', evidence: [] },
       messages: { recommended: true, reason: 'drafts messages to the project\'s contacts with each person\'s own tone; nothing happens until it is asked for', evidence: [] },
       routines: { recommended: true, reason: 'periodic tasks you set yourself, reminded at session start; silent until you add one', evidence: [] },
+      ideas: { recommended: true, reason: 'brainstorming grounded in web research and papers when you ask for it; nothing happens until then', evidence: [] },
       delegate: { recommended: true, reason: 'edits of this repo from a session launched elsewhere go through a session started here, with its own rules', evidence: [] },
       design: designRecommendation,
       storyboard: designRecommendation.recommended

@@ -31,7 +31,7 @@ function writeUserSettings(enabledPlugins) {
 test('setup writes a valid .ai1/config.json and enables ai1 for the project', () => {
   const repoRoot = createGitRepo();
   const setupResult = setupRepo(repoRoot, { enabledFeatureIds: ['okf', 'danger'] });
-  assert.deepEqual(setupResult.features, { okf: true, danger: true, craft: false, sizing: false, worktrees: false, later: false, reuse: false, design: false, storyboard: false, verify: false, delegate: false, maintenance: false, watches: false, messages: false, routines: false });
+  assert.deepEqual(setupResult.features, { okf: true, danger: true, craft: false, sizing: false, worktrees: false, later: false, reuse: false, design: false, storyboard: false, verify: false, delegate: false, maintenance: false, watches: false, messages: false, routines: false, ideas: false });
   const loadedConfig = loadHarnessConfig(repoRoot);
   assert.equal(loadedConfig.status, 'ok');
   assert.equal(loadedConfig.config.trunk, 'main');
@@ -54,7 +54,7 @@ test('setup keeps existing settings and harness fields', () => {
   assert.equal(ai1Config.trunk, 'develop');
   assert.deepEqual(ai1Config.verify, ['make test']);
   assert.deepEqual(ai1Config.modules, { danger: { ignore_rules: ['git-clean'] } });
-  assert.deepEqual(ai1Config.features, { okf: false, craft: false, sizing: false, worktrees: false, later: false, reuse: false, design: false, storyboard: false, verify: false, delegate: false, maintenance: false, watches: false, messages: false, routines: false }, 'only the features switched off are written');
+  assert.deepEqual(ai1Config.features, { okf: false, craft: false, sizing: false, worktrees: false, later: false, reuse: false, design: false, storyboard: false, verify: false, delegate: false, maintenance: false, watches: false, messages: false, routines: false, ideas: false }, 'only the features switched off are written');
 });
 
 test('status lists enabled plugins that overlap with ai1, applying local over project over user', () => {
@@ -130,10 +130,10 @@ test('status reports defaults before setup and choices after it', () => {
   const repoRoot = createGitRepo();
   const beforeSetup = describeRepo(repoRoot);
   assert.equal(beforeSetup.hasAi1Config, false);
-  assert.deepEqual(beforeSetup.features.map((featureStatus) => [featureStatus.id, featureStatus.enabled]), [['okf', true], ['danger', true], ['craft', true], ['sizing', true], ['worktrees', true], ['later', true], ['reuse', true], ['design', true], ['storyboard', true], ['verify', true], ['delegate', true], ['maintenance', true], ['watches', true], ['messages', true], ['routines', true]], 'every feature on by default');
+  assert.deepEqual(beforeSetup.features.map((featureStatus) => [featureStatus.id, featureStatus.enabled]), [['okf', true], ['danger', true], ['craft', true], ['sizing', true], ['worktrees', true], ['later', true], ['reuse', true], ['design', true], ['storyboard', true], ['verify', true], ['delegate', true], ['maintenance', true], ['watches', true], ['messages', true], ['routines', true], ['ideas', true]], 'every feature on by default');
   setupRepo(repoRoot, { enabledFeatureIds: ['okf'] });
   const afterSetup = describeRepo(repoRoot);
-  assert.deepEqual(afterSetup.features.map((featureStatus) => [featureStatus.id, featureStatus.enabled]), [['okf', true], ['danger', false], ['craft', false], ['sizing', false], ['worktrees', false], ['later', false], ['reuse', false], ['design', false], ['storyboard', false], ['verify', false], ['delegate', false], ['maintenance', false], ['watches', false], ['messages', false], ['routines', false]]);
+  assert.deepEqual(afterSetup.features.map((featureStatus) => [featureStatus.id, featureStatus.enabled]), [['okf', true], ['danger', false], ['craft', false], ['sizing', false], ['worktrees', false], ['later', false], ['reuse', false], ['design', false], ['storyboard', false], ['verify', false], ['delegate', false], ['maintenance', false], ['watches', false], ['messages', false], ['routines', false], ['ideas', false]]);
 });
 
 test('the ai1 CLI runs init and status from a subdirectory', () => {

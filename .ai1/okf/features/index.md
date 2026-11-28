@@ -16,6 +16,7 @@
 * [maintenance](maintenance.md) - maintenance tasks only for the people who maintain ai1 in the repo (`maintainers`): drift and bundle health hints, periodic checks gated on days and sessions; `ai1 maintain off|snooze`.
 * [watches](watches.md) - follow what was shipped to production: offered after a release, health or counts of successes and failures since it, the person's confirmation, one line at session start; `/ai1:watches-follow-release`, `ai1 watch`.
 * [routines](routines.md) - the person's own periodic tasks (a skill or a prompt, every hours/days or a weekday) reminded at session start and offered here or in a new conversation; ai1's periodic maintenance as built-in routines; `ai1 routine`, `/ai1:routines-set-routine`.
+* [ideas](ideas.md) - `/ai1:ideas-brainstorm-topic`: brainstorming on demand grounded in web research and papers (`ai1 papers search`), the person choosing.
 * [messages](messages.md) - `/ai1:messages-draft-message`: a message to a project contact with the person's own tone; `ai1 contacts`.
 * [retro](retro.md) - `ai1-retro`, a project skill of the ai1 repo only: every repo's hook log on this machine, read for errors, false positives and cost.
 * [issue report](issue-report.md#triage-in-the-ai1-repo) - `triage-issues`, a project skill of the ai1 repo only: the open issues listed, sized and fixed one worktree each with `Fixes #N` (deep ones designed first).

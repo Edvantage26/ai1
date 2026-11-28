@@ -95,6 +95,12 @@ export const FEATURES = [
     enabledByDefault: true,
   },
   {
+    id: 'ideas',
+    title: 'Brainstorming grounded in research',
+    description: 'Skill /ai1:ideas-brainstorm-topic runs a brainstorm on demand - a problem, an innovation, a software architecture, a scientific or business question: it frames the goal, looks up how others did it on the web (and in papers with `ai1 papers search` when the topic is scientific), generates ideas from several angles, keeps them in .ai1/work/ so they survive a compaction, and converges to a few explained options the person chooses from. Never forced on a task.',
+    enabledByDefault: true,
+  },
+  {
     id: 'core',
     title: 'Harness brief',
     description: 'Tells the agent at session start which harness runs in the repo. Always on.',

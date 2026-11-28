@@ -5,7 +5,7 @@ description: Each task sized quick, plan or deep - with a plan file for plan and
 tags: [sizing, workflow, hooks, skills, approval]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-22T11:31:28Z'
+  at: '2026-11-28T06:53:55Z'
 sources:
   - id: sizing-work
     resource: src/sizing/sizing-work.mjs
@@ -78,6 +78,9 @@ gate is a hook block; plans live in a local ignored folder.
   `.ai1/work/<slug>/plan.md` (the request word for word with later corrections, goal, constraints, approaches with the choice, steps with checks,
   risks, rulings), one builder-and-critic subagent (below), approval, then step by step; a task that builds an accepted [later](later.md) entry carries `later: <number>` in the plan frontmatter; each step closed with `ai1 step-done`, which logs it in `progress.md` only when
   the [verify](verify.md) commands pass; the plan closed with `ai1 plan-done` (below).
+- **Open direction (since 2026-11-28):** when the direction itself is still open and the person wants
+  to explore it, the deep skill offers `/ai1:ideas-brainstorm-topic` in one line ([ideas](ideas.md)):
+  the brainstorm chooses a direction, the design skill designs the chosen one.
 - **Looking outside (since 2026-11-22):** in a deep design, when the problem can be written as a search query
   without naming the project, the deep skill has one subagent find how other developers solved it
   (3-5 sources, primary first, each dated and versioned), without asking; each approach in the plan

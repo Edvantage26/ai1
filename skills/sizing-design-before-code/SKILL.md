@@ -50,6 +50,9 @@ talk).
 
 - One question per message, the most important first; start with *why* they want it.
 - Open questions before menus; when you offer options, add your recommendation and why.
+- When the direction itself is still open (several sound ones, none chosen) and the person wants to
+  explore them, offer `/ai1:ideas-brainstorm-topic` in one line: it explores and chooses a direction,
+  this skill designs the chosen one.
 - Stop asking when a wrong guess would no longer matter. Small calls are yours: record them
   in the plan as `Ruling: <decision> - <why>`.
 

@@ -5,7 +5,7 @@ description: What was reviewed before designing ai1, what was taken from each, a
 tags: [decision, prior-art]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-22T14:42:18Z'
+  at: '2026-11-28T06:53:55Z'
 ---
 
 First review on 2026-10-30 by reading the repositories.
@@ -596,3 +596,32 @@ skills and ai1 customizations in a private git repo.
   apart. Not seen anywhere: committing from the session itself and knowing where each piece belongs;
   that is what ai1 would add. Not taken: a dependency on chezmoi, templates.
 
+
+# Brainstorming and idea generation (2026-11-28)
+
+Reviewed for the [ideas feature](../features/ideas.md). Read the skill files and the papers' pages.
+
+| Project | What it does | Taken |
+|---|---|---|
+| [Superpowers brainstorming](https://github.com/obra/superpowers/blob/main/skills/brainstorming/SKILL.md) | Questions before a design doc, approaches with a recommendation | One question at a time, only what changes the decision; goals before options |
+| [BMAD brainstorming](https://github.com/bmad-code-org/BMAD-METHOD/tree/main/skills/core-tools/bmad-brainstorming) | ~108 techniques tagged by use, facilitator / partner / ideate-for-me stances, a converge phase with one method per decision | Techniques by kind of problem, diverging apart from converging, ideas logged to resume |
+| [Compound Engineering ce-ideate](https://github.com/EveryInc/compound-engineering-plugin/blob/main/skills/ce-ideate/SKILL.md) | Web researcher, 3-5 angles, parallel subagents over fixed frames, "generate many, critique all, explain survivors" | Research before ideas, parallel angles, a reason for each rejection; analogies must share the constraint |
+| [STORM / Co-STORM](https://github.com/stanford-oval/storm) | Perspective-guided questions; a moderator raising retrieved material not yet discussed | One unexplored finding per research round |
+| [GPT Researcher](https://github.com/assafelovic/gpt-researcher) | Planner, parallel research questions, publisher | Already the shape of the research subagent |
+
+Research on LLM ideas:
+- [Si et al. 2024](https://arxiv.org/abs/2409.04109): with 100+ NLP researchers, LLM ideas were judged
+  more novel (p<0.05) and slightly less feasible than experts'; ~5% of 4,000 seeds were unique; the
+  best LLM judge agreed with humans 53% (humans 56%). -> dedup, pairwise ranking, the person decides.
+- [AI Scientist](https://github.com/SakanaAI/AI-Scientist), [SciMON](https://arxiv.org/abs/2305.14259):
+  novelty checked against Semantic Scholar/OpenAlex and revised. -> novelty check for scientific ideas.
+- [Verbalized Sampling](https://arxiv.org/abs/2510.01171): asking N answers with their probabilities
+  gave 1.6-2.1x diversity. -> ideas asked with their likelihood.
+- Homogenisation across users and models is reported ([Anderson et al.](https://arxiv.org/abs/2402.01536));
+  not checked beyond abstracts.
+
+Free paper APIs: OpenAlex (no key, all fields; $0.10/day shared per IP without a key), Semantic Scholar
+(no key, shared pool, 429 often), arXiv (1 request / 3 s), Crossref, PubMed. MCP servers exist
+(paper-search-mcp, arxiv-mcp-server) but cost a process per session; ai1 calls OpenAlex and Semantic
+Scholar from the CLI instead. Not taken: BMAD's 100-idea target, a 108-technique catalog (a short
+one per kind instead), forced brainstorming.

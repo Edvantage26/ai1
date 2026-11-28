@@ -25,6 +25,7 @@ export const SKILL_CUSTOMIZATION_INDEX = {
   'design-gather-brand': { customizable: true, scopes: PROJECT_AND_USER, hints: 'where this person keeps clients\' logos and brand files (folders, tools), which client a repo is for' },
   'design-review-usability': { customizable: true, scopes: PROJECT_AND_USER, hints: 'who the users are when no Product concept says it, the start URL and test account, which flows matter most' },
   'watches-follow-release': { customizable: true, scopes: PROJECT_AND_USER, hints: 'how production is checked here (a health URL, a log or metrics command, the platform CLI), how long releases are followed' },
+  'ideas-brainstorm-topic': { customizable: true, scopes: PROJECT_AND_USER, hints: 'the kinds of brainstorm usual here, sources to search first (internal docs, journals, competitors), how this person likes to converge and record the result' },
   'messages-draft-message': { customizable: true, scopes: PROJECT_AND_USER, hints: 'the tool that sends messages for this person, their signature, default language and tone' },
   'routines-set-routine': { customizable: true, scopes: PROJECT_AND_USER, hints: 'how this person prefers due routines offered (here or launched), their usual periods' },
   'core-setup-config': { customizable: true, scopes: ['user'], hints: 'where this person keeps their config repo (owner, name), whether they push automatically, files that belong to one machine only' },

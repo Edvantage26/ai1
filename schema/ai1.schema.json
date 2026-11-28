@@ -105,6 +105,11 @@
           "type": "boolean",
           "default": true,
           "description": "The person's periodic tasks (.ai1/local/routines.json) and ai1's built-in ones for maintainers, said in one line at session start and offered here or in a new conversation; ai1 routine, /ai1:routines-set-routine."
+        },
+        "ideas": {
+          "type": "boolean",
+          "default": true,
+          "description": "Skill /ai1:ideas-brainstorm-topic: brainstorming on demand (problems, innovation, software architecture) grounded in web research and, for scientific topics, papers (ai1 papers search); ideas kept in .ai1/work/<slug>/."
         }
       }
     },

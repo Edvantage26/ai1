@@ -1,5 +1,8 @@
 # Update Log
 
+## 2026-11-28
+* **Creation**: [ideas feature](features/ideas.md) - `/ai1:ideas-brainstorm-topic` and `ai1 papers search`; its research in [prior art](decisions/prior-art.md#brainstorming-and-idea-generation-2026-11-28).
+
 ## 2026-11-22
 * **Creation**: [ai1 config](features/config.md) and its [decision](decisions/config-repo.md): the person's Claude Code config in a repo ai1 keeps.
 * **Creation**: [stack decision](decisions/stack.md); `ai1 okf stack`, `/ai1:okf-define-stack` and the `stack-pieces` gap category in [okf feature](features/okf.md).

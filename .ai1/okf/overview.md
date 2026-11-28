@@ -5,7 +5,7 @@ description: What ai1 is, the four pieces of a harness, and what exists today.
 tags: [overview, harness]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-22T11:22:03Z'
+  at: '2026-11-28T06:53:55Z'
 ---
 
 # What it is
@@ -45,7 +45,7 @@ recall, upkeep and the [OKF toolkit](packs/okf-pack.md), Node-only since v0.39.0
 [config-guard](guards/config-guard.md), the repo's own [rules](guards/repo-rules.md) and the
 [test-guard](guards/test-guard.md). Every module run goes to the local [decision log](architecture/decision-log.md) (`ai1 log`). Also on:
 [sizing](features/sizing.md), [later](features/later.md), [design](features/design.md),
-[storyboard](features/storyboard.md), [reuse](features/reuse.md), [worktrees](features/worktrees.md) and [delegate](features/delegate.md) (edits of another ai1 repo delegated to a session there), [maintenance](features/maintenance.md) (tasks only for the repo's `maintainers`), [watches](features/watches.md) (following what was shipped to production) and [messages](features/messages.md) (drafts to the project's contacts), on top of [the person within a project](architecture/person-project-scope.md) (`.ai1/local/`). Plus the [session fork](features/session-fork.md) and [issue report](features/issue-report.md) skills and CLI.
+[storyboard](features/storyboard.md), [reuse](features/reuse.md), [worktrees](features/worktrees.md) and [delegate](features/delegate.md) (edits of another ai1 repo delegated to a session there), [maintenance](features/maintenance.md) (tasks only for the repo's `maintainers`), [watches](features/watches.md) (following what was shipped to production) [messages](features/messages.md) (drafts to the project's contacts) and [ideas](features/ideas.md) (brainstorming grounded in web research and papers), on top of [the person within a project](architecture/person-project-scope.md) (`.ai1/local/`). Plus the [session fork](features/session-fork.md) and [issue report](features/issue-report.md) skills and CLI.
 Any customizable skill takes project and personal customizations ([skill customization](architecture/skill-customization.md)).
 After 3 failed fix attempts in a row the agent is told to stop and find the root cause ([verify feature](features/verify.md)).
 The verify feature also ships a method skill for LLM steps (extraction, classification, judges): find the cause of failures before blaming the model, and compare models or prompts as a tournament ([verify feature](features/verify.md)).

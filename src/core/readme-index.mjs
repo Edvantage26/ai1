@@ -37,6 +37,18 @@ export const SKILL_ORIGIN_INDEX = {
     importedFrom: [{ ...IMPECCABLE, what: 'the cognitive load checklist of its critique rubric' }],
     basedOn: [{ name: 'UXAgent', url: 'https://github.com/neuhai/UXAgent', what: 'an agent playing the user' }],
   },
+  'ideas-brainstorm-topic': {
+    importedFrom: [],
+    basedOn: [
+      { ...SUPERPOWERS, what: 'brainstorming: one question at a time, only what changes the decision, goals before options' },
+      { name: 'BMAD Method', url: 'https://github.com/bmad-code-org/BMAD-METHOD', what: 'brainstorming: techniques chosen by kind of problem, diverging apart from converging, ideas logged to resume' },
+      { name: 'Compound Engineering', url: 'https://github.com/EveryInc/compound-engineering-plugin', what: 'ce-ideate: web research before ideas, parallel angles, a reason for every rejected idea' },
+      { name: 'STORM', url: 'https://github.com/stanford-oval/storm', what: 'Co-STORM: bring up retrieved findings the conversation has not covered' },
+      { name: 'Si et al. 2024', url: 'https://arxiv.org/abs/2409.04109', what: 'LLM ideas duplicate and LLM judges are near chance: deduplicate, compare in pairs, the person decides' },
+      { name: 'Verbalized Sampling', url: 'https://arxiv.org/abs/2510.01171', what: 'asking for ideas with their probabilities for more diverse ideas' },
+      { name: 'AI Scientist', url: 'https://github.com/SakanaAI/AI-Scientist', what: 'novelty check of an idea against the literature' },
+    ],
+  },
   'later-write': NO_ORIGIN,
   'messages-draft-message': NO_ORIGIN,
   'okf-maintain-knowledge': { importedFrom: [{ ...OKF_SKILLS, what: 'the skill, with the OKF v0.2 spec by Google LLC, Apache 2.0' }], basedOn: [] },

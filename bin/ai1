@@ -23,6 +23,7 @@
 //   ai1 okf catch-up [--json] [--brief <sha>]    merges of branches without a bundle not yet documented, and the brief to catch one up
 //   ai1 okf project init|gaps|req|question|conflicts  the project context: purpose, scope, requirements, open questions (src/okf/okf-project-command.mjs)
 //   ai1 config init|clone|adopt|status|sync|commit|push|new-skill|machine|off|on  the person's config repo (src/config/config-command.mjs)
+//   ai1 papers search "<query>" [--source openalex|semantic-scholar] [--limit 10] [--json]  scientific papers with exact citations (src/ideas/papers-search.mjs)
 //   ai1 okf visualize <bundle-dir> [-o viz.html] [...]  the bundle as an interactive HTML graph
 // Run from anywhere inside the repo; files are written at the repo root.
 
@@ -47,6 +48,7 @@ import { runForkCommand, FORK_USAGE } from '../src/cli/fork-command.mjs';
 import { runDelegateCommand } from '../src/cli/delegate-command.mjs';
 import { runIssueCommand, ISSUE_USAGE } from '../src/cli/issue-command.mjs';
 import { runLogCommand } from '../src/cli/log-command.mjs';
+import { runPapersCommand, PAPERS_USAGE } from '../src/ideas/papers-search.mjs';
 import { runSkillContextCommand, SKILL_CONTEXT_USAGE } from '../src/cli/skill-context-command.mjs';
 import { describeOverlap } from '../src/core/plugin-overlaps.mjs';
 import { resolveBundleDirectory, readBundleIndex } from '../src/okf/okf-bundle.mjs';
@@ -228,6 +230,10 @@ try {
       const recordedBrands = findRecordedBrands({ projectRoot: repoRoot, ownerName, relatedEntries: loadedConfig.config?.related ?? [] });
       console.log(wantsJson ? JSON.stringify(recordedBrands, null, 2) : formatRecordedBrands(ownerName, recordedBrands));
     }
+  } else if (commandName === 'papers') {
+    const cliResult = await runPapersCommand(commandArguments);
+    console.log(cliResult.output);
+    process.exitCode = cliResult.exitCode;
   } else if (commandName === 'maintain') {
     const cliResult = runMaintainCommand(repoRoot, commandArguments);
     console.log(cliResult.output);
@@ -247,6 +253,7 @@ try {
     console.log(REUSE_USAGE);
     console.log(OKF_USAGE);
     console.log(CONFIG_USAGE);
+    console.log(PAPERS_USAGE);
     process.exitCode = commandName ? 1 : 0;
   }
 } catch (commandError) {
