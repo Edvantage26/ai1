@@ -14,16 +14,17 @@ import { readPlanStatus, UNAPPROVED_STATUSES } from './sizing-work.mjs';
 const BEHAVIOUR_HEADING_PATTERN = /^#{1,2}\s+behaviou?r\s*$/i;
 const ANY_SECTION_HEADING_PATTERN = /^#{1,2}\s/;
 const CODE_FENCE_PATTERN = /^\s*(```|~~~)/;
-const SCENARIO_LINE_PATTERN = /^\s*[-*]\s+(S\d+)\s*:/;
+// `- S2: ...`, or `- S2 (engine): ...` in a joint plan: the repository (folder name) that owns it.
+const SCENARIO_LINE_PATTERN = /^\s*[-*]\s+(S\d+)(?:\s*\(([^)]+)\))?\s*:/;
 const MAX_SCANNED_FILE_BYTES = 1024 * 1024;
 const GIT_TIMEOUT_MILLISECONDS = 10000;
 
-// { hasBehaviourSection, scenarioIds, duplicateIds }. Headings and scenario lines inside code fences
-// do not count: a plan may quote the template.
-export function readPlanScenarios(planText) {
+// readPlanScenarios plus `scenarioOwners`: the repository that owns each (null: no owner given).
+function scanPlanScenarios(planText) {
   const { bodyText } = splitFrontmatter(planText);
   const scenarioIds = [];
   const duplicateIds = [];
+  const scenarioOwners = new Map();
   let hasBehaviourSection = false;
   let isInsideBehaviour = false;
   let isInsideFence = false;
@@ -38,8 +39,18 @@ export function readPlanScenarios(planText) {
     const scenarioMatch = isInsideBehaviour && SCENARIO_LINE_PATTERN.exec(planLine);
     if (!scenarioMatch) continue;
     if (scenarioIds.includes(scenarioMatch[1])) duplicateIds.push(scenarioMatch[1]);
-    else scenarioIds.push(scenarioMatch[1]);
+    else {
+      scenarioIds.push(scenarioMatch[1]);
+      scenarioOwners.set(scenarioMatch[1], scenarioMatch[2]?.trim() || null);
+    }
   }
+  return { hasBehaviourSection, scenarioIds, duplicateIds, scenarioOwners };
+}
+
+// { hasBehaviourSection, scenarioIds, duplicateIds }. Headings and scenario lines inside code fences
+// do not count: a plan may quote the template.
+export function readPlanScenarios(planText) {
+  const { hasBehaviourSection, scenarioIds, duplicateIds } = scanPlanScenarios(planText);
   return { hasBehaviourSection, scenarioIds, duplicateIds };
 }
 
@@ -92,8 +103,12 @@ export function findScenarioTags(repoRoot, planSlug, scenarioIds, repoFiles = li
 }
 
 // { scenarioIds, duplicateIds, coveredLocations: Map, missingIds } for a plan's text.
-export function checkScenarioCoverage(repoRoot, planSlug, planText, repoFiles) {
-  const { scenarioIds, duplicateIds } = readPlanScenarios(planText);
+// `repoName`: only the scenarios this repository owns (no owner, or `(repoName)`) are checked here; a
+// joint plan's scenarios owned by another repository are checked by that repository's sub-plan.
+export function checkScenarioCoverage(repoRoot, planSlug, planText, repoFiles, { repoName = null } = {}) {
+  const planScenarios = scanPlanScenarios(planText);
+  const { duplicateIds } = planScenarios;
+  const scenarioIds = planScenarios.scenarioIds.filter((scenarioId) => !repoName || [null, repoName].includes(planScenarios.scenarioOwners.get(scenarioId)));
   const coveredLocations = scenarioIds.length === 0 ? new Map() : findScenarioTags(repoRoot, planSlug, scenarioIds, repoFiles);
   const missingIds = scenarioIds.filter((scenarioId) => !coveredLocations.has(scenarioId));
   return { scenarioIds, duplicateIds, coveredLocations, missingIds };

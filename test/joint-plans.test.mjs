@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -69,6 +69,49 @@ test('a joint plan written in a worktree is still the parent its sub-plans name 
   const worktreeRoot = join(workspaceRoot, 'client-wt');
   runGit(clientRoot, ['worktree', 'add', '-q', worktreeRoot]);
   assert.equal(canonicalPlanPath(join(worktreeRoot, '.ai1', 'work', 'tenant-options', 'plan.md')), join(clientRoot, '.ai1', 'work', 'tenant-options', 'plan.md'));
+});
+
+const AI1_BIN = join(import.meta.dirname, '..', 'bin', 'ai1');
+
+function runAi1(workingDirectory, ai1Arguments, workspaceRoot) {
+  const ai1Result = spawnSync(process.execPath, [AI1_BIN, ...ai1Arguments], { cwd: workingDirectory, encoding: 'utf8', env: { ...process.env, CLAUDE_PLUGIN_DATA: join(workspaceRoot, '.plugin-data'), AI1_DECISION_LOG: '0' } });
+  return { exitCode: ai1Result.status, output: `${ai1Result.stdout}${ai1Result.stderr}` };
+}
+
+// Client (coordinator, owns S1) and engine (owns S2), each with its tagged test committed and `true` as verify.
+function createBuildableJointWorkspace() {
+  const workspace = createJointWorkspace();
+  const { clientRoot, engineRoot, jointPlanPath, subplanPath } = workspace;
+  for (const [repoRoot, scenarioId] of [[clientRoot, 'S1'], [engineRoot, 'S2']]) {
+    writeFileSync(join(repoRoot, '.ai1', 'config.json'), JSON.stringify({ features: {}, verify: ['true'] }));
+    mkdirSync(join(repoRoot, 'test'), { recursive: true });
+    writeFileSync(join(repoRoot, 'test', 'contract.test.mjs'), `// tenant_options [tenant-options:${scenarioId}]\n`);
+    runGit(repoRoot, ['add', '.']);
+    runGit(repoRoot, ['commit', '-qm', 'tests']);
+  }
+  writeFileSync(subplanPath, readFileSync(subplanPath, 'utf8').replace('# Steps', '# Behaviour\n- S2 (engine): the engine stores tenant_options.\n\n# Steps'));
+  writeFileSync(jointPlanPath, readFileSync(jointPlanPath, 'utf8').replace('status: ready', 'status: approved').replace('# Steps', '# Behaviour\n- S1: the client sends tenant_options.\n- S2 (engine): the engine stores tenant_options.\n\n# Steps'));
+  return workspace;
+}
+
+test('a sub-plan built from the coordinator closes with ai1 plan-done --cwd, under that repo\'s scenarios and verify [joint-plans:S3]', () => {
+  const { workspaceRoot, clientRoot, engineRoot, subplanPath } = createBuildableJointWorkspace();
+  const closeResult = runAi1(clientRoot, ['plan-done', '--cwd', engineRoot, 'tenant-options'], workspaceRoot);
+  assert.equal(closeResult.exitCode, 0, closeResult.output);
+  assert.match(closeResult.output, /S2 test\/contract\.test\.mjs/);
+  assert.match(readFileSync(subplanPath, 'utf8'), /status: done/);
+});
+
+test('the joint plan closes only after every sub-plan, checking only the scenarios it owns [joint-plans:S4]', () => {
+  const { workspaceRoot, clientRoot, engineRoot, jointPlanPath } = createBuildableJointWorkspace();
+  const refusedResult = runAi1(clientRoot, ['plan-done', 'tenant-options'], workspaceRoot);
+  assert.equal(refusedResult.exitCode, 1);
+  assert.match(refusedResult.output, /sub-plans not done yet: .*engine.* is ready: close it with `ai1 plan-done --cwd /);
+  assert.equal(runAi1(clientRoot, ['plan-done', '--cwd', engineRoot, 'tenant-options'], workspaceRoot).exitCode, 0);
+  const closedResult = runAi1(clientRoot, ['plan-done', 'tenant-options'], workspaceRoot);
+  assert.equal(closedResult.exitCode, 0, closedResult.output);
+  assert.match(closedResult.output, /scenarios 1\/1 covered: S1 /, 'S2 belongs to the engine and is checked there');
+  assert.match(readFileSync(jointPlanPath, 'utf8'), /status: done/);
 });
 
 function approveJointPlan({ clientRoot, jointPlanPath, workspaceRoot }) {

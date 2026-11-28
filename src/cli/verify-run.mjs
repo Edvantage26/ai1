@@ -5,7 +5,8 @@
 
 import { spawnSync } from 'node:child_process';
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
+import { checkSubplans, describeSubplanProblem, isJointPlan } from '../sizing/joint-plans.mjs';
 import { loadHarnessConfig } from '../core/config.mjs';
 import { KNOWN_MODULE_IDS } from '../core/module-index.mjs';
 import { WORK_DIRECTORY } from '../core/config.mjs';
@@ -56,7 +57,7 @@ export function recordStepDone(repoRoot, planSlug, stepText, verifyCommands, rec
 // Coverage of a plan's behaviour scenarios, as one line for `ai1 step-done`; null when the plan has none.
 export function describeScenarioCoverage(mainCheckoutRoot, scanRoot, planSlug, repoFiles) {
   const planText = readFileSync(join(mainCheckoutRoot, WORK_DIRECTORY, planSlug, 'plan.md'), 'utf8');
-  const scenarioCoverage = checkScenarioCoverage(scanRoot, planSlug, planText, repoFiles);
+  const scenarioCoverage = checkScenarioCoverage(scanRoot, planSlug, planText, repoFiles, { repoName: basename(findMainCheckout(scanRoot)) });
   if (scenarioCoverage.scenarioIds.length === 0) return null;
   const coveredCount = scenarioCoverage.coveredLocations.size;
   const missingNote = scenarioCoverage.missingIds.length ? ` (missing ${scenarioCoverage.missingIds.join(', ')})` : '';
@@ -80,7 +81,14 @@ export function closePlan(mainCheckoutRoot, scanRoot, planSlug, verifyCommands, 
   } else if (planStatus !== 'approved') {
     return { closed: false, message: `the plan is ${planStatus}, not approved: only an approved plan can be closed` };
   }
-  const scenarioCoverage = checkScenarioCoverage(scanRoot, planSlug, planText, repoFiles);
+  // A joint plan closes after every sub-plan, in its own repository (joint-plans.mjs).
+  if (isJointPlan(planText)) {
+    const openSubplans = checkSubplans(planPath, { requireReady: false }).filter((subplanCheck) => subplanCheck.problem || subplanCheck.status !== 'done');
+    if (openSubplans.length) {
+      return { closed: false, message: `sub-plans not done yet: ${openSubplans.map((subplanCheck) => (subplanCheck.problem ? describeSubplanProblem(subplanCheck) : `\`${subplanCheck.path}\` (${subplanCheck.repo}) is ${subplanCheck.status}: close it with \`ai1 plan-done --cwd ${subplanCheck.repo} ${planSlug}\``)).join('; ')}` };
+    }
+  }
+  const scenarioCoverage = checkScenarioCoverage(scanRoot, planSlug, planText, repoFiles, { repoName: basename(findMainCheckout(scanRoot)) });
   if (scenarioCoverage.duplicateIds.length) {
     return { closed: false, message: `duplicate scenario ids in the plan: ${scenarioCoverage.duplicateIds.join(', ')}` };
   }
