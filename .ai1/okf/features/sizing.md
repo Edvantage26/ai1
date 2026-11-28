@@ -5,7 +5,7 @@ description: Each task sized quick, plan or deep - with a plan file for plan and
 tags: [sizing, workflow, hooks, skills, approval]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-28T07:42:23Z'
+  at: '2026-11-28T11:38:02Z'
 sources:
   - id: sizing-work
     resource: src/sizing/sizing-work.mjs
@@ -171,6 +171,33 @@ modified since the session started). Before: that rule was the only one, and on 
 session was refused every code edit by another session's new draft (`prod-guard`), with "mark it
 `abandoned`" as the only way out offered - which would have broken the other session's work; a yes
 could also have approved the other session's `ready` plan.
+
+# Joint plans across repositories (since 2026-11-28)
+
+A change that needs several repositories with ai1 (a client, its engine, the engine's plugin) gets one
+**joint plan** in the coordinator repo and a **sub-plan** per other repo (`src/sizing/joint-plans.mjs`;
+"Plans across repositories" in the deep skill). Decided by the person on 2026-11-28: coordinator +
+contract first, each repo designs and builds its part under its own rules, one approval.
+- The joint plan holds goal, `# Contract`, order, joint scenarios (`- S2 (engine):` names the owner, the
+  repo's folder name; none means the coordinator) and the coordinator's own part, plus `subplans:`
+  (absolute paths). A sub-plan lives in its repo's **main checkout** `.ai1/work/<slug>/` (same slug), is
+  `size: plan` (no approval of its own), and carries `parent:` and `contract:` (hash of the joint
+  plan's Contract section, whitespace normalized). It is written by a design session there:
+  `ai1 delegate --design --joint <plan> --cwd <repo>` ([delegate](delegate.md)), which also reports
+  objections to the contract and impacts on other repos.
+- **Approval** (`sizing-approval`): a joint plan is approved only while every sub-plan exists, names it
+  back (compared in main-checkout form, so a joint plan written in a worktree still matches), is `ready`
+  and carries the current contract hash; otherwise a line names each failing one. No hook writes another
+  repo's approvals or plans: a delegated build session is not gated by a plan it did not write.
+- **Close**: `ai1 plan-done --cwd <repo> <slug>` (and `step-done --cwd`) closes a sub-plan with that repo's
+  scenario tags and verify; the joint `plan-done` refuses while a sub-plan is not `done` (or no longer
+  links back, or has another contract), and checks only the scenarios this repo owns.
+- Rejected: one planner reading every repo (the other repo's skills and session rules never run, and
+  nothing proves the parts agree); propagating the approval into each repo (critic: needless, the gate
+  only covers a session's own plans); plan permission mode for the design session (it must write its
+  sub-plan in `.ai1/work/`).
+- Not covered: a sub-plan edited after the approval stays valid unless its contract hash changes;
+  consult rounds and "at most two" live in the skill, not in code.
 
 # Limits
 

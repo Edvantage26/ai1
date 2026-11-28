@@ -72,7 +72,7 @@ Every feature is on unless your repo switches it off (`"features": { "storyboard
 | `okf` | **Project memory.** Knowledge lives in the repo as an [OKF](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf) bundle (`.ai1/okf/`); the agent is pointed to the right concept for each message and file, and asked to update it after changing things. It also keeps what the project is for, its scope, requirements and open questions, asking you only what the repo does not say. |
 | `verify` | **No "done" without proof.** The agent cannot finish while code changed after the last passing test run; weakening or deleting tests asks you first. |
 | `danger` | **Guardrails.** Confirms or refuses `rm -rf`, force pushes, `DROP TABLE`...; the agent cannot switch its own guards off; your repo's own rules ("use pnpm", "never edit `generated/`"). |
-| `sizing` | **The right amount of process.** Each task is sized quick, plan or deep; deep work gets a design you approve before any code. |
+| `sizing` | **The right amount of process.** Each task is sized quick, plan or deep; deep work gets a design you approve before any code, also across several repos (joint plans). |
 | `worktrees` | **One worktree per change**, made the way your repo needs (env files, install, ports), merged when the checks pass. |
 | `craft` | **Orderly code.** The minimum change, reuse before writing, refactors proposed instead of sneaked in. |
 | `design` | **No generic AI look.** 35 design checks on every edited UI file, your client's brand gathered before designing, usability reviews as your users would try it. |

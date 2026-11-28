@@ -5,7 +5,7 @@ description: An edit to a file of another repository with ai1 active is delegate
 tags: [delegate, foreign-repo, cross-repo, claude-p, submodules, hot-edits]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-28T10:36:04Z'
+  at: '2026-11-28T11:38:02Z'
 ---
 
 # What it does
@@ -98,6 +98,12 @@ A repo opts in with `modules["foreign-repo"].hot_max_files: <n>` (main checkout;
 - **Status:** `done` / `needs-input` from the status line; `blocked` when `permission_denials` is not
   empty and the agent did not finish (in `claude -p` a hook `ask` counts as a denial in every mode,
   checked 2026-11-15); `failed` for a crash, `is_error`, no JSON or no status line.
+- **Design sessions** (since 2026-11-28): `--design --joint <joint plan.md>` replaces the change
+  protocol with a design-only one (`buildDesignProtocol`): read that repo's CLAUDE.md and bundle, write
+  its part as a sub-plan in its main checkout (`size: plan`, `status: ready`, `parent`, `contract`
+  hash), change no code, stop if that folder exists, report objections to the contract and impacts on
+  other repos. The record gets `design_for`; `delegate-report` adds `parent` and `contract` to
+  `open_plans`. See [joint plans](sizing.md#joint-plans-across-repositories-since-2026-11-28).
 - **Result:** JSON on stdout and saved in ai1's state directory (`delegations/<session>.json`), so
   `--resume` and `show` work from any folder: status, question, summary, session_id, commits (any branch, since the run started),
   changed_files (commits plus uncommitted, worktrees included), new_worktrees, verify, open_plans, denied, cost.

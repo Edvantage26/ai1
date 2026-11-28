@@ -152,6 +152,36 @@ scenarios is refused by `sizing-gate`, and so is dropping an approved scenario (
 scenario, with its test), and every ruling you made. Move lasting decisions to the knowledge bundle; the work
 folder is scratch.
 
+## Plans across repositories
+
+When the design needs changes in other repositories with ai1 (a client that needs its engine and the
+engine's plugin to change), this plan becomes the **joint plan**: you coordinate goal, contract and order;
+each repository designs and builds its own part under its own rules.
+
+1. **Read each one**: its CLAUDE.md, its `.ai1/okf/index.md` and the concepts the change touches,
+   `related` (`owns` says where each fact lives). Copy into **Constraints** the rules of each repo that
+   shape the change, with their source (e.g. "engine: every change generic, multi-tenant - its CLAUDE.md").
+2. **Draft** with a `# Contract` section (the interface the repos share: API, schema, event, version),
+   one section per repository with what it is asked, and joint scenarios with their owner: `- S2 (engine):`
+   (the repository's folder name; no owner means this repository). At least one scenario owned by a
+   consumer exercises the provider's real interface: it is what proves the parts agree.
+3. **Consult each repository in parallel**, telling the person in one line ("consulto a engine y plugin,
+   una sesión de diseño en cada uno"): `ai1 delegate --design --joint <this plan> --cwd <repo> --brief
+   <its section as a file>`, in the background. Each writes its sub-plan in its repo and reports
+   `Objections to the contract` and `Impacts on other repositories` (a repository you did not list).
+4. **Reconcile**: fold the objections into the Contract. A changed Contract means consulting again the
+   repositories it affects (their sub-plans carry the old contract hash). At most two rounds; what is
+   still in conflict goes to the person.
+5. **Link**: list every sub-plan path under `subplans:` in this plan's frontmatter (from each result's
+   `open_plans`). The approval summary shows each sub-plan's steps and the objections and what you did
+   with them. The yes approves the joint plan only while every sub-plan links back, is ready and carries
+   the current contract; otherwise you are told which one fails.
+6. **Build by dependency order**, providers before consumers. A small part: hot edits from here when that
+   repository allows them, then `ai1 plan-done --cwd <repo> <slug>`. Otherwise `ai1 delegate --cwd <repo>
+   --brief <its sub-plan path>`, which builds and closes it there. Your own part is this plan's steps.
+7. **Close** this plan last: `ai1 plan-done <slug>` refuses while a sub-plan is not done and checks only
+   the scenarios this repository owns.
+
 ## Fixed rules
 
 - No code edits outside `.ai1/` and the knowledge bundle before the person approves the design.

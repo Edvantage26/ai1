@@ -45,6 +45,8 @@ How to check it (its tests, an observable result).
 
 No secrets. `ai1 delegate` appends how to finish (status line, no push, follow that repository's rules).
 A one-line change can go inline instead: `ai1 delegate --cwd <repo> "<task>"`.
+To design that repository's part of a joint plan instead of changing it, add `--design --joint <the
+joint plan.md>` (see "Plans across repositories" in /ai1:sizing-design-before-code).
 
 ## 2. Run it
 
