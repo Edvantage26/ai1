@@ -362,6 +362,7 @@ test('worktree-brief: gives the rules with the basic recipe or a project recipe,
   assert.match(bareContext, /Worktrees: any change to the files of this repo happens in a worktree/, 'no recipe file needed');
   assert.match(bareContext, /add the fix to \.claude\/skills\/worktree\/recipe\.json yourself \(\/ai1:worktrees-plan-recipe\) and say it in one line; propose it first when it would share a folder that holds state or delete data/);
   assert.match(bareContext, /Start every progress report with one line naming the worktree you work in/);
+  assert.match(bareContext, /Except knowledge of done work \(CLAUDE\.md, docs\/, the bundle\): to this session's open worktree if from its work, else straight to the trunk, committed at once\./);
   assert.match(bareContext, /Close it yourself, without asking, once the work is done and verified/);
   assert.doesNotMatch(bareContext, /no worktree recipe/);
   const mainRoot = createRecipeRepo();
@@ -490,6 +491,28 @@ test('worktree-reminder: on change and every N prompts, marking this session, th
   dropWorktree(mainRoot, 'other', { confirm: true });
   assert.equal(sendPrompt(mainRoot), '[ai1 worktrees] No active worktrees now.');
   assert.equal(sendPrompt(mainRoot), '');
+});
+
+test('worktree-trunk-docs: a knowledge edit in the main checkout is stopped once while this session has a worktree; code, other sessions and the worktree itself pass', () => {
+  const mainRoot = createRecipeRepo();
+  mkdirSync(join(mainRoot, '.ai1'), { recursive: true });
+  writeFileSync(join(mainRoot, '.ai1', 'config.json'), JSON.stringify({ features: { okf: false, worktrees: true } }));
+  const options = hookOptions(mainRoot);
+  const editFile = (sessionId, filePath, workingDirectory = mainRoot) => runHookEvent('PreToolUse', {
+    session_id: sessionId, cwd: workingDirectory, tool_name: 'Edit', tool_input: { file_path: filePath, old_string: 'a', new_string: 'b' },
+  }, options)?.hookSpecificOutput?.permissionDecision ?? 'allow';
+  assert.equal(editFile('mine', join(mainRoot, 'CLAUDE.md')), 'allow', 'no worktree: knowledge goes to the trunk');
+  const created = createWorktree(mainRoot, 'task', { mode: 'light', sessionId: 'mine' });
+  assert.equal(readWorktreeState(join(mainRoot, '.git'), 'task').created_by_session, 'mine');
+  const stopped = runHookEvent('PreToolUse', { session_id: 'mine', cwd: mainRoot, tool_name: 'Write', tool_input: { file_path: join(mainRoot, '.ai1', 'okf', 'x.md'), content: 'x' } }, options);
+  assert.equal(stopped.hookSpecificOutput.permissionDecision, 'deny');
+  assert.match(stopped.hookSpecificOutput.permissionDecisionReason, /`\.ai1\/okf\/x\.md` is in the main checkout[\s\S]*worktree `task`[\s\S]*edit the file there[\s\S]*repeat the same edit/);
+  assert.equal(editFile('mine', join(mainRoot, '.ai1', 'okf', 'x.md')), 'allow', 'repeated: the agent decided it describes the trunk');
+  assert.equal(editFile('mine', join(mainRoot, 'docs', 'guide.md')), 'deny', 'each file once');
+  assert.equal(editFile('mine', join(mainRoot, 'src', 'app.js')), 'allow', 'code is not this hook\'s business');
+  assert.equal(editFile('mine', join(created.path, 'CLAUDE.md'), created.path), 'allow', 'in the worktree');
+  assert.equal(editFile('other', join(mainRoot, 'README.md')), 'allow', 'another session\'s worktree does not count');
+  assert.equal(editFile('entered', join(mainRoot, 'README.md'), created.path), 'deny', 'a session working in the worktree has it too');
 });
 
 test('ports are stable per name and skip taken ones; env files keep other lines', () => {

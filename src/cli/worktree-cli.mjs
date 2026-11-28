@@ -72,7 +72,7 @@ export function runWorktreeCli(workingDirectory, commandArguments) {
 
   if (subcommandName === 'create') {
     if (!positionalArguments[0]) throw new Error('usage: ai1 worktree create <name> [--mode ...] [--base <branch>]');
-    return respond(createWorktree(workingDirectory, positionalArguments[0], { mode: readOption('--mode'), base: readOption('--base') }), describeCreated);
+    return respond(createWorktree(workingDirectory, positionalArguments[0], { mode: readOption('--mode'), base: readOption('--base'), sessionId: process.env.CLAUDE_CODE_SESSION_ID }), describeCreated);
   }
   if (subcommandName === 'list') return respond(listWorktrees(workingDirectory, { withSize: restArguments.includes('--size') }), describeListed);
   if (subcommandName === 'run') {

@@ -199,6 +199,7 @@ from (same meaning as in the [Skills table of the README](../README.md#skills)).
 | `tool-loop` | `verify` | PreToolUse | when the last 5 tool calls are the same call with the same input, tells the agent once to stop polling or retrying by hand (`modules.tool-loop.repeat_threshold`) | Based on [Everything Claude Code](https://github.com/affaan-m/ECC) (the repeated tool call nudge) |
 | `worktree-brief` | `worktrees` | SessionStart | worktree rules at session start, the basic recipe and how to complete the project recipe; names the worktree the session is in | Written in ai1 |
 | `worktree-reminder` | `worktrees` | UserPromptSubmit | the active worktrees when they change and every few prompts, marking this session's | Written in ai1 |
+| `worktree-trunk-docs` | `worktrees` | PreToolUse | stops once a knowledge edit (CLAUDE.md, README, docs, the OKF bundle) in the main checkout while this session has a worktree open; repeated, it passes | Written in ai1 |
 | `later-brief` | `later` | SessionStart | where later entries live, that they are not the system, that "propuesta" is never this feature, when to note one down, and the open ones | Written in ai1 |
 | `later-recall` | `later` | UserPromptSubmit | on every message, points the agent to the related later entries, labelled with their status | Written in ai1 |
 | `storyboard-reminder` | `storyboard` | Stop | when the session changed UI files and built no storyboard after them, asks once to record the flow or say why not (`modules.storyboard-reminder.ignore`) | Written in ai1 |

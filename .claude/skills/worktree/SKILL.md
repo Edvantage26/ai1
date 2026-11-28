@@ -14,6 +14,13 @@ several sessions often work on ai1 at once, and two of them committing and relea
 - **Any change to files** (code, skills, tests, README, `.ai1/okf/`, `.ai1/later/`): in a worktree. If
   the session is not in one, create it before the first edit and tell the person its name in one
   line ("Trabajo en el worktree `fix-brief-text`."). No need to ask first.
+- Knowledge of what is already done or decided (CLAUDE.md, README, `docs/`, `.ai1/okf/`,
+  `.ai1/later/`) goes where what it describes lives: into this session's open worktree when it comes
+  from that work; straight to `main` in the main checkout, committed at once on its own (never with a
+  release), when that work is already finished or there is no task (something learned talking).
+  Skills are behaviour, not knowledge: always a worktree. The hook `worktree-trunk-docs` stops the
+  first such edit in the main checkout while the session has a worktree open; repeat it only when it
+  really describes `main`.
 - Questions, reviews and research without edits: fine in the main checkout.
 
 ## Flow

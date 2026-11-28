@@ -1,5 +1,6 @@
 // worktree-brief (SessionStart, feature `worktrees`): tells the agent how this repo works with
-// worktrees: any change to the repo's files happens in a worktree (created before the first edit), made
+// worktrees: any change to the repo's files happens in a worktree (created before the first edit; knowledge
+// of what is already done goes to the session's open worktree, else straight to the trunk), made
 // with the basic recipe ai1 works out from the repo plus the project recipe when there is one, which
 // the agent itself completes when the basic recipe falls short; inside a worktree it names it, and asks
 // to mention it in every progress report. Byte-stable within a session.
@@ -34,10 +35,11 @@ export function describeSessionWorktree(sessionWorktree) {
 // and in /ai1:worktrees-plan-recipe, which `ai1 worktree` names when the recipe falls short.
 export function buildWorktreeRules(hasProjectSkill = false) {
   return [
-    `Worktrees: any change to the files of this repo happens in a worktree, never in the main checkout${hasProjectSkill ? ', following the project skill `/worktree` (its rules win over these)' : ''}. If the task needs edits and this session is not in a worktree, create one before the first edit and tell the person its name in one line; questions and research without edits need none.`,
-    '- `ai1 worktree create <name>`, then EnterWorktree with the printed path and run what it lists under "next"; work and run project steps only inside it (`ai1 worktree run <name> <command>`). Inside, edit with Edit/Write (Claude Code refuses heredocs or sed programs naming git).',
+    `Worktrees: any change to the files of this repo happens in a worktree, never in the main checkout${hasProjectSkill ? ', following the project skill `/worktree` (its rules win over these)' : ''}. Not in one? create one before the first edit and name it; questions and research need none.`,
+    '- Except knowledge of done work (CLAUDE.md, docs/, the bundle): to this session\'s open worktree if from its work, else straight to the trunk, committed at once.',
+    '- `ai1 worktree create <name>`, then EnterWorktree with the printed path, run what it lists under "next"; work only inside (`ai1 worktree run <name> <command>`), editing with Edit/Write (Claude Code refuses heredoc/sed naming git).',
     '- Start every progress report with one line naming the worktree you work in.',
-    '- Close it yourself, without asking, once the work is done and verified: commit in its branch and `ai1 worktree finish <name>` (nothing is pushed), or `ai1 worktree drop <name> --confirm`.',
+    '- Close it yourself, without asking, once the work is done and verified: commit in its branch and `ai1 worktree finish <name>` (no push), or `ai1 worktree drop <name> --confirm`.',
     `- When \`ai1 worktree\` reports a gap in the recipe or a step was done by hand, add the fix to ${RECIPE_RELATIVE_PATH} yourself (/ai1:worktrees-plan-recipe) and say it in one line; propose it first when it would share a folder that holds state or delete data.`,
   ].join('\n');
 }

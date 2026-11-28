@@ -1,11 +1,11 @@
 ---
 type: Component
 title: worktrees feature
-description: A worktree per change (any edit to the repo files, created before the first edit), made with a per-project recipe planned once with the person and saved as the project skill .claude/skills/worktree/; engine ai1 worktree, session brief and active-worktree reminder.
+description: A worktree per change (any edit to the repo files, created before the first edit; knowledge of what is already done may go straight to the trunk), made with a per-project recipe planned once with the person and saved as the project skill .claude/skills/worktree/; engine ai1 worktree, session brief and active-worktree reminder.
 tags: [worktrees, git, skills, cli, hooks]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-20T23:58:56Z'
+  at: '2026-11-28T19:11:43Z'
 sources:
   - id: worktree-create
     resource: src/worktrees/worktree-create.mjs
@@ -22,6 +22,9 @@ sources:
   - id: project-roots
     resource: src/core/project-roots.mjs
     title: tree root and shared root
+  - id: worktree-trunk-docs
+    resource: src/worktrees/worktree-trunk-docs.mjs
+    title: knowledge edits on the trunk while the session has a worktree
   - id: worktree-skill
     resource: skills/worktrees-plan-recipe/SKILL.md
     title: /ai1:worktrees-plan-recipe procedure
@@ -42,6 +45,29 @@ Python) showed the level needed. Claude Code's native worktrees and the communit
 git-worktree-runner, Superpowers) each cover part of it; none plans a recipe with the person and
 keeps it in the repo. See [prior art](/decisions/prior-art.md#worktrees-2026-11-08). Agreed with the
 person on 2026-11-08; on by default since v0.36.0 ([all features on](/decisions/all-features-on.md)).
+
+# Knowledge of what is already done (since 2026-11-28)
+
+Asked by the person: once a task was finished, updating CLAUDE.md or the bundle with what was learned,
+or with something found out just talking, made a whole worktree (create, `finish` with the full suite)
+for two lines about work already in `main`. The rule now: knowledge of what is already done or decided
+(CLAUDE.md, README, `docs/`, the OKF bundle, later entries) goes **where what it describes lives**:
+into the session's open worktree when it comes from that work; straight to the trunk in the main
+checkout, committed at once on its own, when that work is already integrated or there is no task. Its
+right place is the trunk: a worktree's branch may be changing that very behaviour. Code, tests and
+skills (behaviour, though `.md`) always in a worktree. It costs no check: the verify gate already
+ignores `*.md` and `.ai1/**`, and `dirty_base_paths_ok` already lets `finish` pass with `.ai1/okf/`
+dirty in the main checkout.
+
+The person's worry was knowledge leaking to the trunk while the worktree of its work is open, so a hook
+holds it, not only the text: `worktree-trunk-docs` (PreToolUse, Edit/Write/MultiEdit) refuses the first
+edit of a knowledge file (`KNOWLEDGE_PATHS`) in the main checkout while the session has a worktree, with
+the reason (edit it there if it comes from that work; repeat the edit if it describes the trunk); the
+same file again in the session passes. A session has a worktree when it works in it or created it:
+`create` records `created_by_session` from `CLAUDE_CODE_SESSION_ID` (a session can create one and work
+by absolute paths without entering it). Other sessions' worktrees do not count: if one changes that
+behaviour, its rebase brings the trunk's edit in and its own bundle update supersedes it. Edits from the
+shell are not covered.
 
 # Basic recipe and project recipe (since v0.36.0)
 
@@ -81,6 +107,7 @@ that sets every field.
 | Engine | `ai1 worktree create\|list\|run\|finish\|drop` (`src/worktrees/`, `src/cli/worktree-cli.mjs`) | Deterministic operations driven by `recipe.json` (schema `schema/worktree-recipe.schema.json`). |
 | `worktree-brief` | SessionStart | The worktree rules (a worktree before the first edit, its name in every progress report, close it without asking, fix recipe gaps yourself) with the `ai1 worktree` commands and /ai1:worktrees-plan-recipe as pointers; the project skill `/worktree` named only when the repo has it; inside a worktree, names it. Byte-stable. |
 | `worktree-reminder` | UserPromptSubmit | Active worktrees when they change and every `reminder_every` prompts, marking this session's. |
+| `worktree-trunk-docs` | PreToolUse | Stops once a knowledge edit in the main checkout while the session has a worktree open (see above). |
 | `danger` rules | PreToolUse | `git worktree remove --force` asks; plain remove asks when it would delete ignored files; `ai1 worktree drop --discard-uncommitted` asks; `finish` and a plain `drop` do not (since 2026-11-09: the agent commits in the branch and finishes once the work is verified, nothing is pushed, and drop keeps the commits in a bundle). |
 
 # Modes and the auto decision

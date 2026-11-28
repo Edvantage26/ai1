@@ -473,6 +473,22 @@
             }
           ]
         },
+        "worktree-trunk-docs": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
         "worktree-reminder": {
           "oneOf": [
             {

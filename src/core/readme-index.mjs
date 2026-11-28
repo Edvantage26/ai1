@@ -163,6 +163,7 @@ export const HOOK_README_INDEX = {
   },
   'worktree-brief': { description: 'worktree rules at session start, the basic recipe and how to complete the project recipe; names the worktree the session is in', ...NO_ORIGIN },
   'worktree-reminder': { description: 'the active worktrees when they change and every few prompts, marking this session\'s', ...NO_ORIGIN },
+  'worktree-trunk-docs': { description: 'stops once a knowledge edit (CLAUDE.md, README, docs, the OKF bundle) in the main checkout while this session has a worktree open; repeated, it passes', ...NO_ORIGIN },
   'later-brief': { description: 'where later entries live, that they are not the system, that "propuesta" is never this feature, when to note one down, and the open ones', ...NO_ORIGIN },
   'later-recall': { description: 'on every message, points the agent to the related later entries, labelled with their status', ...NO_ORIGIN },
   'storyboard-reminder': { description: 'when the session changed UI files and built no storyboard after them, asks once to record the flow or say why not (`modules.storyboard-reminder.ignore`)', ...NO_ORIGIN },

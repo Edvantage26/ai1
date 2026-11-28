@@ -173,7 +173,8 @@ function collectTakenPorts(commonDirectory, worktreeName) {
   return takenPorts;
 }
 
-// options: { mode, base, diskSpace, copyOnWrite } (the last two injectable for tests).
+// options: { mode, base, sessionId, diskSpace, copyOnWrite } (the last two injectable for tests). `sessionId`:
+// the Claude Code session that creates it (CLAUDE_CODE_SESSION_ID), so worktree-trunk-docs knows the session has one.
 export function createWorktree(startDirectory, worktreeName, options = {}) {
   validateWorktreeName(worktreeName);
   const { mainRoot, commonDirectory } = findRepository(startDirectory);
@@ -263,6 +264,7 @@ export function createWorktree(startDirectory, worktreeName, options = {}) {
       port: worktreePort,
       setup_commands: [...new Set(commandsToRun)],
       created_at: new Date().toISOString(),
+      created_by_session: options.sessionId || null,
       last_run: null,
     };
     writeWorktreeState(commonDirectory, worktreeState);
