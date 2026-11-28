@@ -1,6 +1,7 @@
 # Update Log
 
 ## 2026-11-28
+* **Verification**: [delegate](features/delegate.md) - design sessions for joint plans and hot edits, end to end with real Claude Code sessions in two throwaway repos.
 * **Creation**: [ideas feature](features/ideas.md) - `/ai1:ideas-brainstorm-topic` and `ai1 papers search`; its research in [prior art](decisions/prior-art.md#brainstorming-and-idea-generation-2026-11-28).
 
 ## 2026-11-22

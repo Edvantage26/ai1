@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { validateRecipe, loadRecipe, listUnknownRecipeFields, DEFAULT_RECIPE, RECIPE_RELATIVE_PATH } from '../src/worktrees/worktree-recipe.mjs';
 import { createWorktree, decideMode, UNCOVERED_FOLDER_BYTES } from '../src/worktrees/worktree-create.mjs';
 import { readWorktreeState } from '../src/worktrees/worktree-state.mjs';
-import { listWorktrees, runWorktreeCommand, dropWorktree, applyCommandArguments } from '../src/worktrees/worktree-ops.mjs';
+import { listWorktrees, runWorktreeCommand, dropWorktree, applyCommandArguments, listUncommittedPaths } from '../src/worktrees/worktree-ops.mjs';
 import { finishWorktree } from '../src/worktrees/worktree-finish.mjs';
 import { ensureWorkDirectoryIgnored } from '../src/sizing/sizing-work.mjs';
 import { integratedFileMatcher } from '../src/worktrees/worktree-integrations.mjs';
@@ -251,6 +251,12 @@ test('finish rebases onto a moved base, fast-forwards it and cleans everything',
   assert.equal(runGit(mainRoot, ['branch', '--list', 'wt/done']), '');
   assert.equal(readWorktreeState(join(mainRoot, '.git'), 'done'), null);
   assert.ok(existsSync(join(mainRoot, 'data', 'models', 'model.bin')));
+});
+
+test('listUncommittedPaths keeps the status columns of the first line, so a modified tracked file keeps its full path', () => {
+  const mainRoot = createRecipeRepo(TEST_RECIPE);
+  writeFileSync(join(mainRoot, 'src', 'app.js'), 'changed\n');
+  assert.deepEqual(listUncommittedPaths(mainRoot).map((statusLine) => statusLine.slice(3)), ['src/app.js']);
 });
 
 test('finish refuses uncommitted work, stops on conflicts and on a dirty base checkout', () => {

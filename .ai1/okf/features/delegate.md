@@ -5,7 +5,7 @@ description: An edit to a file of another repository with ai1 active is delegate
 tags: [delegate, foreign-repo, cross-repo, claude-p, submodules, hot-edits]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-28T11:38:02Z'
+  at: '2026-11-28T12:01:28Z'
 ---
 
 # What it does
@@ -107,6 +107,9 @@ A repo opts in with `modules["foreign-repo"].hot_max_files: <n>` (main checkout;
 - **Result:** JSON on stdout and saved in ai1's state directory (`delegations/<session>.json`), so
   `--resume` and `show` work from any folder: status, question, summary, session_id, commits (any branch, since the run started),
   changed_files (commits plus uncommitted, worktrees included), new_worktrees, verify, open_plans, denied, cost.
+  `summary` is the last message without the status line, whole up to 12000 characters (then its start
+  is cut and marked `[...]`); it was the last 2000 until 2026-11-28, which cut the first sentence of a
+  design report.
 - **Resume:** `ai1 delegate --resume <id> "<answer>"` continues the same session (`claude -p --resume`).
   `--allow-once "<command>"` grants a one-time allow that `danger` and `repo-rules` honour once in that
   session for that exact command or file; it lifts an **ask** only, never a deny.
@@ -128,6 +131,28 @@ Untracked files not ignored in a submodule (an un-ignored `venv/`) are listed an
 - `node --test test/owning-repo.test.mjs test/foreign-repo.test.mjs test/delegate.test.mjs test/submodule-changes.test.mjs`
   (tags `[foreign-repo-hot-edits:S1-S5]` for target guards, hot edits, worktree and verify, delegated sessions).
 - `ai1 verify --cwd <a repo with ai1>` prints `verify green (...) in <repo>` (checked 2026-11-28).
+- **End to end with real sessions** (2026-11-28, two throwaway repos "client" and "engine", the engine's
+  CLAUDE.md saying every change must be generic):
+  - `ai1 delegate --design --joint` against a contract with a client-specific field `acme_greeting`: the
+    engine session objected citing that CLAUDE.md rule, proposed `tenant_options.greeting`, wrote no
+    sub-plan for a contract its repo forbids, ended `needs-input` with the right question and named the
+    impact on the client.
+  - A real `claude -p` session in the client asked to change the engine (`hot_max_files: 3`, worktrees
+    on): main checkout refused with the worktree command, worktree created there, the "Hot edit" line
+    received with the exact `ai1 verify --cwd`, verify green; `worktree finish` stopped on dirty files of
+    the engine's main checkout (below).
+  - How to run it: write every file of the throwaway repos **before** their `.ai1/config.json` (once it
+    exists, foreign-repo rightly refuses this session's edits there), disable the installed plugin in
+    their `.claude/settings.json` (`"ai1@ai1": false`), start sessions with `--plugin-dir <ai1 checkout>`
+    (through the account wrapper), and run the CLI with `AI1_PLUGIN_DATA`/`CLAUDE_PLUGIN_DATA` set to
+    `~/.claude/plugins/data/ai1-inline`, the data folder of a `--plugin-dir` plugin, so CLI and hooks
+    share state.
+  - Found and fixed: the summary cut above; `started_at` taken after the run; `listUncommittedPaths`
+    went through `tryGit`, whose trim ate the leading space of the first `git status --porcelain` line,
+    so `worktree finish` named `ai1/config.json` and could miss an allowed dirty path.
+  - Seen, not a bug: a delegated session's ai1 runs its session-start migrations in the target's main
+    checkout (a config without `version: 2` is rewritten), leaving uncommitted files there; a repo set up
+    with `ai1 init` has nothing to migrate.
 - End to end: `ai1 delegate --cwd <temp repo> "<task that commits a file>"` returns `done` with the commit
   (done 2026-11-15, about 0.4 USD).
 

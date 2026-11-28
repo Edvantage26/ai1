@@ -20,8 +20,15 @@ export function readStateOrFail(commonDirectory, worktreeName) {
   return worktreeState;
 }
 
+// `git status --porcelain` lines ("XY path"). Not through tryGit: its trim() ate the leading space of the
+// first line (" M .ai1/config.json"), so callers slicing the 3-character status cut the path's first
+// letter (seen 2026-11-28: "ai1/config.json" in finish's message, and an allowed dirty path not matched).
 export function listUncommittedPaths(worktreePath) {
-  return (tryGit(worktreePath, ['status', '--porcelain']) || '').split('\n').filter(Boolean);
+  try {
+    return runGit(worktreePath, ['status', '--porcelain']).split('\n').filter(Boolean);
+  } catch {
+    return [];
+  }
 }
 
 function countAheadBehind(mainRoot, baseBranch, branchName) {
