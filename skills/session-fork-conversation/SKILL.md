@@ -1,18 +1,19 @@
 ---
 name: session-fork-conversation
-description: Session — Fork the current conversation into a new one, either a full copy or a clean one with a written handoff. Use when the person says "haz un fork", "forkea la conversación", "bifurca", "abre otra conversación para...", "lanza otro agente con...", "pásale esto a una sesión nueva", "fork this", "branch this conversation", "start a new session for X with only the context it needs". Not for a change in another repository (that is /ai1:session-delegate-change).
+description: Session — Fork the current conversation into a new one, either a full copy or a clean one with a written handoff, or split it after the fact when a side task grew inside it. Use when the person says "haz un fork", "forkea la conversación", "bifurca", "abre otra conversación para...", "lanza otro agente con...", "pásale esto a una sesión nueva", "separa la conversación", "divide la conversación", "nos hemos desviado, sepáralo", "fork this", "branch this conversation", "split this conversation", "start a new session for X with only the context it needs", or says yes to the offer to split a conversation that drifted. Not for a change in another repository (that is /ai1:session-delegate-change).
 allowed-tools: Bash("${CLAUDE_PLUGIN_DATA}/bin/ai1" skill-context *)
 ---
 
 # Fork the conversation
 
-Two modes. The `ai1` CLI (on the Bash PATH while the plugin is enabled) detects the host and opens
+Three modes. The `ai1` CLI (on the Bash PATH while the plugin is enabled) detects the host and opens
 the new conversation the native way; you decide the mode, write the brief and confirm.
 
 | Mode | What the new conversation gets | Use when |
 |---|---|---|
 | `full` | the whole conversation, copied (`claude --resume <id> --fork-session`); the original is untouched | the person wants to try another line of the *same* work and needs everything said so far |
 | `brief` | only a handoff you write: task, needed facts and decisions, files, limits, how to verify | the new work is scoped (a subtask, a side investigation, a fix elsewhere) and does not need this history |
+| `split` | after the fact: the main task goes on in a copy cut right before the turn where a side task started; the side task goes on here | a side task grew inside this conversation and the main one should go on without it, once the side task is done |
 
 A change to another repository is not a fork: a session started there must make it, with that
 repository's own rules (/ai1:session-delegate-change).
@@ -94,6 +95,32 @@ permissions and plan mode. It fails, saying why, without a Claude Code session i
    `--cwd` starts it in another directory (default: the repo root), e.g. when the task moves or
    removes this repo's folder.
 
+## 2c. Split after the fact
+
+1. **Find the cut.** `ai1 fork turns --last 30` lists the person's turns, numbered, with their time
+   and first line. Pick the turn where the side task started (the first one about it, not where it
+   was first hinted) and say it in one line: "the side task (<what>) started at turn N, <time>:
+   "<first line>"; the main task goes on before it". The person confirms or corrects it.
+2. **Main-line work after the cut.** If the conversation went back to the main task after the side
+   task started, write what was done or decided for it in a few lines to a file (`ai1 fork brief-path
+   <slug>-note`) and pass it as `--note-file`: the copy ends at the cut and would not know it otherwise.
+3. **Split**, after the person's yes:
+
+   ```bash
+   ai1 fork split --opener '${user_config.fork_opener}' --at <N> --side "<side task>" --slug <slug> [--title "<main task>"] [--note-file <file>]
+   ```
+
+   It creates the copy cut before turn N (`claude --resume-session-at`), seeded with what was moved
+   out, the session it goes on in and where its result will be (`.ai1/work/handoffs/<slug>-result.md`).
+   With the person's `--open-command` their command creates and opens it (`{mode}` is `split`, the cut
+   is `{resume_at}`, the seed is in `{task_file}`, sent as its first message).
+4. **Go on with the side task here.** When it is done, write its result to that file: what changed
+   (files, commits), what was decided, anything the main task must take into account. Then tell the
+   person to go back to the main conversation.
+
+Files changed in the side task stay on disk: the cut only applies to the conversation. When the side
+task is a change of its own, it belongs in its own worktree.
+
 ## 3. Report
 
 Say what was created (session id, and what the person's command printed), how to open it (the CLI
@@ -143,7 +170,7 @@ the note about another tool and they want it:
 
 ## Fixed rules
 
-- Launch only after the person's yes to the mode and, for a brief, to its path and summary.
+- Launch only after the person's yes to the mode and, for a brief, to its path and summary; for a split, to the turn where it is cut.
 - A brief carries no secrets and no conversation history, only what the new task needs.
 - Do not keep working on the forked line here unless the person asks.
 

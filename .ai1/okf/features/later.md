@@ -5,7 +5,7 @@ description: Later - large changes and future features not decided yet, noted do
 tags: [later, proposals, roadmap, hooks, cli, skills]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T11:56:07Z'
+  at: '2026-11-28T19:25:13Z'
 sources:
   - id: later-documents
     resource: src/later/later-documents.mjs
@@ -92,6 +92,10 @@ asked 69 times, so the person dropped the question the same day; from then to 20
 offered later. The subject the person is talking about is never offered for fork, however large, nor
 its ideas, details, steps, follow-ups or next steps (2026-11-09 and 2026-11-13): the default is to
 offer building it now (a deep one starts with its design). A small fix found on the way is done here.
+When the tangent was not offered or was taken here, and a side task has grown for several turns while
+the main task is unfinished, the agent offers once in one line to split the conversation after the fact
+(the person asked for it on 2026-11-28: the fork was not asked for in time and the side task grew).
+It is an instruction in this brief, not a hook: only the agent can tell that the subject changed.
 Once created, the agent confirms in one line ("Apuntado para luego como later 0007: «...»"). Said in
 the brief and in the skill (description, body and fixed rules); the tangent offer is in this feature's
 brief, so with `later` off the agent does not make it. Accepting, rejecting or resuming one is done

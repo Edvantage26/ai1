@@ -1,11 +1,11 @@
 ---
 type: Feature
 title: Session fork (/ai1:session-fork-conversation, ai1 fork)
-description: Fork the current conversation into a new one - full copy or a scoped brief - opened the native way in VS Code, terminal or Claude Desktop, or in any other tool through the person's own opener command.
+description: Fork the current conversation into a new one - full copy, a scoped brief, or a split after the fact when a side task grew - opened the native way in VS Code, terminal or Claude Desktop, or in any other tool through the person's own opener command.
 tags: [session, fork, vscode, desktop, handoff, open-command]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-28T19:13:20Z'
+  at: '2026-11-28T19:25:13Z'
 sources:
   - id: cli-sessions
     resource: https://code.claude.com/docs/en/sessions
@@ -20,7 +20,8 @@ sources:
 
 Module `session`: a skill and a CLI command, no hooks and no entry in `.ai1/config.json`, so it works
 in any repo while the plugin is enabled (ai1 is installed at user scope). Code in `src/session/`
-(`fork-host.mjs`, `fork-session.mjs`, `claude-command.mjs`) and `src/cli/fork-command.mjs`; tests in `test/fork.test.mjs`.
+(`fork-host.mjs`, `fork-session.mjs`, `conversation-turns.mjs`, `claude-command.mjs`) and `src/cli/fork-command.mjs`;
+tests in `test/fork.test.mjs` and `test/conversation-turns.test.mjs` (also on the Windows CI job).
 
 # Modes
 
@@ -34,6 +35,19 @@ in any repo while the plugin is enabled (ai1 is installed at user scope). Code i
   it writes `.ai1/work/.gitignore` first, so handoffs stay out of git even without the sizing feature.
   `ai1 fork brief --cwd <dir>` starts the new conversation in another directory (default: the repo
   root), for when the task moves or removes this repo's folder.
+- **split** - after the fact, when a side task grew inside the conversation (asked by the person on
+  2026-11-28: the fork was not asked for in time). `ai1 fork turns` lists the person's turns from the
+  transcript (`conversation-turns.mjs`: user entries of the main chain that are neither tool results nor
+  `isMeta`, each with the last assistant message before it, found through `parentUuid`). `ai1 fork split
+  --at <turn> --side "<side task>" --slug <slug> [--note-file <f>]` makes a full fork with
+  `--resume-session-at <that message>`: the main task goes on in the copy, cut before the side task; the
+  side task goes on in this conversation, which already holds its context, and writes its result to
+  `.ai1/work/handoffs/<slug>-result.md`. The copy's seed (`describeSplitSeed`) says what was moved out,
+  where it goes on, where the result will be, the main-line work done after the cut (`--note-file`), and
+  to read the result and `git status` before going on. Only a cut at the end: main-line turns after the
+  cut reach the copy through the note. The cut is only of the conversation; files stay on disk. Turn 1
+  cannot be cut (nothing before it: a brief instead). The agent offers it once when a side task has
+  grown while the main one is unfinished (instruction in the [later](later.md) brief, not a hook).
 
 # How the Claude Code CLI behaves (checked on 2.1.319)
 
@@ -66,9 +80,9 @@ No agent manager or other third-party tool is built in (decision:
 [host tooling stays out](/decisions/host-tooling-out-of-plugin.md)). `ai1 fork full|brief --open-command
 "<cmd>"` (or `AI1_FORK_COMMAND`; the option wins) replaces the built-in opening (not on the web, where it
 is ignored with a note): placeholders `{mode}` `{cwd}` `{title}` `{brief_file}` `{task_file}`
-`{original_session_id}` `{session_id}` filled shell-quoted (unused ones empty), run with `sh -c` in
+`{original_session_id}` `{session_id}` `{resume_at}` filled shell-quoted (unused ones empty), run with `sh -c` in
 `{cwd}` with this session's environment, 180 s at most; stdout is shown (`opened: "command"`), a non-zero
-exit is an error with its last lines (a brief also prints the built-in ways). In a full fork the command
+exit is an error with its last lines (a brief also prints the built-in ways). In a full fork or a split (cut at `{resume_at}`, its seed in `{task_file}`) the command
 creates the session itself (`claude -p --resume <orig> --fork-session --session-id <new>`), so it can use
 the person's launcher and model. When a fork is only given as commands, the CLI adds a note pointing to
 the skill's "Open forks in another tool": the guided setup (ask the tool, write a script in the person's

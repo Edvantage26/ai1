@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { applyForkOpener, detectForkHost } from '../src/session/fork-host.mjs';
 import { forkFullConversation, startBriefConversation, resolveHandoffPath } from '../src/session/fork-session.mjs';
 import { runForkCommand } from '../src/cli/fork-command.mjs';
+import { writeTranscript } from './helpers.mjs';
 
 const SESSION_ID = '11111111-2222-3333-4444-555555555555';
 // A fake runner for claude, code and the opener command (`sh -c`): records every call.
@@ -208,4 +209,48 @@ test('a real opener script gets the placeholders as positional arguments, in the
     openCommand: `${scriptPath} {mode} {cwd} {title} {brief_file} {task_file} {original_session_id} {session_id}`,
   });
   assert.equal(briefResult.output, `brief|${scriptDirectory}|It's the login|${briefPath}||||`);
+});
+
+test('ai1 fork split: a copy cut before the turn, seeded with where the side task and its result are; turns lists them', () => {
+  const configDirectory = mkdtempSync(join(tmpdir(), 'ai1-claude-config-'));
+  writeTranscript(configDirectory, SESSION_ID);
+  const repoRoot = mkdtempSync(join(tmpdir(), 'ai1-split-repo-'));
+  mkdirSync(join(repoRoot, '.ai1'));
+  const environment = { CLAUDE_CODE_SESSION_ID: SESSION_ID, CLAUDE_CONFIG_DIR: configDirectory };
+  const outputLines = [];
+  const runFork = (commandArguments, fakeRunner = createFakeRunner()) => {
+    const readOption = (optionName) => { const optionIndex = commandArguments.indexOf(optionName); return optionIndex >= 0 ? commandArguments[optionIndex + 1] : undefined; };
+    return runForkCommand(repoRoot, commandArguments, { readOption, environment, runCommand: fakeRunner.runCommand, platformName: 'linux', writeOutput: (outputText) => outputLines.push(outputText) });
+  };
+  assert.equal(runFork(['turns', '--last', '1']), 0);
+  assert.equal(outputLines.pop(), '2. [2026-11-28 10:05] By the way, the login is slow');
+
+  const noteFile = join(repoRoot, 'note.md');
+  writeFileSync(noteFile, 'The CSV header was fixed.');
+  const fakeRunner = createFakeRunner();
+  assert.equal(runFork(['split', '--at', '2', '--side', 'Speed up the login', '--slug', 'login-speed', '--note-file', noteFile], fakeRunner), 0);
+  const claudeArguments = fakeRunner.callsOf('claude')[0].programArguments;
+  assert.equal(claudeArguments[0], '-p');
+  assert.deepEqual(claudeArguments.slice(2), ['--resume', SESSION_ID, '--fork-session', '--session-id', claudeArguments[6], '--resume-session-at', 'a2', '--tools', '']);
+  const resultPath = join(repoRoot, '.ai1', 'work', 'handoffs', 'login-speed-result.md');
+  assert.match(claudeArguments[1], /right before the person's turn 2 \("By the way, the login is slow"\)/);
+  assert.ok(claudeArguments[1].includes(`"Speed up the login", which goes on in session ${SESSION_ID}`));
+  assert.ok(claudeArguments[1].includes(resultPath));
+  assert.match(claudeArguments[1], /The CSV header was fixed\./);
+  assert.match(outputLines.pop(), /^split the conversation: "Main line \(before: Speed up the login\)"[\s\S]*writes its result to /);
+
+  // the person's opener gets the cut and the seed
+  const openerRunner = createFakeRunner();
+  environment.AI1_FORK_COMMAND = 'opener {mode} {resume_at} {task_file}';
+  assert.equal(runFork(['split', '--at', '2', '--side', 'Speed up the login', '--slug', 'login-speed'], openerRunner), 0);
+  delete environment.AI1_FORK_COMMAND;
+  const commandText = openerRunner.callsOf('sh')[0].programArguments[1];
+  assert.match(commandText, /^opener 'split' 'a2' '\/.+message\.md'$/);
+  assert.match(readFileSync(/'(\/[^']+message\.md)'/.exec(commandText)[1], 'utf8'), /Reply only: ready\.$/);
+
+  assert.throws(() => runFork(['split', '--at', '1', '--side', 'x', '--slug', 'x']), /no answer before it/);
+  assert.throws(() => runFork(['split', '--at', '9', '--side', 'x', '--slug', 'x']), /one of the person's turns \(1-2/);
+  assert.throws(() => runFork(['split', '--at', '2', '--slug', 'x']), /--side/);
+  assert.throws(() => runFork(['split', '--at', '2', '--side', 'x']), /--slug/);
+  assert.throws(() => forkFullConversation({ environment, cwd: repoRoot, host: detectForkHost({ CLAUDE_CODE_REMOTE: 'true' }), cut: { messageId: 'a2', seedText: 's' } }), /split is not possible on the web/);
 });

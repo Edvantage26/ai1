@@ -2,6 +2,8 @@
 //   full   copies the whole conversation: `claude -p --resume <id> --fork-session --session-id <new>`
 //          (one short turn; the original is left untouched).
 //   brief  a clean conversation that starts from a written handoff file.
+//   split  after the fact: a copy cut before the turn where a side task started (`--resume-session-at`),
+//          for the main task to go on there, while the side task goes on in this conversation.
 // VS Code gets the extension URI opened; elsewhere the ways to open it are returned for the person.
 // A tool ai1 does not know (an agent manager, a multiplexer) opens it through the person's own command
 // (`--open-command` / AI1_FORK_COMMAND, from their skill customization): placeholders filled
@@ -21,7 +23,7 @@ import { resolveClaudeCommand } from './claude-command.mjs';
 const SEED_TIMEOUT_MILLISECONDS = 180_000;
 const OPEN_COMMAND_TIMEOUT_MILLISECONDS = 180_000;
 const MAX_COMMAND_OUTPUT_CHARACTERS = 2000;
-export const OPEN_COMMAND_PLACEHOLDERS = ['mode', 'cwd', 'title', 'brief_file', 'task_file', 'original_session_id', 'session_id'];
+export const OPEN_COMMAND_PLACEHOLDERS = ['mode', 'cwd', 'title', 'brief_file', 'task_file', 'original_session_id', 'session_id', 'resume_at'];
 const VSCODE_URI_PREFIX = 'vscode://anthropic.claude-code/open';
 
 export function runExternalCommand(programName, programArguments, { cwd, timeoutMilliseconds = 60_000, extraEnvironment } = {}) {
@@ -92,8 +94,10 @@ export function resolveHandoffPath(repoRoot, handoffSlug) {
   return join(handoffDirectory, `${handoffSlug}.md`);
 }
 
-export function forkFullConversation({ environment = process.env, cwd, host, title, task, openCommand, claudeCommand, runCommand = runExternalCommand }) {
-  if (host.id === 'web') throw new Error('a full fork is not possible on the web (claude.ai/code): use brief mode, or /branch in the session');
+// `cut` ({ messageId, seedText }) makes a split: the copy ends at that assistant message and starts with
+// `seedText` instead of the plain fork seed.
+export function forkFullConversation({ environment = process.env, cwd, host, title, task, cut, openCommand, claudeCommand, runCommand = runExternalCommand }) {
+  if (host.id === 'web') throw new Error(`a ${cut ? 'split' : 'full fork'} is not possible on the web (claude.ai/code): use brief mode, or /branch in the session`);
   const originalSessionId = environment.CLAUDE_CODE_SESSION_ID;
   if (!originalSessionId) throw new Error('CLAUDE_CODE_SESSION_ID is not set: run this from a Claude Code session (or use brief mode)');
   const forkSessionId = randomUUID();
@@ -105,23 +109,26 @@ export function forkFullConversation({ environment = process.env, cwd, host, tit
     ...(host.canOpenInDesktop ? [{ label: 'Claude Desktop', command: `claude --desktop --resume ${forkSessionId}` }] : []),
   ];
   if (host.id === 'desktop') openWith.unshift(openWith.pop());
-  const forkResult = { mode: 'full', host, title: forkTitle, originalSessionId, sessionId: forkSessionId, openWith, task: task || null };
+  const forkMode = cut ? 'split' : 'full';
+  const forkResult = { mode: forkMode, host, title: forkTitle, originalSessionId, sessionId: forkSessionId, openWith, task: task || null, ...(cut ? { resumeAt: cut.messageId } : {}) };
 
   const opener = resolveOpenCommand(openCommand, environment);
   if (opener) {
     // The person's command creates the forked session itself (its launcher, its model) and opens it.
     forkResult.output = runOpenCommand(runCommand, opener, {
-      mode: 'full', cwd, title: forkTitle, original_session_id: originalSessionId, session_id: forkSessionId, task_file: task ? writeTemporaryText(task) : '',
+      mode: forkMode, cwd, title: forkTitle, original_session_id: originalSessionId, session_id: forkSessionId,
+      task_file: cut ? writeTemporaryText(cut.seedText) : (task ? writeTemporaryText(task) : ''), resume_at: cut ? cut.messageId : '',
     }, cwd, null);
     forkResult.opened = 'command';
     return forkResult;
   }
-  const seedPrompt = `You are a fork of session ${originalSessionId}, made with /ai1:session-fork-conversation. The conversation so far belongs to the original; from here on you are a separate session. Reply only: ready.`;
+  const seedPrompt = cut ? cut.seedText : `You are a fork of session ${originalSessionId}, made with /ai1:session-fork-conversation. The conversation so far belongs to the original; from here on you are a separate session. Reply only: ready.`;
   const [claudeProgram, ...claudeArguments] = resolveClaudeCommand(claudeCommand, environment);
   runOrThrow(runCommand, claudeProgram, [
     ...claudeArguments,
     // The prompt goes right after -p: `--tools` takes every value that follows it, the prompt included.
-    '-p', seedPrompt, '--resume', originalSessionId, '--fork-session', '--session-id', forkSessionId, '--tools', '',
+    '-p', seedPrompt, '--resume', originalSessionId, '--fork-session', '--session-id', forkSessionId,
+    ...(cut ? ['--resume-session-at', cut.messageId] : []), '--tools', '',
   ], { cwd, timeoutMilliseconds: SEED_TIMEOUT_MILLISECONDS });
   forkResult.opened = openInVscode(runCommand, host, vscodeUri) ? 'vscode' : null;
   return forkResult;
@@ -153,4 +160,15 @@ export function startBriefConversation({ environment = process.env, cwd, host, t
   }
   briefResult.opened = openInVscode(runCommand, host, vscodeUri) ? 'vscode' : null;
   return briefResult;
+}
+
+// The seed of the main line after a split: what was moved out, where its result will be, what to do on return.
+export function describeSplitSeed({ originalSessionId, cutTurn, sideTitle, resultPath, mainLineNote }) {
+  return [
+    `You are the main line of session ${originalSessionId}, split after the fact with /ai1:session-fork-conversation: this copy ends right before the person's turn ${cutTurn.number} ("${cutTurn.preview}").`,
+    `From that turn on the conversation went into a side task, "${sideTitle}", which goes on in session ${originalSessionId}; when it is done its result is written to ${resultPath}.`,
+    ...(mainLineNote ? [`Main-line work that was done there after the side task started:\n${mainLineNote}`] : []),
+    'When the person comes back here, read that file first if it exists (if it does not, the side task is not finished: say so), then go on with the main task taking it into account. Files changed during the side task are on disk already: check `git status` before editing.',
+    'Reply only: ready.',
+  ].join('\n\n');
 }

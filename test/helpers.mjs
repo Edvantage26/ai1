@@ -65,3 +65,22 @@ export function createFakeRepo(folderName, remoteUrl) {
   writeFileSync(join(repoRoot, '.git', 'config'), `[core]\n\tbare = false\n[remote "origin"]\n\turl = ${remoteUrl}\n`);
   return repoRoot;
 }
+
+// A transcript as Claude Code writes it: entries chained by uuid/parentUuid, tool results and injected
+// (isMeta) user entries that are not the person's turns, a sidechain, and a line still being written.
+export function writeTranscript(configDirectory, sessionId) {
+  const transcriptEntries = [
+    { type: 'user', uuid: 'u1', parentUuid: null, promptId: 'p1', timestamp: '2026-11-28T10:00:00.000Z', message: { content: 'Build the export\nwith CSV' } },
+    { type: 'assistant', uuid: 'a1', parentUuid: 'u1', message: { content: [{ type: 'tool_use' }] } },
+    { type: 'user', uuid: 't1', parentUuid: 'a1', message: { content: [{ type: 'tool_result', content: 'ok' }] } },
+    { type: 'assistant', uuid: 'a2', parentUuid: 't1', message: { content: [{ type: 'text', text: 'Done.' }] } },
+    { type: 'attachment', uuid: 'x1', parentUuid: 'a2' },
+    { type: 'user', uuid: 'u2', parentUuid: 'x1', promptId: 'p2', timestamp: '2026-11-28T10:05:00.000Z', message: { content: [{ type: 'text', text: 'By the way, the login is slow' }] } },
+    { type: 'user', uuid: 'm1', parentUuid: 'u2', isMeta: true, message: { content: [{ type: 'text', text: 'Stop hook feedback: ...' }] } },
+    { type: 'assistant', uuid: 's1', parentUuid: 'u2', isSidechain: true, message: { content: [] } },
+    { type: 'assistant', uuid: 'a3', parentUuid: 'm1', message: { content: [{ type: 'text', text: 'Looking.' }] } },
+  ];
+  const projectDirectory = join(configDirectory, 'projects', '-repo');
+  mkdirSync(projectDirectory, { recursive: true });
+  writeFileSync(join(projectDirectory, `${sessionId}.jsonl`), `${transcriptEntries.map((transcriptEntry) => JSON.stringify(transcriptEntry)).join('\n')}\n{"type":"user","uui`);
+}
