@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-28T18:50:58Z'
+  at: '2026-11-28T19:24:05Z'
 ---
 
 # Flow
@@ -223,6 +223,10 @@ temporary `state/` directory has the characters of each module. `test/session-st
 does the same on generated repos and prints the per-module sizes when it fails; in the worst case it
 also names each trimmed module with the characters it lost and how far over the budget the untrimmed
 text was, so a brief that grows says how much to cut (several sessions measured it by hand before).
+Measured 2026-11-28 (worktree-trunk-docs): the worst-case untrimmed session start was ~9,490 of the
+9,500 characters, so any new rule line in a brief has to be paid for with cuts in the same brief (that
+change rewrote the worktree brief more tightly; the phrases tests pin, such as "then EnterWorktree"
+or the recipe-gap line, have to stay).
 
 How to check: `ai1 log` for time and characters per module; the size of a SessionStart output shows
 in the session as `<persisted-output>` when it went over the cap.
