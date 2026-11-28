@@ -1,11 +1,11 @@
 ---
 type: Feature
 title: delegate feature (foreign-repo, ai1 delegate, /ai1:session-delegate-change)
-description: An edit to a file of another repository with ai1 active is refused and delegated to a claude -p session started there, so its own rules apply; the delegated session stops and returns its questions, and is resumed with the person's answer.
-tags: [delegate, foreign-repo, cross-repo, claude-p, submodules]
+description: An edit to a file of another repository with ai1 active is delegated to a claude -p session started there, so its own rules apply, unless that repository allows small hot edits or the person says to do it here, and then its guards and verify apply from this session; the delegated session knows it is delegated, stops and returns its questions, and is resumed with the person's answer.
+tags: [delegate, foreign-repo, cross-repo, claude-p, submodules, hot-edits]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-28T08:44:27Z'
+  at: '2026-11-28T10:22:36Z'
 ---
 
 # What it does
@@ -16,7 +16,8 @@ generated:
   on disk (`src/core/owning-repo.mjs`): `launch` (the launch repo or one of its linked worktrees),
   `submodule` (of the launch repo, nested too) or `foreign`.
   - Foreign with ai1 and `features.delegate` on **in that repo**: **deny** (kept in bypass mode), naming
-    the repo and `ai1 delegate --cwd <repo> ...`. Reading is never refused.
+    the repo and `ai1 delegate --cwd <repo> ...`, unless that repo allows hot edits or the person allowed
+    it here (below). Reading is never refused.
   - Foreign without ai1: one line of context per repo and session (read its CLAUDE.md).
   - Submodule of a launch repo with ai1, or the launch repo: nothing.
 - **The edited repository decides** (`decidedByTarget` in `src/core/module-index.mjs`): the dispatcher runs
@@ -26,7 +27,35 @@ generated:
   enabled for the person (user settings), not only in the launch repo.
 - **"Do it here".** Only when the person says so: `ai1 delegate allow <repo> --because "<their words>"`
   allows edits to that repo for the rest of the session (state keyed by the session id; written through
-  the stable launcher, so it lands in the plugin data folder the hook reads).
+  the stable launcher, so it lands in the plugin data folder the hook reads). Since 2026-11-28 the allow
+  covers the repo's main checkout and all its worktrees, and that repo's guards apply (below); before,
+  an allowed repo got none of its own rules, the least safe route of all.
+- **Its guards from here** (`src/delegate/target-guards.mjs`), for an allowed or hot-edited repo: its
+  `repo-rules`, its `config-guard` and, when the launch folder does not run `danger`, its `danger` with
+  its `ignore_rules`, all read from its **main checkout's** config (a branch cannot loosen them). They
+  apply to the files a call changes there and to the commands it runs there (the call's cwd, a `cd <dir>`,
+  `git -C <dir>`): its bash rules (pnpm, migrations, `--no-verify`) matter most for commands. Their asks
+  carry `keptUnattended`, so `relaxAskForPermissionMode` keeps them in bypass/auto like danger's.
+
+# Hot edits
+
+A repo opts in with `modules["foreign-repo"].hot_max_files: <n>` (main checkout; 0 or missing: off).
+`ai1 init` writes 3 in a new config; existing configs keep their choice (decided by the person on
+2026-11-28: new repos on, nothing changes in a repo without it). Then, from a session launched elsewhere:
+- An edit there goes through under its guards, without delegating. The first one per repo and session
+  adds one line: read its CLAUDE.md and `.ai1/okf/index.md`; its skills, plugins, MCP servers and
+  session-start rules do not apply here (delegate if the change needs them); run `ai1 verify --cwd <tree>`
+  before finishing. A context line, not a deny-once: a deny cannot prove the read.
+- **Cap**: distinct files changed there this session (state `delegate-hot`, keyed by main checkout, no
+  git in PreToolUse). One more than `hot_max_files` is refused with the files already changed and
+  `/ai1:session-delegate-change`. A hook cannot judge task size; it can count.
+- **Worktrees**: if that repo has the `worktrees` feature, its main checkout is refused with how to create
+  a worktree there (`cd <repo> && ai1 worktree create <name>`, commit, `ai1 worktree finish` from there).
+- **Verify** (module `foreign-repo-verify`, Stop, `decidedByTarget`, so also where the launch folder has
+  no ai1 or verify off): a hot-edited file newer than the last passing `ai1 verify --cwd <its working
+  tree>` in the transcript blocks the stop once per situation. `ai1 verify --cwd <dir>` runs the verify
+  commands of `<dir>`'s repo; `verify-gate` does not count it as a run of the launch repo.
+- A person's `ask` for a hot edit records its files even if the person declines (minor, not handled).
 
 # ai1 delegate (src/delegate/delegate-session.mjs, src/cli/delegate-command.mjs)
 
@@ -39,7 +68,14 @@ generated:
   message is the whole report, never "my earlier report" (`claude -p` returns only the last message,
   and a resumed run once answered with a pointer to an earlier one, losing the report). A resume
   repeats that last rule.
-  `CLAUDE_PROJECT_DIR` is set to the repo so its hooks resolve there. Claude Code is started with
+  `CLAUDE_PROJECT_DIR` is set to the repo so its hooks resolve there, and `AI1_DELEGATION=<session id>`
+  tells that repo's ai1 it runs a delegated session (since 2026-11-28): modules marked `personOnly` in
+  `src/core/module-index.mjs` (issue-offer, rule-offer, customization-check, config-sync-start,
+  storyboard-reminder, routine-notice, watch-notice, reuse-check) stay silent there, nobody is watching;
+  and `delegate-report` (Stop) writes `delegations/<id>.report.json`: `verify` (`passed`, `failed`,
+  `not-run`, `none`, from the transcript) and `open_plans` (this session's unfinished plans).
+  `ai1 delegate` deletes that file before each run and merges it into the record after (a separate file,
+  so the child and the CLI never overwrite each other). Claude Code is started with
   `claude`, or the command given with `--claude-command` / `AI1_CLAUDE_COMMAND` (a resume reuses it). A
   plain `claude` launched from a tool call may not be logged in (seen 2026-11-15: "OAuth session
   expired"); the command a machine needs (a wrapper that logs in its account) goes in the person's skill
@@ -58,7 +94,7 @@ generated:
   checked 2026-11-15); `failed` for a crash, `is_error`, no JSON or no status line.
 - **Result:** JSON on stdout and saved in ai1's state directory (`delegations/<session>.json`), so
   `--resume` and `show` work from any folder: status, question, summary, session_id, commits (any branch, since the run started),
-  changed_files (commits plus uncommitted, worktrees included), new_worktrees, denied, cost.
+  changed_files (commits plus uncommitted, worktrees included), new_worktrees, verify, open_plans, denied, cost.
 - **Resume:** `ai1 delegate --resume <id> "<answer>"` continues the same session (`claude -p --resume`).
   `--allow-once "<command>"` grants a one-time allow that `danger` and `repo-rules` honour once in that
   session for that exact command or file; it lifts an **ask** only, never a deny.
@@ -77,7 +113,9 @@ Untracked files not ignored in a submodule (an un-ignored `venv/`) are listed an
 
 # Validate
 
-- `node --test test/owning-repo.test.mjs test/foreign-repo.test.mjs test/delegate.test.mjs test/submodule-changes.test.mjs`.
+- `node --test test/owning-repo.test.mjs test/foreign-repo.test.mjs test/delegate.test.mjs test/submodule-changes.test.mjs`
+  (tags `[foreign-repo-hot-edits:S1-S5]` for target guards, hot edits, worktree and verify, delegated sessions).
+- `ai1 verify --cwd <a repo with ai1>` prints `verify green (...) in <repo>` (checked 2026-11-28).
 - End to end: `ai1 delegate --cwd <temp repo> "<task that commits a file>"` returns `done` with the commit
   (done 2026-11-15, about 0.4 USD).
 
@@ -86,10 +124,10 @@ Untracked files not ignored in a submodule (an un-ignored `venv/`) are listed an
 - Shell edits the command line does not show (inline scripts, `cd ../x && ...` resolved later).
 - Live questions while the delegated session waits: see the Agent SDK idea (not built).
 - Each delegated change is a new session: one-line edits pay the same.
-- The target's ai1 does not know it runs a delegated session: only `CLAUDE_PROJECT_DIR` is passed
-  (`runClaude`), and only `danger`/`repo-rules` look the session up (one-time allows). Its sizing
-  approvals, guard asks, Stop hooks (reuse-check, okf-upkeep) and SessionStart notices act as if a person
-  were there, so asks end `blocked` and the status comes from the model's text line (checked 2026-11-28).
+- In the delegated session, a guard's ask still ends `blocked` (in `claude -p` an ask is a denial) and
+  the status still comes from the model's text line; `delegate-report` only adds facts beside it.
+- Hot edits do not bring the target's skills, plugins, MCP servers, sizing or session-start rules: those
+  need a session started there.
 - Not used yet, available in Claude Code 2.1.319 (`claude --help`, 2026-11-28): `--bg` with
   `claude agents --json` / `attach` / `logs` / `stop` (background sessions a person can attach to),
   `--json-schema` (structured result), `--permission-prompts host` with `--permission-prompt-tool`

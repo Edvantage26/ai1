@@ -13,6 +13,12 @@ ask the person, so it stops and returns its questions, and you relay them.
 
 Reading the other repository's files and knowledge is always fine; do it first to write a good brief.
 
+A repository may allow **hot edits** (`modules["foreign-repo"].hot_max_files` in its config): then a
+small change there is made from this session, under its guards, without delegating, and the refusal
+only comes when the change grows past its cap (or touches its main checkout when it works in
+worktrees). Delegate when that happens, when the change is large, or when it needs that repository's
+skills, plugins or MCP servers; name in the brief the files already changed from here.
+
 ## 1. Write the brief
 
 Get a path with `ai1 fork brief-path <slug>` and write there what the delegated session needs, and only
@@ -46,7 +52,9 @@ ai1 delegate --cwd <repo> --brief <path>
 
 It can take minutes: run it in the background (Bash `run_in_background`) and read the result when it
 ends. The result is JSON (also saved; `ai1 delegate show <session-id>` prints it again):
-`status`, `question`, `summary`, `session_id`, `commits`, `changed_files`, `new_worktrees`, `denied`.
+`status`, `question`, `summary`, `session_id`, `commits`, `changed_files`, `new_worktrees`, `denied`,
+and what that repository's ai1 recorded when the session stopped: `verify` (`passed`, `failed`,
+`not-run`, `none`) and `open_plans` (a plan waiting for approval comes back as `needs-input`).
 The delegated run inherits this session's permission mode (`--permission-mode` overrides it).
 Claude Code is started with `claude`; where a plain `claude` is not logged in, pass how to start it
 (`--claude-command "<cmd>"`, or `AI1_CLAUDE_COMMAND`): the person's customization below says which, if any.

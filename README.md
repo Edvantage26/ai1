@@ -79,7 +79,7 @@ Every feature is on unless your repo switches it off (`"features": { "storyboard
 | `storyboard` | **See a UI change without running it.** Steps and screenshots of the flow, before vs after, as a page and a PDF. |
 | `later` | **Ideas parked, not lost.** Large changes not decided yet, noted down when you ask and recalled when they come up. |
 | `reuse` | **Work that repeats becomes a tool.** Repeated work in a repo is proposed as a rule, script or skill. |
-| `delegate` | **Each repo keeps its rules.** An edit to another repo is made by a session started there. |
+| `delegate` | **Each repo keeps its rules.** An edit to another repo is made by a session started there, or, when small and that repo allows it, from here under its own guards. |
 | `watches` | **Follow a release.** After a deploy, checks that it is up and counts failures since then. |
 | `routines` | **Your periodic tasks**, reminded at session start ("every Monday check the dependencies"). |
 | `messages` | **Messages to the project's contacts**, with who they are and your tone with each one. |

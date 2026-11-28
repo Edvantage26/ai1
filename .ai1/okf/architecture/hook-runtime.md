@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-22T15:08:07Z'
+  at: '2026-11-28T10:22:36Z'
 ---
 
 # Flow
@@ -29,7 +29,7 @@ generated:
    - Missing: ai1 is inactive; only a one-line note at SessionStart.
    - Invalid: inactive; SessionStart tells the agent why.
    - Missing, but a call edits a repository with ai1: only the modules that repository decides
-     (`decidedByTarget`, today `foreign-repo`) run, with no config; nothing else (see
+     (`decidedByTarget`, today `foreign-repo` and `foreign-repo-verify`) run, with no config; nothing else (see
      [delegate](../features/delegate.md)).
    - Missing or not: the **person-scoped** modules (`personScoped`: `config-sync-start`,
      `config-sync-stop`, `config-skill-hint`) run in any folder, next to the "inactive here" line, because
@@ -38,7 +38,11 @@ generated:
      2026-11-22).
    - **Other repositories.** A `cwd` in another repository keeps the launch root: only the launch
      `.ai1/config.json` is read. Edits of another repository with ai1 are refused and delegated to a
-     session started there ([delegate](../features/delegate.md)). Submodules are part of the launch
+     session started there, unless it allows hot edits or the person allowed it here: then
+     `foreign-repo` applies that repository's own guards ([delegate](../features/delegate.md)).
+   - **Delegated sessions.** With `AI1_DELEGATION` in the environment (set by `ai1 delegate`), the
+     modules marked `personOnly` (offers, reminders, notices for a person watching) are left out of the
+     module list before anything else is decided. Submodules are part of the launch
      project: command and path modules cover them, and `listFilesChangedSinceBase` lists the files
      changed inside them (against each submodule's HEAD at session start), so verify-gate sees them;
      the protected branch and worktrees stay those of the superproject. There is no config
@@ -65,7 +69,9 @@ generated:
    In the `bypassPermissions`, `auto` and `dontAsk` permission modes (`permission_mode` of the hook
    input), an `ask` from any module other than `danger` and `repo-rules` becomes `allow`
    (`relaxAskForPermissionMode`, logged as `relaxedAsk`): the person chose not to be asked, so only
-   losing work or data for good and the repo's own rules still reach them. Since 2026-11-09.
+   losing work or data for good and the repo's own rules still reach them. Since 2026-11-09. A decision
+   marked `keptUnattended` is kept too: another repository's guards applied by `foreign-repo`
+   (since 2026-11-28).
 
 # Module contract
 

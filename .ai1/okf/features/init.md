@@ -42,6 +42,9 @@ sources:
   - `.ai1/config.json`: `version: 2`, `features` (only the features switched off, as `false`), `trunk` (kept, else
     detected: origin/HEAD, then main/master, then current branch), `verify`; other fields and
     `modules` are kept, the retired `knowledge` is removed (its bundle moved to `.ai1/okf/` first).
+    A new config (no file before) also gets `modules["foreign-repo"].hot_max_files: 3`: sessions launched
+    in other repos may make small hot edits here ([delegate](delegate.md#hot-edits)); an existing config
+    keeps its choice (absent means 0, off).
     The result is validated before writing.
   - `.claude/settings.json`: `extraKnownMarketplaces.ai1` (github `Edvantage26/ai1`) and
     `enabledPlugins["ai1@ai1"] = true`. Shared and committed. Since v0.34.0 also `skillOverrides`:

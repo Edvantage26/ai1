@@ -17,7 +17,7 @@ Each repo commits `.ai1/config.json` (template in `templates/config.json`).
 | `trunk` | Protected branch name; default `main` |
 | `maintainers` | git emails of who maintains ai1 in the repo (compared lower-cased); they get the [maintenance tasks](/features/maintenance.md); without the list everyone does; a person overrides it for themselves in `.ai1/local/profile.json` ([person within a project](person-project-scope.md)) |
 | `verify` | Commands that must pass before the agent calls a change done |
-| `modules.<id>` | `true`/`false` to force a module on/off, or an options object (with optional `enabled`) |
+| `modules.<id>` | `true`/`false` to force a module on/off, or an options object (with optional `enabled`); e.g. `modules["foreign-repo"].hot_max_files`, the files a session launched in another repo may hot-edit here ([delegate](/features/delegate.md#hot-edits)) |
 | `rules` | the repo's own guard rules, see [repo-rules](/guards/repo-rules.md); a bad rule is dropped with a notice, a non-list is invalid |
 | `related` | other repositories whose knowledge this one needs (`name`, `path` and/or `remote`, `branch`, `bundle`, `read_without_clone`, `owns`), see [okf feature](/features/okf.md#related-repositories); a bad entry is dropped with a notice, a non-list is invalid |
 
