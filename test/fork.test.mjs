@@ -168,7 +168,9 @@ test('full fork with the opener command: the command creates the session (ids, t
   // without an opener the seed goes through --claude-command
   const seedRunner = createFakeRunner();
   forkFullConversation({ environment: { CLAUDE_CODE_SESSION_ID: SESSION_ID }, cwd: '/repo', host: detectForkHost({}, 'linux'), claudeCommand: '/opt/bin/claude-wrapper --quiet', runCommand: seedRunner.runCommand });
-  assert.deepEqual(seedRunner.callsOf('/opt/bin/claude-wrapper')[0].programArguments.slice(0, 4), ['--quiet', '-p', '--resume', SESSION_ID]);
+  assert.deepEqual(seedRunner.callsOf('/opt/bin/claude-wrapper')[0].programArguments.slice(0, 4).filter((argument, index) => index !== 2), ['--quiet', '-p', '--resume'], 'the prompt goes right after -p, since --tools takes every value after it');
+  assert.match(seedRunner.callsOf('/opt/bin/claude-wrapper')[0].programArguments[2], /^You are a fork of session /);
+  assert.equal(seedRunner.callsOf('/opt/bin/claude-wrapper')[0].programArguments.at(-1), '', '--tools \'\' is last, with nothing after it');
 });
 
 test('a failing opener command is an error with its last lines and, for a brief, the built-in ways to open it [fork-without-paseo:S2]', () => {

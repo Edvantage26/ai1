@@ -116,7 +116,8 @@ the note about another tool and they want it:
    `{session_id}` (full: the new id to create). It runs with `sh -c` in `{cwd}`, with this session's
    environment, 180 s at most; what it prints is shown to the person; a non-zero exit is an error.
 3. **For a full fork the command creates the session itself**, so it can use the person's launcher and
-   model: `claude -p --resume <original> --fork-session --session-id <new> --tools '' "Reply only: ready."`,
+   model: `claude -p "Reply only: ready." --resume <original> --fork-session --session-id <new> --tools ''`
+   (the prompt right after `-p`: `--tools` takes every value that follows it),
    then hands `<new>` to the tool.
 4. **Write a small script in the person's own config** (their dotfiles or config repo, never the
    plugin nor a project repo), for example:
@@ -128,7 +129,7 @@ the note about another tool and they want it:
    if [ "$mode" = brief ]; then
      my-tool new --cwd "$cwd" --title "$title" --prompt-file "$4"
    else
-     claude -p --resume "$6" --fork-session --session-id "$7" --tools '' "Reply only: ready." >/dev/null &&
+     claude -p "Reply only: ready." --resume "$6" --fork-session --session-id "$7" --tools '' >/dev/null &&
        my-tool import "$7" --cwd "$cwd" --title "$title"
    fi
    ```

@@ -5,7 +5,7 @@ description: Fork the current conversation into a new one - full copy or a scope
 tags: [session, fork, vscode, desktop, handoff, open-command]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-15T08:56:48Z'
+  at: '2026-11-28T19:13:20Z'
 sources:
   - id: cli-sessions
     resource: https://code.claude.com/docs/en/sessions
@@ -24,8 +24,8 @@ in any repo while the plugin is enabled (ai1 is installed at user scope). Code i
 
 # Modes
 
-- **full** - `claude -p --resume $CLAUDE_CODE_SESSION_ID --fork-session --session-id <new uuid>
-  --tools "" "<seed>"` (no tools in that turn) copies the whole conversation into a new session (one short turn; the
+- **full** - `claude -p "<seed>" --resume $CLAUDE_CODE_SESSION_ID --fork-session --session-id <new uuid>
+  --tools ""` (no tools in that turn) copies the whole conversation into a new session (one short turn; the
   original is untouched), started with `claude` or `--claude-command` / `AI1_CLAUDE_COMMAND`. Forks lose
   "allow for this session" grants and plan mode. Refused on the web and without `CLAUDE_CODE_SESSION_ID`.
 - **brief** - a clean conversation whose first message is a handoff file the skill writes
@@ -34,6 +34,15 @@ in any repo while the plugin is enabled (ai1 is installed at user scope). Code i
   it writes `.ai1/work/.gitignore` first, so handoffs stay out of git even without the sizing feature.
   `ai1 fork brief --cwd <dir>` starts the new conversation in another directory (default: the repo
   root), for when the task moves or removes this repo's folder.
+
+# How the Claude Code CLI behaves (checked on 2.1.319)
+
+- `--tools` takes every value after it, the prompt included: `--tools "" "<seed>"` leaves no prompt and
+  the resume fails with "No deferred tool marker found". The seed goes right after `-p`.
+- `--resume-session-at <assistant message uuid>` (undocumented, print mode only) with `--fork-session`
+  creates the copy cut at that message; the original is untouched. Checked by forking an old transcript
+  of `~/.claude/projects/<cwd slug>/<id>.jsonl` and counting its `"type":"user"` lines (128 of 408).
+  Message uuids are in that transcript (`uuid`, `parentUuid`; skip `isSidechain` entries).
 
 # Hosts
 

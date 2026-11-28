@@ -120,8 +120,8 @@ export function forkFullConversation({ environment = process.env, cwd, host, tit
   const [claudeProgram, ...claudeArguments] = resolveClaudeCommand(claudeCommand, environment);
   runOrThrow(runCommand, claudeProgram, [
     ...claudeArguments,
-    '-p', '--resume', originalSessionId, '--fork-session', '--session-id', forkSessionId, '--tools', '',
-    seedPrompt,
+    // The prompt goes right after -p: `--tools` takes every value that follows it, the prompt included.
+    '-p', seedPrompt, '--resume', originalSessionId, '--fork-session', '--session-id', forkSessionId, '--tools', '',
   ], { cwd, timeoutMilliseconds: SEED_TIMEOUT_MILLISECONDS });
   forkResult.opened = openInVscode(runCommand, host, vscodeUri) ? 'vscode' : null;
   return forkResult;
