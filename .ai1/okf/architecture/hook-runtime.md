@@ -29,7 +29,7 @@ generated:
    - Missing: ai1 is inactive; only a one-line note at SessionStart.
    - Invalid: inactive; SessionStart tells the agent why.
    - Missing, but a call edits a repository with ai1: only the modules that repository decides
-     (`decidedByTarget`, today `foreign-repo` and `foreign-repo-verify`) run, with no config; nothing else (see
+     (`decidedByTarget`, today `foreign-repo`, `foreign-repo-context` and `foreign-repo-upkeep`) run, with no config; nothing else (see
      [delegate](../features/delegate.md)).
    - Missing or not: the **person-scoped** modules (`personScoped`: `config-sync-start`,
      `config-sync-stop`, `config-skill-hint`) run in any folder, next to the "inactive here" line, because

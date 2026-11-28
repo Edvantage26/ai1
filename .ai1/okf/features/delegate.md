@@ -5,7 +5,7 @@ description: An edit to a file of another repository with ai1 active is delegate
 tags: [delegate, foreign-repo, cross-repo, claude-p, submodules, hot-edits]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-28T10:27:39Z'
+  at: '2026-11-28T10:36:04Z'
 ---
 
 # What it does
@@ -47,13 +47,19 @@ A repo opts in with `modules["foreign-repo"].hot_max_files: <n>` (main checkout;
   session-start rules do not apply here (delegate if the change needs them); run `ai1 verify --cwd <tree>`
   before finishing. A context line, not a deny-once: a deny cannot prove the read.
 - **Cap**: distinct files changed there this session (state `delegate-hot`, keyed by main checkout, no
-  git in PreToolUse). One more than `hot_max_files` is refused with the files already changed and
+  git in PreToolUse), not counting its `.ai1/okf/` files: the knowledge follows the change. One more than `hot_max_files` is refused with the files already changed and
   `/ai1:session-delegate-change`. A hook cannot judge task size; it can count.
 - **Worktrees**: if that repo has the `worktrees` feature, its main checkout is refused with how to create
   a worktree there (`cd <repo> && ai1 worktree create <name>`, commit, `ai1 worktree finish` from there).
-- **Verify** (module `foreign-repo-verify`, Stop, `decidedByTarget`, so also where the launch folder has
-  no ai1 or verify off): a hot-edited file newer than the last passing `ai1 verify --cwd <its working
-  tree>` in the transcript blocks the stop once per situation. `ai1 verify --cwd <dir>` runs the verify
+- **Its knowledge** (since 2026-11-28): `foreign-repo-context` (PostToolUse Read/Edit/Write/MultiEdit,
+  `decidedByTarget`) names, for a file of any other repo with ai1 and a bundle, the concept of that repo
+  that describes it (its own file map, `src/delegate/target-knowledge.mjs`), once per concept; on an
+  edit it asks to update it. It complements `okf-file-context`, which names only that repo's bundle.
+- **At stop** (module `foreign-repo-upkeep`, Stop, `decidedByTarget`, so also where the launch folder
+  has no ai1, verify or okf), for files changed there from this session (hot or allowed), each asked once:
+  a changed file (not of its bundle) newer than the last passing `ai1 verify --cwd <its working tree>` in
+  the transcript; its bundle changed and the OKF validator reports ERRORS (`runBundleValidator`, as
+  okf-upkeep does for the launch bundle); a changed file described by a concept there that was not changed. `ai1 verify --cwd <dir>` runs the verify
   commands of `<dir>`'s repo; `verify-gate` does not count it as a run of the launch repo.
 - A person's `ask` for a hot edit records its files even if the person declines (minor, not handled).
 
@@ -128,10 +134,9 @@ Untracked files not ignored in a submodule (an un-ignored `venv/`) are listed an
   the status still comes from the model's text line; `delegate-report` only adds facts beside it.
 - Hot edits do not bring the target's skills, plugins, MCP servers, sizing or session-start rules: those
   need a session started there.
-- The target's knowledge in hot edits (checked 2026-11-28): `okf-file-context` names only the other
-  repo's bundle (once per repo), not the concept that describes the edited file; `okf-upkeep` watches
-  only the launch bundle, so nothing asks to update or validates the target's bundle; and its
-  `.ai1/okf/` files count toward `hot_max_files`. A delegated session has none of these gaps.
+- Knowledge of the target in hot edits: its concept per file, validation and pending concepts are
+  covered (`foreign-repo-context`, `foreign-repo-upkeep`); its overview/index structure checks and
+  memories (okf-upkeep 3 and 1) are not: a delegated session gets them.
 - Not used yet, available in Claude Code 2.1.319 (`claude --help`, 2026-11-28): `--bg` with
   `claude agents --json` / `attach` / `logs` / `stop` (background sessions a person can attach to),
   `--json-schema` (structured result), `--permission-prompts host` with `--permission-prompt-tool`

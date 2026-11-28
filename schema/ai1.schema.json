@@ -862,7 +862,23 @@
             }
           ]
         },
-        "foreign-repo-verify": {
+        "foreign-repo-context": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              }
+            }
+          ]
+        },
+        "foreign-repo-upkeep": {
           "oneOf": [
             {
               "type": "boolean"

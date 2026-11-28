@@ -16,6 +16,7 @@ import { describeOwningRepository } from '../core/owning-repo.mjs';
 import { findMainCheckout } from '../core/project-roots.mjs';
 import { listToolCallChanges } from '../core/tool-call-paths.mjs';
 import { checkTargetGuards, listCommandDirectories, loadMainCheckoutConfig } from './target-guards.mjs';
+import { isKnowledgeBundleFile } from './target-knowledge.mjs';
 import { noteRepositoryOnce, readAllowedRepositories, readHotEditedFiles, recordHotEditedFiles, rememberPermissionMode } from './delegate-state.mjs';
 
 const MODULE_ID = 'foreign-repo';
@@ -47,7 +48,7 @@ function quotePath(pathText) {
 // The repositories this call changes or runs in, outside the launch project:
 // - delegatedRepositories: with ai1 and delegate on, not allowed here (refused);
 // - allowedTargets: with ai1 and delegate on, allowed here by the person (their guards apply), keyed by
-//   main checkout, each with the working tree the call touches;
+//   main checkout, each with { repoRoot, paths } (the working tree the call touches, paths it changes);
 // - hotTargets: with ai1, delegate and hot edits on, not allowed: edited here up to their cap, with their
 //   guards; keyed by main checkout, each with { repoRoot, maxFiles, paths } (paths this call changes);
 // - plainRepositories: without ai1 (or delegate off there), told about once.
@@ -67,7 +68,9 @@ export function describeForeignEdits(hookInput, projectRoot, launchHasAi1, envir
     const mainCheckout = findMainCheckout(owningRepository.repoRoot);
     const isDelegated = owningRepository.hasAi1 && delegateEnabledIn(owningRepository.repoRoot);
     if (isDelegated && allowedMainCheckouts.has(mainCheckout)) {
-      if (!allowedTargets.has(mainCheckout)) allowedTargets.set(mainCheckout, owningRepository.repoRoot);
+      const allowedTarget = allowedTargets.get(mainCheckout) || { repoRoot: owningRepository.repoRoot, paths: [] };
+      if (!runsThere) allowedTarget.paths.push(candidatePath);
+      allowedTargets.set(mainCheckout, allowedTarget);
       return;
     }
     const { hotMaxFiles, usesWorktrees } = isDelegated ? readHotEditSettings(owningRepository.repoRoot) : { hotMaxFiles: 0 };
@@ -95,6 +98,12 @@ function describeMainCheckoutEdit(mainCheckout, rawPath) {
   ].join(' ');
 }
 
+// The files that count toward `hot_max_files`: not those of the repository's knowledge bundle, which
+// follow the change instead of growing it.
+function listCountedFiles(editedPaths) {
+  return [...new Set(editedPaths)].filter((editedPath) => !isKnowledgeBundleFile(editedPath));
+}
+
 function describeCapReached(mainCheckout, maxFiles, alreadyEdited) {
   return [
     `This session already changed ${alreadyEdited.length} file(s) of ${quotePath(mainCheckout)} (${alreadyEdited.map(quotePath).join(', ')}), which allows up to ${maxFiles} hot-edited files per session.`,
@@ -103,9 +112,13 @@ function describeCapReached(mainCheckout, maxFiles, alreadyEdited) {
   ].join(' ');
 }
 
-// Records the files this call hot-edits and, the first time a repository is hot-edited in the session,
-// adds what the agent needs to know about it to `baseDecision` (an allow, a context line or an ask).
-function recordHotEdits(baseDecision, hotTargets, hookInput, projectRoot, environment) {
+// Records the files this call changes in hot-edited and allowed repositories (their verify and
+// knowledge checks at stop) and, the first time a repository is hot-edited in the session, adds what the
+// agent needs to know about it to `baseDecision` (an allow, a context line or an ask).
+function recordHotEdits(baseDecision, hotTargets, allowedTargets, hookInput, projectRoot, environment) {
+  for (const [mainCheckout, allowedTarget] of allowedTargets) {
+    if (allowedTarget.paths.length) recordHotEditedFiles(hookInput.session_id, mainCheckout, allowedTarget.paths, environment);
+  }
   const firstTimeLines = [];
   for (const [mainCheckout, hotTarget] of hotTargets) {
     if (!hotTarget.paths.length) continue;
@@ -113,7 +126,7 @@ function recordHotEdits(baseDecision, hotTargets, hookInput, projectRoot, enviro
     if (!noteRepositoryOnce(hookInput.session_id, projectRoot, mainCheckout, environment)) continue;
     firstTimeLines.push([
       `Hot edit: ${quotePath(mainCheckout)} is another repository with ai1 that allows up to ${hotTarget.maxFiles} files changed from here per session; its guards apply.`,
-      `Read its CLAUDE.md and \`.ai1/okf/index.md\` before changing more. Its skills, plugins, MCP servers and session-start rules do not apply here: if the change needs them, delegate it (/ai1:session-delegate-change). Before finishing, run \`ai1 verify --cwd ${hotTarget.repoRoot}\`.`,
+      `Read its CLAUDE.md and \`.ai1/okf/index.md\` before changing more; its bundle files do not count toward that limit, update the concepts your change affects. Its skills, plugins, MCP servers and session-start rules do not apply here: if the change needs them, delegate it (/ai1:session-delegate-change). Before finishing, run \`ai1 verify --cwd ${hotTarget.repoRoot}\`.`,
     ].join(' '));
   }
   if (!firstTimeLines.length) return baseDecision;
@@ -144,19 +157,19 @@ export default {
     const hotEditedFiles = readHotEditedFiles(hookInput.session_id, environment);
     for (const [mainCheckout, hotTarget] of hotTargets) {
       if (hotTarget.mainCheckoutPath) return denyDecision(MODULE_ID, describeMainCheckoutEdit(mainCheckout, hotTarget.mainCheckoutPath), [MODULE_ID]);
-      const alreadyEdited = hotEditedFiles[mainCheckout] || [];
-      if (new Set([...alreadyEdited, ...hotTarget.paths]).size > hotTarget.maxFiles) return denyDecision(MODULE_ID, describeCapReached(mainCheckout, hotTarget.maxFiles, alreadyEdited), [MODULE_ID]);
+      const alreadyEdited = listCountedFiles(hotEditedFiles[mainCheckout] || []);
+      if (listCountedFiles([...alreadyEdited, ...hotTarget.paths]).length > hotTarget.maxFiles) return denyDecision(MODULE_ID, describeCapReached(mainCheckout, hotTarget.maxFiles, alreadyEdited), [MODULE_ID]);
     }
     const launchRunsDanger = enabledModules.some((moduleDefinition) => moduleDefinition.id === 'danger');
     const workingDirectory = hookInput.cwd || projectRoot;
-    for (const targetRoot of [...allowedTargets.values(), ...[...hotTargets.values()].map((hotTarget) => hotTarget.repoRoot)]) {
+    for (const { repoRoot: targetRoot } of [...allowedTargets.values(), ...hotTargets.values()]) {
       const guardDecision = checkTargetGuards({ hookInput, targetRoot, launchRoot: projectRoot, launchRunsDanger, workingDirectory });
       if (guardDecision?.kind === 'deny') return guardDecision;
-      if (guardDecision) return recordHotEdits(guardDecision, hotTargets, hookInput, projectRoot, environment);
+      if (guardDecision) return recordHotEdits(guardDecision, hotTargets, allowedTargets, hookInput, projectRoot, environment);
     }
     const contextLines = [...plainRepositories]
       .filter(([repoRoot]) => noteRepositoryOnce(hookInput.session_id, projectRoot, repoRoot, environment))
       .map(([repoRoot, rawPath]) => `${quotePath(rawPath)} belongs to another repository, ${quotePath(repoRoot)} (without ai1): read its CLAUDE.md, and its knowledge bundle if it has one, before changing it; its own rules apply.`);
-    return recordHotEdits(contextLines.length ? contextDecision(MODULE_ID, contextLines.join('\n')) : allowDecision(), hotTargets, hookInput, projectRoot, environment);
+    return recordHotEdits(contextLines.length ? contextDecision(MODULE_ID, contextLines.join('\n')) : allowDecision(), hotTargets, allowedTargets, hookInput, projectRoot, environment);
   },
 };

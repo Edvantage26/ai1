@@ -222,6 +222,60 @@ test('without hot_max_files, or with 0, every edit is still delegated [foreign-r
   assert.equal(decisionOf(runHookEvent('PreToolUse', editPayload(launchRoot, join(offRoot, 'src', 'app.js')), { environment, reportInternalError: () => {} })), 'deny');
 });
 
+// A hot repo with its own knowledge bundle: a concept that describes src/app.js.
+function addBundle(repoRoot) {
+  mkdirSync(join(repoRoot, '.ai1', 'okf', 'features'), { recursive: true });
+  writeFileSync(join(repoRoot, '.ai1', 'okf', 'index.md'), '---\nokf_version: "0.2"\n---\n\n# Hot bundle\n\n* [Overview](overview.md)\n* [App](features/app.md)\n');
+  writeFileSync(join(repoRoot, '.ai1', 'okf', 'overview.md'), '---\ntype: Overview\n---\nHello.\n');
+  writeFileSync(join(repoRoot, '.ai1', 'okf', 'features', 'app.md'), '---\ntype: Feature\ntitle: The app\nresource: src/app.js\n---\nPrints 1.\n');
+  return join(repoRoot, '.ai1', 'okf', 'features', 'app.md');
+}
+
+test('a file of another repo with ai1 names the concept of its bundle that describes it, once; an edit asks to update it', () => {
+  const { workspaceRoot, launchRoot, environment } = createWorkspace();
+  const hotRoot = createRepository(workspaceRoot, 'hot', HOT_SIBLING);
+  const conceptPath = addBundle(hotRoot);
+  const readPayload = { session_id: 'session-1', hook_event_name: 'PostToolUse', cwd: launchRoot, tool_name: 'Read', tool_input: { file_path: join(hotRoot, 'src', 'app.js') } };
+  const readOutput = runHookEvent('PostToolUse', readPayload, { environment, reportInternalError: () => {} });
+  assert.ok(readOutput.hookSpecificOutput.additionalContext.includes(`described there by \`${conceptPath}\` (The app)`));
+  assert.doesNotMatch(JSON.stringify(runHookEvent('PostToolUse', readPayload, { environment, reportInternalError: () => {} }) || {}), /described there/, 'once per concept');
+  const editOutput = runHookEvent('PostToolUse', { ...readPayload, tool_name: 'Edit' }, { environment, reportInternalError: () => {} });
+  assert.match(editOutput.hookSpecificOutput.additionalContext, /you changed .*Update it if the change affects/);
+});
+
+test('the bundle files of a hot repo do not count toward its cap', () => {
+  const { workspaceRoot, launchRoot, environment } = createWorkspace();
+  const hotRoot = createRepository(workspaceRoot, 'hot', HOT_SIBLING);
+  const conceptPath = addBundle(hotRoot);
+  for (const fileName of ['a.js', 'b.js', 'c.js']) runHookEvent('PreToolUse', editPayload(launchRoot, join(hotRoot, 'src', fileName), 'Write'), { environment, reportInternalError: () => {} });
+  assert.equal(decisionOf(runHookEvent('PreToolUse', editPayload(launchRoot, conceptPath), { environment, reportInternalError: () => {} })), null);
+  assert.equal(decisionOf(runHookEvent('PreToolUse', editPayload(launchRoot, join(hotRoot, 'src', 'd.js'), 'Write'), { environment, reportInternalError: () => {} })), 'deny', 'a 4th code file still is');
+});
+
+test('at stop, a changed file whose concept there was not updated is reminded once, and a broken bundle there blocks until fixed', () => {
+  const { workspaceRoot, launchRoot, environment } = createWorkspace();
+  const hotRoot = createRepository(workspaceRoot, 'hot', HOT_SIBLING);
+  const conceptPath = addBundle(hotRoot);
+  const editedFile = join(hotRoot, 'src', 'app.js');
+  runHookEvent('PreToolUse', editPayload(launchRoot, editedFile), { environment, reportInternalError: () => {} });
+  writeFileSync(editedFile, 'console.log(2);\n');
+  const transcriptPath = join(workspaceRoot, 'transcript.jsonl');
+  writeTranscript(transcriptPath, verifyRunEvents('verify-1', `ai1 verify --cwd ${hotRoot}`, Date.now() + 5000));
+  const stopPayload = { session_id: 'session-1', hook_event_name: 'Stop', cwd: launchRoot, transcript_path: transcriptPath };
+  const pendingOutput = runHookEvent('Stop', stopPayload, { environment, reportInternalError: () => {} });
+  assert.equal(pendingOutput?.decision, 'block');
+  assert.ok(pendingOutput.reason.includes(`\`${editedFile}\` -> \`${conceptPath}\` (The app)`));
+  assert.equal(runHookEvent('Stop', stopPayload, { environment, reportInternalError: () => {} })?.decision, undefined, 'reminded once');
+
+  runHookEvent('PreToolUse', editPayload(launchRoot, conceptPath), { environment, reportInternalError: () => {} });
+  writeFileSync(conceptPath, '---\ntitle: The app, no type\nresource: src/app.js\n---\nPrints 2.\n');
+  const brokenOutput = runHookEvent('Stop', stopPayload, { environment, reportInternalError: () => {} });
+  assert.equal(brokenOutput?.decision, 'block');
+  assert.match(brokenOutput.reason, /validator reports 1 ERROR/);
+  writeFileSync(conceptPath, '---\ntype: Feature\ntitle: The app\nresource: src/app.js\n---\nPrints 2.\n');
+  assert.equal(runHookEvent('Stop', stopPayload, { environment, reportInternalError: () => {} })?.decision, undefined, 'a fixed bundle and an updated concept let it stop');
+});
+
 test('allowing a repo covers its worktrees too [foreign-repo-hot-edits:S1]', () => {
   const { launchRoot, environment, workspaceRoot } = createWorkspace();
   const ruledRoot = createRepository(workspaceRoot, 'ruled', SIBLING_WITH_RULES);

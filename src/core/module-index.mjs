@@ -57,7 +57,8 @@ export const MODULE_INDEX = [
   { id: 'reuse-check', personOnly: true, event: 'Stop', feature: 'reuse', modulePath: '../reuse/reuse-check.mjs' },
   { id: 'foreign-repo', event: 'PreToolUse', feature: 'delegate', decidedByTarget: true, toolNames: ['Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'Bash'], modulePath: '../delegate/foreign-repo.mjs' },
   { id: 'delegate-report', event: 'Stop', feature: 'delegate', modulePath: '../delegate/delegate-report.mjs' },
-  { id: 'foreign-repo-verify', event: 'Stop', feature: 'delegate', decidedByTarget: true, modulePath: '../delegate/foreign-repo-verify.mjs' },
+  { id: 'foreign-repo-context', event: 'PostToolUse', feature: 'delegate', decidedByTarget: true, toolNames: ['Read', 'Edit', 'Write', 'MultiEdit'], modulePath: '../delegate/foreign-repo-context.mjs' },
+  { id: 'foreign-repo-upkeep', event: 'Stop', feature: 'delegate', decidedByTarget: true, modulePath: '../delegate/foreign-repo-upkeep.mjs' },
 ];
 
 export const KNOWN_MODULE_IDS = MODULE_INDEX.map((moduleEntry) => moduleEntry.id);
