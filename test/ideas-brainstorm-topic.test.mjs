@@ -35,6 +35,8 @@ test('brainstorm: answers problems, innovation and architecture; frames, researc
   assert.match(TECHNIQUES_TEXT, /\*\*Quality attributes first\*\*/);
 });
 
-test('brainstorm: sizing-design-before-code names the boundary and offers the brainstorm when the direction is open', () => {
-  assert.match(DESIGN_SKILL_TEXT, /\/ai1:ideas-brainstorm-topic/);
+test('brainstorm: sizing-design-before-code offers the brainstorm when the direction is open and starts a design from one', () => {
+  assert.match(DESIGN_SKILL_TEXT, /direction itself is still open[\s\S]*offer `\/ai1:ideas-brainstorm-topic` in one line/);
+  assert.match(DESIGN_SKILL_TEXT, /comes from a brainstorm \(`\.ai1\/work\/brainstorm-\*\/`[\s\S]*the chosen idea is the direction[\s\S]*runners-up and their reasons go under \*\*Approaches\*\*[\s\S]*its research counts as the look outside/);
+  assert.match(SKILL_TEXT, /## 6\. Close[\s\S]*sized like any task: a clear,\s+contained one becomes a plan[\s\S]*`size: plan`, naming this folder[\s\S]*design choices or a risky area goes to `\/ai1:sizing-design-before-code`, which starts its design\s+from this folder/);
 });

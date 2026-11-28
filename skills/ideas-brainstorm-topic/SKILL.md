@@ -104,8 +104,11 @@ When the person asks to choose, or ideas stop being new:
 ## 6. Close
 
 Set `status: done` in the plan once the person has chosen or stops. Offer in one line what comes
-next, done only on a yes: a chosen direction to build here goes to `/ai1:sizing-design-before-code`
-(its plan quotes the brainstorm folder); an architecture or product decision worth keeping goes
+next, done only on a yes. A chosen direction to build here is sized like any task: a clear,
+contained one becomes a plan (`.ai1/work/<slug>/plan.md`, `size: plan`, naming this folder); one with
+design choices or a risky area goes to `/ai1:sizing-design-before-code`, which starts its design
+from this folder (the chosen idea as direction, the runners-up as approaches, the research already
+done). An architecture or product decision worth keeping goes
 to the knowledge bundle with `/ai1:okf-maintain-knowledge`.
 
 ## Fixed rules

@@ -5,7 +5,7 @@ description: /ai1:ideas-brainstorm-topic runs a brainstorm on demand (problem, i
 tags: [ideas, brainstorming, research, papers, skills, cli]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-28T06:53:55Z'
+  at: '2026-11-28T07:21:22Z'
 sources:
   - id: skill
     resource: skills/ideas-brainstorm-topic/SKILL.md
@@ -35,7 +35,10 @@ innovar o diseños de arquitectura de software".
   -> diverge (several angles from `techniques.md`, ideas asked with their likelihood for diversity)
   -> converge (merge duplicates, a reason for every rejection, novelty check for scientific ideas,
   pairwise comparison, top 3 with evidence) -> the person chooses; hand-off to the design skill or to
-  the bundle as a decision, on a yes.
+  the bundle as a decision, on a yes. The chosen direction is sized like any task: a clear, contained
+  one becomes a `size: plan` plan naming the brainstorm folder; one with design choices or risk goes to
+  the deep design, which starts from the folder (chosen idea as direction, runners-up as Approaches,
+  its research as the look outside).
 - **State.** `.ai1/work/brainstorm-<topic>/plan.md` with `size: plan`, `status: active`, so the
   sizing brief lists it and re-injects it after a compaction with no new hook; `ideas.md` next to it
   holds every idea with its angle, source and kept/rejected reason.

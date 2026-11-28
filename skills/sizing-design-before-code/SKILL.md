@@ -29,6 +29,11 @@ Read the code, the knowledge bundle and recent history that the task touches. Ne
 they already answer. Note in the plan what you learned that shapes the design.
 If the task builds an accepted later entry from `.ai1/later/`, read it first, reuse its decisions
 instead of reopening them, and add `later: <number>` to the plan frontmatter.
+If the task comes from a brainstorm (`.ai1/work/brainstorm-*/`, from `/ai1:ideas-brainstorm-topic`),
+read its `plan.md` and `ideas.md` and name the folder in the plan: the chosen idea is the direction
+(do not reopen it), its runners-up and their reasons go under **Approaches**, its constraints and
+criteria into **Constraints**, and its research counts as the look outside below (search again only
+what the design adds).
 If the bundle keeps project requirements (`ai1 okf project req list`), list the ones the task serves
 as `requirements: [R001, ...]` in the plan frontmatter (`ai1 plan-done` validates them), and run
 `ai1 okf project conflicts <slug>` once the design is written: name any out-of-scope requirement it
