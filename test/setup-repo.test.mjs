@@ -35,6 +35,7 @@ test('setup writes a valid .ai1/config.json and enables ai1 for the project', ()
   const loadedConfig = loadHarnessConfig(repoRoot);
   assert.equal(loadedConfig.status, 'ok');
   assert.equal(loadedConfig.config.trunk, 'main');
+  assert.deepEqual(loadedConfig.config.modules['foreign-repo'], { hot_max_files: 3 }, 'a new repo allows small hot edits from other repos');
   const projectSettings = readJson(join(repoRoot, '.claude', 'settings.json'));
   assert.equal(projectSettings.enabledPlugins[AI1_PLUGIN_ID], true);
   assert.deepEqual(projectSettings.extraKnownMarketplaces.ai1, { source: { source: 'github', repo: 'Edvantage26/ai1' } });

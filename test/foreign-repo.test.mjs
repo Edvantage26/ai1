@@ -135,6 +135,42 @@ test('a change to the ai1 config of a repo allowed here asks, even in bypass [fo
   assert.equal(decisionOf(runHookEvent('PreToolUse', resetPayload, { environment, reportInternalError: () => {} })), 'ask', 'its danger applies where the launch folder runs none');
 });
 
+const HOT_SIBLING = { ...SIBLING_WITH_RULES, modules: { 'foreign-repo': { hot_max_files: 3 } } };
+
+test('a repo with hot edits on is edited here without delegating, under its guards, told once to read its CLAUDE.md and bundle [foreign-repo-hot-edits:S2]', () => {
+  const { workspaceRoot, launchRoot, environment } = createWorkspace();
+  const hotRoot = createRepository(workspaceRoot, 'hot', HOT_SIBLING);
+  const firstOutput = runHookEvent('PreToolUse', editPayload(launchRoot, join(hotRoot, 'src', 'app.js')), { environment, reportInternalError: () => {} });
+  assert.equal(decisionOf(firstOutput), null, 'not refused');
+  assert.match(firstOutput.hookSpecificOutput.additionalContext, /Hot edit: .*allows up to 3 files/);
+  assert.match(firstOutput.hookSpecificOutput.additionalContext, /Read its CLAUDE\.md and `\.ai1\/okf\/index\.md`/);
+  const secondOutput = runHookEvent('PreToolUse', editPayload(launchRoot, join(hotRoot, 'src', 'other.js'), 'Write'), { environment, reportInternalError: () => {} });
+  assert.doesNotMatch(JSON.stringify(secondOutput || {}), /Hot edit/, 'told once per repo and session');
+  assert.equal(decisionOf(runHookEvent('PreToolUse', editPayload(launchRoot, join(hotRoot, 'generated', 'x.js'), 'Write'), { environment, reportInternalError: () => {} })), 'deny', 'its rules apply');
+});
+
+test('hot edits stop at the cap: a 4th file is refused with the files already changed and the way to delegate [foreign-repo-hot-edits:S3]', () => {
+  const { workspaceRoot, launchRoot, environment } = createWorkspace();
+  const hotRoot = createRepository(workspaceRoot, 'hot', HOT_SIBLING);
+  for (const fileName of ['a.js', 'b.js', 'c.js']) {
+    assert.equal(decisionOf(runHookEvent('PreToolUse', editPayload(launchRoot, join(hotRoot, 'src', fileName), 'Write'), { environment, reportInternalError: () => {} })), null);
+  }
+  assert.equal(decisionOf(runHookEvent('PreToolUse', editPayload(launchRoot, join(hotRoot, 'src', 'a.js')), { environment, reportInternalError: () => {} })), null, 'a file already counted does not count twice');
+  const cappedOutput = runHookEvent('PreToolUse', editPayload(launchRoot, join(hotRoot, 'src', 'd.js'), 'Write'), { environment, reportInternalError: () => {} });
+  assert.equal(decisionOf(cappedOutput), 'deny');
+  const reasonText = cappedOutput.hookSpecificOutput.permissionDecisionReason;
+  assert.match(reasonText, /already changed 3 file\(s\)/);
+  assert.ok(reasonText.includes(join(hotRoot, 'src', 'c.js').split('\\').join('/')), 'names the files already changed');
+  assert.match(reasonText, /\/ai1:session-delegate-change/);
+});
+
+test('without hot_max_files, or with 0, every edit is still delegated [foreign-repo-hot-edits:S2]', () => {
+  const { workspaceRoot, launchRoot, siblingRoot, environment } = createWorkspace();
+  const offRoot = createRepository(workspaceRoot, 'off', { features: {}, modules: { 'foreign-repo': { hot_max_files: 0 } } });
+  assert.equal(decisionOf(runHookEvent('PreToolUse', editPayload(launchRoot, join(siblingRoot, 'src', 'app.js')), { environment, reportInternalError: () => {} })), 'deny');
+  assert.equal(decisionOf(runHookEvent('PreToolUse', editPayload(launchRoot, join(offRoot, 'src', 'app.js')), { environment, reportInternalError: () => {} })), 'deny');
+});
+
 test('allowing a repo covers its worktrees too [foreign-repo-hot-edits:S1]', () => {
   const { launchRoot, environment, workspaceRoot } = createWorkspace();
   const ruledRoot = createRepository(workspaceRoot, 'ruled', SIBLING_WITH_RULES);

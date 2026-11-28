@@ -11,6 +11,9 @@
   "modules": {
     "danger": {
       "ignore_rules": []
+    },
+    "foreign-repo": {
+      "hot_max_files": 3
     }
   }
 }

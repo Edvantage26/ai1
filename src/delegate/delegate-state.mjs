@@ -2,7 +2,9 @@
 // - allowed repos: repositories the person said must be edited from this session (R5,
 //   `ai1 delegate allow <repo> --because "<their words>"`), keyed by session only: the CLI runs from a
 //   Bash call where CLAUDE_PROJECT_DIR is not set, so it cannot know the launch root the hook saw;
-// - noted repos: repositories without ai1 the agent was already told about once;
+// - noted repos: repositories without ai1 the agent was already told about once (hot-edited
+//   repositories with ai1 too, under their main checkout);
+// - hot-edited files: files changed in another repository with hot edits on, for its cap and its verify;
 // - one-time allows: a command a guard of the delegated repository asked about and the person
 //   confirmed (R2), keyed by the delegated session and its repository; danger and repo-rules use it once.
 
@@ -26,6 +28,18 @@ export function allowRepository(sessionId, repoRoot, becauseText, environment = 
   allowedRepositories[repoRoot] = { because: becauseText, at: now.toISOString() };
   writeStateText(allowPath, JSON.stringify(allowedRepositories));
   return allowPath;
+}
+
+// Files this session hot-edited in other repositories: { [main checkout]: [absolute paths] }.
+export function readHotEditedFiles(sessionId, environment = process.env) {
+  return readStateJson(statePath(sessionId, SESSION_SCOPE, 'delegate-hot', environment), {});
+}
+
+export function recordHotEditedFiles(sessionId, mainCheckout, editedPaths, environment = process.env) {
+  const hotPath = statePath(sessionId, SESSION_SCOPE, 'delegate-hot', environment);
+  const hotEditedFiles = readStateJson(hotPath, {});
+  hotEditedFiles[mainCheckout] = [...new Set([...(hotEditedFiles[mainCheckout] || []), ...editedPaths])];
+  writeStateText(hotPath, JSON.stringify(hotEditedFiles));
 }
 
 // true the first time `repoRoot` is noted in this session, false afterwards.
