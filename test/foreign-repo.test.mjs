@@ -29,7 +29,8 @@ function createRepository(parentDirectory, repoName, ai1Config) {
 function createWorkspace({ launchConfig = { features: {} } } = {}) {
   const workspaceRoot = realpathSync(mkdtempSync(join(tmpdir(), 'ai1-foreign-')));
   const launchRoot = launchConfig === null ? workspaceRoot : createRepository(workspaceRoot, 'launch', launchConfig);
-  const siblingRoot = createRepository(workspaceRoot, 'sibling', { features: {} });
+  // The sibling opts out of hot edits (on by default), so its edits from here are delegated.
+  const siblingRoot = createRepository(workspaceRoot, 'sibling', { features: {}, modules: { 'foreign-repo': { hot_max_files: 0 } } });
   const plainRoot = createRepository(workspaceRoot, 'plain');
   const environment = { AI1_DECISION_LOG: '0', CLAUDE_PLUGIN_DATA: join(workspaceRoot, '.plugin-data'), CLAUDE_PROJECT_DIR: launchRoot };
   return { workspaceRoot, launchRoot, siblingRoot, plainRoot, environment };
@@ -215,11 +216,15 @@ test('hot edits stop at the cap: a 4th file is refused with the files already ch
   assert.match(reasonText, /\/ai1:session-delegate-change/);
 });
 
-test('without hot_max_files, or with 0, every edit is still delegated [foreign-repo-hot-edits:S2]', () => {
+test('hot edits are on by default (up to 3 files); a repo with hot_max_files 0 delegates every edit [foreign-repo-hot-edits:S2]', () => {
   const { workspaceRoot, launchRoot, siblingRoot, environment } = createWorkspace();
-  const offRoot = createRepository(workspaceRoot, 'off', { features: {}, modules: { 'foreign-repo': { hot_max_files: 0 } } });
-  assert.equal(decisionOf(runHookEvent('PreToolUse', editPayload(launchRoot, join(siblingRoot, 'src', 'app.js')), { environment, reportInternalError: () => {} })), 'deny');
-  assert.equal(decisionOf(runHookEvent('PreToolUse', editPayload(launchRoot, join(offRoot, 'src', 'app.js')), { environment, reportInternalError: () => {} })), 'deny');
+  const defaultRoot = createRepository(workspaceRoot, 'default', { features: { worktrees: false } });
+  const defaultOutput = runHookEvent('PreToolUse', editPayload(launchRoot, join(defaultRoot, 'src', 'app.js')), { environment, reportInternalError: () => {} });
+  assert.equal(decisionOf(defaultOutput), null, 'a repo that says nothing allows hot edits');
+  assert.match(defaultOutput.hookSpecificOutput.additionalContext, /allows up to 3 files/);
+  const offOutput = runHookEvent('PreToolUse', editPayload(launchRoot, join(siblingRoot, 'src', 'app.js')), { environment, reportInternalError: () => {} });
+  assert.equal(decisionOf(offOutput), 'deny');
+  assert.match(offOutput.hookSpecificOutput.permissionDecisionReason, /ai1 delegate --cwd/);
 });
 
 // A hot repo with its own knowledge bundle: a concept that describes src/app.js.

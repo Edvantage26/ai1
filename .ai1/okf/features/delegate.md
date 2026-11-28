@@ -5,7 +5,7 @@ description: An edit to a file of another repository with ai1 active is delegate
 tags: [delegate, foreign-repo, cross-repo, claude-p, submodules, hot-edits]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-28T12:01:28Z'
+  at: '2026-11-28T12:28:41Z'
 ---
 
 # What it does
@@ -39,9 +39,12 @@ generated:
 
 # Hot edits
 
-A repo opts in with `modules["foreign-repo"].hot_max_files: <n>` (main checkout; 0 or missing: off).
-`ai1 init` writes 3 in a new config; existing configs keep their choice (decided by the person on
-2026-11-28: new repos on, nothing changes in a repo without it). Then, from a session launched elsewhere:
+On by default: up to 3 files (`DEFAULT_HOT_MAX_FILES`) in any repo with ai1 that says nothing;
+`modules["foreign-repo"].hot_max_files: <n>` (main checkout) changes the cap, `0` turns hot edits off.
+Decided by the person on 2026-11-28 ("no quiero estar pensando eso, algo por defecto"); the first
+version that day was opt-in (3 written only in new `ai1 init` configs), which left every existing repo
+delegating. Every edit that touches such a repo records the session's permission mode, so a later
+delegation (past the cap, or from its main checkout) inherits it. Then, from a session launched elsewhere:
 - An edit there goes through under its guards, without delegating. The first one per repo and session
   adds one line: read its CLAUDE.md and `.ai1/okf/index.md`; its skills, plugins, MCP servers and
   session-start rules do not apply here (delegate if the change needs them); run `ai1 verify --cwd <tree>`

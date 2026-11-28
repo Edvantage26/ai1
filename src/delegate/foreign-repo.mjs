@@ -21,6 +21,9 @@ import { noteRepositoryOnce, readAllowedRepositories, readHotEditedFiles, record
 
 const MODULE_ID = 'foreign-repo';
 const MODULE_FEATURE = 'delegate';
+// Files of another repository a session may change from here before it must delegate, when that
+// repository says nothing: on by default (decided by the person on 2026-11-28, "algo por defecto").
+const DEFAULT_HOT_MAX_FILES = 3;
 
 // The repository's own decision: its config (or its main checkout's) enables this module.
 function delegateEnabledIn(repoRoot) {
@@ -32,13 +35,14 @@ function delegateEnabledIn(repoRoot) {
 }
 
 // From a repository's main checkout config: how many files a session may hot-edit there
-// (`modules["foreign-repo"].hot_max_files`; 0 or missing: hot edits off, every edit is delegated) and
+// (`modules["foreign-repo"].hot_max_files`, DEFAULT_HOT_MAX_FILES when missing; 0: hot edits off, every
+// edit is delegated) and
 // whether it works in worktrees (then its main checkout is not edited).
 function readHotEditSettings(repoRoot) {
   const targetConfig = loadMainCheckoutConfig(repoRoot);
   if (!targetConfig) return { hotMaxFiles: 0, usesWorktrees: false };
-  const hotMaxFiles = getModuleOptions(MODULE_ID, targetConfig).hot_max_files;
-  return { hotMaxFiles: Number.isInteger(hotMaxFiles) && hotMaxFiles > 0 ? hotMaxFiles : 0, usesWorktrees: isFeatureEnabled('worktrees', targetConfig) };
+  const configuredMaxFiles = getModuleOptions(MODULE_ID, targetConfig).hot_max_files ?? DEFAULT_HOT_MAX_FILES;
+  return { hotMaxFiles: Number.isInteger(configuredMaxFiles) && configuredMaxFiles > 0 ? configuredMaxFiles : 0, usesWorktrees: isFeatureEnabled('worktrees', targetConfig) };
 }
 
 function quotePath(pathText) {
@@ -144,8 +148,10 @@ export default {
   description: 'Refuses edits to files of another repository with ai1 active and says how to delegate them to a session started there; one line of context for a repository without ai1.',
   run({ hookInput, projectRoot, config, environment, enabledModules = [] }) {
     const { delegatedRepositories, plainRepositories, allowedTargets, hotTargets } = describeForeignEdits(hookInput, projectRoot, Boolean(config), environment);
+    // Any edit of another repository with ai1 may end in a delegation (now, past the hot-edit cap, or
+    // from its main checkout): the delegated run inherits this session's mode.
+    if (delegatedRepositories.size || hotTargets.size) rememberPermissionMode(hookInput.session_id, hookInput.permission_mode, environment);
     if (delegatedRepositories.size) {
-      rememberPermissionMode(hookInput.session_id, hookInput.permission_mode, environment);
       const [repoRoot, rawPath] = [...delegatedRepositories][0];
       return denyDecision(MODULE_ID, [
         `${quotePath(rawPath)} belongs to another repository, ${quotePath(repoRoot)}, which has ai1 active and its own rules (config, hooks, CLAUDE.md, knowledge).`,

@@ -13,8 +13,8 @@ ask the person, so it stops and returns its questions, and you relay them.
 
 Reading the other repository's files and knowledge is always fine; do it first to write a good brief.
 
-A repository may allow **hot edits** (`modules["foreign-repo"].hot_max_files` in its config): then a
-small change there is made from this session, under its guards, without delegating, and the refusal
+Repositories allow **hot edits** by default (up to 3 files; `modules["foreign-repo"].hot_max_files` in
+their config changes it, `0` turns it off): a small change there is made from this session, under its guards, without delegating, and the refusal
 only comes when the change grows past its cap (or touches its main checkout when it works in
 worktrees). Its knowledge bundle files do not count toward the cap: ai1 names the concepts of that
 repository that describe what you change, and at stop asks to update them and validates its bundle.

@@ -34,8 +34,6 @@ export function findRepoRoot(startDirectory) {
 }
 
 const DEFAULT_USER_SETTINGS_PATH = join(homedir(), '.claude', 'settings.json');
-// Files a session launched in another repo may hot-edit in a newly set-up repo (modules["foreign-repo"]).
-const NEW_REPO_HOT_MAX_FILES = 3;
 const SELECTABLE_FEATURES = FEATURES.filter((featureDefinition) => !featureDefinition.alwaysOn);
 const SELECTABLE_FEATURE_IDS = SELECTABLE_FEATURES.map((featureDefinition) => featureDefinition.id);
 
@@ -170,8 +168,6 @@ export function setupRepo(repoRoot, { disabledFeatureIds, enabledFeatureIds, ver
     trunk: existingAi1Config.trunk || detectTrunkBranch(repoRoot),
     verify: verifyCommands ?? existingAi1Config.verify ?? [],
   };
-  // A new config allows small hot edits from sessions launched in other repos; an existing one keeps its choice.
-  if (!readJsonFile(ai1ConfigPath)) ai1Config.modules = { ...ai1Config.modules, 'foreign-repo': { hot_max_files: NEW_REPO_HOT_MAX_FILES } };
   // A single module switched off in this repo (e.g. okf-project: okf without requirements), kept with the others.
   if (disabledModuleIds.length) ai1Config.modules = { ...existingAi1Config.modules, ...Object.fromEntries(disabledModuleIds.map((moduleId) => [moduleId, false])) };
   // A maintainer is added to the committed list (creating it makes everyone not in it a developer).
