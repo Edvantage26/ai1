@@ -11,13 +11,13 @@
 // `runCommand` so tests fake `claude`.
 
 import { randomUUID } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { describeOwningRepository } from '../core/owning-repo.mjs';
 import { runExternalCommand } from '../session/fork-session.mjs';
 import { resolveClaudeCommand } from '../session/claude-command.mjs';
 import { resolveStateDirectory } from '../core/session-state.mjs';
-import { grantOneTimeAllow, readRememberedPermissionMode } from './delegate-state.mjs';
+import { delegationReportPath, grantOneTimeAllow, readRememberedPermissionMode } from './delegate-state.mjs';
 
 const DEFAULT_TIMEOUT_MINUTES = 60;
 const STATUS_LINE_PATTERN = /^\s*AI1-DELEGATE:\s*(done|needs-input)\s*(?::\s*(.*))?$/gim;
@@ -127,13 +127,17 @@ export function readDelegationRecord(sessionId, environment = process.env) {
   return existsSync(savedPath) ? JSON.parse(readFileSync(savedPath, 'utf8')) : null;
 }
 
-function runClaude({ repoRoot, claudeArguments, claudeCommand, environment, runCommand, timeoutMinutes }) {
+function runClaude({ repoRoot, sessionId, claudeArguments, claudeCommand, environment, runCommand, timeoutMinutes }) {
   const [launcherProgram, ...launcherArguments] = resolveClaudeCommand(claudeCommand, environment);
+  // A report left by an earlier run must not pass for this one's.
+  rmSync(delegationReportPath(sessionId, environment), { force: true });
   return runCommand(launcherProgram, [...launcherArguments, ...claudeArguments], {
     cwd: repoRoot,
     timeoutMilliseconds: Math.max(1, Number(timeoutMinutes) || DEFAULT_TIMEOUT_MINUTES) * 60_000,
     // Its hooks resolve the project from CLAUDE_PROJECT_DIR: the other repository, not this session's.
-    extraEnvironment: { CLAUDE_PROJECT_DIR: repoRoot },
+    // AI1_DELEGATION tells that repository's ai1 it runs a delegated session (delegate-report, and no
+    // nudges meant for a person watching: personOnly modules).
+    extraEnvironment: { CLAUDE_PROJECT_DIR: repoRoot, AI1_DELEGATION: sessionId },
   });
 }
 
@@ -141,9 +145,19 @@ function permissionArguments(permissionMode) {
   return permissionMode ? ['--permission-mode', permissionMode] : [];
 }
 
+// What the delegated session's ai1 wrote when it stopped (delegate-report), or null.
+function readSessionReport(sessionId, environment) {
+  try {
+    return JSON.parse(readFileSync(delegationReportPath(sessionId, environment), 'utf8'));
+  } catch {
+    return null;
+  }
+}
+
 function finishRun({ baseRecord, commandResult, runCommand, environment }) {
   const runOutcome = interpretRun(commandResult);
   const repositoryChanges = describeRepositoryChanges(baseRecord.repo, baseRecord.start_snapshot, runCommand);
+  const sessionReport = readSessionReport(baseRecord.session_id, environment);
   const delegationRecord = {
     ...baseRecord,
     status: runOutcome.status,
@@ -153,6 +167,8 @@ function finishRun({ baseRecord, commandResult, runCommand, environment }) {
     commits: repositoryChanges.commits,
     changed_files: repositoryChanges.changedFiles,
     new_worktrees: repositoryChanges.newWorktrees,
+    verify: sessionReport?.verify ?? 'unknown',
+    open_plans: sessionReport?.open_plans ?? [],
     exit_code: runOutcome.exitCode,
     cost_usd: runOutcome.costUsd,
     runs: (baseRecord.runs || 0) + 1,
@@ -178,6 +194,7 @@ export function startDelegation({ targetDirectory, briefPath, taskText, permissi
   const startSnapshot = snapshotRepository(repoRoot, runCommand);
   const commandResult = runClaude({
     repoRoot,
+    sessionId,
     claudeArguments: ['-p', '--output-format', 'json', '--session-id', sessionId, ...permissionArguments(effectivePermissionMode), ...(maxTurns ? ['--max-turns', String(maxTurns)] : []), `${briefText}\n\n${DELEGATE_PROTOCOL}`],
     claudeCommand,
     environment,
@@ -207,6 +224,7 @@ export function resumeDelegation({ sessionId, answerText, allowOnceSubject, perm
   ].join('\n');
   const commandResult = runClaude({
     repoRoot: baseRecord.repo,
+    sessionId,
     claudeArguments: ['-p', '--output-format', 'json', '--resume', sessionId, ...permissionArguments(permissionMode || baseRecord.permission_mode), resumeText],
     claudeCommand: claudeCommand || baseRecord.claude_command,
     environment,

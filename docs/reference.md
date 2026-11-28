@@ -209,6 +209,7 @@ from (same meaning as in the [Skills table of the README](../README.md#skills)).
 | `reuse-brief` | `reuse` | SessionStart | before a task done before in this repo, look up how with `ai1 reuse search`; how to propose encapsulating repeated work; only this repo | Written in ai1 |
 | `reuse-check` | `reuse` | Stop | after 8+ tool calls since the last check (`modules.reuse-check.minToolCalls`), asks once to judge whether the work will recur here and to search or propose; at most twice per session | Written in ai1 |
 | `foreign-repo` | `delegate` | PreToolUse | an edit of another repository with ai1 refused, pointing to `/ai1:session-delegate-change`, unless that repo allows hot edits (`hot_max_files`) or the person said to do it here: then its own rules, config-guard and danger apply; one line of context for a repo without ai1 (runs where the launch directory has no ai1 too) | Written in ai1 |
+| `delegate-report` | `delegate` | Stop | in a session started by `ai1 delegate`: records for the caller whether the verify commands passed and the plans left open (`ai1 delegate show`) | Written in ai1 |
 | `foreign-repo-verify` | `delegate` | Stop | files hot-edited in another repository changed after the last passing `ai1 verify --cwd` there: asks once to run it before finishing (runs where the launch directory has no ai1 too) | Written in ai1 |
 <!-- hooks:end -->
 

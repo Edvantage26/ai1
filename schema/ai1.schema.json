@@ -846,6 +846,22 @@
             }
           ]
         },
+        "delegate-report": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              }
+            }
+          ]
+        },
         "foreign-repo-verify": {
           "oneOf": [
             {

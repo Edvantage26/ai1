@@ -8,6 +8,8 @@ import { interpretRun, resumeDelegation, startDelegation } from '../src/delegate
 import { rememberPermissionMode } from '../src/delegate/delegate-state.mjs';
 import { runDelegateCommand } from '../src/cli/delegate-command.mjs';
 import dangerModule from '../src/guards/danger.mjs';
+import { runHookEvent } from '../src/core/dispatcher.mjs';
+import { dispatchHookEvent } from '../src/core/hook-dispatch.mjs';
 
 function runGit(repoRoot, gitArguments) {
   return execFileSync('git', ['-C', repoRoot, '-c', 'user.name=t', '-c', 'user.email=t@t', ...gitArguments], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
@@ -89,6 +91,40 @@ test('a delegated change runs claude -p in the other repo and reports status, su
   assert.match(programArguments.at(-1), /If a tool is denied, stop at once/, 'stops early when it lacks permissions');
   assert.match(programArguments.at(-1), /`\.ai1\/work\/` is local scratch/, 'knows the work folder is not committed');
   assert.match(programArguments.at(-1), /last message is the only thing the caller receives[\s\S]*never a reference to an earlier message/, 'the report is self-contained');
+});
+
+test('the delegated session knows it is delegated: no nudges for a person, and its verify and open plans reach the record [foreign-repo-hot-edits:S5]', () => {
+  const { workspaceRoot, launchRoot, environment } = createWorkspace();
+  const targetRoot = createRepository(workspaceRoot, 'verified-target', { features: {}, verify: ['npm test'] });
+  const transcriptPath = join(workspaceRoot, 'delegated-transcript.jsonl');
+  const nudgeModule = { id: 'reuse-check', personOnly: true, event: 'Stop', feature: 'reuse', run: () => ({ kind: 'block', moduleId: 'reuse-check', reason: 'Reuse: judge whether…' }) };
+  let nudgeOutput;
+  const { runCommand, claudeCalls } = fakeRunner((programArguments, commandOptions) => {
+    // The delegated session: its ai1 sees AI1_DELEGATION, writes a plan, runs its verify and stops.
+    const childEnvironment = { ...environment, ...commandOptions.extraEnvironment };
+    const planDirectory = join(targetRoot, '.ai1', 'work', 'rename-column');
+    mkdirSync(planDirectory, { recursive: true });
+    writeFileSync(join(planDirectory, 'plan.md'), '---\ntitle: Rename the column\nstatus: ready\n---\n');
+    const now = Date.now();
+    writeFileSync(transcriptPath, [
+      { type: 'assistant', timestamp: new Date(now - 2000).toISOString(), message: { content: [{ type: 'tool_use', id: 'plan-1', name: 'Write', input: { file_path: join(planDirectory, 'plan.md') } }] } },
+      { type: 'assistant', timestamp: new Date(now - 1000).toISOString(), message: { content: [{ type: 'tool_use', id: 'verify-1', name: 'Bash', input: { command: 'npm test' } }] } },
+      { type: 'user', timestamp: new Date(now).toISOString(), message: { content: [{ type: 'tool_result', tool_use_id: 'verify-1', is_error: false, content: 'ok' }] } },
+    ].map((transcriptEvent) => `${JSON.stringify(transcriptEvent)}\n`).join(''));
+    const stopPayload = { session_id: readSessionId(programArguments), hook_event_name: 'Stop', cwd: targetRoot, transcript_path: transcriptPath };
+    runHookEvent('Stop', stopPayload, { environment: childEnvironment, reportInternalError: () => {} });
+    nudgeOutput = dispatchHookEvent('Stop', stopPayload, { environment: childEnvironment, moduleDefinitions: [nudgeModule], runnableModules: [nudgeModule], reportInternalError: () => {} });
+    return claudeJson({ session_id: readSessionId(programArguments), result: 'Planned the rename.\nAI1-DELEGATE: needs-input: ¿apruebas el plan?' });
+  });
+  const delegationRecord = startDelegation({ targetDirectory: targetRoot, taskText: 'Rename the column', launchRoot, callerSessionId: 'caller-session', environment, runCommand });
+  assert.equal(claudeCalls[0].commandOptions.extraEnvironment.AI1_DELEGATION, delegationRecord.session_id, 'the delegated session is told it is delegated');
+  assert.equal(nudgeOutput, null, 'a nudge meant for the person stays silent there');
+  assert.equal(delegationRecord.verify, 'passed');
+  assert.deepEqual(delegationRecord.open_plans.map((openPlan) => [openPlan.slug, openPlan.status]), [['rename-column', 'ready']]);
+  assert.equal(delegationRecord.status, 'needs-input', 'the status the agent wrote stays next to what ai1 reports');
+  const shownOutput = [];
+  runDelegateCommand(launchRoot, ['show', delegationRecord.session_id], { environment, writeOutput: (outputText) => shownOutput.push(outputText) });
+  assert.match(shownOutput.join('\n'), /"verify": "passed"/);
 });
 
 test('a question stops the delegated session and the answer resumes the same one [foreign-repo-delegation:S3]', () => {

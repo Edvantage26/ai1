@@ -9,6 +9,7 @@
 //   confirmed (R2), keyed by the delegated session and its repository; danger and repo-rules use it once.
 
 import { createHash } from 'node:crypto';
+import { join } from 'node:path';
 import { readStateJson, resolveStateDirectory, sessionStatePath, writeStateText } from '../core/session-state.mjs';
 
 // State the hook writes and the CLI reads: keyed by the session id alone (both know it).
@@ -40,6 +41,12 @@ export function recordHotEditedFiles(sessionId, mainCheckout, editedPaths, envir
   const hotEditedFiles = readStateJson(hotPath, {});
   hotEditedFiles[mainCheckout] = [...new Set([...(hotEditedFiles[mainCheckout] || []), ...editedPaths])];
   writeStateText(hotPath, JSON.stringify(hotEditedFiles));
+}
+
+// What a delegated session's ai1 reports when it stops (delegate-report), read and merged into the
+// delegation record by `ai1 delegate` once the run ends (a separate file, so neither overwrites the other).
+export function delegationReportPath(delegatedSessionId, environment = process.env) {
+  return join(resolveStateDirectory(environment), 'delegations', `${delegatedSessionId}.report.json`);
 }
 
 // true the first time `repoRoot` is noted in this session, false afterwards.
