@@ -4,6 +4,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { runHookEvent } from '../src/core/dispatcher.mjs';
 import { checkSubplans, hashContractSection, readFrontmatterList, readJointFields, canonicalPlanPath } from '../src/sizing/joint-plans.mjs';
 
@@ -71,7 +72,7 @@ test('a joint plan written in a worktree is still the parent its sub-plans name 
   assert.equal(canonicalPlanPath(join(worktreeRoot, '.ai1', 'work', 'tenant-options', 'plan.md')), join(clientRoot, '.ai1', 'work', 'tenant-options', 'plan.md'));
 });
 
-const AI1_BIN = join(import.meta.dirname, '..', 'bin', 'ai1');
+const AI1_BIN = fileURLToPath(new URL('../bin/ai1', import.meta.url));
 
 function runAi1(workingDirectory, ai1Arguments, workspaceRoot) {
   const ai1Result = spawnSync(process.execPath, [AI1_BIN, ...ai1Arguments], { cwd: workingDirectory, encoding: 'utf8', env: { ...process.env, CLAUDE_PLUGIN_DATA: join(workspaceRoot, '.plugin-data'), AI1_DECISION_LOG: '0' } });
