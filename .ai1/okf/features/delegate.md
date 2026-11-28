@@ -5,7 +5,7 @@ description: An edit to a file of another repository with ai1 active is refused 
 tags: [delegate, foreign-repo, cross-repo, claude-p, submodules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-17T16:28:17Z'
+  at: '2026-11-28T08:44:27Z'
 ---
 
 # What it does
@@ -86,5 +86,14 @@ Untracked files not ignored in a submodule (an un-ignored `venv/`) are listed an
 - Shell edits the command line does not show (inline scripts, `cd ../x && ...` resolved later).
 - Live questions while the delegated session waits: see the Agent SDK idea (not built).
 - Each delegated change is a new session: one-line edits pay the same.
+- The target's ai1 does not know it runs a delegated session: only `CLAUDE_PROJECT_DIR` is passed
+  (`runClaude`), and only `danger`/`repo-rules` look the session up (one-time allows). Its sizing
+  approvals, guard asks, Stop hooks (reuse-check, okf-upkeep) and SessionStart notices act as if a person
+  were there, so asks end `blocked` and the status comes from the model's text line (checked 2026-11-28).
+- Not used yet, available in Claude Code 2.1.319 (`claude --help`, 2026-11-28): `--bg` with
+  `claude agents --json` / `attach` / `logs` / `stop` (background sessions a person can attach to),
+  `--json-schema` (structured result), `--permission-prompts host` with `--permission-prompt-tool`
+  (live permission relay; whether hook asks go through it is untested), `--max-budget-usd`,
+  `--output-format stream-json`.
 
 See [hook runtime](../architecture/hook-runtime.md), [session fork](session-fork.md), [verify](verify.md).
