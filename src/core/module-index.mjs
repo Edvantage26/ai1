@@ -54,6 +54,7 @@ export const MODULE_INDEX = [
   { id: 'reuse-brief', event: 'SessionStart', feature: 'reuse', modulePath: '../reuse/reuse-brief.mjs' },
   { id: 'reuse-check', event: 'Stop', feature: 'reuse', modulePath: '../reuse/reuse-check.mjs' },
   { id: 'foreign-repo', event: 'PreToolUse', feature: 'delegate', decidedByTarget: true, toolNames: ['Edit', 'Write', 'MultiEdit', 'NotebookEdit', 'Bash'], modulePath: '../delegate/foreign-repo.mjs' },
+  { id: 'foreign-repo-verify', event: 'Stop', feature: 'delegate', decidedByTarget: true, modulePath: '../delegate/foreign-repo-verify.mjs' },
 ];
 
 export const KNOWN_MODULE_IDS = MODULE_INDEX.map((moduleEntry) => moduleEntry.id);

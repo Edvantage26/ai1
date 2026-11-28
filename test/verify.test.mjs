@@ -197,6 +197,11 @@ test('verify-gate: switched off with the verify feature', () => {
   assert.equal(stopSession(projectRoot, options, writeTranscript(options, [])), null);
 });
 
+test('verifyCommandsRunBy: ai1 verify --cwd verifies another repo, not this one [foreign-repo-hot-edits:S4]', () => {
+  assert.deepEqual(verifyCommandsRunBy('ai1 verify', ['npm test']), [0]);
+  assert.deepEqual(verifyCommandsRunBy('ai1 verify --cwd ../other', ['npm test']), []);
+});
+
 test('verifyCommandsRunBy: the full command, with redirects and pipes, in compound verify commands too', () => {
   assert.deepEqual(verifyCommandsRunBy('cd x && npm test 2>&1 | tail -5', ['npm test']), [0]);
   assert.deepEqual(verifyCommandsRunBy('bash -c "npm test > out.txt"', ['npm test']), [0]);

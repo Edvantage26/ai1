@@ -38,7 +38,8 @@ const AI1_VERIFYING_SUBCOMMANDS = new Set(['verify', 'step-done', 'plan-done']);
 // Indexes of the verify commands a shell command line runs in full.
 export function verifyCommandsRunBy(commandLine, verifyCommands) {
   const runCommands = splitSimpleCommands(String(commandLine || '')).map(({ words }) => words);
-  if (runCommands.some((commandWords) => baseName(commandWords[0]) === 'ai1' && AI1_VERIFYING_SUBCOMMANDS.has(commandWords[1]))) {
+  // `ai1 verify --cwd <dir>` verifies another folder (a hot-edited repository), not this one.
+  if (runCommands.some((commandWords) => baseName(commandWords[0]) === 'ai1' && AI1_VERIFYING_SUBCOMMANDS.has(commandWords[1]) && !commandWords.includes('--cwd'))) {
     return verifyCommands.map((verifyCommand, verifyIndex) => verifyIndex);
   }
   const runTexts = runCommands.map(commandWordsWithoutRedirects);

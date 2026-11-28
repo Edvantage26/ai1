@@ -846,6 +846,22 @@
             }
           ]
         },
+        "foreign-repo-verify": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              }
+            }
+          ]
+        },
         "reuse-check": {
           "oneOf": [
             {

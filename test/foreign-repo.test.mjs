@@ -135,7 +135,58 @@ test('a change to the ai1 config of a repo allowed here asks, even in bypass [fo
   assert.equal(decisionOf(runHookEvent('PreToolUse', resetPayload, { environment, reportInternalError: () => {} })), 'ask', 'its danger applies where the launch folder runs none');
 });
 
-const HOT_SIBLING = { ...SIBLING_WITH_RULES, modules: { 'foreign-repo': { hot_max_files: 3 } } };
+const HOT_SIBLING = { ...SIBLING_WITH_RULES, features: { worktrees: false }, modules: { 'foreign-repo': { hot_max_files: 3 } } };
+const HOT_SIBLING_WITH_WORKTREES = { ...HOT_SIBLING, features: {} };
+
+function writeTranscript(transcriptPath, transcriptEvents) {
+  writeFileSync(transcriptPath, transcriptEvents.map((transcriptEvent) => `${JSON.stringify(transcriptEvent)}\n`).join(''));
+}
+
+function verifyRunEvents(runId, command, endMilliseconds, isError = false) {
+  return [
+    { type: 'assistant', timestamp: new Date(endMilliseconds - 1000).toISOString(), message: { content: [{ type: 'tool_use', id: runId, name: 'Bash', input: { command } }] } },
+    { type: 'user', timestamp: new Date(endMilliseconds).toISOString(), message: { content: [{ type: 'tool_result', tool_use_id: runId, is_error: isError, content: isError ? 'failed' : 'ok' }] } },
+  ];
+}
+
+test('a repo that works in worktrees is hot-edited in a worktree, never in its main checkout; then the stop waits for its verify [foreign-repo-hot-edits:S4]', () => {
+  const { workspaceRoot, launchRoot, environment } = createWorkspace({ launchConfig: { features: { verify: false } } });
+  const hotRoot = createRepository(workspaceRoot, 'hot', HOT_SIBLING_WITH_WORKTREES);
+  const mainCheckoutOutput = runHookEvent('PreToolUse', editPayload(launchRoot, join(hotRoot, 'src', 'app.js')), { environment, reportInternalError: () => {} });
+  assert.equal(decisionOf(mainCheckoutOutput), 'deny');
+  assert.match(mainCheckoutOutput.hookSpecificOutput.permissionDecisionReason, /ai1 worktree create <name>/);
+  const worktreeRoot = join(workspaceRoot, 'hot-wt');
+  runGit(hotRoot, ['worktree', 'add', '-q', worktreeRoot]);
+  const editedFile = join(worktreeRoot, 'src', 'app.js');
+  const worktreeOutput = runHookEvent('PreToolUse', editPayload(launchRoot, editedFile), { environment, reportInternalError: () => {} });
+  assert.equal(decisionOf(worktreeOutput), null, 'an edit inside one of its worktrees goes through');
+  assert.ok(worktreeOutput.hookSpecificOutput.additionalContext.includes(`ai1 verify --cwd ${worktreeRoot}`));
+  writeFileSync(editedFile, 'console.log(2);\n');
+
+  const transcriptPath = join(workspaceRoot, 'transcript.jsonl');
+  writeTranscript(transcriptPath, []);
+  const stopPayload = { session_id: 'session-1', hook_event_name: 'Stop', cwd: launchRoot, transcript_path: transcriptPath };
+  const blockedOutput = runHookEvent('Stop', stopPayload, { environment, reportInternalError: () => {} });
+  assert.equal(blockedOutput?.decision, 'block', 'the stop is blocked even with verify off in the launch repo');
+  assert.ok(blockedOutput.reason.includes(`ai1 verify --cwd ${worktreeRoot}`));
+  assert.equal(runHookEvent('Stop', stopPayload, { environment, reportInternalError: () => {} })?.decision, undefined, 'asked once per situation');
+
+  writeFileSync(editedFile, 'console.log(3);\n');
+  writeTranscript(transcriptPath, verifyRunEvents('verify-1', `ai1 verify --cwd ${worktreeRoot}`, Date.now() + 5000));
+  assert.equal(runHookEvent('Stop', stopPayload, { environment, reportInternalError: () => {} })?.decision, undefined, 'a passing verify there after the last edit lets it stop');
+});
+
+test('a failed verify of the hot-edited repo blocks the stop once [foreign-repo-hot-edits:S4]', () => {
+  const { workspaceRoot, launchRoot, environment } = createWorkspace();
+  const hotRoot = createRepository(workspaceRoot, 'hot', HOT_SIBLING);
+  const editedFile = join(hotRoot, 'src', 'app.js');
+  assert.equal(decisionOf(runHookEvent('PreToolUse', editPayload(launchRoot, editedFile), { environment, reportInternalError: () => {} })), null);
+  writeFileSync(editedFile, 'console.log(2);\n');
+  const transcriptPath = join(workspaceRoot, 'transcript.jsonl');
+  writeTranscript(transcriptPath, verifyRunEvents('verify-1', `cd ${launchRoot} && ai1 verify --cwd ${hotRoot}`, Date.now() + 5000, true));
+  const stopPayload = { session_id: 'session-1', hook_event_name: 'Stop', cwd: launchRoot, transcript_path: transcriptPath };
+  assert.equal(runHookEvent('Stop', stopPayload, { environment, reportInternalError: () => {} })?.decision, 'block');
+});
 
 test('a repo with hot edits on is edited here without delegating, under its guards, told once to read its CLAUDE.md and bundle [foreign-repo-hot-edits:S2]', () => {
   const { workspaceRoot, launchRoot, environment } = createWorkspace();

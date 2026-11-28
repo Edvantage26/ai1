@@ -11,6 +11,7 @@
 
 import { allowDecision, contextDecision, denyDecision } from '../core/hook-io.mjs';
 import { getModuleOptions, isModuleEnabled, loadHarnessConfig } from '../core/config.mjs';
+import { isFeatureEnabled } from '../core/features.mjs';
 import { describeOwningRepository } from '../core/owning-repo.mjs';
 import { findMainCheckout } from '../core/project-roots.mjs';
 import { listToolCallChanges } from '../core/tool-call-paths.mjs';
@@ -29,12 +30,14 @@ function delegateEnabledIn(repoRoot) {
   return false;
 }
 
-// How many files of a repository a session may hot-edit (`modules["foreign-repo"].hot_max_files` in
-// its main checkout's config; 0 or missing: hot edits off, every edit is delegated).
-function readHotMaxFiles(repoRoot) {
+// From a repository's main checkout config: how many files a session may hot-edit there
+// (`modules["foreign-repo"].hot_max_files`; 0 or missing: hot edits off, every edit is delegated) and
+// whether it works in worktrees (then its main checkout is not edited).
+function readHotEditSettings(repoRoot) {
   const targetConfig = loadMainCheckoutConfig(repoRoot);
-  const hotMaxFiles = targetConfig ? getModuleOptions(MODULE_ID, targetConfig).hot_max_files : 0;
-  return Number.isInteger(hotMaxFiles) && hotMaxFiles > 0 ? hotMaxFiles : 0;
+  if (!targetConfig) return { hotMaxFiles: 0, usesWorktrees: false };
+  const hotMaxFiles = getModuleOptions(MODULE_ID, targetConfig).hot_max_files;
+  return { hotMaxFiles: Number.isInteger(hotMaxFiles) && hotMaxFiles > 0 ? hotMaxFiles : 0, usesWorktrees: isFeatureEnabled('worktrees', targetConfig) };
 }
 
 function quotePath(pathText) {
@@ -67,10 +70,11 @@ export function describeForeignEdits(hookInput, projectRoot, launchHasAi1, envir
       if (!allowedTargets.has(mainCheckout)) allowedTargets.set(mainCheckout, owningRepository.repoRoot);
       return;
     }
-    const hotMaxFiles = isDelegated ? readHotMaxFiles(owningRepository.repoRoot) : 0;
+    const { hotMaxFiles, usesWorktrees } = isDelegated ? readHotEditSettings(owningRepository.repoRoot) : { hotMaxFiles: 0 };
     if (hotMaxFiles) {
-      const hotTarget = hotTargets.get(mainCheckout) || { repoRoot: owningRepository.repoRoot, maxFiles: hotMaxFiles, paths: [] };
+      const hotTarget = hotTargets.get(mainCheckout) || { repoRoot: owningRepository.repoRoot, maxFiles: hotMaxFiles, paths: [], mainCheckoutPath: null };
       if (!runsThere) hotTarget.paths.push(candidatePath);
+      if (!runsThere && usesWorktrees && owningRepository.repoRoot === mainCheckout) hotTarget.mainCheckoutPath ||= rawPath;
       hotTargets.set(mainCheckout, hotTarget);
       return;
     }
@@ -82,6 +86,13 @@ export function describeForeignEdits(hookInput, projectRoot, launchHasAi1, envir
   for (const toolCallChange of changes) classifyPath(toolCallChange.path, toolCallChange.rawPath);
   for (const commandDirectory of listCommandDirectories(hookInput, workingDirectory)) classifyPath(commandDirectory, commandDirectory, { runsThere: true });
   return { delegatedRepositories, plainRepositories, allowedTargets, hotTargets };
+}
+
+function describeMainCheckoutEdit(mainCheckout, rawPath) {
+  return [
+    `${quotePath(rawPath)} is in the main checkout of ${quotePath(mainCheckout)}, a repository with ai1 that works in worktrees: hot edits go in a worktree of it.`,
+    `Create one there (\`cd ${mainCheckout} && ai1 worktree create <name>\`), make the change inside it, commit in its branch and close it with \`ai1 worktree finish <name>\` from that repository (nothing is pushed).`,
+  ].join(' ');
 }
 
 function describeCapReached(mainCheckout, maxFiles, alreadyEdited) {
@@ -102,7 +113,7 @@ function recordHotEdits(baseDecision, hotTargets, hookInput, projectRoot, enviro
     if (!noteRepositoryOnce(hookInput.session_id, projectRoot, mainCheckout, environment)) continue;
     firstTimeLines.push([
       `Hot edit: ${quotePath(mainCheckout)} is another repository with ai1 that allows up to ${hotTarget.maxFiles} files changed from here per session; its guards apply.`,
-      `Read its CLAUDE.md and \`.ai1/okf/index.md\` before changing more. Its skills, plugins, MCP servers and session-start rules do not apply here: if the change needs them, delegate it (/ai1:session-delegate-change).`,
+      `Read its CLAUDE.md and \`.ai1/okf/index.md\` before changing more. Its skills, plugins, MCP servers and session-start rules do not apply here: if the change needs them, delegate it (/ai1:session-delegate-change). Before finishing, run \`ai1 verify --cwd ${hotTarget.repoRoot}\`.`,
     ].join(' '));
   }
   if (!firstTimeLines.length) return baseDecision;
@@ -132,6 +143,7 @@ export default {
     }
     const hotEditedFiles = readHotEditedFiles(hookInput.session_id, environment);
     for (const [mainCheckout, hotTarget] of hotTargets) {
+      if (hotTarget.mainCheckoutPath) return denyDecision(MODULE_ID, describeMainCheckoutEdit(mainCheckout, hotTarget.mainCheckoutPath), [MODULE_ID]);
       const alreadyEdited = hotEditedFiles[mainCheckout] || [];
       if (new Set([...alreadyEdited, ...hotTarget.paths]).size > hotTarget.maxFiles) return denyDecision(MODULE_ID, describeCapReached(mainCheckout, hotTarget.maxFiles, alreadyEdited), [MODULE_ID]);
     }

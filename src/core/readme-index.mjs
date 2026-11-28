@@ -172,5 +172,6 @@ export const HOOK_README_INDEX = {
   'watch-release-detect': { description: 'after a release command (`git push` to the trunk or a tag, `gh release create`, `npm publish`, the repo\'s own deploy commands), tells the agent once to offer `/ai1:watches-follow-release`', ...NO_ORIGIN },
   'reuse-brief': { description: 'before a task done before in this repo, look up how with `ai1 reuse search`; how to propose encapsulating repeated work; only this repo', ...NO_ORIGIN },
   'reuse-check': { description: 'after 8+ tool calls since the last check (`modules.reuse-check.minToolCalls`), asks once to judge whether the work will recur here and to search or propose; at most twice per session', ...NO_ORIGIN },
-  'foreign-repo': { description: 'an edit of another repository with ai1 refused, pointing to `/ai1:session-delegate-change`; one line of context for a repo without ai1 (runs where the launch directory has no ai1 too)', ...NO_ORIGIN },
+  'foreign-repo': { description: 'an edit of another repository with ai1 refused, pointing to `/ai1:session-delegate-change`, unless that repo allows hot edits (`hot_max_files`) or the person said to do it here: then its own rules, config-guard and danger apply; one line of context for a repo without ai1 (runs where the launch directory has no ai1 too)', ...NO_ORIGIN },
+  'foreign-repo-verify': { description: 'files hot-edited in another repository changed after the last passing `ai1 verify --cwd` there: asks once to run it before finishing (runs where the launch directory has no ai1 too)', ...NO_ORIGIN },
 };
