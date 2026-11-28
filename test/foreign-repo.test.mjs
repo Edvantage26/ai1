@@ -97,3 +97,50 @@ test('launched where ai1 is inactive, an edit of a repo with ai1 is still refuse
   const resetPayload = { ...editPayload(workspaceRoot, ''), tool_name: 'Bash', tool_input: { command: 'git reset --hard' } };
   assert.equal(runHookEvent('PreToolUse', resetPayload, { environment, reportInternalError: () => {} }), null, 'danger stays off where ai1 is inactive');
 });
+
+// A sibling with its own rules: a deny on edits under generated/, an ask on `npm install`.
+const SIBLING_WITH_RULES = {
+  features: {},
+  rules: [
+    { id: 'no-generated', on: 'edit', action: 'deny', paths: ['generated/**'], message: 'generated/ is rebuilt, never edited.' },
+    { id: 'use-pnpm', on: 'bash', action: 'ask', pattern: '^npm install', message: 'this repo uses pnpm.' },
+  ],
+};
+
+test('a repo allowed here keeps its own rules: its deny refuses, its ask asks even in bypass, also for commands run there [foreign-repo-hot-edits:S1]', () => {
+  const { workspaceRoot, launchRoot, environment } = createWorkspace();
+  const ruledRoot = createRepository(workspaceRoot, 'ruled', SIBLING_WITH_RULES);
+  allowRepository('session-1', ruledRoot, 'hazlo aquí', environment);
+  const deniedOutput = runHookEvent('PreToolUse', editPayload(launchRoot, join(ruledRoot, 'generated', 'api.js'), 'Write'), { environment, reportInternalError: () => {} });
+  assert.equal(decisionOf(deniedOutput), 'deny');
+  assert.match(deniedOutput.hookSpecificOutput.permissionDecisionReason, /\[no-generated\] generated\/ is rebuilt/);
+  assert.equal(decisionOf(runHookEvent('PreToolUse', editPayload(launchRoot, join(ruledRoot, 'src', 'app.js')), { environment, reportInternalError: () => {} })), null, 'an edit no rule matches goes through');
+  const installPayload = { ...editPayload(launchRoot, ''), tool_name: 'Bash', tool_input: { command: `cd ${ruledRoot} && npm install left-pad` } };
+  const askedOutput = runHookEvent('PreToolUse', installPayload, { environment, reportInternalError: () => {} });
+  assert.equal(decisionOf(askedOutput), 'ask', 'the ask of the other repo is kept in bypass mode');
+  assert.match(askedOutput.hookSpecificOutput.permissionDecisionReason, /\[use-pnpm\]/);
+  const cwdPayload = { ...installPayload, tool_input: { command: 'npm install x' }, cwd: ruledRoot };
+  assert.equal(decisionOf(runHookEvent('PreToolUse', cwdPayload, { environment, reportInternalError: () => {} })), 'ask', 'a command whose cwd is in the other repo counts');
+  const elsewherePayload = { ...installPayload, tool_input: { command: 'npm install left-pad' } };
+  assert.equal(decisionOf(runHookEvent('PreToolUse', elsewherePayload, { environment, reportInternalError: () => {} })), null, 'the other repo\'s rules do not apply to commands run in the launch repo');
+});
+
+test('a change to the ai1 config of a repo allowed here asks, even in bypass [foreign-repo-hot-edits:S1]', () => {
+  const { workspaceRoot, siblingRoot, environment } = createWorkspace({ launchConfig: null });
+  allowRepository('session-1', siblingRoot, 'hazlo aquí', environment);
+  const configOutput = runHookEvent('PreToolUse', editPayload(workspaceRoot, join(siblingRoot, '.ai1', 'config.json')), { environment, reportInternalError: () => {} });
+  assert.equal(decisionOf(configOutput), 'ask');
+  assert.match(configOutput.hookSpecificOutput.permissionDecisionReason, /configuration of/);
+  const resetPayload = { ...editPayload(workspaceRoot, ''), tool_name: 'Bash', tool_input: { command: `git -C ${siblingRoot} reset --hard` } };
+  assert.equal(decisionOf(runHookEvent('PreToolUse', resetPayload, { environment, reportInternalError: () => {} })), 'ask', 'its danger applies where the launch folder runs none');
+});
+
+test('allowing a repo covers its worktrees too [foreign-repo-hot-edits:S1]', () => {
+  const { launchRoot, environment, workspaceRoot } = createWorkspace();
+  const ruledRoot = createRepository(workspaceRoot, 'ruled', SIBLING_WITH_RULES);
+  const worktreeRoot = join(workspaceRoot, 'ruled-wt');
+  runGit(ruledRoot, ['worktree', 'add', '-q', worktreeRoot]);
+  allowRepository('session-1', ruledRoot, 'hazlo aquí', environment);
+  assert.equal(decisionOf(runHookEvent('PreToolUse', editPayload(launchRoot, join(worktreeRoot, 'src', 'app.js')), { environment, reportInternalError: () => {} })), null);
+  assert.equal(decisionOf(runHookEvent('PreToolUse', editPayload(launchRoot, join(worktreeRoot, 'generated', 'x.js'), 'Write'), { environment, reportInternalError: () => {} })), 'deny');
+});

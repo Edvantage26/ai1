@@ -14,11 +14,12 @@ import { recordPendingErrors } from './pending-errors.mjs';
 // Permission modes where the person chose not to be asked (bypass, auto): only the asks that guard
 // against losing work or data for good (danger) and the repo's own rules (repo-rules) still reach
 // them; the other modules' asks (config-guard, test-guard, sizing-gate scripts) let the call through.
+// A decision marked `keptUnattended` is kept too (another repository's guards applied by foreign-repo).
 const UNATTENDED_PERMISSION_MODES = new Set(['bypassPermissions', 'auto', 'dontAsk']);
 const ASKS_KEPT_UNATTENDED = new Set(['danger', 'repo-rules']);
 
 export function relaxAskForPermissionMode(moduleId, moduleDecision, permissionMode) {
-  if (moduleDecision?.kind !== 'ask' || !UNATTENDED_PERMISSION_MODES.has(permissionMode) || ASKS_KEPT_UNATTENDED.has(moduleId)) return moduleDecision;
+  if (moduleDecision?.kind !== 'ask' || !UNATTENDED_PERMISSION_MODES.has(permissionMode) || ASKS_KEPT_UNATTENDED.has(moduleId) || moduleDecision.keptUnattended) return moduleDecision;
   return { ...allowDecision(), relaxedAsk: true };
 }
 
