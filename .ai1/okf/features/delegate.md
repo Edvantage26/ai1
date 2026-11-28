@@ -5,7 +5,7 @@ description: An edit to a file of another repository with ai1 active is delegate
 tags: [delegate, foreign-repo, cross-repo, claude-p, submodules, hot-edits]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-28T10:22:36Z'
+  at: '2026-11-28T10:27:39Z'
 ---
 
 # What it does
@@ -128,6 +128,10 @@ Untracked files not ignored in a submodule (an un-ignored `venv/`) are listed an
   the status still comes from the model's text line; `delegate-report` only adds facts beside it.
 - Hot edits do not bring the target's skills, plugins, MCP servers, sizing or session-start rules: those
   need a session started there.
+- The target's knowledge in hot edits (checked 2026-11-28): `okf-file-context` names only the other
+  repo's bundle (once per repo), not the concept that describes the edited file; `okf-upkeep` watches
+  only the launch bundle, so nothing asks to update or validates the target's bundle; and its
+  `.ai1/okf/` files count toward `hot_max_files`. A delegated session has none of these gaps.
 - Not used yet, available in Claude Code 2.1.319 (`claude --help`, 2026-11-28): `--bg` with
   `claude agents --json` / `attach` / `logs` / `stop` (background sessions a person can attach to),
   `--json-schema` (structured result), `--permission-prompts host` with `--permission-prompt-tool`
