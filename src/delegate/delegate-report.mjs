@@ -3,12 +3,13 @@
 // whether the verify commands passed in this session and the plans it left open. `ai1 delegate` merges
 // it into the delegation record when the run ends, next to the status the agent wrote. Silent elsewhere.
 
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { allowDecision } from '../core/hook-io.mjs';
 import { readSessionBase } from '../core/session-base.mjs';
 import { listActivePlans, listPlanRoots, readSessionPlanSlugs } from '../sizing/sizing-work.mjs';
 import { scanVerifyRuns } from '../verify/verify-gate.mjs';
+import { readJointFields } from '../sizing/joint-plans.mjs';
 import { delegationReportPath } from './delegate-state.mjs';
 
 const MODULE_ID = 'delegate-report';
@@ -35,7 +36,10 @@ export default {
     const hasTranscript = scanVerifyRuns(hookInput.transcript_path, verifyCommands, scanState, projectRoot);
     const sessionBase = readSessionBase(hookInput, projectRoot, environment);
     const openPlans = listActivePlans(listPlanRoots(projectRoot, sharedRoot), sessionBase?.sessionStartMilliseconds, readSessionPlanSlugs(hookInput, projectRoot, environment))
-      .map((workPlan) => ({ slug: workPlan.slug, title: workPlan.title, status: workPlan.status, path: workPlan.planPath }));
+      .map((workPlan) => {
+        const { parent, contract } = readJointFields(readFileSync(workPlan.planPath, 'utf8'));
+        return { slug: workPlan.slug, title: workPlan.title, status: workPlan.status, path: workPlan.planPath, ...(parent ? { parent, contract } : {}) };
+      });
     const reportPath = delegationReportPath(delegatedSessionId, environment);
     mkdirSync(dirname(reportPath), { recursive: true });
     writeFileSync(reportPath, JSON.stringify({

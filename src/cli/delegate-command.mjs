@@ -1,6 +1,6 @@
 // `ai1 delegate`: a change to another repository made by a session started there (see
 // src/delegate/delegate-session.mjs).
-//   ai1 delegate --cwd <repo> (--brief <file> | "<task>") [--permission-mode <mode>] [--max-turns <n>] [--timeout <minutes>] [--claude-command "<cmd>"]
+//   ai1 delegate --cwd <repo> (--brief <file> | "<task>") [--design --joint <joint plan.md>] [--permission-mode <mode>] [--max-turns <n>] [--timeout <minutes>] [--claude-command "<cmd>"]
 //   ai1 delegate --resume <session-id> [--allow-once "<command>"] [--permission-mode <mode>] "<the person's answer>" [--timeout <minutes>]
 //   ai1 delegate allow <repo> --because "<the person's words>"   edits of <repo> allowed for this session
 //   ai1 delegate show <session-id>                              the saved result of a delegation
@@ -14,9 +14,9 @@ import { readDelegationRecord, resumeDelegation, startDelegation } from '../dele
 import { allowRepository } from '../delegate/delegate-state.mjs';
 import { runExternalCommand } from '../session/fork-session.mjs';
 
-export const DELEGATE_USAGE = 'usage: ai1 delegate --cwd <repo> (--brief <file> | "<task>") [--permission-mode <mode>] [--max-turns <n>] [--timeout <minutes>] [--claude-command "<cmd>"] | --resume <session-id> [--allow-once "<command>"] [--permission-mode <mode>] "<answer>" | allow <repo> --because "<the person\'s words>" | show <session-id>';
+export const DELEGATE_USAGE = 'usage: ai1 delegate --cwd <repo> (--brief <file> | "<task>") [--design --joint <joint plan.md>] [--permission-mode <mode>] [--max-turns <n>] [--timeout <minutes>] [--claude-command "<cmd>"] | --resume <session-id> [--allow-once "<command>"] [--permission-mode <mode>] "<answer>" | allow <repo> --because "<the person\'s words>" | show <session-id>';
 
-const OPTIONS_WITH_VALUE = new Set(['--cwd', '--brief', '--permission-mode', '--max-turns', '--timeout', '--resume', '--allow-once', '--because', '--claude-command']);
+const OPTIONS_WITH_VALUE = new Set(['--cwd', '--brief', '--joint', '--permission-mode', '--max-turns', '--timeout', '--resume', '--allow-once', '--because', '--claude-command']);
 
 // The arguments that are not options or option values (the inline task or the answer).
 function listPositionalArguments(commandArguments) {
@@ -59,10 +59,13 @@ export function runDelegateCommand(workingDirectory, commandArguments, { readOpt
     return 0;
   }
   if (readOption('--cwd')) {
+    // `--design`: a design session for that repository's part of a joint plan (`--joint <plan.md>`).
+    if (commandArguments.includes('--design') !== Boolean(readOption('--joint'))) throw new Error('--design and --joint <joint plan.md> go together');
     printJson(startDelegation({
       targetDirectory: resolve(workingDirectory, readOption('--cwd')),
       briefPath: readOption('--brief') ? resolve(workingDirectory, readOption('--brief')) : null,
       taskText: positionalText,
+      jointPlanPath: readOption('--joint') ? resolve(workingDirectory, readOption('--joint')) : null,
       permissionMode: readOption('--permission-mode'),
       maxTurns: readOption('--max-turns'),
       timeoutMinutes: readOption('--timeout'),

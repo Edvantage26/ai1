@@ -12,12 +12,15 @@
 
 import { randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { describeOwningRepository } from '../core/owning-repo.mjs';
 import { runExternalCommand } from '../session/fork-session.mjs';
 import { resolveClaudeCommand } from '../session/claude-command.mjs';
 import { resolveStateDirectory } from '../core/session-state.mjs';
 import { delegationReportPath, grantOneTimeAllow, readRememberedPermissionMode } from './delegate-state.mjs';
+import { findMainCheckout } from '../core/project-roots.mjs';
+import { WORK_DIRECTORY } from '../core/config.mjs';
+import { canonicalPlanPath, hashContractSection } from '../sizing/joint-plans.mjs';
 
 const DEFAULT_TIMEOUT_MINUTES = 60;
 const STATUS_LINE_PATTERN = /^\s*AI1-DELEGATE:\s*(done|needs-input)\s*(?::\s*(.*))?$/gim;
@@ -34,6 +37,27 @@ export const DELEGATE_PROTOCOL = [
   'When the change is done and checked, end your last message with the line `AI1-DELEGATE: done`.',
   'Your last message is the only thing the caller receives: make it the complete report (what changed, what was left out and why, open points), never a reference to an earlier message.',
 ].join('\n');
+
+// The protocol of a design session (`ai1 delegate --design --joint <plan>`): this repository's part of a
+// joint plan, written as its sub-plan in its main checkout, linked back and pinned to the contract hash.
+export function buildDesignProtocol({ jointPlanPath, repoRoot }) {
+  const jointCanonicalPath = canonicalPlanPath(jointPlanPath);
+  const planSlug = basename(dirname(jointCanonicalPath));
+  const subplanPath = join(findMainCheckout(repoRoot), WORK_DIRECTORY, planSlug, 'plan.md');
+  const contractHash = hashContractSection(readFileSync(jointPlanPath, 'utf8'));
+  return [
+    '## How to finish (ai1 delegate, design only)',
+    'You were started by another Claude Code session to design this repository\'s part of a joint plan that spans several repositories; the person is not watching this session.',
+    'Design only: read this repository\'s CLAUDE.md, its knowledge bundle (`.ai1/okf/index.md` and the concepts the change touches) and the code you need; change no code and do not commit.',
+    `The joint plan is \`${jointCanonicalPath}\`: read its goal, its \`# Contract\`, its scenarios and the part asked of this repository.`,
+    `Write this repository's part at \`${subplanPath}\` (the main checkout, not a worktree). If that folder already exists, stop with the needs-input line naming it.`,
+    `Its frontmatter, exactly: \`title: <this repository's part in one line>\`, \`size: plan\`, \`status: ready\`, \`parent: ${jointCanonicalPath}\`, \`contract: ${contractHash}\`.`,
+    'Its body: `# Steps` (each with how it is checked), `# Behaviour` with the joint scenarios this repository owns copied with the same ids (S1, S2...) plus any of its own numbered after them, and `# Constraints` with the rules of this repository that shape the part, each with its source.',
+    'Follow this repository\'s rules: anything they forbid in the contract is an objection to report, never something to work around.',
+    'End your last message with the complete report: the sub-plan path; `Objections to the contract:` (each with the rule or concept behind it, or "none"); `Impacts on other repositories:` (or "none"); then the line `AI1-DELEGATE: done`, or `AI1-DELEGATE: needs-input: <the question>` for a decision only the person can take.',
+    'Your last message is the only thing the caller receives.',
+  ].join('\n');
+}
 
 function git(repoRoot, gitArguments, runCommand) {
   const gitResult = runCommand('git', ['-C', repoRoot, ...gitArguments], { timeoutMilliseconds: 20_000 });
@@ -180,7 +204,7 @@ function finishRun({ baseRecord, commandResult, runCommand, environment }) {
 }
 
 // Starts a delegated session in `targetDirectory` with the brief (a file) or an inline task.
-export function startDelegation({ targetDirectory, briefPath, taskText, permissionMode, maxTurns, timeoutMinutes, claudeCommand, callerSessionId, environment = process.env, runCommand = runExternalCommand }) {
+export function startDelegation({ targetDirectory, briefPath, taskText, jointPlanPath, permissionMode, maxTurns, timeoutMinutes, claudeCommand, callerSessionId, environment = process.env, runCommand = runExternalCommand }) {
   const repoRoot = describeOwningRepository(resolve(targetDirectory), resolve(targetDirectory))?.repoRoot;
   if (!repoRoot) throw new Error(`${targetDirectory} is not inside a git repository`);
   let briefText = taskText ? String(taskText).trim() : '';
@@ -189,19 +213,21 @@ export function startDelegation({ targetDirectory, briefPath, taskText, permissi
     briefText = readFileSync(briefPath, 'utf8').trim();
   }
   if (!briefText) throw new Error('nothing to delegate: give --brief <file> or the task as text');
+  if (jointPlanPath && !existsSync(jointPlanPath)) throw new Error(`no joint plan at ${jointPlanPath}`);
+  const finishProtocol = jointPlanPath ? buildDesignProtocol({ jointPlanPath, repoRoot }) : DELEGATE_PROTOCOL;
   const effectivePermissionMode = permissionMode || readRememberedPermissionMode(callerSessionId, environment) || null;
   const sessionId = randomUUID();
   const startSnapshot = snapshotRepository(repoRoot, runCommand);
   const commandResult = runClaude({
     repoRoot,
     sessionId,
-    claudeArguments: ['-p', '--output-format', 'json', '--session-id', sessionId, ...permissionArguments(effectivePermissionMode), ...(maxTurns ? ['--max-turns', String(maxTurns)] : []), `${briefText}\n\n${DELEGATE_PROTOCOL}`],
+    claudeArguments: ['-p', '--output-format', 'json', '--session-id', sessionId, ...permissionArguments(effectivePermissionMode), ...(maxTurns ? ['--max-turns', String(maxTurns)] : []), `${briefText}\n\n${finishProtocol}`],
     claudeCommand,
     environment,
     runCommand,
     timeoutMinutes,
   });
-  const baseRecord = { session_id: sessionId, repo: repoRoot, brief_path: briefPath || null, permission_mode: effectivePermissionMode, claude_command: claudeCommand || null, start_snapshot: startSnapshot, started_at: new Date().toISOString() };
+  const baseRecord = { session_id: sessionId, repo: repoRoot, brief_path: briefPath || null, ...(jointPlanPath ? { design_for: canonicalPlanPath(jointPlanPath) } : {}), permission_mode: effectivePermissionMode, claude_command: claudeCommand || null, start_snapshot: startSnapshot, started_at: new Date().toISOString() };
   return finishRun({ baseRecord, commandResult, runCommand, environment });
 }
 

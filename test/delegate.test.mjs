@@ -10,6 +10,7 @@ import { runDelegateCommand } from '../src/cli/delegate-command.mjs';
 import dangerModule from '../src/guards/danger.mjs';
 import { runHookEvent } from '../src/core/dispatcher.mjs';
 import { dispatchHookEvent } from '../src/core/hook-dispatch.mjs';
+import { hashContractSection } from '../src/sizing/joint-plans.mjs';
 
 function runGit(repoRoot, gitArguments) {
   return execFileSync('git', ['-C', repoRoot, '-c', 'user.name=t', '-c', 'user.email=t@t', ...gitArguments], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
@@ -125,6 +126,40 @@ test('the delegated session knows it is delegated: no nudges for a person, and i
   const shownOutput = [];
   runDelegateCommand(launchRoot, ['show', delegationRecord.session_id], { environment, writeOutput: (outputText) => shownOutput.push(outputText) });
   assert.match(shownOutput.join('\n'), /"verify": "passed"/);
+});
+
+test('a design session for a joint plan gets the design-only protocol and returns its sub-plan, linked back and pinned to the contract [joint-plans:S1]', () => {
+  const { workspaceRoot, launchRoot, environment } = createWorkspace();
+  const engineRoot = createRepository(workspaceRoot, 'engine', { features: {} });
+  const jointPlanDirectory = join(launchRoot, '.ai1', 'work', 'tenant-options');
+  mkdirSync(jointPlanDirectory, { recursive: true });
+  const jointPlanPath = join(jointPlanDirectory, 'plan.md');
+  writeFileSync(jointPlanPath, '---\ntitle: Tenant options\nstatus: draft\n---\n# Goal\nX.\n\n# Contract\nPOST /chat accepts `tenant_options`.\n');
+  const contractHash = hashContractSection(readFileSync(jointPlanPath, 'utf8'));
+  const subplanPath = join(engineRoot, '.ai1', 'work', 'tenant-options', 'plan.md');
+  const transcriptPath = join(workspaceRoot, 'design-transcript.jsonl');
+  const { runCommand, claudeCalls } = fakeRunner((programArguments, commandOptions) => {
+    const promptText = programArguments.at(-1);
+    assert.match(promptText, /Design only: .*change no code/);
+    assert.ok(promptText.includes(`at \`${subplanPath}\``), 'names where the sub-plan goes: the main checkout');
+    assert.ok(promptText.includes(`\`parent: ${jointPlanPath}\``) && promptText.includes(`\`contract: ${contractHash}\``));
+    assert.match(promptText, /Objections to the contract:/);
+    mkdirSync(join(engineRoot, '.ai1', 'work', 'tenant-options'), { recursive: true });
+    writeFileSync(subplanPath, `---\ntitle: Engine part\nsize: plan\nstatus: ready\nparent: ${jointPlanPath}\ncontract: ${contractHash}\n---\n# Steps\n- [ ] 1. Accept it.\n`);
+    writeFileSync(transcriptPath, `${JSON.stringify({ type: 'assistant', timestamp: new Date().toISOString(), message: { content: [{ type: 'tool_use', id: 'w1', name: 'Write', input: { file_path: subplanPath } }] } })}\n`);
+    runHookEvent('Stop', { session_id: readSessionId(programArguments), hook_event_name: 'Stop', cwd: engineRoot, transcript_path: transcriptPath }, { environment: { ...environment, ...commandOptions.extraEnvironment }, reportInternalError: () => {} });
+    return claudeJson({ session_id: readSessionId(programArguments), result: 'Sub-plan written.\nObjections to the contract: none\nAI1-DELEGATE: done' });
+  });
+  const briefPath = join(workspaceRoot, 'engine-brief.md');
+  writeFileSync(briefPath, '# Engine part of tenant options\n');
+  const shownOutput = [];
+  runDelegateCommand(launchRoot, ['--cwd', engineRoot, '--brief', briefPath, '--design', '--joint', jointPlanPath], { readOption: (optionName) => ({ '--cwd': engineRoot, '--brief': briefPath, '--joint': jointPlanPath })[optionName], environment, runCommand, writeOutput: (outputText) => shownOutput.push(outputText) });
+  assert.equal(claudeCalls.length, 1);
+  const delegationRecord = JSON.parse(shownOutput.join('\n'));
+  assert.equal(delegationRecord.status, 'done');
+  assert.equal(delegationRecord.design_for, jointPlanPath);
+  assert.deepEqual(delegationRecord.open_plans.map((openPlan) => [openPlan.path, openPlan.status, openPlan.parent, openPlan.contract]), [[subplanPath, 'ready', jointPlanPath, contractHash]]);
+  assert.throws(() => runDelegateCommand(launchRoot, ['--cwd', engineRoot, '--design'], { readOption: (optionName) => ({ '--cwd': engineRoot })[optionName], environment, runCommand, writeOutput: () => {} }), /--design and --joint/);
 });
 
 test('a question stops the delegated session and the answer resumes the same one [foreign-repo-delegation:S3]', () => {
