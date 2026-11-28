@@ -5,7 +5,7 @@ description: Each task sized quick, plan or deep - with a plan file for plan and
 tags: [sizing, workflow, hooks, skills, approval]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-28T11:38:02Z'
+  at: '2026-11-28T18:34:20Z'
 sources:
   - id: sizing-work
     resource: src/sizing/sizing-work.mjs
@@ -110,6 +110,16 @@ gate is a hook block; plans live in a local ignored folder.
   in to a confident peer and cost 2-3x, cheap reviewers missed planted defects, re-review loops
   churn. Not in plan tasks: redoing one is cheap and nobody waits on it; a plan with a doubtful
   premise is a deep task, and the person can always ask for a critique.
+- **Closing summary (since 2026-11-28):** every plan shown to the person, of any size or mode (plan,
+  deep approval summary, Claude Code's plan mode), ends with a bullet summary of what will be done and
+  a `Data model:` line saying how tables, fields, migrations or stored formats change, or `no
+  changes`. Asked by the person so the end of a plan says at a glance what happens and whether the
+  data changes. The line is always there: if it only appeared on changes, its absence would not tell
+  "unchanged" from "not checked". "Data model" rather than "database" so schemas kept in files count
+  too. One short sentence in the recipe, because of the session-start budget: to fit it, the recipe
+  lost the quick examples ("a bug, a wording, a small tweak"; the resume test is the criterion), the
+  deep line's "(a design the person approves before code)" (the skill name says it) and wording of
+  the unfinished-plans note; the worst case sits at 9489 of 9500 characters.
 
 # Behaviour scenarios (since 2026-11-09)
 

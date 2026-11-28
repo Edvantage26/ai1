@@ -121,7 +121,9 @@ message). One round only: do not send the revised plan back to the critic and do
 ## 6. Ask for approval
 
 Set `status: ready` and show the person a short summary: goal, behaviour scenarios, chosen approach, steps, risks,
-the critic's objections with what you did with each, and the rulings you made. Ask them to approve or to say what to change. A plain yes from them
+the critic's objections with what you did with each, and the rulings you made. End it with a bullet
+summary of what will be done, then a `Data model:` line saying how tables, fields, migrations or
+stored formats change, or `no changes`. Ask them to approve or to say what to change. A plain yes from them
 ("aprobado", "adelante", "ok", "go ahead") is recorded by the `sizing-approval` hook and opens code
 edits, but only right after a turn of yours that wrote the plan: ask in the same turn you set it
 ready or update it. If they ask for changes or question the design, update the plan, keep
