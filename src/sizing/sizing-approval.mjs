@@ -7,7 +7,9 @@
 // a redesign and asked "shall I change it and present it again?"; the person's "Si" approved the old
 // design. Reading what the agent asked would depend on its wording; whether it wrote the plan does not.
 
+import { readFileSync } from 'node:fs';
 import { allowDecision, contextDecision } from '../core/hook-io.mjs';
+import { checkSubplans, describeSubplanProblem, isJointPlan } from './joint-plans.mjs';
 import { eventContentBlocks, readLastAgentTurnEvents } from '../core/transcript-scan.mjs';
 import { listPlanRoots, listPlanSlugsWrittenBy, listWorkPlans, readSessionPlanSlugs, recordApproval, writePlanStatus } from './sizing-work.mjs';
 
@@ -57,6 +59,16 @@ export default {
         `The person said yes, but the design \`${readyPlan.relativePath}\` is NOT approved: your last turn did not present it (it did not write the plan), so the yes answers something else you asked.`,
         'Do what they said yes to. To ask for approval, write the plan in the turn where you ask (update it with what was discussed, keep `status: ready`) and ask again.',
         `If you did write it from Bash, it was not recognised: write it with Write/Edit, or name its full path \`${readyPlan.relativePath}\` in the command.`,
+      ].join('\n'));
+    }
+    // A joint plan covers other repositories' parts: approved only while each sub-plan links back, is
+    // ready and was designed against the current Contract (joint-plans.mjs).
+    const failingSubplans = isJointPlan(readFileSync(readyPlan.planPath, 'utf8')) ? checkSubplans(readyPlan.planPath).filter((subplanCheck) => subplanCheck.problem) : [];
+    if (failingSubplans.length) {
+      return contextDecision(MODULE_ID, [
+        `The person said yes, but the joint design \`${readyPlan.relativePath}\` is NOT approved: its sub-plans are not in line with it.`,
+        ...failingSubplans.map((subplanCheck) => `- ${describeSubplanProblem(subplanCheck)}`),
+        'Fix each one (consult the repo again, link it, set it ready), then present the joint plan again (write it in that turn) and ask for approval.',
       ].join('\n'));
     }
     recordApproval(sharedRoot, environment, readyPlan.relativePath);

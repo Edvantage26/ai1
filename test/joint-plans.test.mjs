@@ -1,9 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { runHookEvent } from '../src/core/dispatcher.mjs';
 import { checkSubplans, hashContractSection, readFrontmatterList, readJointFields, canonicalPlanPath } from '../src/sizing/joint-plans.mjs';
 
 function runGit(repoRoot, gitArguments) {
@@ -68,4 +69,27 @@ test('a joint plan written in a worktree is still the parent its sub-plans name 
   const worktreeRoot = join(workspaceRoot, 'client-wt');
   runGit(clientRoot, ['worktree', 'add', '-q', worktreeRoot]);
   assert.equal(canonicalPlanPath(join(worktreeRoot, '.ai1', 'work', 'tenant-options', 'plan.md')), join(clientRoot, '.ai1', 'work', 'tenant-options', 'plan.md'));
+});
+
+function approveJointPlan({ clientRoot, jointPlanPath, workspaceRoot }) {
+  const transcriptPath = join(workspaceRoot, 'coordinator.jsonl');
+  writeFileSync(transcriptPath, [
+    { type: 'user', message: { role: 'user', content: 'diseña el cambio' } },
+    { type: 'assistant', message: { content: [{ type: 'tool_use', id: 'w1', name: 'Write', input: { file_path: jointPlanPath, content: '...' } }] } },
+  ].map((transcriptEvent) => `${JSON.stringify(transcriptEvent)}\n`).join(''));
+  const environment = { AI1_DECISION_LOG: '0', CLAUDE_PLUGIN_DATA: join(workspaceRoot, '.plugin-data'), CLAUDE_PROJECT_DIR: clientRoot };
+  return runHookEvent('UserPromptSubmit', { session_id: 'coordinator', cwd: clientRoot, transcript_path: transcriptPath, prompt: 'adelante' }, { environment, reportInternalError: () => {} });
+}
+
+test('one yes approves the joint plan only while every sub-plan links back, is ready and has the current contract [joint-plans:S2]', () => {
+  const okWorkspace = createJointWorkspace();
+  assert.match(approveJointPlan(okWorkspace).hookSpecificOutput.additionalContext, /approved the design/);
+  assert.match(readFileSync(okWorkspace.jointPlanPath, 'utf8'), /status: approved/);
+  assert.match(readFileSync(okWorkspace.subplanPath, 'utf8'), /status: ready/, 'the other repo\'s files are not written');
+
+  const staleWorkspace = createJointWorkspace({ subplanContract: 'old' });
+  const staleText = approveJointPlan(staleWorkspace).hookSpecificOutput.additionalContext;
+  assert.match(staleText, /joint design .* is NOT approved/);
+  assert.ok(staleText.includes(staleWorkspace.subplanPath) && /another version of `# Contract`/.test(staleText), 'names the sub-plan and why');
+  assert.match(readFileSync(staleWorkspace.jointPlanPath, 'utf8'), /status: ready/);
 });
