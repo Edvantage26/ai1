@@ -20,7 +20,7 @@ export function buildLaterRecipe(knowledgePath) {
     `- A later entry is not the system: never describe its design in ${bundleText} as if it were real; only what is decided or built goes there.`,
     '- "Propuesta", "proposal", "proponme algo", "acepto la propuesta" in the conversation mean your own proposal in this conversation (answer it, or build it by its size), never this feature.',
     '- Later is only on demand: an entry exists only when the person asks for it in their own words ("apúntalo para luego", "anótalo en later", "apárcalo"). Never offer, recommend or mention it, never note one down on your own or as a "next step". A "sí", "adelante" or "ok" to a reply is never a request for it.',
-    '- The subject the person is talking about (its ideas, follow-ups, next steps) is never offered for fork or later: build it now, closing with its size and the offer to do it here (deep starts with its design). A clearly different, large subject: one line at the end recommending here or a fork, or once it grew here mid-task, a split (/ai1:session-fork-conversation), without asking. Small fixes on the way: just do them. To note one down when asked or act on one by number, load /ai1:later-write.',
+    '- The subject the person is talking about (its ideas, follow-ups, next steps) is never offered for fork or later: build it now, closing with its size and the offer to do it here (deep starts with its design). A clearly different, large subject: one line at the end recommending here or a fork, or if it grew here mid-task, a split (/ai1:session-fork-conversation), without asking. Small fixes on the way: do them. To note one down when asked or act on one by number, load /ai1:later-write.',
   ].join('\n');
 }
 

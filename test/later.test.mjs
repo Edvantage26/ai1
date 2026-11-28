@@ -151,7 +151,7 @@ test('later-brief: the recipe and the open entries; silent on resume; off with f
   assert.match(contextText, /Never offer, recommend or mention it, never note one down on your own or as a "next step"/);
   assert.match(contextText, /A "sí", "adelante" or "ok" to a reply is never a request for it/);
   assert.match(contextText, /The subject the person is talking about \(its ideas, follow-ups, next steps\) is never offered for fork or later: build it now, closing with its size/);
-  assert.match(contextText, /one line at the end recommending here or a fork, or once it grew here mid-task, a split \(\/ai1:session-fork-conversation\), without asking/);
+  assert.match(contextText, /one line at the end recommending here or a fork, or if it grew here mid-task, a split \(\/ai1:session-fork-conversation\), without asking/);
   assert.doesNotMatch(contextText, /Recomiendo apuntarlo para luego|note it down for later\)|a yes means the way you recommended/);
   assert.match(contextText, /act on one by number, load \/ai1:later-write/);
   assert.match(contextText, /0001 "Guard writes to production" \(idea, draft\)/);
