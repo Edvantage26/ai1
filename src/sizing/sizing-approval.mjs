@@ -15,8 +15,9 @@ const MODULE_ID = 'sizing-approval';
 const MAX_APPROVAL_CHARACTERS = 120;
 const APPROVAL_WORDS = /\b(aprobad[oa]|apruebo|aprueba|apruebalo|aprobar|adelante|dale|vale|ok|okay|perfecto|listo|acepto|aceptad[oa]|approved?|accept(?:ed)?|lgtm|go ahead|proceed|yes|sounds good)\b/;
 // "si" is a yes only when it opens the message ("si", "sí, adelante"); inside a sentence it is the
-// conditional "if" ("que si hay un error...").
-const LEADING_YES = /^si\b/;
+// conditional "if" ("que si hay un error..."). It also opens a line of an answer by points, after
+// the item's number: seen on 2026-11-28, "1 si\n2 todos de momento" did not approve a design.
+const LEADING_YES = /^\s*(?:\d+\s*[.)-]?\s*)?si\b/m;
 const RESERVATION_WORDS = /\b(no|pero|cambia|cambiar|antes|espera|falta|duda|aunque|but|change|wait|before|instead|not)\b/;
 
 export function normalizePrompt(promptText) {

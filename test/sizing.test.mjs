@@ -218,6 +218,9 @@ test('isApprovalMessage: short plain yes only', () => {
   // Seen on 2026-11-09: a question with a conditional "si" approved a design.
   for (const notApproval of ['o que si hay un error proponga enviar un issue, eso cuadraria?', 'y si lo hacemos en dos pasos', 'ok?', '¿vale así?']) assert.equal(isApprovalMessage(notApproval), false, notApproval);
   for (const approval of ['si', 'sí', 'si adelante con todo', 'Sí, aprobado']) assert.equal(isApprovalMessage(approval), true, approval);
+  // Seen on 2026-11-28: an answer by points to the agent's numbered questions.
+  for (const approval of ['1 si\n2 todos de momento', '1) sí\n2) el técnico', '1. si']) assert.equal(isApprovalMessage(approval), true, approval);
+  for (const notApproval of ['1 si\n2 no', '1 que si hay un error\n2 todos']) assert.equal(isApprovalMessage(notApproval), false, notApproval);
   // "acepto la propuesta" answers the agent's own proposal: a yes, never a request to note it down for later.
   for (const approval of ['acepto la propuesta', 'Aceptado', 'accepted']) assert.equal(isApprovalMessage(approval), true, approval);
   for (const notApproval of ['acepto, pero cambia el paso 2', '¿acepto así?']) assert.equal(isApprovalMessage(notApproval), false, notApproval);
