@@ -5,7 +5,7 @@ description: One entry point per hook event that loads .ai1/config.json and runs
 tags: [hooks, runtime, modules]
 generated:
   by: claude-code/claude-opus-5-5
-  at: '2026-11-28T10:22:36Z'
+  at: '2026-11-28T18:50:58Z'
 ---
 
 # Flow
@@ -220,7 +220,9 @@ To measure one repo's session start without touching the person's log: pipe
 `{"hook_event_name":"SessionStart","source":"startup","session_id":"m","cwd":"<repo>"}` into
 `CLAUDE_PLUGIN_DATA=$(mktemp -d) node bin/ai1-hook.mjs SessionStart`; the decision log in that
 temporary `state/` directory has the characters of each module. `test/session-start-budget.test.mjs`
-does the same on generated repos and prints the per-module sizes when it fails.
+does the same on generated repos and prints the per-module sizes when it fails; in the worst case it
+also names each trimmed module with the characters it lost and how far over the budget the untrimmed
+text was, so a brief that grows says how much to cut (several sessions measured it by hand before).
 
 How to check: `ai1 log` for time and characters per module; the size of a SessionStart output shows
 in the session as `<persisted-output>` when it went over the cap.

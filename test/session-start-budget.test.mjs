@@ -87,7 +87,19 @@ function startSession(projectRoot, homeDirectory) {
     .flatMap((fileName) => readFileSync(join(stateDirectory, fileName), 'utf8').trim().split('\n').map((logLine) => JSON.parse(logLine)))
     .filter((logEntry) => logEntry.chars > 0)
     .map((logEntry) => `${logEntry.module} ${logEntry.chars}`).join(', ');
-  return { contextText, sizeReport: `${contextText.length} characters (${moduleSizes})` };
+  return { contextText, sizeReport: `${contextText.length} characters (${moduleSizes})${describeTrimmedModules(contextText)}` };
+}
+
+// For the failure message: which modules hook-io trimmed, how much each lost, and how far over the
+// budget the untrimmed text was, so a brief that grows says how much to cut without measuring by hand.
+function describeTrimmedModules(contextText) {
+  const trimMarkers = [...contextText.matchAll(/\n\[ai1\/([\w-]+): (\d+) more characters left out[^\]]*\]/g)];
+  if (trimMarkers.length === 0) return '';
+  const removedCharacters = trimMarkers.reduce((total, trimMarker) => total + Number(trimMarker[2]), 0);
+  const markerCharacters = trimMarkers.reduce((total, trimMarker) => total + trimMarker[0].length, 0);
+  const untrimmedLength = contextText.length - markerCharacters + removedCharacters;
+  const trimmedText = trimMarkers.map((trimMarker) => `${trimMarker[1]} -${trimMarker[2]}`).join(', ');
+  return `; trimmed: ${trimmedText}; untrimmed ~${untrimmedLength}, ${untrimmedLength - MAX_FIELD_CHARACTERS} over the ${MAX_FIELD_CHARACTERS} budget`;
 }
 
 test('the worst-case session start keeps every rule text whole; only list items are left out, each list saying how many [session-start-diet:S2]', () => {
